@@ -1,0 +1,101 @@
+# otel-collector-config.yaml — the canonical 3-signal Collector configuration.
+#
+# Applications emit OTLP (HTTP on 4318, gRPC on 4317) to the Collector. The
+# Collector batches and routes:
+#   logs    -> Loki  (loki-gateway in this namespace)
+#   traces  -> Tempo (tempo in this namespace, OTLP gRPC)
+#   metrics -> Mimir (mimir-nginx in this namespace, prometheus remote-write)
+#
+# This is the "everything goes through the Collector" pattern — the convention
+# that lets every signal-routing decision happen in one place rather than
+# scattered across services. To add tail sampling, label redaction, or
+# cardinality control, modify the pipelines below; applications don't need to
+# change.
+#
+# Mounted into the Collector pod as /etc/otelcol-contrib/config.yaml by the
+# helm chart's configMap.existingName setting.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+data:
+  relay: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        # Standard batching for throughput. Adjust if you see queue-full errors.
+        send_batch_size: 1024
+        timeout: 10s
+
+      memory_limiter:
+        # Back-pressure before the Collector OOMs. Set against the Collector
+        # pod's memory limit, not against host memory.
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+
+      resource:
+        # Stamp every signal with the cluster name. Useful when multiple
+        # clusters report to one Grafana later.
+        attributes:
+          - key: cluster
+            value: minikube
+            action: upsert
+
+    exporters:
+      # Traces -> Tempo via OTLP gRPC (Tempo's native protocol).
+      otlp/tempo:
+        endpoint: tempo.observability.svc.cluster.local:4317
+        tls:
+          insecure: true
+
+      # Metrics -> Mimir via Prometheus remote-write.
+      prometheusremotewrite:
+        endpoint: http://mimir-nginx.observability.svc.cluster.local:80/api/v1/push
+        tls:
+          insecure: true
+
+      # Logs -> Loki via the OTLP-native receiver (Loki ≥3 supports OTLP).
+      otlphttp/loki:
+        endpoint: http://loki-gateway.observability.svc.cluster.local:80/otlp
+        tls:
+          insecure: true
+
+      # Debug exporter — handy during initial setup. Comment out or set
+      # verbosity=basic once signals are flowing.
+      debug:
+        verbosity: basic
+
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, batch]
+          exporters: [otlp/tempo]
+
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, batch]
+          exporters: [prometheusremotewrite]
+
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, batch]
+          exporters: [otlphttp/loki]
+
+      telemetry:
+        logs:
+          level: info

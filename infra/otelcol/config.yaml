@@ -1,0 +1,128 @@
+# infra/otelcol/config.yaml
+#
+# OpenTelemetry Collector configuration for the `lgtm` service in
+# compose.yaml (the grafana/otel-lgtm all-in-one image). Mounted at
+# /otel-lgtm/otelcol-config.yaml, replacing the image's built-in collector
+# config, so this file's `exporters:` target the OTHER backends bundled in
+# the SAME container (Tempo/Mimir/Loki all listen on localhost inside that
+# one image) — not other compose services.
+#
+# The exporter endpoints/paths below are NOT the generic
+# lgtm-docker-stack skill base-config values — they were corrected against
+# the grafana/otel-lgtm:0.8.1 image's OWN shipped default config (`docker
+# run --entrypoint sh grafana/otel-lgtm:0.8.1 -c "cat
+# /otel-lgtm/otelcol-config.yaml"`), because that image's internal
+# run-all.sh startup script blocks on Mimir/Prometheus returning the
+# `otelcol_process_uptime_total` metric before marking the container
+# healthy. Getting these three things wrong makes the container hang
+# forever at "Waiting for the OpenTelemetry collector to start up..." with
+# no other error (confirmed empirically while writing this file):
+#   1. Traces must go to Tempo's OTLP ingest port 4418, NOT Tempo's
+#      query API on 3200 (3200 is `/ready` health + query, not an ingest
+#      endpoint).
+#   2. Metrics must go to Mimir's native OTLP ingest path
+#      (/api/v1/otlp) via `otlphttp`, NOT the remote-write path
+#      (/api/v1/write) via `prometheusremotewrite`.
+#   3. The collector must scrape its OWN internal metrics (port 8888,
+#      exposed by every otelcol build) and feed them into the same
+#      metrics pipeline, so `otelcol_process_uptime_total` actually lands
+#      in Mimir for run-all.sh's readiness probe to find.
+#
+# NOTE (Phase C, DRQ-011): the LGTM stack is wired up here as an always-on
+# baseline, but no example service emits OTLP yet — Quarkus OTel
+# instrumentation lands in Phase D. Until then, Grafana will show empty
+# application dashboards (the collector's own self-monitoring metrics WILL
+# show up, since the stack scrapes itself); that is expected, not a bug.
+# Once a service sets OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4318 (Phase
+# D), data will start flowing through this exact pipeline with no config
+# changes needed here.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Self-monitoring: scrape the collector's own Prometheus-format metrics
+  # endpoint (every otelcol build exposes one on :8888). This is what
+  # produces otelcol_process_uptime_total, which the lgtm image's own
+  # startup script polls for via Mimir before considering the stack ready.
+  prometheus/collector:
+    config:
+      scrape_configs:
+        - job_name: 'opentelemetry-collector'
+          static_configs:
+            - targets: ['localhost:8888']
+
+processors:
+  # memory_limiter is THE most important processor. Without it, a flood of
+  # incoming telemetry can OOM-kill the Collector, taking observability
+  # offline at the worst possible moment. Always include it first.
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  # batch reduces export overhead by accumulating spans/metrics/logs into
+  # batches before shipping. Default 8192-or-200ms threshold works for a
+  # local dev/demo stack.
+  batch:
+    timeout: 200ms
+    send_batch_size: 8192
+
+  # resource attaches service-level metadata to every signal. Useful for
+  # filling gaps from poorly-instrumented services.
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: local
+        action: upsert
+
+exporters:
+  # Traces -> Tempo's OTLP ingest port (built into the lgtm image, same
+  # container). NOT port 3200 — that's Tempo's query/read API.
+  otlphttp/traces:
+    endpoint: http://localhost:4418
+    tls:
+      insecure: true
+
+  # Metrics -> Mimir's native OTLP ingest endpoint (built into the lgtm
+  # image). NOT /api/v1/write (that's the remote-write exporter's path,
+  # a different exporter type).
+  otlphttp/metrics:
+    endpoint: http://localhost:9090/api/v1/otlp
+    tls:
+      insecure: true
+
+  # Logs -> Loki (built into the lgtm image)
+  otlphttp/logs:
+    endpoint: http://localhost:3100/otlp
+    tls:
+      insecure: true
+
+  # Also export to stdout for debugging during development. Cheap to leave
+  # on for a local/demo stack; remove for anything resembling production.
+  debug:
+    verbosity: basic
+    sampling_initial: 5
+    sampling_thereafter: 100
+
+service:
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp/traces, debug]
+    metrics:
+      receivers: [otlp, prometheus/collector]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp/metrics, debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp/logs, debug]

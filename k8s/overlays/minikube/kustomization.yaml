@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# DRQ-011: images are built directly into minikube's own Docker daemon
+# (`eval $(minikube docker-env)` then `docker build -t datamesh/<svc> .`) —
+# no external registry. `newTag` pins the tag; the image name itself stays
+# registry-free ("datamesh/<svc>", not "some.registry/datamesh/<svc>") so
+# imagePullPolicy: IfNotPresent (set in k8s/base/*.yaml) resolves against the
+# image already sitting in minikube's local docker, never attempting a
+# network pull. Bump these tags (and rebuild with the matching -t tag) when
+# you want to roll a new image without relying on :latest cache semantics.
+images:
+  - name: datamesh/order-service
+    newTag: latest
+  - name: datamesh/notification-service
+    newTag: latest
+  - name: datamesh/graphql-gateway
+    newTag: latest

@@ -1,0 +1,57 @@
+# .devcontainer/docker-compose.devcontainer.yaml
+#
+# Companion compose file for devcontainer.json in this same directory.
+# Defines the `workspace` service devcontainer.json's `"service"` key points
+# at, plus a network the workspace can join to reach the observability/infra
+# stack (root `compose.yaml`, per _plans/decisions.md DRQ-003) by service
+# name once both are brought up.
+#
+# This is intentionally a SEPARATE compose file from the root compose.yaml --
+# the devcontainer is the developer's shell/IDE environment; compose.yaml is
+# the application's runtime infra (Kafka, Postgres, Apicurio, LGTM). Keeping
+# them separate means you can rebuild/restart the devcontainer without
+# tearing down a long-running stack, and vice versa.
+
+services:
+  workspace:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu-24.04
+    container_name: datamesh-reference-arch-quarkus-devcontainer
+    volumes:
+      # The project source, mounted so edits inside the container persist
+      # to the host checkout. This compose file lives directly under the
+      # project root's .devcontainer/, so ".." is the project root.
+      - ..:/workspace:cached
+      # Docker-outside-of-Docker: bind-mount the HOST's Docker socket so the
+      # devcontainer's `docker` CLI (installed by the docker-outside-of-docker
+      # feature in devcontainer.json) talks to the same daemon that runs the
+      # project's compose.yaml infra, Testcontainers, and Quarkus Dev
+      # Services containers. The `:z` flag matters on SELinux-enforcing
+      # hosts (Fedora/RHEL); it's a no-op elsewhere.
+      - /var/run/docker.sock:/var/run/docker.sock:z
+    working_dir: /workspace
+    command: sleep infinity
+    environment:
+      # Testcontainers/Dev Services inside the devcontainer talk to the
+      # HOST's Docker daemon via the mounted socket above -- no DOCKER_HOST
+      # override needed in the common case. Set this explicitly only if the
+      # host uses a non-default context (rootless Docker, a remote daemon).
+      # - DOCKER_HOST=unix:///var/run/docker.sock
+      #
+      # Points %dev traces/metrics at the root compose.yaml's LGTM service
+      # (service `lgtm`, hostname `lgtm`, OTLP/HTTP on 4318). Reachable once
+      # the standing stack is up and this workspace has joined its network
+      # (the `datamesh` network below).
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+    networks:
+      - datamesh
+
+networks:
+  datamesh:
+    # The root compose.yaml owns and creates this network (see its
+    # `networks: datamesh: {name: datamesh}`). `external: true` here means
+    # the devcontainer joins that standing stack (Kafka/Postgres/Apicurio/
+    # LGTM) instead of creating its own empty network. Bring the infra up
+    # first: `docker compose up -d` at the repo root.
+    external: true
+    name: datamesh

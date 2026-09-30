@@ -1,0 +1,60 @@
+# config.yaml — shared env contract for the app Deployments (step 9b).
+#
+# DRQ-011: one %prod env-driven config feeds the same images across docker
+# compose (step 8) and minikube (step 9). The in-cluster DNS names below are
+# pulled directly from the operator/CR scripts written in step 9a — do not
+# hand-edit them without checking those scripts again:
+#
+#   - Kafka bootstrap : scripts/setup-kafka-operator.sh
+#       Kafka CR metadata.name = CLUSTER_NAME="datamesh" -> Strimzi creates
+#       Service "<cluster-name>-kafka-bootstrap" = datamesh-kafka-bootstrap
+#   - Postgres         : scripts/setup-postgres-operator.sh
+#       Cluster CR name CLUSTER_NAME="datamesh-postgres" -> CNPG creates
+#       Service "<cluster-name>-rw" = datamesh-postgres-rw, db "datamesh",
+#       owner "datamesh"
+#   - Apicurio         : scripts/setup-apicurio.sh
+#       Service name "apicurio" (RELEASE="apicurio"), v3 API path
+#       /apis/registry/v3
+#
+# Namespace: "datamesh" (NS in bootstrap.sh and all three setup-*.sh scripts).
+#
+# DB credentials are deliberately NOT redefined as a Secret in this file.
+# scripts/setup-postgres-operator.sh's Cluster CR (bootstrap.initdb) causes
+# CloudNativePG to auto-generate a Secret named "<cluster-name>-app" =
+# "datamesh-postgres-app" in the datamesh namespace, with keys "username",
+# "password", "dbname", "host", "port", "uri", "jdbc-uri" — created and
+# rotated by the operator, not by us. Minting a second Secret with our own
+# copy of those values here would (a) require guessing a password we don't
+# control and (b) create two sources of truth that can drift or fight over
+# ownership. The Deployments below reference datamesh-postgres-app directly
+# via secretKeyRef. This is the intentional reading of the task's "DB
+# username/password from the Secret" (the existing operator-managed Secret,
+# not a new one) — flagged explicitly in the handback report.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datamesh-app-config
+  namespace: datamesh
+  labels:
+    app.kubernetes.io/part-of: datamesh
+data:
+  # Consumed automatically by Quarkus's relaxed env-var config binding —
+  # KAFKA_BOOTSTRAP_SERVERS -> kafka.bootstrap.servers,
+  # APICURIO_REGISTRY_URL   -> apicurio.registry.url.
+  # No application.properties change needed for these two.
+  KAFKA_BOOTSTRAP_SERVERS: "datamesh-kafka-bootstrap.datamesh.svc.cluster.local:9092"
+  APICURIO_REGISTRY_URL: "http://apicurio.datamesh.svc.cluster.local:8080/apis/registry/v3"
+
+  # JDBC_URL is the name decisions.md (DRQ-011) specifies for the env
+  # contract; it is NOT (yet) the Quarkus-standard env var name, so it only
+  # takes effect once application.properties gains a line such as
+  # "%prod.quarkus.datasource.jdbc.url=${JDBC_URL}" (not present as of step
+  # 8/9a — flagged in the handback report as an app-config gap outside this
+  # step's scope). QUARKUS_DATASOURCE_JDBC_URL is also set below so the
+  # datasource works out of the box today via Quarkus's own env mapping,
+  # with no properties-file change required.
+  JDBC_URL: "jdbc:postgresql://datamesh-postgres-rw.datamesh.svc.cluster.local:5432/datamesh"
+  QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://datamesh-postgres-rw.datamesh.svc.cluster.local:5432/datamesh"
+
+  JAVA_OPTS_APPEND: "-Duser.timezone=UTC"
+  QUARKUS_PROFILE: "prod"

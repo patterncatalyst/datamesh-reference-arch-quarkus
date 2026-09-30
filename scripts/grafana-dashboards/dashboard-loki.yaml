@@ -1,0 +1,71 @@
+# dashboard-loki.yaml — sample Loki dashboard. Logs by namespace, error-level
+# filter, and a search panel. Build project-specific dashboards on top.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-loki
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "LGTM"
+data:
+  loki.json: |
+    {
+      "uid": "lgtm-loki",
+      "title": "Logs (Loki)",
+      "tags": ["lgtm", "logs", "loki"],
+      "timezone": "browser",
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "time": {"from": "now-30m", "to": "now"},
+      "templating": {
+        "list": [
+          {
+            "name": "namespace",
+            "type": "query",
+            "datasource": {"type": "loki", "uid": "loki"},
+            "query": {"label": "namespace", "stream": "{namespace=~\".+\"}", "type": 1},
+            "refresh": 1,
+            "includeAll": true,
+            "multi": true
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Log rate by namespace",
+          "type": "timeseries",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+          "targets": [{
+            "expr": "sum by (namespace) (rate({namespace=~\"$namespace\"}[1m]))",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 2,
+          "title": "Error-level logs",
+          "type": "logs",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "gridPos": {"h": 10, "w": 24, "x": 0, "y": 8},
+          "targets": [{
+            "expr": "{namespace=~\"$namespace\"} |~ \"(?i)error|fatal|exception\"",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 3,
+          "title": "All logs",
+          "type": "logs",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "gridPos": {"h": 12, "w": 24, "x": 0, "y": 18},
+          "targets": [{
+            "expr": "{namespace=~\"$namespace\"}",
+            "refId": "A"
+          }]
+        }
+      ]
+    }

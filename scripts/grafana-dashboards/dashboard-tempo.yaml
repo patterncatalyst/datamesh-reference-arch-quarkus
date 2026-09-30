@@ -1,0 +1,74 @@
+# dashboard-tempo.yaml — sample Tempo dashboard. Service-level trace rate,
+# error rate, latency p50/p95/p99, and a search panel for recent traces.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-tempo
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "LGTM"
+data:
+  tempo.json: |
+    {
+      "uid": "lgtm-tempo",
+      "title": "Traces (Tempo)",
+      "tags": ["lgtm", "traces", "tempo"],
+      "timezone": "browser",
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "time": {"from": "now-30m", "to": "now"},
+      "templating": {"list": []},
+      "panels": [
+        {
+          "id": 1,
+          "title": "Span rate by service",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "mimir"},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [{
+            "expr": "sum by (service_name) (rate(traces_spanmetrics_calls_total[1m]))",
+            "legendFormat": "{{service_name}}",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 2,
+          "title": "Error rate by service",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "mimir"},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [{
+            "expr": "sum by (service_name) (rate(traces_spanmetrics_calls_total{status_code=\"STATUS_CODE_ERROR\"}[1m]))",
+            "legendFormat": "{{service_name}}",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 3,
+          "title": "Latency p99 by service (ms)",
+          "type": "timeseries",
+          "datasource": {"type": "prometheus", "uid": "mimir"},
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum by (le, service_name) (rate(traces_spanmetrics_duration_milliseconds_bucket[1m])))",
+            "legendFormat": "{{service_name}} p99",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 4,
+          "title": "Recent traces",
+          "type": "table",
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "gridPos": {"h": 10, "w": 24, "x": 0, "y": 16},
+          "targets": [{
+            "queryType": "traceqlSearch",
+            "filters": [{"id": "service", "tag": "service.name", "operator": "=~", "value": [".+"], "valueType": "string"}],
+            "refId": "A"
+          }]
+        }
+      ]
+    }

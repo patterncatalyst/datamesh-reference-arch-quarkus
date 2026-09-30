@@ -1,0 +1,49 @@
+# gateway-httpscaledobject.yaml — Step 9c (Phase C substrate). This is the
+# SUBSTRATE that the Phase-D demo-keda-http.sh will target — it does not
+# itself run a demo, it just lands the KEDA HTTP add-on's HTTPScaledObject
+# so that scale-from-zero-on-request-rate is wired up before Phase D drives
+# it with load.
+#
+# Targets: Deployment + Service graphql-gateway in namespace datamesh
+# (k8s/base/graphql-gateway.yaml, step 9b — name/namespace/labels/port
+# copied verbatim: Service "graphql-gateway" port "http" = 8080).
+#
+# Schema is the KEDA HTTP add-on v0.12.2 API (http.keda.sh/v1alpha1,
+# kind: HTTPScaledObject) — verified against the v0.12.2 tag's CRD
+# (config/crd/bases/http.keda.sh_httpscaledobjects.yaml in
+# kedacore/http-add-on). scaleTargetRef requires "service" plus exactly one
+# of "port"/"portName"; "name"/"kind"/"apiVersion" identify the workload to
+# scale (Deployment graphql-gateway, apps/v1).
+#
+# hosts is set to the in-cluster Service FQDN because this stack has no
+# Ingress/external hostname yet — Phase D's demo drives load by sending
+# requests through the interceptor with this Host header. pathPrefixes
+# narrows routing to the actual GraphQL endpoint.
+apiVersion: http.keda.sh/v1alpha1
+kind: HTTPScaledObject
+metadata:
+  name: graphql-gateway-httpscaledobject
+  namespace: datamesh
+  labels:
+    app.kubernetes.io/name: graphql-gateway
+    app.kubernetes.io/part-of: datamesh
+    app.kubernetes.io/component: gateway
+spec:
+  hosts:
+    - graphql-gateway.datamesh.svc.cluster.local
+  pathPrefixes:
+    - /graphql
+  scaleTargetRef:
+    name: graphql-gateway
+    kind: Deployment
+    apiVersion: apps/v1
+    service: graphql-gateway
+    port: 8080
+  replicas:
+    min: 0
+    max: 10
+  scalingMetric:
+    requestRate:
+      granularity: 1s
+      targetValue: 50
+      window: 1m

@@ -1,0 +1,109 @@
+# order-service — the producer (emits order.placed via Avro/Apicurio,
+# DRQ-009). gRPC CLIENT to inventory-service, not a gRPC server, so only the
+# HTTP port (REST + health + metrics) is exposed.
+#
+# Mesh: NOT injected (no sidecar.istio.io/inject annotation). DRQ-011 keeps
+# Istio installed cluster-wide but per-Deployment opt-in (9a did not label
+# the datamesh namespace). Phase C default is OUT of the mesh for every app
+# Deployment, to keep the substrate demo simple; the mesh demo is a later
+# phase. To opt in later, add:
+#   template.metadata.annotations: {sidecar.istio.io/inject: "true"}
+#
+# Health: order-service has quarkus-smallrye-health on its classpath
+# (confirmed via examples/order-service/pom.xml), so /q/health/ready,
+# /q/health/live, and /q/health/started are all live endpoints.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: datamesh
+  labels:
+    app.kubernetes.io/name: order-service
+    app.kubernetes.io/part-of: datamesh
+    app.kubernetes.io/component: producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: order-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: order-service
+        app.kubernetes.io/part-of: datamesh
+        app.kubernetes.io/component: producer
+    spec:
+      containers:
+        - name: order-service
+          image: datamesh/order-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: datamesh-app-config
+          env:
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: datamesh-postgres-app
+                  key: username
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: datamesh-postgres-app
+                  key: password
+          startupProbe:
+            httpGet:
+              path: /q/health/started
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 150m
+              memory: 320Mi
+            limits:
+              cpu: 750m
+              memory: 640Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 185
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: datamesh
+  labels:
+    app.kubernetes.io/name: order-service
+    app.kubernetes.io/part-of: datamesh
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: order-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

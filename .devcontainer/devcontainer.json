@@ -1,0 +1,88 @@
+// .devcontainer/devcontainer.json
+//
+// Codespaces / VS Code dev environment for datamesh-reference-arch-quarkus.
+// Pairs with docker-compose.devcontainer.yaml in this same directory.
+//
+// Uses the "Docker-outside-of-Docker" pattern (the docker-outside-of-docker
+// feature bind-mounts the HOST's Docker socket into the devcontainer)
+// rather than "Docker-in-Docker" (a nested daemon). This is what lets
+// Testcontainers and Quarkus Dev Services work from inside the devcontainer:
+// they launch sibling containers next to the devcontainer itself, on the
+// same host daemon, instead of needing a whole separate nested Docker
+// install. DooD is preferred over DinD here because it avoids the storage
+// overhead and startup cost of a second nested daemon, and containers
+// started by Dev Services/Testcontainers show up on the SAME daemon that
+// the standing `compose.yaml` infra (Kafka, Postgres, Apicurio, LGTM) uses
+// -- one Docker, one set of networks, easier to reason about. The tradeoff
+// is that DooD containers are siblings of (not children of) this devcontainer,
+// so bind-mount paths used by DooD-launched containers resolve against the
+// HOST filesystem, not this container's filesystem -- not an issue for
+// Testcontainers/Dev Services, which only need socket access, not path
+// sharing. See references/testcontainers-and-dev-services.md in the
+// lgtm-docker-stack skill for details.
+{
+  "name": "datamesh-reference-arch-quarkus",
+  "dockerComposeFile": "docker-compose.devcontainer.yaml",
+  "service": "workspace",
+  "workspaceFolder": "/workspace",
+
+  "features": {
+    // Bind-mounts the host Docker socket (done in the compose file below)
+    // and installs the `docker` CLI + compose v2 plugin, so `docker`,
+    // `docker compose`, Testcontainers, and Quarkus Dev Services all work
+    // from inside the devcontainer without a nested daemon.
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "version": "latest",
+      "dockerDashComposeVersion": "v2"
+    },
+    // JDK 25 (Temurin) + Maven 3.9.x, matching the project's version matrix
+    // in CLAUDE.md (Quarkus 3.39.5 / JDK 25 / Maven 3.9.x).
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "25",
+      "jdkDistro": "tem",
+      "installMaven": true,
+      "mavenVersion": "3.9.9"
+    }
+  },
+
+  // App HTTP and Grafana at minimum, plus OTLP HTTP and the Mimir/Prometheus
+  // remote-read port, matching the always-on LGTM baseline (see
+  // _plans/decisions.md DRQ-003 / step 8) once `compose.yaml` is brought up
+  // from inside this devcontainer.
+  "forwardPorts": [8080, 3000, 4318, 9090],
+  "portsAttributes": {
+    "8080": { "label": "App (Quarkus)" },
+    "3000": { "label": "Grafana" },
+    "4318": { "label": "OTLP HTTP" },
+    "9090": { "label": "Prometheus/Mimir" }
+  },
+
+  // Warm the Maven build so the first `quarkus:dev` / `mvn verify` inside
+  // the devcontainer doesn't stall on a cold dependency download. Pull the
+  // root compose stack's images too, if compose.yaml already exists (it
+  // lands from a sibling step in this same build phase). Every step is
+  // wrapped so a flaky network or a not-yet-created compose.yaml never
+  // fails container creation.
+  "postCreateCommand": "bash -lc 'if [ -f compose.yaml ]; then docker compose pull || true; fi; mvn -q -f examples/pom.xml -DskipTests dependency:go-offline || true'",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "redhat.java",
+        "redhat.vscode-quarkus",
+        "vscjava.vscode-maven",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        // Explicit, not just absent: don't reformat Java/YAML on save.
+        "editor.formatOnSave": false
+      }
+    }
+  },
+
+  // Non-root remote user inside the devcontainer image (mcr.microsoft.com/
+  // devcontainers/base:ubuntu-24.04 ships a "vscode" user). Independent of
+  // the UID the *application's* runtime image runs as.
+  "remoteUser": "vscode"
+}

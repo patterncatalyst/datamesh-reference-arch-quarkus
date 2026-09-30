@@ -1,0 +1,114 @@
+# notification-service — the Kafka-lag consumer (order.placed in, persisted
+# via Panache, DRQ-009). This is the KEDA scale-from-zero target that 9c's
+# ScaledObject (Kafka-lag trigger against the "order-placed" consumer group
+# on the "order.placed" topic) will manage.
+#
+# replicas: 1 here in base, NOT 0. KEDA owns scaling once 9c's ScaledObject
+# is applied (minReplicaCount: 0 there drives it down when idle) — this
+# Deployment's own .spec.replicas is only the pre-KEDA / KEDA-absent value,
+# so the base manifest still deploys a working, visible consumer on its own
+# (e.g. `kubectl apply -k k8s/overlays/minikube` before 9c lands). Once the
+# ScaledObject exists, the HPA it creates takes over replica count and this
+# field is effectively advisory.
+#
+# Mesh: NOT injected — see order-service.yaml for the Phase C mesh-opt-out
+# rationale (applies identically here).
+#
+# Health: notification-service has quarkus-smallrye-health on its classpath
+# (examples/notification-service/pom.xml), so /q/health/ready, /q/health/live,
+# and /q/health/started are live endpoints, same as order-service.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: datamesh
+  labels:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/part-of: datamesh
+    app.kubernetes.io/component: consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: notification-service
+        app.kubernetes.io/part-of: datamesh
+        app.kubernetes.io/component: consumer
+    spec:
+      containers:
+        - name: notification-service
+          image: datamesh/notification-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: datamesh-app-config
+          env:
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: datamesh-postgres-app
+                  key: username
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: datamesh-postgres-app
+                  key: password
+          startupProbe:
+            httpGet:
+              path: /q/health/started
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 185
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: datamesh
+  labels:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/part-of: datamesh
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: notification-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

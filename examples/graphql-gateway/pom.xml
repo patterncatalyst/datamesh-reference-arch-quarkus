@@ -53,6 +53,13 @@
       <artifactId>quarkus-arc</artifactId>
     </dependency>
 
+    <!-- Exposes /q/health, /q/health/live, /q/health/ready so k8s probes can
+         use httpGet instead of falling back to tcpSocket. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-health</artifactId>
+    </dependency>
+
     <!-- Shared domain DTOs (OrderDto, StockDto, OrderStatus) and the
          contracts jar whose src/main/proto is scanned for gRPC codegen. -->
     <dependency>

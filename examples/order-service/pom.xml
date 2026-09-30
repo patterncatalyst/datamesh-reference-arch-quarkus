@@ -99,6 +99,33 @@
       <artifactId>rest-assured</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- DEF-002 / step 8d: byte-level proof that order.placed is Avro on the
+         wire. OrderPlacedAvroWireIT self-provisions a Kafka + Apicurio
+         Testcontainers pair (pinned to the same tags as infra/README.md's
+         DRQ-011 compose stack) rather than reusing Quarkus Dev Services, so
+         it can drive a raw KafkaProducer/KafkaConsumer independent of the
+         application's own Reactive Messaging wiring.
+
+         NOTE on artifact ids: the quarkus-bom:3.39.5-managed Testcontainers
+         release is 2.0.5, which renamed the modules with a
+         "testcontainers-" prefix (org.testcontainers:testcontainers-kafka,
+         org.testcontainers:testcontainers-junit-jupiter), confirmed by
+         grepping quarkus-bom-3.39.5.pom; the older org.testcontainers:kafka
+         / org.testcontainers:junit-jupiter coordinates are NOT present in
+         that BOM. Using the BOM-managed artifact ids here (no explicit
+         <version>) keeps this module on the same Testcontainers train as
+         every other Quarkus Dev-Services-backed test in the reactor. -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -106,6 +133,43 @@
       <plugin>
         <groupId>${quarkus.platform.group-id}</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
+      </plugin>
+      <!-- Parent pom's pluginManagement pins the failsafe version + UTC
+           system property reactor-wide but does NOT bind any executions
+           (only surefire's default test-compile/test lifecycle binding and
+           the quarkus-maven-plugin's build/generate-code executions are
+           bound there). Without this execution, *IT classes are compiled
+           by test-compile but failsafe never runs them under `mvn verify`.
+           Bind integration-test+verify explicitly here (DRQ-011). -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <!-- Avro 1.12.x's ClassSecurityValidator (CVE-driven hardening
+                 against untrusted-class deserialization) refuses to build a
+                 SpecificDatumWriter for any generated record class whose
+                 package isn't explicitly trusted, UNLESS a Quarkus
+                 application is running (the quarkus-avro extension trusts
+                 the app's own generated packages at build/runtime
+                 automatically). OrderPlacedAvroWireIT is a plain JUnit test
+                 (no @QuarkusTest, no Quarkus runtime bootstrap) driving a
+                 raw KafkaProducer, so it hit
+                 "SecurityException: Forbidden capstone.order.v1.OrderPlaced!"
+                 without this, confirmed by actually running the IT.
+                 Trusting the contracts module's Avro package here is scoped
+                 to this module's test JVM only. -->
+            <org.apache.avro.SERIALIZABLE_PACKAGES>capstone.order.v1</org.apache.avro.SERIALIZABLE_PACKAGES>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
