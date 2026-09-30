@@ -40,10 +40,23 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
   patterncatalyst/lgtm-skills#13 MERGED to main; `~/.claude/skills` in sync
   (`scripts/install-all.sh --dry-run` clean). See memory
   reference_lgtm_skills_repo.
-- **NEXT — Phase B** (steps 5–7): (5) example tree + shared domain-model →
-  (6) port 42-ai-mcp seed to Quarkus 3.39.5 + langchain4j 1.14.1 →
-  (7) Quarkus data-product services (Panache/gRPC/GraphQL gateway/Kafka).
-  Then Phase C infra, D content, E finish. See build-plan.md status table.
+- **Phase B — DONE + VALIDATED** (steps 5–7): reactor `examples/` + shared
+  `domain-model`/`contracts` (Avro codegen 3 events + gRPC) + all 8 modules
+  (order, inventory, payment, shipping, notification, review, graphql-gateway,
+  ai-mcp-service). `mvn verify -f examples/pom.xml` GREEN: 21 tests, 0 fail,
+  0 error (timezone pin baked into parent pom — no -D needed).
+  Opus validation caught + fixed real defects: inventory `@Blocking` on gRPC
+  handler (was BlockingOperationNotAllowedException), graphql un-mockable
+  `@GrpcClient` (rewired to in-process mock gRPC server), test-isolation +
+  route-assertion fixes. DRQ-009 config-verified on all 6 Kafka channels
+  (explicit Avro serde; autodetection proven to silent-fall-back to JSON).
+  DEF-001 resolved (langchain4j-bom 1.20.2 pinned → convergence).
+  Decisions added: DRQ-009, DRQ-010; DEF-001 (resolved-pin, Ollama IT pending),
+  DEF-002 (Avro wire-byte assertion pending real broker in Phase C).
+- **NEXT — Phase C infra** (step 8 docker compose + Testcontainers +
+  devcontainer via lgtm-docker-stack; step 9 minikube/K8s + KEDA), then Phase D
+  content, Phase E finish. See build-plan.md status table. Phase C should also
+  land the DEF-002 Avro-on-wire IT and (if Ollama available) close DEF-001.
 
 ## Settled scope answers (do not re-ask)
 - Repo: local-first, PUBLIC, push only after approval.

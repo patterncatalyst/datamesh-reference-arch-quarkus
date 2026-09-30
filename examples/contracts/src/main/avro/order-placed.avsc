@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "OrderPlaced",
+  "namespace": "capstone.order.v1",
+  "doc": "Emitted by order-service after an order is durably persisted. The runtime contract for the order-placed Kafka topic (CAP-018, CAP-019).",
+  "fields": [
+    { "name": "event_type",  "type": "string", "doc": "Always 'order.placed'." },
+    { "name": "order_id",    "type": "string", "doc": "Order aggregate id (also the Kafka message key)." },
+    { "name": "customer_id", "type": "string" },
+    { "name": "item_sku",    "type": "string" },
+    { "name": "quantity",    "type": "int" },
+    { "name": "amount",      "type": "string", "doc": "Decimal serialized as string (first-slice simplification; Avro decimal logical type is the refinement)." },
+    { "name": "status",      "type": "string" },
+    { "name": "created_at",  "type": "string", "doc": "ISO-8601 timestamp." }
+  ]
+}

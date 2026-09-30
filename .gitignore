@@ -9,3 +9,9 @@ vendor/
 # Node.js
 node_modules/
 package-lock.json
+
+# Maven / Quarkus builds
+target/
+.quarkus/
+*.log
+logs/

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.patterncatalyst.datamesh</groupId>
+    <artifactId>datamesh-examples-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>payment-service</artifactId>
+  <packaging>jar</packaging>
+
+  <name>DataMesh :: Payment Service</name>
+  <description>
+    Real event-driven choreography processor (DRQ-009, DRQ-010): consumes
+    OrderPlaced (capstone.order.v1) Avro events from the order.placed Kafka
+    topic and emits PaymentCaptured (capstone.payment.v1) Avro events to the
+    payment.captured Kafka topic. Both channels are Avro-serialized against
+    the Apicurio Schema Registry via quarkus-apicurio-registry-avro; Kafka
+    and Apicurio Registry are provided by Quarkus Dev Services in dev/test
+    mode. See README.md for the wiring details.
+  </description>
+
+  <dependencies>
+    <!-- Shared, framework-agnostic modules -->
+    <dependency>
+      <groupId>com.patterncatalyst.datamesh</groupId>
+      <artifactId>domain-model</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.patterncatalyst.datamesh</groupId>
+      <artifactId>contracts</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- Reactive Messaging + Kafka -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-messaging-kafka</artifactId>
+    </dependency>
+
+    <!-- Avro serde against the Apicurio Schema Registry (DRQ-009) -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-apicurio-registry-avro</artifactId>
+    </dependency>
+
+    <!-- Health checks -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-health</artifactId>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

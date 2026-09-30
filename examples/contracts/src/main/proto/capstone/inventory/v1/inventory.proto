@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+// Package mirrors the directory tree (capstone/inventory/v1) and namespaces
+// the contract so it can't collide with other services' protos (CAP-R19-4).
+package capstone.inventory.v1;
+
+// InventoryService answers stock questions for the order flow. r23 ships the
+// single synchronous call order-service needs when placing an order; more
+// RPCs are added as the inventory domain grows.
+service InventoryService {
+  // CheckStock reports whether a SKU currently has at least the requested
+  // quantity on hand. This is the first real cross-service call in the mesh.
+  rpc CheckStock(CheckStockRequest) returns (CheckStockResponse);
+}
+
+message CheckStockRequest {
+  string sku = 1;
+  int32 quantity = 2;
+}
+
+message CheckStockResponse {
+  bool available = 1;
+  int32 quantity_on_hand = 2;
+}
