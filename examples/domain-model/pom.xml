@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.patterncatalyst.datamesh</groupId>
+    <artifactId>datamesh-examples-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>domain-model</artifactId>
+  <packaging>jar</packaging>
+
+  <name>DataMesh :: Domain Model</name>
+  <description>
+    Framework-agnostic domain DTOs, enums, and topic/channel constants shared
+    across every service module. No Panache @Entity classes live here --
+    entities are owned by their service module. Jandex-indexed at build time
+    so consuming Quarkus applications discover these classes (e.g. for
+    Jackson/JSON-B (de)serialization and CDI) without re-indexing them.
+  </description>
+
+  <dependencies>
+    <!-- No Quarkus runtime dependency needed: this module contains plain
+         records/enums/constants only. -->
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Generates META-INF/jandex.idx inside this jar so that Quarkus
+           applications depending on domain-model automatically get its
+           classes added to the Jandex bean-discovery index. Verified via
+           quarkus_searchDocs (cdi-reference.adoc, "How to Generate a Jandex
+           Index"): this is the current recommended approach for indexing a
+           plain-jar dependency, as an alternative to consumers configuring
+           quarkus.index-dependency.* by hand. -->
+      <plugin>
+        <groupId>io.smallrye</groupId>
+        <artifactId>jandex-maven-plugin</artifactId>
+        <version>3.5.3</version>
+        <executions>
+          <execution>
+            <id>make-index</id>
+            <goals>
+              <goal>jandex</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

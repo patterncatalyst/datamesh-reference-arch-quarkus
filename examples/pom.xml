@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.patterncatalyst.datamesh</groupId>
+  <artifactId>datamesh-examples-parent</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>DataMesh Reference Architecture (Quarkus) :: Examples</name>
+  <description>
+    Maven reactor for the runnable examples backing the Quarkus DataMesh reference
+    architecture tutorial (shipping/order domain). See _plans/decisions.md in the
+    repo root for the version matrix and settled architecture decisions (DRQ-NNN).
+  </description>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- DRQ-001/DRQ-004: JDK 25, Quarkus 3.39.5, Maven 3.9.x -->
+    <maven.compiler.release>25</maven.compiler.release>
+
+    <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
+    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+    <quarkus.platform.version>3.39.5</quarkus.platform.version>
+
+    <quarkus-camel-bom.group-id>io.quarkus.platform</quarkus-camel-bom.group-id>
+    <quarkus-camel-bom.version>3.39.5</quarkus-camel-bom.version>
+
+    <quarkus-langchain4j-bom.group-id>io.quarkiverse.langchain4j</quarkus-langchain4j-bom.group-id>
+    <quarkus-langchain4j-bom.version>1.14.1</quarkus-langchain4j-bom.version>
+
+    <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
+    <surefire-plugin.version>3.5.2</surefire-plugin.version>
+  </properties>
+
+  <!--
+    Batch A (this build) creates only domain-model and contracts.
+    Every remaining module is listed up front per DRQ-008 so later executors
+    only need to fill in the directory. Do NOT run a full reactor build
+    until those directories exist (see examples/README or _plans/build-plan.md).
+  -->
+  <modules>
+    <module>domain-model</module>
+    <module>contracts</module>
+    <module>order-service</module>
+    <module>inventory-service</module>
+    <module>payment-service</module>
+    <module>shipping-service</module>
+    <module>notification-service</module>
+    <module>review-service</module>
+    <module>graphql-gateway</module>
+    <module>ai-mcp-service</module>
+  </modules>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- Pin the three BOMs ONCE here (scope=import, type=pom). Child
+           modules must never re-declare or re-pin these imports. -->
+      <dependency>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>${quarkus.platform.artifact-id}</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>${quarkus-camel-bom.group-id}</groupId>
+        <artifactId>quarkus-camel-bom</artifactId>
+        <version>${quarkus-camel-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>${quarkus-langchain4j-bom.group-id}</groupId>
+        <artifactId>quarkus-langchain4j-bom</artifactId>
+        <version>${quarkus-langchain4j-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven-compiler-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${surefire-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>${quarkus.platform.group-id}</groupId>
+          <artifactId>quarkus-maven-plugin</artifactId>
+          <version>${quarkus.platform.version}</version>
+          <extensions>true</extensions>
+          <executions>
+            <execution>
+              <goals>
+                <goal>build</goal>
+                <goal>generate-code</goal>
+                <goal>generate-code-tests</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <profiles>
+    <!-- Native image profile stub. Individual Quarkus application modules
+         activate this with -Pnative; domain-model/contracts are plain jars
+         and never build native. -->
+    <profile>
+      <id>native</id>
+      <activation>
+        <property>
+          <name>native</name>
+        </property>
+      </activation>
+      <properties>
+        <skipITs>false</skipITs>
+        <quarkus.native.enabled>true</quarkus.native.enabled>
+        <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
+      </properties>
+    </profile>
+  </profiles>
+</project>

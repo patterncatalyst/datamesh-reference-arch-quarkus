@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.patterncatalyst.datamesh</groupId>
+    <artifactId>datamesh-examples-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>contracts</artifactId>
+  <packaging>jar</packaging>
+
+  <name>DataMesh :: Contracts</name>
+  <description>
+    Single source of the wire contracts shared by producer and consumer
+    services: the gRPC .proto (packaged so consumer Quarkus apps can scan
+    this dependency jar for it) and every Kafka Avro schema (DRQ-009 --
+    Avro + Apicurio Schema Registry from the start, not JSON). The generated
+    Avro record classes are compiled into this jar; gRPC stubs are NOT
+    generated here -- see README.md for the consumer-side scan-for-proto
+    property.
+  </description>
+
+  <properties>
+    <!-- org.apache.avro:avro itself is version-managed by the imported
+         quarkus-bom (currently 1.12.2 under quarkus-bom 3.39.5); only the
+         avro-maven-plugin build plugin needs an explicit version here,
+         kept in lock-step with that managed avro runtime version. -->
+    <avro.version>1.12.2</avro.version>
+  </properties>
+
+  <dependencies>
+    <!-- Plain Apache Avro runtime (records implement org.apache.avro.specific.SpecificRecord).
+         No Quarkus dependency: this module must stay framework-agnostic so any
+         JVM consumer (Quarkus app, test harness, CLI tool) can use it. -->
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Avro codegen: plain org.apache.avro:avro-maven-plugin, NOT the
+           Quarkus quarkus-avro extension's generate-code hook. Verified via
+           quarkus_searchDocs (kafka-schema-registry-avro.adoc): Quarkus's own
+           Avro codegen path compiles *.avsc through the quarkus:generate-code
+           goal, which is scoped to an application's augmentation build and
+           would tie this module to Quarkus tooling. Since contracts must be a
+           framework-agnostic shared jar (consumed by services + any non-Quarkus
+           test tooling), we use the standard avro-maven-plugin "schema" goal
+           bound to generate-sources instead. It needs no Quarkus classpath
+           and produces plain SpecificRecord classes compiled straight into
+           this jar. -->
+      <plugin>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro-maven-plugin</artifactId>
+        <version>${avro.version}</version>
+        <executions>
+          <execution>
+            <id>generate-avro-sources</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>schema</goal>
+            </goals>
+            <configuration>
+              <sourceDirectory>${project.basedir}/src/main/avro</sourceDirectory>
+              <outputDirectory>${project.build.directory}/generated-sources/avro</outputDirectory>
+              <stringType>String</stringType>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+
+    <!-- Package src/main/proto into this jar's classes (and therefore the
+         published jar) at the same relative path, so a consuming Quarkus
+         service can point quarkus.generate-code.grpc.scan-for-proto at this
+         module's groupId:artifactId and have quarkus-grpc find
+         capstone/inventory/v1/inventory.proto inside the dependency jar.
+         This module does NOT compile the .proto itself; see README.md. -->
+    <resources>
+      <resource>
+        <directory>src/main/proto</directory>
+      </resource>
+    </resources>
+  </build>
+</project>
