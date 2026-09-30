@@ -33,4 +33,4 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
 
 ## Deferrals
 
-_(none yet)_
+- **DEF-001 — langchain4j version skew (ai-mcp-service):** Under `quarkus-camel-bom:3.39.5` + `quarkus-langchain4j-bom:1.14.1`, `dependency:tree` shows `langchain4j-core` mediating to 1.19.3 (beta29 variants) while `langchain4j-ollama` stays 1.20.2 — NOT a single converged version. Code compiles (Camel's `camel-langchain4j-agent-api` is Camel-versioned 4.22.0, unaffected by the bump), but the Ollama tool-calling path carries a latent `NoSuchMethodError`/`AbstractMethodError` risk. **Action (Batch C / native+live pass):** pin `langchain4j-ollama` to match `langchain4j-core` (or align both) in the parent `<dependencyManagement>`, then run the opt-in Ollama `toolExecutions`-non-empty test to confirm. First thing to suspect if that test throws.
