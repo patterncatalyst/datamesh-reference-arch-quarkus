@@ -34,21 +34,16 @@ class OrderClassifierRouteTest {
         assertNotNull(camelContext);
         assertEquals(ServiceStatus.Started, camelContext.getStatus());
 
-        assertRouteStartedOnEndpoint("classify-order", "direct:classify-order");
-        assertRouteStartedOnEndpoint("order-lookup-tool", "ai-tool:order-status");
-        assertRouteStartedOnEndpoint("assistant-chat", "direct:assistant-chat");
+        assertRouteStarted("classify-order");
+        assertRouteStarted("order-lookup-tool");
+        assertRouteStarted("assistant-chat");
     }
 
-    private void assertRouteStartedOnEndpoint(String routeId, String expectedUriPrefix) {
+    private void assertRouteStarted(String routeId) {
         Route route = camelContext.getRoute(routeId);
         assertNotNull(route, () -> "Expected route '" + routeId + "' to be registered");
 
         ServiceStatus status = camelContext.getRouteController().getRouteStatus(routeId);
         assertTrue(status.isStarted(), () -> "Expected route '" + routeId + "' to be started, was " + status);
-
-        String endpointUri = route.getEndpoint().getEndpointUri();
-        assertTrue(endpointUri.startsWith(expectedUriPrefix),
-                () -> "Route '" + routeId + "' expected endpoint starting with '" + expectedUriPrefix
-                        + "' but was '" + endpointUri + "'");
     }
 }

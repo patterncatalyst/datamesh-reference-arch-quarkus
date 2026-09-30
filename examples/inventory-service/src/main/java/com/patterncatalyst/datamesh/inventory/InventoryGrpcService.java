@@ -5,6 +5,7 @@ import capstone.inventory.v1.Inventory.CheckStockResponse;
 import capstone.inventory.v1.InventoryService;
 
 import io.quarkus.grpc.GrpcService;
+import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
 
 /**
@@ -23,6 +24,7 @@ import io.smallrye.mutiny.Uni;
 public class InventoryGrpcService implements InventoryService {
 
     @Override
+    @Blocking
     public Uni<CheckStockResponse> checkStock(CheckStockRequest request) {
         return Uni.createFrom().item(() -> {
             Stock stock = Stock.findBySku(request.getSku());

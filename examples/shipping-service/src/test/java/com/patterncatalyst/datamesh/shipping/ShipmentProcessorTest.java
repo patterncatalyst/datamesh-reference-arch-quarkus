@@ -10,6 +10,7 @@ import java.util.List;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import capstone.payment.v1.PaymentCaptured;
@@ -41,6 +42,18 @@ class ShipmentProcessorTest {
     @Inject
     @Connector("smallrye-in-memory")
     InMemoryConnector connector;
+
+    /**
+     * The in-memory sink accumulates every message received during the
+     * @QuarkusTest instance's lifetime, so without clearing it between methods
+     * one test sees the other's emissions (the size assertions below would see
+     * 3 instead of the expected 1). Reset the outgoing sink before each test to
+     * keep the two methods independent regardless of execution order.
+     */
+    @BeforeEach
+    void clearShipmentSink() {
+        connector.sink(Topics.SHIPMENT_DISPATCHED_CHANNEL).clear();
+    }
 
     @Test
     void processesPaymentCapturedIntoShipmentDispatched() {

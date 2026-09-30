@@ -22,11 +22,12 @@ import jakarta.inject.Inject;
  *
  * <p>The outgoing channel ({@code order-placed}, mapped to the
  * {@code order.placed} Kafka topic in {@code application.properties}) uses
- * the Apicurio Avro serializer, auto-detected by Quarkus from the
- * {@code @Channel} declaration's {@code OrderPlaced} (Avro
- * {@code SpecificRecord}) type plus the presence of
- * {@code quarkus-apicurio-registry-avro} -- no explicit
- * {@code value.serializer} property is required.
+ * the Apicurio Avro serializer. Note: {@code value.serializer} is set
+ * EXPLICITLY in {@code application.properties} rather than left to Quarkus
+ * autodetection. Autodetection was proven to silently fall back to a
+ * Jackson/JSON serializer here because two Apicurio artifacts share the
+ * {@code io.apicurio.registry.serde.avro} package (split-package), which
+ * defeats it. The explicit key keeps events Avro on the wire (DRQ-009).
  */
 @ApplicationScoped
 public class OrderEventProducer {

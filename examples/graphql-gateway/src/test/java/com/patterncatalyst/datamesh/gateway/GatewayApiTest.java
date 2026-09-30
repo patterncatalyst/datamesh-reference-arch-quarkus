@@ -2,7 +2,6 @@ package com.patterncatalyst.datamesh.gateway;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -10,13 +9,9 @@ import java.math.BigDecimal;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.Test;
 
-import capstone.inventory.v1.Inventory.CheckStockResponse;
-import capstone.inventory.v1.InventoryServiceGrpc;
-
 import com.patterncatalyst.datamesh.domain.OrderDto;
 import com.patterncatalyst.datamesh.domain.OrderStatus;
 
-import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
@@ -24,12 +19,16 @@ import jakarta.ws.rs.core.Response;
 
 /**
  * Exercises the federated {@code order(id)} query end to end through
- * /graphql, with the downstream order-service REST call and
- * inventory-service gRPC call mocked -- this test asserts the gateway's own
- * stitching behavior, not the (not-yet-built) downstream services.
- *
- * NOTE: written for review only, per the executor's instructions -- not run
- * as part of this batch.
+ * /graphql. The downstream order-service REST call is mocked with
+ * {@link InjectMock} (a normal-scoped REST client bean), while the
+ * inventory-service gRPC call is served by an in-process mock gRPC server
+ * ({@link MockInventoryService}) -- the gateway's real {@code @GrpcClient}
+ * dials it over the wire, so this exercises the actual gRPC stitching rather
+ * than a mocked stub. (The {@code @GrpcClient} blocking stub is a
+ * {@code @Singleton}, which neither {@code @InjectMock} nor
+ * {@code QuarkusMock.installMockForType} can replace -- only normal-scoped
+ * beans are mockable -- so an in-process server is the supported way to
+ * substitute the downstream.)
  */
 @QuarkusTest
 class GatewayApiTest {
@@ -37,10 +36,6 @@ class GatewayApiTest {
     @InjectMock
     @RestClient
     OrderRestClient orderRestClient;
-
-    @InjectMock
-    @GrpcClient("inventory")
-    InventoryServiceGrpc.InventoryServiceBlockingStub inventoryClient;
 
     @Test
     void resolvesOrderWithNestedStockOverGrpc() {
@@ -53,10 +48,6 @@ class GatewayApiTest {
                 OrderStatus.PLACED,
                 "2026-09-30T00:00:00Z");
         when(orderRestClient.getOrder("order-1")).thenReturn(Response.ok(dto).build());
-        when(inventoryClient.checkStock(any())).thenReturn(CheckStockResponse.newBuilder()
-                .setAvailable(true)
-                .setQuantityOnHand(42)
-                .build());
 
         String query = "{ \"query\": \"{ order(id: \\\"order-1\\\") { id customerId itemSku quantity status "
                 + "stock { sku quantityOnHand available } } }\" }";
@@ -71,7 +62,7 @@ class GatewayApiTest {
                 .body("data.order.id", is("order-1"))
                 .body("data.order.itemSku", is("SKU-1"))
                 .body("data.order.stock.sku", is("SKU-1"))
-                .body("data.order.stock.quantityOnHand", is(42))
+                .body("data.order.stock.quantityOnHand", is(MockInventoryService.QUANTITY_ON_HAND))
                 .body("data.order.stock.available", is(true));
     }
 
