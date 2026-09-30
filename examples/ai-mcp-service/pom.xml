@@ -14,12 +14,77 @@
   <artifactId>ai-mcp-service</artifactId>
   <packaging>jar</packaging>
 
-  <name>DataMesh :: AI MCP Service (placeholder)</name>
+  <name>DataMesh :: AI MCP Service</name>
   <description>
-    PLACEHOLDER module. Listed in the parent reactor's module set per DRQ-008
-    so the module directory exists ahead of time; content, dependencies, and
-    Quarkus wiring are added by a later build batch. Do not add real code
-    here as part of the Batch A (reactor skeleton, domain-model, contracts)
-    build; see _plans/build-plan.md.
+    Camel-on-Quarkus + langchain4j + MCP example (DRQ unrelated to DRQ-009):
+    an order classifier (langchain4j-chat), an order-status lookup tool
+    published via ai-tool, an assistant agent (langchain4j-agent) that calls
+    that tool, and an embedded MCP server exposing shipping-tagged tools to
+    external MCP clients. Ported from the enterprise-integration-patterns-
+    with-camel "42-ai-mcp" seed onto this reactor's pinned BOMs
+    (quarkus-camel-bom 3.39.5, quarkus-langchain4j-bom 1.14.1 -- see the
+    langchain4j API drift notes in this module's README). All BOM versions
+    are inherited from the parent; this module does NOT declare its own
+    dependencyManagement.
   </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-rest</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-platform-http</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-direct</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-log</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-langchain4j-chat</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-ai-tool</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-langchain4j-agent</artifactId>
+    </dependency>
+    <!-- Publishes the ai-tool routes to external MCP clients -->
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-mcp-server</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkiverse.langchain4j</groupId>
+      <artifactId>quarkus-langchain4j-ollama</artifactId>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 </project>
