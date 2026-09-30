@@ -14,12 +14,85 @@
   <artifactId>inventory-service</artifactId>
   <packaging>jar</packaging>
 
-  <name>DataMesh :: Inventory Service (placeholder)</name>
+  <name>DataMesh :: Inventory Service</name>
   <description>
-    PLACEHOLDER module. Listed in the parent reactor's module set per DRQ-008
-    so the module directory exists ahead of time; content, dependencies, and
-    Quarkus wiring are added by a later build batch. Do not add real code
-    here as part of the Batch A (reactor skeleton, domain-model, contracts)
-    build; see _plans/build-plan.md.
+    Inventory data product for the reference architecture. Owns the `stock`
+    table (Panache) and serves the synchronous InventoryService/CheckStock
+    gRPC call that order-service uses when placing an order, plus a small
+    REST surface for seeding/inspecting stock during demos. gRPC server
+    stubs are generated at build time from the `capstone.inventory.v1`
+    proto packaged in the `contracts` dependency jar -- see
+    quarkus.generate-code.grpc.scan-for-proto below and contracts/README.md.
   </description>
+
+  <dependencies>
+    <!-- Shared libs (versions come from the parent reactor; never re-pin). -->
+    <dependency>
+      <groupId>com.patterncatalyst.datamesh</groupId>
+      <artifactId>domain-model</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.patterncatalyst.datamesh</groupId>
+      <artifactId>contracts</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- gRPC server -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-grpc</artifactId>
+    </dependency>
+
+    <!-- Persistence: Panache + Postgres (Dev Services auto-starts a
+         container in dev/test mode; no datasource URL configured here). -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-hibernate-orm-panache</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jdbc-postgresql</artifactId>
+    </dependency>
+
+    <!-- REST -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-jackson</artifactId>
+    </dependency>
+
+    <!-- Health -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-health</artifactId>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Version/executions (build, generate-code, generate-code-tests)
+           are inherited from the parent's pluginManagement; only the
+           module opt-in is needed here. -->
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 </project>

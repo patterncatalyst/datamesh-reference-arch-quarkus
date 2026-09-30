@@ -1,0 +1,92 @@
+# inventory-service
+
+Inventory data product for the reference architecture (mirrors the Python
+`inventory-service`). Owns the `stock` table and serves the synchronous
+`InventoryService/CheckStock` gRPC call that `order-service` uses when
+placing an order, plus a small REST surface for seeding/inspecting stock
+during demos.
+
+## Data
+
+`Stock` (Panache entity, table `stock`):
+
+| Column | Type | Notes |
+|---|---|---|
+| `sku` | `varchar(64)` | unique, business key |
+| `quantity_on_hand` | `int` | |
+
+Dev/test schema is created from the entity (`quarkus.hibernate-orm.schema-management.strategy=drop-and-create`)
+and seeded from `src/main/resources/import.sql` with a few demo SKUs
+(`WIDGET-1`, `WIDGET-2`, `GADGET-1`).
+
+Dev Services for PostgreSQL starts an ephemeral container automatically in
+dev/test mode -- no datasource URL is configured.
+
+## gRPC: `InventoryService/CheckStock`
+
+Contract: `capstone.inventory.v1.InventoryService` (see
+`../contracts/src/main/proto/capstone/inventory/v1/inventory.proto`).
+
+```proto
+rpc CheckStock(CheckStockRequest) returns (CheckStockResponse);
+
+message CheckStockRequest {
+  string sku = 1;
+  int32 quantity = 2;
+}
+
+message CheckStockResponse {
+  bool available = 1;
+  int32 quantity_on_hand = 2;
+}
+```
+
+This module does not declare its own `.proto` file. It points the standard
+multi-module gRPC code generation property at the `contracts` module's
+coordinates:
+
+```properties
+quarkus.generate-code.grpc.scan-for-proto=com.patterncatalyst.datamesh:contracts
+```
+
+At build time Quarkus generates the Mutiny `capstone.inventory.v1.InventoryService`
+interface (plus request/response message classes) under
+`target/generated-sources/grpc`. `InventoryGrpcService` (`@GrpcService`)
+implements that interface directly (Mutiny API): it looks up `Stock` by SKU
+and returns `available = quantity > 0 && quantityOnHand >= quantity` along
+with the current `quantityOnHand` (0 for an unknown SKU) -- the same
+semantics as the Python reference's `InventoryServicer.CheckStock`.
+
+The gRPC server listens on port `9000` (see `application.properties`).
+
+## REST (demo/debug convenience, not part of the cross-service contract)
+
+| Method | Path | Body / Response |
+|---|---|---|
+| `POST` | `/stock` | Body: `StockDto` (`sku`, `quantityOnHand`) — creates or updates the row. |
+| `GET` | `/stock` | Returns `List<StockDto>` for every known SKU. |
+| `GET` | `/stock/{sku}` | Returns `StockDto` for one SKU, `404` if unknown. |
+
+`StockDto` (`com.patterncatalyst.datamesh.domain.StockDto` in `domain-model`):
+`sku`, `available`, `quantityOnHand`.
+
+## Health
+
+`quarkus-smallrye-health` is enabled; liveness/readiness probes are exposed
+at `/q/health`, `/q/health/live`, `/q/health/ready`.
+
+## Dependencies
+
+- `com.patterncatalyst.datamesh:domain-model` (for `StockDto`)
+- `com.patterncatalyst.datamesh:contracts` (for the `.proto` scanned by gRPC codegen)
+- `quarkus-grpc`
+- `quarkus-hibernate-orm-panache`, `quarkus-jdbc-postgresql`
+- `quarkus-rest`, `quarkus-rest-jackson`
+- `quarkus-smallrye-health`
+
+## Build / test
+
+```bash
+mvn -pl inventory-service -DskipTests package -f examples/pom.xml
+mvn -pl inventory-service test -f examples/pom.xml   # requires Docker/Podman for Dev Services
+```
