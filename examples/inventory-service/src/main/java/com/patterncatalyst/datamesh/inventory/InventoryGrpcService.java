@@ -1,7 +1,7 @@
 package com.patterncatalyst.datamesh.inventory;
 
-import capstone.inventory.v1.CheckStockRequest;
-import capstone.inventory.v1.CheckStockResponse;
+import capstone.inventory.v1.Inventory.CheckStockRequest;
+import capstone.inventory.v1.Inventory.CheckStockResponse;
 import capstone.inventory.v1.InventoryService;
 
 import io.quarkus.grpc.GrpcService;

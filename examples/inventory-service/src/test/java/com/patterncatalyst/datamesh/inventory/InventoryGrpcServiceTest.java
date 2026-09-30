@@ -10,8 +10,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import capstone.inventory.v1.CheckStockRequest;
-import capstone.inventory.v1.CheckStockResponse;
+import capstone.inventory.v1.Inventory.CheckStockRequest;
+import capstone.inventory.v1.Inventory.CheckStockResponse;
 import capstone.inventory.v1.InventoryService;
 
 import io.quarkus.grpc.GrpcClient;
