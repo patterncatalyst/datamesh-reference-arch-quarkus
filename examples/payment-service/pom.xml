@@ -14,12 +14,53 @@
   <artifactId>payment-service</artifactId>
   <packaging>jar</packaging>
 
-  <name>DataMesh :: Payment Service (placeholder)</name>
+  <name>DataMesh :: Payment Service</name>
   <description>
-    PLACEHOLDER module. Listed in the parent reactor's module set per DRQ-008
-    so the module directory exists ahead of time; content, dependencies, and
-    Quarkus wiring are added by a later build batch. Do not add real code
-    here as part of the Batch A (reactor skeleton, domain-model, contracts)
-    build; see _plans/build-plan.md.
+    Real event-driven choreography processor (DRQ-009, DRQ-010): consumes
+    OrderPlaced (capstone.order.v1) Avro events from the order.placed Kafka
+    topic and emits PaymentCaptured (capstone.payment.v1) Avro events to the
+    payment.captured Kafka topic. Both channels are Avro-serialized against
+    the Apicurio Schema Registry via quarkus-apicurio-registry-avro; Kafka
+    and Apicurio Registry are provided by Quarkus Dev Services in dev/test
+    mode. See README.md for the wiring details.
   </description>
+
+  <dependencies>
+    <!-- Shared, framework-agnostic modules -->
+    <dependency>
+      <groupId>com.patterncatalyst.datamesh</groupId>
+      <artifactId>domain-model</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.patterncatalyst.datamesh</groupId>
+      <artifactId>contracts</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- Reactive Messaging + Kafka -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-messaging-kafka</artifactId>
+    </dependency>
+
+    <!-- Avro serde against the Apicurio Schema Registry (DRQ-009) -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-apicurio-registry-avro</artifactId>
+    </dependency>
+
+    <!-- Health checks -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-health</artifactId>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 </project>
