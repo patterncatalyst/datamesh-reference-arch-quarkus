@@ -40,10 +40,19 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
   patterncatalyst/lgtm-skills#13 MERGED to main; `~/.claude/skills` in sync
   (`scripts/install-all.sh --dry-run` clean). See memory
   reference_lgtm_skills_repo.
-- **NEXT — Phase B** (steps 5–7): (5) example tree + shared domain-model →
-  (6) port 42-ai-mcp seed to Quarkus 3.39.5 + langchain4j 1.14.1 →
-  (7) Quarkus data-product services (Panache/gRPC/GraphQL gateway/Kafka).
-  Then Phase C infra, D content, E finish. See build-plan.md status table.
+- **Phase B — build-verified DONE** (steps 5–7): reactor `examples/` + shared
+  `domain-model`/`contracts` (Avro codegen 3 events + gRPC) + all 8 modules
+  (order, inventory, payment, shipping, notification, review, graphql-gateway,
+  ai-mcp-service). Full reactor `mvn -DskipTests package` = EXIT 0, 10 jars.
+  Fixes landed: inventory nested gRPC message classes; shipping explicit Avro
+  serde (autodetection proven to silent-fall-back to JSON — split-package).
+  Opus runtime validation (mvn verify + Dev Services + DEF-001 pin) IN PROGRESS.
+  New decisions since last checkpoint: DRQ-009 (Avro+Apicurio all events up
+  front, no JSON), DRQ-010 (real payment/shipping choreography), DEF-001
+  (langchain4j core/ollama version skew — pin in Batch C).
+- **NEXT after validation** — Phase C infra (step 8 docker compose +
+  Testcontainers + devcontainer via lgtm-docker-stack; step 9 minikube/KEDA),
+  then Phase D content, Phase E finish. See build-plan.md status table.
 
 ## Settled scope answers (do not re-ask)
 - Repo: local-first, PUBLIC, push only after approval.
