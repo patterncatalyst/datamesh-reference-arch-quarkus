@@ -22,9 +22,9 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 | 2 | Create `lgtm-docker-stack` skill (no podman) | A | mirror lgtm-podman/minikube-stack | DONE (merged lgtm-skills#13) |
 | 3 | Scaffold Jekyll site | A | lgtm-jekyll | DONE (build 0 errors) |
 | 4 | CLAUDE.md + PRD + plans | A | — | DONE |
-| 5 | Example tree + shared domain-model | B | lgtm-quarkus, quarkus-agent | pending |
-| 6 | Port AI/MCP seed (42-ai-mcp) | B | lgtm-camel, lgtm-quarkus, camel-mcp | pending |
-| 7 | Quarkus data-product services (Panache/gRPC/GraphQL/Kafka) | B | lgtm-quarkus, quarkus-agent, camel-mcp | pending |
+| 5 | Example tree + shared domain-model | B | lgtm-quarkus, quarkus-agent | DONE (0b3e2ae; reactor + domain-model + contracts Avro/gRPC) |
+| 6 | Port AI/MCP seed (42-ai-mcp) | B | lgtm-camel, lgtm-quarkus, camel-mcp | in progress (Batch B) |
+| 7 | Quarkus data-product services (Panache/gRPC/GraphQL/Kafka) | B | lgtm-quarkus, quarkus-agent, camel-mcp | in progress (Batch B) |
 | 8 | Docker compose + Testcontainers + devcontainer | C | lgtm-docker-stack | pending |
 | 9 | Minikube/K8s substrate + KEDA | C | lgtm-minikube-stack | pending |
 | 10 | Demos 1:1 with slides | D | lgtm-quarkus, lgtm-camel, MCPs | pending |
