@@ -1,0 +1,127 @@
+---
+layout: default
+title: Home
+permalink: /
+---
+
+<section class="hero hero--compact">
+    <div class="container">
+        <span class="hero__eyebrow">Data mesh · reference implementation</span>
+        <h1>A data mesh, on Quarkus.</h1>
+        <p class="hero__lead">
+            A working data-mesh reference: a domain of services modeling
+            order-placement-through-shipment, each owning its data, its
+            API surface, and its operational lifecycle, communicating
+            through a deliberate mix of REST, gRPC, GraphQL, and Kafka —
+            backed by Camel-on-Quarkus routes and langchain4j/MCP tooling,
+            with contracts, a catalog, progressive delivery, autoscaling,
+            and full observability.
+        </p>
+        <p class="hero__lead">
+            It rebuilds the
+            <a href="https://github.com/{{ site.github_username }}/datamesh-reference-arch-python" rel="noopener">Python data-mesh reference</a>
+            as a running Quarkus system — demonstrating data-mesh patterns
+            and Quarkus capabilities side by side, with one runnable
+            Spring Boot twin service for a real comparison.
+        </p>
+        <div class="hero__cta">
+            {%- assign first_doc = site.docs | sort: "order" | first -%}
+            {%- if first_doc -%}
+                <a class="btn btn--primary" href="{{ first_doc.url | relative_url }}">
+                    Start reading →
+                </a>
+            {%- else -%}
+                <a class="btn btn--primary" href="{{ '/setup/' | relative_url }}">
+                    Start with setup →
+                </a>
+            {%- endif -%}
+            <a class="btn btn--secondary" href="{{ '/demos/' | relative_url }}">
+                See the demos
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <h2 class="section-heading">The set</h2>
+        {%- assign parts_sorted = site.parts | sort: "order" -%}
+        {%- if parts_sorted.size > 0 -%}
+            <p class="section-sub">
+                Read in order the first time, part by part — each part
+                groups the chapters covering one stage of the build.
+            </p>
+            <div class="cards">
+                {%- for part in parts_sorted -%}
+                    <a class="card" href="{{ part.url | relative_url }}">
+                        <div class="card__eyebrow">Part {{ part.order }}</div>
+                        <h3 class="card__title">{{ part.title }}</h3>
+                        <p class="card__desc">{{ part.blurb }}</p>
+                    </a>
+                {%- endfor -%}
+            </div>
+        {%- else -%}
+            <div class="callout">
+                <p class="callout__title">Coming soon</p>
+                <p>
+                    The tutorial chapters haven't shipped yet — this
+                    scaffold ships the site shell first. Check
+                    <a href="{{ '/setup/' | relative_url }}">setup</a> and
+                    <a href="{{ '/demos/' | relative_url }}">demos</a> for
+                    what's available now.
+                </p>
+            </div>
+        {%- endif -%}
+    </div>
+</section>
+
+<section class="section-tight">
+    <div class="container">
+        <h2 class="section-heading">What you'll need to run it</h2>
+        <p>
+            JDK 25, Maven 3.9.x, and Docker (not podman) for the local
+            infrastructure — Kafka, Postgres, and the observability stack.
+            See <a href="{{ '/setup/' | relative_url }}">setup &amp; prerequisites</a>
+            for the full toolchain, including the Quarkus CLI and SDKMAN.
+        </p>
+        <p>
+            The runnable example tree lives under
+            <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/examples">examples/</a>
+            in the repo, alongside the demo scripts and the presentation
+            deck.
+        </p>
+    </div>
+</section>
+
+<section class="section" style="background: var(--bg-soft);">
+    <div class="container">
+        <h2 class="section-heading">Demos & examples</h2>
+        <p class="section-sub">
+            Run the reference end to end, then exercise each data-mesh
+            principle and Quarkus capability from a terminal — including
+            the Spring Boot side-by-side comparison.
+        </p>
+
+        <div class="cards">
+            <a class="doc-card" href="{{ '/setup/' | relative_url }}">
+                <span class="doc-card__icon" aria-hidden="true">&#x1F9F0;</span>
+                <span>
+                    <span class="doc-card__title">Setup & prerequisites</span>
+                    <span class="doc-card__desc">Toolchain, versions, and
+                    bootstrap — everything you need before running the
+                    first demo.</span>
+                </span>
+            </a>
+
+            <a class="doc-card" href="{{ '/demos/' | relative_url }}">
+                <span class="doc-card__icon" aria-hidden="true">&#x1F3AC;</span>
+                <span>
+                    <span class="doc-card__title">Demo & example reference</span>
+                    <span class="doc-card__desc">Demos mapped to the four
+                    data-mesh principles and to the Quarkus capabilities
+                    they exercise.</span>
+                </span>
+            </a>
+        </div>
+    </div>
+</section>

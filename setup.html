@@ -1,0 +1,139 @@
+---
+layout: default
+title: Setup & prerequisites
+description: Toolchain, versions, and bootstrap for the Quarkus data-mesh reference.
+permalink: /setup/
+---
+
+<section class="hero hero--compact">
+    <div class="container">
+        <span class="hero__eyebrow">Setup &amp; prerequisites</span>
+        <h1>Running the reference, start to finish.</h1>
+        <p class="hero__lead">
+            From a bare workstation to a running Quarkus data mesh — JDK,
+            Maven, the Quarkus CLI, and a Docker Compose stack for Kafka,
+            Postgres, and observability.
+        </p>
+    </div>
+</section>
+
+<!-- ───────── Version matrix ───────── -->
+
+<section class="section">
+    <div class="container" style="max-width: 42rem;">
+        <h2 class="section-heading">Version matrix</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Component</th>
+                    <th>Version</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Quarkus</td>
+                    <td>3.39.5</td>
+                    <td>Current latest stable (4.0.0 is Beta only)</td>
+                </tr>
+                <tr>
+                    <td>JDK</td>
+                    <td>25 (<code>25-tem</code>)</td>
+                    <td>Supported on Quarkus 3.39.x</td>
+                </tr>
+                <tr>
+                    <td>Camel</td>
+                    <td>platform-aligned</td>
+                    <td>Imported via <code>quarkus-camel-bom:3.39.5</code> — no standalone Camel version pin</td>
+                </tr>
+                <tr>
+                    <td>langchain4j (Quarkiverse)</td>
+                    <td>1.14.1</td>
+                    <td>Watch for tool-calling API drift, especially against Ollama</td>
+                </tr>
+                <tr>
+                    <td>Maven</td>
+                    <td>3.9.x</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Base images</td>
+                    <td>UBI (<code>ubi10/openjdk-25</code>)</td>
+                    <td>Multi-stage builder + runtime images</td>
+                </tr>
+                <tr>
+                    <td>Container toolchain</td>
+                    <td>Docker / Docker Compose</td>
+                    <td>Not podman — see the <code>lgtm-docker-stack</code> skill</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ───────── Required tooling ───────── -->
+
+<section class="section-tight">
+    <div class="container" style="max-width: 42rem;">
+        <h2 class="section-heading">Required tooling</h2>
+
+        <ul>
+            <li><strong>SDKMAN</strong> — manages JDK 25, Maven 3.9.x, JBang, and the Quarkus CLI</li>
+            <li><strong>Quarkus CLI</strong> — <code>quarkus create</code>, <code>quarkus dev</code></li>
+            <li><strong>Docker</strong> and <strong>Docker Compose</strong> — the v2 CLI plugin, not podman</li>
+            <li><strong>Camel CLI</strong> &amp; the <strong>Camel MCP server</strong> — Camel-on-Quarkus route prototyping and validation</li>
+            <li>The <strong>Quarkus Agent MCP server</strong> — dev-loop tooling for Claude Code (project create, skills, docs search, logs)</li>
+        </ul>
+
+        <h3>Installing the toolchain via SDKMAN</h3>
+<pre><code>curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk install java 25-tem
+sdk install maven 3.9.9
+sdk install quarkus</code></pre>
+    </div>
+</section>
+
+<!-- ───────── Bootstrap ───────── -->
+
+<section class="section">
+    <div class="container" style="max-width: 42rem;">
+        <h2 class="section-heading">Bootstrap</h2>
+        <p>
+            The local infrastructure — Kafka, Postgres, and the
+            observability stack — runs via Docker Compose. Bootstrap
+            scripts and the full <code>examples/</code> tree ship in a
+            later build step; once they land, bringing a service up will
+            look like:
+        </p>
+<pre><code>docker compose up -d
+cd examples/&lt;service&gt;
+mvn quarkus:dev</code></pre>
+    </div>
+</section>
+
+<!-- ───────── Verifying a service ───────── -->
+
+<section class="section-tight">
+    <div class="container" style="max-width: 42rem;">
+        <h2 class="section-heading">Verifying a service</h2>
+<pre><code>mvn verify                 # unit + integration tests
+mvn package -Pnative        # native build (GraalVM/Mandrel)
+quarkus build --native      # equivalent, via the Quarkus CLI</code></pre>
+    </div>
+</section>
+
+<!-- ───────── What's next ───────── -->
+
+<section class="section">
+    <div class="container" style="max-width: 42rem;">
+        <h2 class="section-heading">What's next</h2>
+        <p>
+            See <a href="{{ '/demos/' | relative_url }}">demos &amp; examples</a>
+            for the planned demo-to-capability mapping, or the
+            <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}" rel="noopener">GitHub repo ↗</a>
+            for the current build status.
+        </p>
+    </div>
+</section>

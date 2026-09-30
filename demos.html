@@ -1,0 +1,157 @@
+---
+layout: default
+title: Demos & examples
+description: Every demo in the reference, mapped to the data-mesh principles and Quarkus capabilities they exercise.
+permalink: /demos/
+---
+
+<section class="hero hero--compact">
+    <div class="container">
+        <span class="hero__eyebrow">Demos &amp; examples</span>
+        <h1>See every principle and capability, live.</h1>
+        <p class="hero__lead">
+            Each demo is mapped 1:1 to a data-mesh principle — domain
+            ownership, data as a product, self-serve platform, federated
+            computational governance — and to the Quarkus capability it
+            exercises. The runnable <code>examples/</code> tree and
+            <code>demos/*.sh</code> scripts ship in a later build step;
+            this page tracks what's planned and will link to each one once
+            it lands.
+        </p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container" style="max-width: 42rem">
+        <div class="callout">
+            <p class="callout__title">Coming soon</p>
+            <p>
+                This scaffold ships the site shell first. See
+                <a href="{{ '/setup/' | relative_url }}">setup &amp; prerequisites</a>
+                for the toolchain that's already settled.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ── Planned demos by principle ─────────────────────────── -->
+<section class="section">
+    <div class="container">
+        <h2 class="section-heading">Planned demos by principle</h2>
+
+        <h3>Domain ownership &amp; data as a product</h3>
+        <p>
+            Each domain service — order, inventory, payment, shipping,
+            notification, review — owns its data, its API surface, and its
+            operational lifecycle.
+        </p>
+        <div class="cards">
+            <div class="card">
+                <div class="card__eyebrow">Domain ownership &middot; <strong>Panache + REST</strong></div>
+                <h3 class="card__title">Order-service walking skeleton</h3>
+                <p class="card__desc">
+                    Build, deploy, REST round-trip against a Panache-backed
+                    Postgres entity.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card__eyebrow">Domain ownership &middot; <strong>gRPC</strong></div>
+                <h3 class="card__title">Cross-service gRPC</h3>
+                <p class="card__desc">
+                    order-service calls inventory-service over
+                    <code>quarkus-grpc</code>. Proves domain isolation with
+                    clear API boundaries.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card__eyebrow">Data as a product &middot; <strong>GraphQL</strong></div>
+                <h3 class="card__title">Federated read layer</h3>
+                <p class="card__desc">
+                    A SmallRye GraphQL gateway stitches REST and gRPC data
+                    products into one composed query.
+                </p>
+            </div>
+        </div>
+
+        <h3>Self-serve platform</h3>
+        <div class="cards">
+            <div class="card">
+                <div class="card__eyebrow">Self-serve platform &middot; <strong>Kafka</strong></div>
+                <h3 class="card__title">Async spine (Reactive Messaging)</h3>
+                <p class="card__desc">
+                    order-service publishes <code>order.placed</code>;
+                    notification-service consumes it via Quarkus Reactive
+                    Messaging.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card__eyebrow">Self-serve platform &middot; <strong>KEDA</strong></div>
+                <h3 class="card__title">Scale-from-zero autoscaling</h3>
+                <p class="card__desc">
+                    Kafka consumer-lag and HTTP-concurrency scaling for
+                    notification-service and the GraphQL gateway.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card__eyebrow">Self-serve platform &middot; <strong>dev loop</strong></div>
+                <h3 class="card__title">Continuous testing &amp; Dev Services</h3>
+                <p class="card__desc">
+                    Live reload, continuous testing, and Testcontainers-backed
+                    Dev Services as a platform capability, not a chore.
+                </p>
+            </div>
+        </div>
+
+        <h3>Federated computational governance</h3>
+        <div class="cards">
+            <div class="card">
+                <div class="card__eyebrow">Federated governance &middot; <strong>Camel</strong></div>
+                <h3 class="card__title">Camel EIPs on Quarkus</h3>
+                <p class="card__desc">
+                    Routes composing the mesh's messaging backbone —
+                    content-based routing, aggregation, and transformation
+                    between data products.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card__eyebrow">Federated governance &middot; <strong>langchain4j + MCP</strong></div>
+                <h3 class="card__title">AI tool routes</h3>
+                <p class="card__desc">
+                    A Camel route exposes an order-lookup tool over MCP;
+                    langchain4j drives it from a natural-language prompt.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card__eyebrow">Federated governance &middot; <strong>OpenTelemetry</strong></div>
+                <h3 class="card__title">End-to-end tracing</h3>
+                <p class="card__desc">
+                    A GraphQL query fans out across three data products; the
+                    trace lands with cross-service spans.
+                </p>
+            </div>
+        </div>
+
+        <h3>Quarkus vs. Spring Boot</h3>
+        <p>
+            One runnable Spring Boot twin service ships alongside its
+            Quarkus counterpart for a real side-by-side comparison —
+            startup time, memory footprint, and native-image build.
+        </p>
+    </div>
+</section>
+
+<!-- ── Running a demo ─────────────────────────────────────── -->
+<section class="section-tight">
+    <div class="container" style="max-width: 42rem">
+        <h2 class="section-heading">Running a demo (once available)</h2>
+        <p>
+            Demos will assume a local Docker Compose stack (Kafka,
+            Postgres, the observability stack) is running. See
+            <a href="{{ '/setup/' | relative_url }}">setup &amp; prerequisites</a>
+            for the toolchain.
+        </p>
+        <pre><code>docker compose up -d
+cd examples/&lt;service&gt;
+mvn quarkus:dev</code></pre>
+    </div>
+</section>
