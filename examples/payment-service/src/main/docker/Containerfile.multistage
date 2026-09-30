@@ -1,0 +1,74 @@
+# Containerfile.multistage — payment-service
+#
+# Build (context = repo root, run from the repo root directory):
+#   docker build -f examples/payment-service/src/main/docker/Containerfile.multistage -t datamesh/payment-service .
+#
+# Build context is the REPO ROOT, not examples/ — this lets the builder stage
+# COPY the whole `examples/` Maven reactor (payment-service's sibling modules
+# domain-model and contracts, both required at compile time: domain-model for
+# shared DTOs/Topics, contracts for the order.placed / payment.captured Avro
+# schemas, DRQ-009) in one shot. docker compose / K8s manifests that build
+# this image must set the same context (repo root) and this exact -f path.
+#
+# Two stages:
+#   1. `build`   — registry.access.redhat.com/ubi10/openjdk-25 (JDK 25 + Maven
+#                  preinstalled). Builds the reactor with `mvn -pl
+#                  payment-service -am package` so domain-model + contracts
+#                  resolve as reactor deps, and their generated Avro sources
+#                  are produced before payment-service compiles against them.
+#   2. `runtime` — registry.access.redhat.com/ubi10/openjdk-25-runtime. Copies
+#                  ONLY payment-service's target/quarkus-app/ fast-jar output
+#                  (lib/, quarkus-run.jar, app/, quarkus/) — never the whole
+#                  reactor, never the builder's Maven cache.
+#
+# payment-service is a pure Kafka choreography processor (order.placed in,
+# payment.captured out via Avro/Apicurio, DRQ-010) with no gRPC server — only
+# the HTTP port (health/metrics) is exposed here.
+
+# ─── Stage 1: build (reactor-aware) ──────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/openjdk-25 AS build
+
+WORKDIR /build
+
+# Copy the whole examples/ reactor (root pom + every module). A single COPY is
+# used rather than per-module layering because domain-model/contracts changes
+# should invalidate this service's build layer anyway (they're compile-time
+# reactor deps), so there's no cache-hit to preserve by splitting it further.
+COPY --chown=185 examples/ ./examples/
+
+WORKDIR /build/examples
+
+# -pl payment-service -am: build this module PLUS its required upstream
+# reactor modules (domain-model, contracts) — NOT the full reactor — so Avro
+# codegen in contracts runs before payment-service compiles against the
+# generated classes.
+RUN mvn -q -pl payment-service -am package -DskipTests
+
+# ─── Stage 2: runtime ────────────────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/openjdk-25-runtime AS runtime
+
+# Quarkus's fast-jar layout separates the app into layers (lib/, quarkus/,
+# app/) that map naturally onto container image layers — dependencies rarely
+# change, application classes change often. Preserve that structure rather
+# than flattening into a single fat jar copy.
+WORKDIR /deployments
+COPY --from=build --chown=185 /build/examples/payment-service/target/quarkus-app/lib/ ./lib/
+COPY --from=build --chown=185 /build/examples/payment-service/target/quarkus-app/*.jar ./
+COPY --from=build --chown=185 /build/examples/payment-service/target/quarkus-app/app/ ./app/
+COPY --from=build --chown=185 /build/examples/payment-service/target/quarkus-app/quarkus/ ./quarkus/
+
+EXPOSE 8080
+
+# DRQ-011: pin UTC (Postgres Dev Services / real Postgres rejects legacy
+# Olson zone ids forwarded from the host default) + run with the %prod
+# profile so compose/K8s deployments use the same env-driven config
+# (KAFKA_BOOTSTRAP_SERVERS / APICURIO_REGISTRY_URL / JDBC_URL) as the rest of
+# the reactor, per DRQ-011.
+ENV JAVA_OPTS_APPEND="-Duser.timezone=UTC -Dquarkus.profile=prod"
+
+# UBI OpenJDK runtime images already default to UID 185 (non-root); explicit
+# here for clarity and to guard against a base-image change silently
+# reverting to root.
+USER 185
+
+ENTRYPOINT ["java", "-jar", "quarkus-run.jar"]

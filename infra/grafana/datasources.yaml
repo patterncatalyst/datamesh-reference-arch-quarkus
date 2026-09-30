@@ -1,0 +1,90 @@
+# infra/grafana/datasources.yaml
+#
+# Pre-provisioned Grafana datasources for the `lgtm` service in
+# compose.yaml. Mounted at
+# /otel-lgtm/grafana/conf/provisioning/datasources/datasources.yaml inside
+# the grafana/otel-lgtm all-in-one image, so URLs below point at
+# `localhost` — Grafana, Tempo, Loki, and Mimir all run inside that SAME
+# container. From the host, Grafana itself is reachable at
+# http://localhost:${GRAFANA_PORT}/ (see .env).
+#
+# What this gives you out of the box (once Phase D wires OTLP into the
+# example services):
+#   - All three signal datasources connected on startup, no manual setup
+#   - Trace -> Logs correlation via trace_id
+#   - Logs -> Trace correlation via trace_id
+#   - Exemplars: latency histograms link from metric to trace
+#
+# NOTE (Phase C): no service emits OTLP yet, so these datasources will show
+# up empty in Grafana until Phase D instruments the example services. The
+# stack is wired and ready; there is simply no data in it yet.
+
+apiVersion: 1
+
+datasources:
+  # ─── Tempo (traces) ─────────────────────────────────────────────────────
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://localhost:3200
+    uid: tempo
+    isDefault: false
+    editable: true
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+        tags:
+          - key: service.name
+            value: service_name
+        filterByTraceID: true
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: prometheus
+        spanStartTimeShift: -2m
+        spanEndTimeShift: 2m
+        tags:
+          - key: service.name
+            value: service
+        queries:
+          - name: 'Request rate'
+            query: 'sum(rate(http_server_duration_milliseconds_count{$$__tags}[5m]))'
+          - name: 'Error rate'
+            query: 'sum(rate(http_server_duration_milliseconds_count{$$__tags,error="true"}[5m]))'
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+
+  # ─── Loki (logs) ────────────────────────────────────────────────────────
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://localhost:3100
+    uid: loki
+    isDefault: false
+    editable: true
+    jsonData:
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: "trace_id=(\\w+)"
+          name: trace_id
+          url: '$${__value.raw}'
+          urlDisplayLabel: 'View trace in Tempo'
+
+  # ─── Prometheus / Mimir (metrics) ───────────────────────────────────────
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://localhost:9090
+    uid: prometheus
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "15s"
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo

@@ -25,8 +25,8 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 | 5 | Example tree + shared domain-model | B | lgtm-quarkus, quarkus-agent | DONE (0b3e2ae; reactor + domain-model + contracts Avro/gRPC) |
 | 6 | Port AI/MCP seed (42-ai-mcp) | B | lgtm-camel, lgtm-quarkus, camel-mcp | DONE + validated (compiles; DEF-001 pinned; Ollama IT pending Ollama) |
 | 7 | Quarkus data-product services (Panache/gRPC/GraphQL/Kafka) | B | lgtm-quarkus, quarkus-agent, camel-mcp | DONE + validated (mvn verify green: 21 tests, 0 fail; DEF-002 wire-byte test pending Phase C) |
-| 8 | Docker compose + Testcontainers + devcontainer | C | lgtm-docker-stack | pending |
-| 9 | Minikube/K8s substrate + KEDA | C | lgtm-minikube-stack | pending |
+| 8 | Docker compose + Testcontainers + devcontainer | C | lgtm-docker-stack | DONE + validated (compose live-healthy: pg18/kafka-native4.2.0/apicurio3.1.7/lgtm; %prod env config; UBI Containerfiles; devcontainer; DEF-002 Avro-wire IT green) |
+| 9 | Minikube/K8s substrate + KEDA | C | lgtm-minikube-stack | DONE (substrate scripts + kustomize apps + KEDA scalers; CRD-schema-validated, no live cluster bring-up) |
 | 10 | Demos 1:1 with slides | D | lgtm-quarkus, lgtm-camel, MCPs | pending |
 | 11 | Tutorial chapters (+ Spring-Boot compare) | D | lgtm-tutorial, quarkus-agent, camel-mcp | pending |
 | 12 | Diagrams (uniform) | D | lgtm-diagram-generator | pending |

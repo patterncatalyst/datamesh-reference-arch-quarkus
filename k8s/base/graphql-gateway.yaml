@@ -1,0 +1,113 @@
+# graphql-gateway — the HTTP scale target for 9c's KEDA HTTP add-on
+# ScaledObject. Federates order-service (REST) and inventory-service (gRPC)
+# behind /graphql; owns no data of its own.
+#
+# DEVIATION FROM THE /q/health/* PROBE SPEC: graphql-gateway's pom.xml does
+# NOT depend on quarkus-smallrye-health (checked: only quarkus-smallrye-graphql,
+# quarkus-rest-client[-jackson], quarkus-grpc, quarkus-arc, domain-model,
+# contracts). Without that extension /q/health/ready and /q/health/live
+# return 404, so httpGet probes on those paths would never succeed and the
+# Deployment would never go Ready. Probes below use tcpSocket on the HTTP
+# port instead — a real but weaker substitute (proves the Vert.x HTTP
+# listener is up, not that GraphQL execution actually works). Recommended
+# follow-up (out of scope for this manifest-only step): add
+# quarkus-smallrye-health to examples/graphql-gateway/pom.xml and switch
+# these back to httpGet /q/health/*.
+#
+# INVENTORY_GRPC_HOST/PORT below point at an "inventory-service" Kubernetes
+# Service that does not exist yet — inventory-service has no k8s/base
+# manifest as of this step (not in this step's scope: only order-service,
+# notification-service, graphql-gateway). gRPC calls to inventory will fail
+# until that Service is added; this does not block graphql-gateway's own
+# startup/readiness since it has no health dependency wired to that call.
+#
+# Mesh: NOT injected — see order-service.yaml for the Phase C mesh-opt-out
+# rationale (applies identically here).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphql-gateway
+  namespace: datamesh
+  labels:
+    app.kubernetes.io/name: graphql-gateway
+    app.kubernetes.io/part-of: datamesh
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: graphql-gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: graphql-gateway
+        app.kubernetes.io/part-of: datamesh
+        app.kubernetes.io/component: gateway
+    spec:
+      containers:
+        - name: graphql-gateway
+          image: datamesh/graphql-gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: datamesh-app-config
+          env:
+            - name: ORDER_SERVICE_URL
+              value: "http://order-service.datamesh.svc.cluster.local:8080"
+            - name: INVENTORY_GRPC_HOST
+              value: "inventory-service.datamesh.svc.cluster.local"
+            - name: INVENTORY_GRPC_PORT
+              value: "9000"
+          startupProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 185
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphql-gateway
+  namespace: datamesh
+  labels:
+    app.kubernetes.io/name: graphql-gateway
+    app.kubernetes.io/part-of: datamesh
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: graphql-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

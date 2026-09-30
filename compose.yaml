@@ -1,0 +1,241 @@
+# compose.yaml — datamesh-reference-arch-quarkus standing infra (DRQ-011,
+# step 8a). `docker compose up -d` from the repo root (per CLAUDE.md).
+#
+# Baseline (no --profile flag needed): postgres, kafka, apicurio, lgtm.
+# LGTM observability is an ALWAYS-ON baseline per DRQ-011 (user choice) —
+# it is deliberately NOT profile-gated, unlike the lgtm-docker-stack
+# skill's compose-full.yaml default template.
+#
+# Opt-in profiles:
+#   --profile tools    kafka-ui, a browser UI for inspecting topics/messages
+#   --profile ollama   local LLM inference for the ai-mcp-service demo
+#
+# Usage:
+#   docker compose up -d                       # postgres + kafka + apicurio + lgtm
+#   docker compose --profile tools up -d       # + kafka-ui
+#   docker compose --profile ollama up -d      # + ollama
+#   docker compose down                        # stop (keeps named volumes)
+#   docker compose down -v                     # stop AND wipe volumes (Kafka
+#                                               # KRaft cluster-id resets, DBs wiped)
+#
+# Image tags are pinned ONCE in .env — see .env and infra/README.md for the
+# exact Kafka/Apicurio/Postgres tags and how they were confirmed to match
+# Quarkus 3.39.5 Dev Services defaults (the wire-compat crux, DRQ-011).
+#
+# Requires the Docker Compose v2 CLI plugin (`docker compose`, not the
+# legacy `docker-compose` binary). Docker only — no podman (CLAUDE.md).
+
+services:
+  # ─── Postgres (baseline) ─────────────────────────────────────────────────
+  # postgres:18 pinned to match Quarkus 3.39.5 Dev Services' default
+  # PostgresImageSelector image exactly (see infra/README.md). TZ=UTC /
+  # PGTZ=UTC avoid the US/Eastern boot failure documented in
+  # _plans/decisions.md ("Test/build notes" — postgres:18 rejects legacy
+  # Olson zone ids like US/Eastern forwarded by pgjdbc from a non-UTC host).
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    container_name: datamesh-postgres
+    hostname: postgres
+    environment:
+      - TZ=UTC
+      - PGTZ=UTC
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      # postgres:18 changed the on-disk layout: it wants a single mount at
+      # /var/lib/postgresql (it creates its own major-version subdirectory
+      # underneath), NOT /var/lib/postgresql/data as in postgres:16 and
+      # earlier. Mounting at .../data on 18+ fails fast with "these Docker
+      # images are configured to store database data in a format which is
+      # compatible with pg_ctlcluster" — confirmed by running this exact
+      # image. Named volumes don't take the bind-mount-only `:Z` SELinux
+      # relabel flag.
+      - postgres-data:/var/lib/postgresql
+      - ./infra/db/init:/docker-entrypoint-initdb.d:Z
+    mem_limit: 1g
+    command:
+      - "postgres"
+      - "-c"
+      - "timezone=UTC"
+      - "-c"
+      - "shared_buffers=128MB"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  # ─── Kafka, KRaft mode (baseline) ────────────────────────────────────────
+  # apache/kafka-native:4.2.0 pinned to match Quarkus 3.39.5 Dev Services'
+  # default provider ("upstream-kafka-native") exactly (see
+  # infra/README.md). Two advertised listeners:
+  #   - PLAINTEXT (localhost:9092) — host access (CLI tools, IDE, `kcat`)
+  #   - INTERNAL  (kafka:9094)     — in-network access for other compose
+  #     services AND K8s parity (a Service named `kafka` on port 9094 is
+  #     the minikube-stack equivalent, per DRQ-011's Phase C -> 9 handoff).
+  kafka:
+    image: ${KAFKA_IMAGE}
+    container_name: datamesh-kafka
+    hostname: kafka
+    ports:
+      - "${KAFKA_HOST_PORT}:9092"
+      - "${KAFKA_INTERNAL_PORT}:9094"
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:9094,CONTROLLER://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:${KAFKA_HOST_PORT},INTERNAL://kafka:${KAFKA_INTERNAL_PORT}
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - CLUSTER_ID=${KAFKA_CLUSTER_ID}
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_NUM_PARTITIONS=3
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=1
+      - KAFKA_MIN_INSYNC_REPLICAS=1
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+    volumes:
+      - kafka-data:/opt/kafka/data
+    mem_limit: 1g
+    healthcheck:
+      # apache/kafka-native is an Alpine/busybox minimal image — no
+      # kafka-broker-api-versions.sh, no curl/wget/nc symlink. bash IS
+      # present and supports /dev/tcp, which gives a dependency-free TCP
+      # reachability check (confirmed against the real image).
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/9092' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # ─── Apicurio Registry (baseline) ────────────────────────────────────────
+  # apicurio/apicurio-registry:3.1.7 pinned to match Quarkus 3.39.5 Dev
+  # Services' default image exactly (see infra/README.md). Serves the v3
+  # API at /apis/registry/v3, wire-compatible with the explicit
+  # io.apicurio.registry.serde.avro.AvroKafka{Serializer,Deserializer}
+  # config in order-service/shipping-service/notification-service (DRQ-009).
+  # In-memory H2 storage — registry contents reset on container restart;
+  # fine for local dev, not for anything persistent.
+  apicurio:
+    image: ${APICURIO_IMAGE}
+    container_name: datamesh-apicurio
+    hostname: apicurio
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "${APICURIO_PORT}:8080"
+    environment:
+      # Apicurio Registry 3.1.7 removed the plain in-memory ("mem")
+      # storage variant used by older 3.0.x images (confirmed empirically:
+      # APICURIO_STORAGE_KIND=mem throws "No Registry storage variant
+      # defined for value mem" at startup). sql/h2 is the closest
+      # equivalent — an embedded, ephemeral H2 database, still wiped on
+      # every container restart, no external dependency.
+      - APICURIO_STORAGE_KIND=sql
+      - APICURIO_STORAGE_SQL_KIND=h2
+      - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4318
+      - QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+
+  # ─── LGTM observability (ALWAYS-ON baseline — DRQ-011, not profiled) ────
+  # Grafana + Loki + Tempo + Mimir + an OTel Collector, all in one image.
+  # No example service emits OTLP yet (that lands in Phase D) — dashboards
+  # will be empty until then. That is expected; the stack is wired and
+  # ready. See infra/README.md.
+  lgtm:
+    image: ${LGTM_IMAGE}
+    container_name: datamesh-lgtm
+    hostname: lgtm
+    ports:
+      - "${GRAFANA_PORT}:3000"
+      - "${OTLP_GRPC_PORT}:4317"
+      - "${OTLP_HTTP_PORT}:4318"
+      - "${MIMIR_PORT}:9090"
+      - "${LOKI_PORT}:3100"
+      - "${TEMPO_PORT}:3200"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    volumes:
+      - ./infra/otelcol/config.yaml:/otel-lgtm/otelcol-config.yaml:Z
+      # Mounted over the image's OWN default provisioning filename
+      # (grafana-datasources.yaml), not a new file alongside it. Grafana's
+      # file-based provisioning loads every *.yaml in this directory in
+      # lexical order and later files win on uid collision — confirmed
+      # empirically that the built-in grafana-datasources.yaml (same
+      # tempo/loki/prometheus uids as ours) was silently overriding a
+      # differently-named datasources.yaml mounted next to it.
+      - ./infra/grafana/datasources.yaml:/otel-lgtm/grafana/conf/provisioning/datasources/grafana-datasources.yaml:Z
+    mem_limit: 2g
+    healthcheck:
+      # This image (RHEL 9-based, confirmed via `docker exec ... cat
+      # /etc/os-release`) ships curl, not wget — the lgtm-docker-stack
+      # skill's generic template assumes wget, which fails here with
+      # "executable file not found in $PATH" (confirmed empirically).
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+
+  # ─── Kafka UI (profile: tools — opt-in) ──────────────────────────────────
+  kafka-ui:
+    image: ${KAFKA_UI_IMAGE}
+    container_name: datamesh-kafka-ui
+    hostname: kafka-ui
+    profiles: ["tools"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "${KAFKA_UI_PORT}:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=datamesh
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9094
+      - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://apicurio:8080/apis/ccompat/v6
+      - DYNAMIC_CONFIG_ENABLED=true
+    mem_limit: 512m
+
+  # ─── Ollama (profile: ollama — opt-in, heaviest piece) ──────────────────
+  ollama:
+    image: ${OLLAMA_IMAGE}
+    container_name: datamesh-ollama
+    hostname: ollama
+    profiles: ["ollama"]
+    ports:
+      - "${OLLAMA_PORT}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    mem_limit: 8g
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  postgres-data:
+  kafka-data:
+  ollama-data:
+
+networks:
+  default:
+    name: datamesh

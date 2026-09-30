@@ -1,0 +1,101 @@
+# dashboard-overview.yaml — the entry-point dashboard. Top-row panels show
+# whether each of the four backends is receiving signal; lower rows let you
+# drill into traces, logs, or metrics from one place.
+#
+# Picked up by the Grafana helm chart's dashboard sidecar via the
+# `grafana_dashboard=1` label.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-overview
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "LGTM"
+data:
+  overview.json: |
+    {
+      "uid": "lgtm-overview",
+      "title": "LGTM Overview",
+      "tags": ["lgtm", "overview"],
+      "timezone": "browser",
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "time": {"from": "now-1h", "to": "now"},
+      "templating": {"list": []},
+      "panels": [
+        {
+          "id": 1,
+          "title": "Metrics ingest rate (Mimir, samples/s)",
+          "type": "stat",
+          "datasource": {"type": "prometheus", "uid": "mimir"},
+          "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0},
+          "targets": [{
+            "expr": "sum(rate(cortex_ingester_ingested_samples_total[1m]))",
+            "refId": "A"
+          }],
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "id": 2,
+          "title": "Trace ingest rate (Tempo, spans/s)",
+          "type": "stat",
+          "datasource": {"type": "prometheus", "uid": "mimir"},
+          "gridPos": {"h": 5, "w": 6, "x": 6, "y": 0},
+          "targets": [{
+            "expr": "sum(rate(tempo_distributor_spans_received_total[1m]))",
+            "refId": "A"
+          }],
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "id": 3,
+          "title": "Log ingest rate (Loki, entries/s)",
+          "type": "stat",
+          "datasource": {"type": "prometheus", "uid": "mimir"},
+          "gridPos": {"h": 5, "w": 6, "x": 12, "y": 0},
+          "targets": [{
+            "expr": "sum(rate(loki_distributor_lines_received_total[1m]))",
+            "refId": "A"
+          }],
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "id": 4,
+          "title": "OTel Collector accepted (signals/s)",
+          "type": "stat",
+          "datasource": {"type": "prometheus", "uid": "mimir"},
+          "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
+          "targets": [{
+            "expr": "sum(rate(otelcol_receiver_accepted_spans[1m])) + sum(rate(otelcol_receiver_accepted_metric_points[1m])) + sum(rate(otelcol_receiver_accepted_log_records[1m]))",
+            "refId": "A"
+          }],
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "id": 5,
+          "title": "Recent logs (any namespace)",
+          "type": "logs",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "gridPos": {"h": 10, "w": 24, "x": 0, "y": 5},
+          "targets": [{
+            "expr": "{namespace=~\".+\"}",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 6,
+          "title": "Recent traces (by service)",
+          "type": "table",
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "gridPos": {"h": 10, "w": 24, "x": 0, "y": 15},
+          "targets": [{
+            "queryType": "traceqlSearch",
+            "filters": [{"id": "service", "tag": "service.name", "operator": "=~", "value": [".+"], "valueType": "string"}],
+            "refId": "A"
+          }]
+        }
+      ]
+    }

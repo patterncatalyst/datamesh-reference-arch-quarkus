@@ -53,10 +53,31 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
   DEF-001 resolved (langchain4j-bom 1.20.2 pinned → convergence).
   Decisions added: DRQ-009, DRQ-010; DEF-001 (resolved-pin, Ollama IT pending),
   DEF-002 (Avro wire-byte assertion pending real broker in Phase C).
-- **NEXT — Phase C infra** (step 8 docker compose + Testcontainers +
-  devcontainer via lgtm-docker-stack; step 9 minikube/K8s + KEDA), then Phase D
-  content, Phase E finish. See build-plan.md status table. Phase C should also
-  land the DEF-002 Avro-on-wire IT and (if Ollama available) close DEF-001.
+- **Phase C — DONE + VALIDATED** (steps 8–9). Merged to main via PR (lgtm-github
+  per-phase flow). Decisions added: DRQ-011 (Phase C infra choices).
+  - **Step 8 (docker):** root `compose.yaml` live-validated healthy (postgres:18,
+    apache/kafka-native:4.2.0, apicurio-registry:3.1.7, otel-lgtm:0.8.1;
+    LGTM always-on baseline; ollama + kafka-ui profiled). `.env` pins tags ==
+    Dev Services tags == IT Testcontainers tags. `%prod` env-driven config in all
+    services (`${KAFKA_BOOTSTRAP_SERVERS}`/`${APICURIO_REGISTRY_URL}`/`${JDBC_URL}`);
+    Dev Services image-names pinned. Multi-stage UBI Containerfiles (order test-built).
+    `.devcontainer/` (JDK25/Maven3.9.9, DooD socket, joins `datamesh` network).
+    `.dockerignore` added. **DEF-002 RESOLVED** — `OrderPlacedAvroWireIT` byte-asserts
+    Avro magic byte, green in default `mvn verify`.
+  - **Step 9 (minikube):** `scripts/` substrate (bootstrap + Strimzi/CNPG/KEDA/
+    Apicurio/LGTM/Istio/Kiali, all flags ON per DRQ-011; KEDA HTTP add-on 0.12.2).
+    `k8s/` kustomize (base + minikube overlay) for order/notification/graphql-gateway
+    (real in-cluster DNS, securityContext, local images). `k8s/keda/` ScaledObject
+    (Kafka-lag → notification-service, scale-from-zero) + HTTPScaledObject
+    (graphql-gateway). CRD-schema-validated (KEDA 2.19.0 / http-add-on 0.12.2); NOT
+    brought up on a live cluster (heavy — deferred to a real minikube run).
+  - **Validation:** full `mvn verify -f examples/pom.xml` GREEN — 22 tests, 0 fail,
+    0 error (21 Phase-B + DEF-002 IT). Ran with compose down + test-port overrides.
+- **Still open:** DEF-001 Ollama behavioral IT (needs Ollama running); live minikube
+  bring-up of the step-9 substrate (scripts authored + schema-checked, not run).
+- **NEXT — Phase D** content (steps 10–13: demos 1:1 with slides incl. demo-keda-*,
+  tutorial chapters + Spring-Boot compare, diagrams, deck), then Phase E finish
+  (steps 14–17). See build-plan.md status table.
 
 ## Settled scope answers (do not re-ask)
 - Repo: local-first, PUBLIC, push only after approval.

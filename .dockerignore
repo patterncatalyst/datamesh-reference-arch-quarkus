@@ -1,0 +1,37 @@
+# Keep docker build context small (see examples/*/src/main/docker/Containerfile.multistage).
+# Only examples/ source is COPYed in; everything below is noise or rebuildable.
+
+# Maven / Quarkus build output
+**/target/
+**/.quarkus/
+
+# VCS
+.git/
+.gitignore
+
+# Jekyll site + Ruby/Node
+_site/
+.jekyll-cache/
+.jekyll-metadata
+vendor/
+node_modules/
+package-lock.json
+
+# Editor / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Repo docs/infra not needed by the app image build
+_docs/
+_parts/
+_plans/
+presentation/
+demos/
+k8s/
+.devcontainer/
