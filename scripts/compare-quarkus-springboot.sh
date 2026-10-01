@@ -308,6 +308,7 @@ run_and_measure "${S_BASE_URL}/actuator/health" "$RUN_LOG2" \
         DB_USERNAME="$PG_USER" \
         DB_PASSWORD="$PG_PASSWORD" \
         KAFKA_BOOTSTRAP_SERVERS="localhost:19999" \
+        APICURIO_REGISTRY_URL="http://localhost:19999/apis/registry/v3" \
     java "${JVM_PROPS[@]}" -Dspring.profiles.active=prod -jar "$S_JAR" --server.port="$S_PORT"
 S_JVM_STARTUP="$(fmt_secs_ms "$RESULT_STARTUP_MS")"
 S_JVM_RSS="$(fmt_rss_kb "$RESULT_RSS_KB")"
