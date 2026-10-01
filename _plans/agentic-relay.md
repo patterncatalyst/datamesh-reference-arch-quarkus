@@ -1,11 +1,11 @@
 ---
-title: "How this was built: the agentic relay, and why a report isn't evidence"
-order: 16
-part: How this was built
-description: "This repo is a third showroom — not just data mesh and Quarkus, but the agentic development and testing method that built and validated both: a Plan/Execute/Validate model relay, fan-out parallelism across file-disjoint work, and the adversarial re-verification that caught the defects a subagent's own report missed."
-duration: 40 minutes
-marker: "16"
+title: "How this was built — the agentic relay"
+description: "The agentic development and testing method that built and validated this repo: a Plan/Execute/Validate model relay, fan-out parallelism across file-disjoint work, and the adversarial re-verification that caught the defects a subagent's own report missed."
 ---
+
+> **Note.** This is a behind-the-scenes process document about how the repository
+> was built and validated with an agentic workflow. It is intentionally **not**
+> part of the published tutorial site — it lives here as a standalone reference.
 
 Everywhere else in this tutorial, the showroom has two floors: a working
 data mesh — domain-owned services, versioned contracts, an event backbone,
@@ -40,7 +40,9 @@ executors checkpointing their own commits, a validation pass reading the
 diff rather than the report, a capped repair loop back to execution, and
 the branch → PR → squash-merge rail every phase boundary here actually rode.
 
-{% include excalidraw.html file="15-agentic-relay" alt="The lgtm-relay loop: a human-gated Plan phase on Opus hands acceptance criteria to a fan-out of file-disjoint Sonnet executors, each checkpoint-committing on its own branch; a Validate phase on Opus reads the real diff and runs the real build against those criteria, independent of the executors' own reports; failures feed back to Execute for up to two repair rounds before escalating to a fresh plan; every phase lands through a branch, a PR, and a squash-merge to main" caption="Figure 16.1 — Plan (Opus) → fan-out Execute (Sonnet) → Validate (Opus), with a capped repair loop and a PR rail" %}
+![The lgtm-relay loop: a human-gated Plan phase on Opus hands acceptance criteria to a fan-out of file-disjoint Sonnet executors, each checkpoint-committing on its own branch; a Validate phase on Opus reads the real diff and runs the real build against those criteria, independent of the executors' own reports; failures feed back to Execute for up to two repair rounds before escalating to a fresh plan; every phase lands through a branch, a PR, and a squash-merge to main](../assets/diagrams/15-agentic-relay.svg)
+
+*Figure — Plan (Opus) → fan-out Execute (Sonnet) → Validate (Opus), with a capped repair loop and a PR rail.*
 
 ## Agentic development
 
@@ -313,7 +315,7 @@ what was built, and how what was built earned the right to be trusted.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
+*Verification status: unverified.
 The highest-risk things to confirm on a real run: that `scripts/run-all-tests.sh`
 still runs to a clean pass as the single consolidated entry point described
 here, rather than only in the per-tool form (`mvn verify`,

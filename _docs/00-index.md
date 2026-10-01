@@ -21,7 +21,7 @@ at the right chapter.
 
 ## How the tutorial is organized
 
-The sixteen chapters fall into six parts. **Part 0, Foundations** (this part) grounds
+The fifteen chapters fall into five parts. **Part 0, Foundations** (this part) grounds
 the landscape of data architectures, what a data mesh is, and why Kubernetes is a
 natural substrate for one. **Part 1, Building data products** builds the services and
 their data products: the contracts and catalog that make them discoverable, and the data
@@ -32,9 +32,7 @@ even when the technology is sound, then closes by reorganizing the same material
 principle. **Part 4, The Quarkus deep-dive** is specific to this rebuild: a tour of the
 Quarkus capabilities the services exercise, a side-by-side comparison against the Spring
 Boot twin service, and a look at the three different coordination styles the domain
-services demonstrate side by side. **Part 5, How this was built** turns the lens on the
-build itself — the agentic Plan/Execute/Validate relay that wrote and verified
-everything in Parts 1 through 4.
+services demonstrate side by side.
 
 ## Part 0 — Foundations
 
@@ -98,14 +96,6 @@ everything in Parts 1 through 4.
 - [**15 · AI rules triage**]({{ '/docs/14-ai-rules-triage/' | relative_url }}) —
   The `ai-rules-service` triage flow — classification plus a rules decision — exercised
   through both the Camel route and the Quarkus Flow workflow from the previous chapter.
-
-## Part 5 — How this was built
-
-- [**16 · How this was built: the agentic relay**]({{ '/docs/15-agentic-relay/' | relative_url }}) —
-  The third showroom dimension: the Plan (Opus) → Execute (Sonnet, fan-out) →
-  Validate (Opus) model relay that built and tested this repo, and the real
-  defects independent re-verification caught that a subagent's own report
-  would have missed.
 
 ## Who this is for
 
