@@ -1,0 +1,8 @@
+# Node deps — reinstall with `npm install` per deck dir
+node_modules/
+
+# Rasterized diagram PNGs — regenerate with `node raster.js` (reads ../../assets/diagrams/*.svg)
+dpng/
+
+# QA render artifacts
+*.pdf
