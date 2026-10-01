@@ -619,7 +619,7 @@
 						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\"query\": \"{ order(id:\\\"{{orderId}}\\\") { orderId itemSku quantity stock { sku available quantityOnHand } } }\"}",
+							"raw": "{\"query\": \"{ order(id:\\\"{{orderId}}\\\") { id itemSku quantity stock { sku available quantityOnHand } } }\"}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -643,9 +643,9 @@
 									"    pm.expect(json.errors).to.be.undefined;",
 									"});",
 									"",
-									"pm.test('order.orderId matches', function () {",
+									"pm.test('order.id matches', function () {",
 									"    const json = pm.response.json();",
-									"    pm.expect(json.data.order.orderId).to.eql(pm.environment.get('orderId'));",
+									"    pm.expect(json.data.order.id).to.eql(pm.environment.get('orderId'));",
 									"});",
 									"",
 									"pm.test('order.stock is present with boolean available', function () {",
