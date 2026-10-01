@@ -11,9 +11,15 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 /**
  * REST client to order-service. Returns a raw {@link Response} rather than
- * an {@code OrderDto} directly so {@link GatewayApi} can distinguish a 404
- * (unknown order id, mapped to a {@code null} GraphQL result) from a
- * successful lookup without needing a {@code ResponseExceptionMapper}.
+ * an {@code OrderDto} directly, but the modern reactive
+ * {@code quarkus-rest-client} still applies its default exception handling
+ * to any response with a status &gt;= 400, regardless of the declared return
+ * type -- a 404 (or any other error status) throws
+ * {@code jakarta.ws.rs.WebApplicationException} before {@link GatewayApi}
+ * ever sees the {@link Response}. SmallRye GraphQL catches that exception
+ * and surfaces it as a {@code null} {@code order} field plus a
+ * {@code DataFetchingException} entry in the GraphQL response's
+ * {@code errors} array.
  *
  * <p>The base URL is supplied via the {@code order-service} config key (see
  * {@code quarkus.rest-client.order-service.url} in application.properties);

@@ -15,6 +15,7 @@ import com.patterncatalyst.datamesh.domain.OrderStatus;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 
 /**
@@ -68,8 +69,15 @@ class GatewayApiTest {
 
     @Test
     void returnsNullWhenOrderNotFoundInOrderService() {
+        // The modern reactive quarkus-rest-client throws a
+        // WebApplicationException for any non-2xx response -- even when the
+        // client method's declared return type is Response -- so a real 404
+        // never reaches GatewayApi.order() as a Response to inspect. Mock
+        // that real behavior (rather than a fabricated 404 Response) so this
+        // test exercises what SmallRye GraphQL actually does: null out the
+        // order field and report a DataFetchingException in .errors.
         when(orderRestClient.getOrder("missing"))
-                .thenReturn(Response.status(Response.Status.NOT_FOUND).build());
+                .thenThrow(new WebApplicationException(404));
 
         String query = "{ \"query\": \"{ order(id: \\\"missing\\\") { id } }\" }";
 
@@ -80,6 +88,7 @@ class GatewayApiTest {
                 .post("/graphql")
                 .then()
                 .statusCode(200)
-                .body("data.order", is((Object) null));
+                .body("data.order", is((Object) null))
+                .body("errors[0].extensions.classification", is("DataFetchingException"));
     }
 }

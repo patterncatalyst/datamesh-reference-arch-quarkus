@@ -36,9 +36,6 @@ public class GatewayApi {
     @Query("order")
     public OrderView order(@Name("id") String id) {
         try (Response response = orderRestClient.getOrder(id)) {
-            if (response.getStatus() == Response.Status.NOT_FOUND.getStatusCode()) {
-                return null;
-            }
             OrderDto dto = response.readEntity(OrderDto.class);
             return OrderView.from(dto);
         }
