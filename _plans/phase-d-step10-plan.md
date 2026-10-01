@@ -53,6 +53,7 @@ Design decisions:
 | 10.7 | `demo-oidc.sh` (feasibility-gated, DRQ-005) | 10.0 | **done — GO (live, not deferred)** (committed 6fc5d58). Quarkus OIDC + Keycloak Dev Service needs zero `quarkus.oidc.*` config (auto realm `quarkus`/client `quarkus-app`/users alice=admin+user, bob=user). Minimal source: added one admin-only `DELETE /reviews/{id}` `@RolesAllowed("admin")` to review-service (smallest service, no gRPC/Kafka, no other demo touches it) + `quarkus-oidc` dep; all existing endpoints byte-unchanged. `mvn verify` green (5 tests, oidc+security installed). Demo (Dev Services, no compose) asserts 401 no-token, 403 bob/user-role (bonus RBAC), 204 alice/admin + 404 follow-up. Live-run ×2 to SUCCESS per executor; orchestrator verified build+diffs, deferred live re-run (docker contention w/ concurrent orchestration-styles run). |
 | 10.8 | Toolchain: demo-jbang-prototype, demo-continuous-testing, demo-native (≥1 native build) | 10.0 | **done** (all 3 real-run end-to-end: jbang via `camel@apache/camel run` on single `.java`; continuous-testing via `quarkus:dev` + `QUARKUS_TEST_CONTINUOUS_TESTING=enabled`, parsed test counts; native via Mandrel `jdk-25` container-build 84s + throwaway `docker run` pg. Each gates its toolchain + fails loud w/ install hint. `TZ=UTC` needed client-side for Dev Services + native runtime — pg18 rejects `US/Eastern`) |
 | 10.9 | KEDA: demo-keda-kafka, demo-keda-http (minikube-gated) | step 9 | **done — author-only** (no live cluster here). Both reference real step-9 manifests (`k8s/keda/{consumer-scaledobject,gateway-httpscaledobject}.yaml`, `k8s/overlays/minikube`); run `kubectl kustomize` in-script + grep-assert the rendered ScaledObject/HTTPScaledObject; no-cluster gate fails loud → `./scripts/bootstrap.sh`. Live path asserts jsonpath-parsed replica delta. Use bundled `kubectl kustomize` (no standalone binary). **Substrate gap (DEFER):** `order-service` hardcodes `quarkus.grpc.clients.inventory.host=localhost`, no `%prod`/env override in `k8s/base/*` → `POST /orders` 503s on cluster, no `order.placed` emitted. kafka demo documents + fails honestly rather than faking a bypass producer. |
+| DRQ-015 | `demo-orchestration-styles.sh` — three-engine comparison (Kafka choreography / Camel / Quarkus Flow) | 10.3, 10.6 | **done** (committed 8b1ae7f; live-run ×3 to SUCCESS). ACT1 Kafka choreography (order.placed→payment.captured→shipment.dispatched, kcat `0x00` magic byte ×2 + `shippingdb.shipment` row + notifications), ACT2 Camel `/triage` strict `ROUTE_TO_WAREHOUSE`, ACT3 Flow `/triage-flow` same. Per-hop `SERIALIZABLE_PACKAGES` scoped per service; inventory grpc 9001; ollama via compose profile. Narrated choreography-vs-orchestration recap. Runtime `-D`/env only. |
 | 10.10 | `walkthrough.sh` five-act orchestrator | all | todo |
 
 ## Acceptance criteria
@@ -130,6 +131,13 @@ warrant real fixes before chapters/deck (steps 11/13) and before any publish.
   Client-visible end state (`.data.order==null`) happens to match intent but
   arrives via a `.errors` `DataFetchingException`. demo-graphql.sh asserts the
   *actual* behavior, not the intended one.
+- **F5 — `Shipment` entity has no `@Column` overrides (LOW, cosmetic).** Unlike
+  `Order` (explicit `customer_id`/`item_sku`/…), `shipping-service`'s `Shipment`
+  uses Hibernate default naming → columns `orderid`/`customerid`/`trackingnumber`/
+  `dispatchedat` (lowercased, no underscores). Hibernate round-trips it correctly;
+  only matters for hand-written SQL (demo-orchestration-styles.sh's `psql` assert
+  uses `orderid`, documented inline). Not a functional gap — a naming-consistency
+  nit vs the other entities; optional tidy-up before chapters/deck.
 - **Demo-only (not source bugs):** gRPC reflection is dev/test-only (packaged
   needs `-Dquarkus.grpc.server.enable-reflection-service=true`); grpcurl JSON is
   proto3 snake_case + omits defaults (`-emit-defaults`). Handled in the scripts.
