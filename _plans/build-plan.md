@@ -28,9 +28,9 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 | 8 | Docker compose + Testcontainers + devcontainer | C | lgtm-docker-stack | DONE + validated (compose live-healthy: pg18/kafka-native4.2.0/apicurio3.1.7/lgtm; %prod env config; UBI Containerfiles; devcontainer; DEF-002 Avro-wire IT green) |
 | 9 | Minikube/K8s substrate + KEDA | C | lgtm-minikube-stack | DONE (substrate scripts + kustomize apps + KEDA scalers; CRD-schema-validated, no live cluster bring-up) |
 | 10 | Demos 1:1 with slides | D | lgtm-quarkus, lgtm-camel, MCPs | WIP (plan: _plans/phase-d-step10-plan.md; DRQ-012 embedded-Drools showcase) |
-| 11 | Tutorial chapters (+ Spring-Boot compare) | D | lgtm-tutorial, quarkus-agent, camel-mcp | pending |
+| 11 | Tutorial chapters (+ Spring-Boot compare; incl. DRQ-015 orchestration-styles chapter) | D | lgtm-tutorial, quarkus-agent, camel-mcp | pending |
 | 12 | Diagrams (uniform) | D | lgtm-diagram-generator | pending |
-| 13 | Presentation deck | D | lgtm-presentation | pending |
+| 13 | Presentation deck (incl. DRQ-015: Kafka/Camel/Quarkus Flow orchestration-styles comparison + per-engine slides) | D | lgtm-presentation | pending |
 | 14 | Newman/load tooling | E | lgtm-quarkus | pending |
 | 15 | Notion 1-hour abstract | E | Notion MCP | pending |
 | 16 | (optional) refresh lgtm-quarkus ancillary pins | E | — | optional |
@@ -49,6 +49,8 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 | demo-ai-classify.sh | langchain4j | 42-ai-mcp OrderClassifierRoute |
 | demo-ai-mcp.sh | langchain4j + MCP | 42-ai-mcp OrderLookupToolRoute |
 | demo-camel-integration.sh | Quarkus + Camel EIP | 42-ai-mcp routes |
+| demo-ai-triage.sh | DRQ-012/014 showcase: Ollama classify + Drools decide, orchestrated by Camel route AND Quarkus Flow workflow (A/B) | new (ai-rules-service) |
+| demo-orchestration-styles.sh | DRQ-015: same domain across Kafka choreography + Camel orchestration + Quarkus Flow orchestration | new |
 | demo-websocket.sh | websocket.next | new |
 | demo-tracing.sh | OpenTelemetry | python |
 | demo-oidc.sh | quarkus-oidc (feasibility-gated) | new |

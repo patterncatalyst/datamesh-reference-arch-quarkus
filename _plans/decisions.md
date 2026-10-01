@@ -55,11 +55,45 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
   engine as a library (`org.drools` `drools-core`/`drools-compiler`, a
   `KieContainer` built at app startup in a CDI bean) — NOT the Kogito/KIE Quarkus
   extension. **KIE is explicitly not a roadmap item**; no Kogito platform, no KIE
-  process/flow/BPMN. Orchestration is done by **Quarkus + Camel** (the point of the
-  demo). This removes the KIE-extension compatibility spike; the only early check
-  is a light probe that embedded `drools-core` compiles and runs a trivial `.drl`
-  on Quarkus 3.39.5 / JDK 25. ai-rules-service is JVM-mode (native is not a goal
-  for this module).
+  process/flow/BPMN. The first cut orchestrates the triage with a **Camel route**
+  (`POST /api/orders/triage`); the workflow-engine orchestration is added as a
+  contrast by **Quarkus Flow** (see DRQ-014), NOT by KIE. This removes the
+  KIE-extension compatibility spike; the only early check is a light probe that
+  embedded `drools-core` compiles and runs a trivial `.drl` on Quarkus 3.39.5 /
+  JDK 25. ai-rules-service is JVM-mode (native is not a goal for this module).
+- **DRQ-014 — Quarkus Flow as the orchestration / workflow-engine showcase — ACCEPTED
+  (AI/agentic orchestration framing).** Add the Quarkiverse **Quarkus Flow**
+  extension (`io.quarkiverse.flow:quarkus-flow`, via `quarkus-flow-bom`) to
+  re-orchestrate the DRQ-012 triage pipeline (receive → Ollama classify → Drools
+  decide → route) as a **declarative workflow**, exposed alongside the Camel-route
+  version for a direct A/B (candidate: second endpoint `POST /api/orders/triage-flow`
+  in `ai-rules-service`, reusing the same fact POJO, `order-triage.drl`, and
+  classify prompt). Quarkus Flow implements the CNCF **Open/Serverless Workflow
+  Specification** (fluent Java DSL + YAML), is low-dependency and native-friendly,
+  and crucially **does NOT pull Kogito/KIE/Drools** — consistent with "KIE is not a
+  roadmap item." Built against Quarkus **3.39.0** (same 3.39.x train as our 3.39.5);
+  Java 17+ (we run 25). Exact version pinned via a light compat spike (like Drools):
+  confirm the `quarkus-flow-bom` version that runs a minimal Java-DSL workflow on
+  Quarkus 3.39.5 / JDK 25 AND coexists with camel-quarkus + langchain4j in the
+  reactor. Keep it one focused demo (scope-discipline): the contrast, not a second
+  product. Docs: https://docs.quarkiverse.io/quarkus-flow/dev/
+- **DRQ-015 — "three engines, different orchestration styles" is a required narrative
+  (docs + deck) — ACCEPTED (user directive).** The project deliberately demonstrates
+  three integration/orchestration mechanisms over the SAME shipping/order domain, and
+  this comparison must be explicitly documented in the tutorial chapters (step 11) and
+  featured in the presentation deck (step 13):
+    - **Kafka** — event-driven **choreography** (decentralized; no central
+      coordinator). DRQ-009/010: `order.placed` → payment-service → `payment-captured`
+      → shipping-service → `shipment-dispatched`, Avro over Kafka.
+    - **Camel** — route/EIP **orchestration** (centralized route coordinates steps).
+      ai-rules-service `POST /api/orders/triage` and the Camel EIP demos.
+    - **Quarkus Flow** — declarative **workflow-engine orchestration** (CNCF Open/
+      Serverless Workflow). DRQ-014: ai-rules-service `POST /api/orders/triage-flow`.
+  Terminology discipline for the deck: Kafka is **choreography**, Camel and Quarkus
+  Flow are **orchestration** — present the choreography-vs-orchestration distinction
+  as the teaching point, framed by the user as "different orchestrations," i.e. three
+  engines solving coordination differently. Each engine → at least one demo + one
+  slide; include a side-by-side comparison slide (when to reach for which).
 - **DRQ-013 — Phase D breadth — staged (demos first).** Phase D is sequenced:
   plan + build step 10 (demos 1:1 with slides, incl. DRQ-012) first, reassess
   before steps 11–13 (tutorial chapters, diagrams, deck). Demos are the
