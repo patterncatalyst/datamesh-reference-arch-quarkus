@@ -36,7 +36,6 @@ import jakarta.ws.rs.core.Response;
  * </ul>
  */
 @Path("/orders")
-@Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class OrderResource {
 
@@ -49,6 +48,7 @@ public class OrderResource {
     OrderEventProducer eventProducer;
 
     @POST
+    @Consumes(MediaType.APPLICATION_JSON)
     @Transactional
     public Response placeOrder(OrderCreate payload) {
         CheckStockResponse stock;

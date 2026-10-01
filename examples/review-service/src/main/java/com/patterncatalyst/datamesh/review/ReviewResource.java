@@ -34,10 +34,10 @@ import jakarta.ws.rs.core.Response.Status;
  */
 @Path("/reviews")
 @Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 public class ReviewResource {
 
     @POST
+    @Consumes(MediaType.APPLICATION_JSON)
     @Transactional
     public Response create(@Valid ReviewCreate payload) {
         Review review = new Review();
