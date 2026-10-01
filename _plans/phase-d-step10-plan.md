@@ -49,7 +49,7 @@ Design decisions:
 | 10.3 | `demos/demo-ai-triage.sh` showcase — assert decision enum on BOTH `/triage` (Camel) and `/triage-flow` (Flow); DEF-001-proof | 10.2, 10.2b | **done** (live-run ×2; 6 strict + 6 membership + 6 reason-nonnull assertions across both endpoints × 3 inputs) |
 | 10.4 | Honest `demo-ai-classify.sh` + `demo-ai-mcp.sh` (MCP path + caveat) | 10.0 | **done** (both live-run ✓). classify asserts strict `.category` on 3 pre-validated inputs (PERISHABLE/HAZARDOUS/FRAGILE) + presence of priority/fulfillmentType. ai-mcp speaks real MCP Streamable-HTTP JSON-RPC (initialize/tools-list/tools-call), asserts `order-status` tool + ORD-001/2/3 payload; loud DEF-001 banner, never asserts in-process tool-calling. **Surfaced + fixed a real classify-route bug** (`fix(ai-mcp)` b42a4cf: wrong prompt header + chat op). |
 | 10.5 | `demo-camel-integration.sh` | 10.0 | **done** (live-run ✓). Targets `OrderLookupToolRoute`'s Content-Based Router EIP — exercises all 4 branches incl. `.otherwise()` fallback (ORD-NO-SUCH-ORDER → not-found) via MCP `tools/call`. EIP-centric narration, distinct from demo-ai-mcp. (Only 4 RouteBuilders exist; the other 3 are used by 10.3/10.4.) |
-| 10.6 | Core: demo-order, demo-grpc, demo-graphql, demo-kafka (Avro byte), demo-tracing, demo-websocket, demo-reactive-vertx | 10.0 | todo |
+| 10.6 | Core: demo-order, demo-grpc, demo-graphql, demo-kafka (Avro byte), demo-tracing, demo-websocket, demo-reactive-vertx | 10.0 | **part 1 done** (demo-order/grpc/graphql/kafka all live-run ✓, packaged `quarkus-run.jar` on compose baseline, prod profile). order: REST round-trip + direct `psql` row assert. grpc: `grpcurl` reflection + `CheckStock` RPCs. graphql: stitched `order{...stock{...}}` asserting `.data` incl. gRPC leg. kafka: `kcat` raw-value leading `0x00` Avro byte + Apicurio artifact (DEF-002). **Remaining:** demo-tracing, demo-websocket (new endpoint), demo-reactive-vertx. See Findings below. |
 | 10.7 | `demo-oidc.sh` (feasibility-gated, DRQ-005) | 10.0 | todo |
 | 10.8 | Toolchain: demo-jbang-prototype, demo-continuous-testing, demo-native (≥1 native build) | 10.0 | **done** (all 3 real-run end-to-end: jbang via `camel@apache/camel run` on single `.java`; continuous-testing via `quarkus:dev` + `QUARKUS_TEST_CONTINUOUS_TESTING=enabled`, parsed test counts; native via Mandrel `jdk-25` container-build 84s + throwaway `docker run` pg. Each gates its toolchain + fails loud w/ install hint. `TZ=UTC` needed client-side for Dev Services + native runtime — pg18 rejects `US/Eastern`) |
 | 10.9 | KEDA: demo-keda-kafka, demo-keda-http (minikube-gated) | step 9 | **done — author-only** (no live cluster here). Both reference real step-9 manifests (`k8s/keda/{consumer-scaledobject,gateway-httpscaledobject}.yaml`, `k8s/overlays/minikube`); run `kubectl kustomize` in-script + grep-assert the rendered ScaledObject/HTTPScaledObject; no-cluster gate fails loud → `./scripts/bootstrap.sh`. Live path asserts jsonpath-parsed replica delta. Use bundled `kubectl kustomize` (no standalone binary). **Substrate gap (DEFER):** `order-service` hardcodes `quarkus.grpc.clients.inventory.host=localhost`, no `%prod`/env override in `k8s/base/*` → `POST /orders` 503s on cluster, no `order.placed` emitted. kafka demo documents + fails honestly rather than faking a bypass producer. |
@@ -81,3 +81,46 @@ Design decisions:
   separate module.
 - **Reactor BOM skew from Drools** — inherit BOMs from parent, no module-level
   `dependencyManagement`, `dependency:tree` check in the probe, green `mvn verify`.
+
+## Findings surfaced by the demo runs (candidate deferrals — NOT fixed in source)
+
+Demos ran against the real packaged `%prod` services + compose baseline (not
+just Dev Services), which exposed genuine **production-readiness** gaps in the
+step-7/8 service code. Each was worked around at the *demo-script* level (runtime
+`-D`/env only, documented inline) to keep the demos honest; none is fixed in
+module source. These are for the **post-step-10 reassessment** (DRQ-013) to
+triage — several undermine the headline "order placement emits events and
+autoscales" narrative when actually deployed (K8s/packaged), so they likely
+warrant real fixes before chapters/deck (steps 11/13) and before any publish.
+
+- **F1 — order.placed never publishes in packaged/%prod runs (HIGH).** Avro
+  1.12 `ClassSecurityValidator` throws `SecurityException: Forbidden
+  capstone.order.v1.OrderPlaced!` from a plain `java -jar` JVM (a
+  Quarkus-bootstrapped dev/test JVM trusts app packages; a packaged one does
+  not). `OrderEventProducer`'s failure is caught-and-logged, so `POST /orders`
+  still returns 201 — the failure is invisible without reading logs. Fix already
+  named in DEF-002 for the IT: set `org.apache.avro.SERIALIZABLE_PACKAGES=
+  capstone.order.v1` (via `JAVA_TOOL_OPTIONS`/image env for real deploys).
+  demo-kafka.sh caught this (kcat timed out — nothing was produced). **Converges
+  with 10.9's substrate gap** — together they mean the real deployed flow emits
+  no events, so KEDA-on-Kafka-lag has nothing to scale on.
+- **F2 — order→inventory gRPC wiring broken in prod (HIGH).** order-service
+  pins `quarkus.grpc.clients.inventory.port=9001` (and host `localhost`, per
+  10.9) with no `%prod`/env override; inventory-service's gRPC server defaults
+  to 9000 and `k8s/base/*` sets no inventory Service/env. Side-by-side packaged
+  runs never connect; on-cluster `POST /orders` fails closed (503). Demos
+  force `-Dquarkus.grpc.server.port=9001` on inventory-service.
+- **F3 — seed data never loads in packaged/%prod (MEDIUM).** inventory-service's
+  `%prod.quarkus.hibernate-orm.database.generation=${DB_GENERATION:update}`
+  (deprecated alias) overrides `schema-management.strategy=drop-and-create`, so
+  `import.sql` (WIDGET-1/2, GADGET-1) is skipped outside dev/test. Demos seed via
+  the existing `POST /stock` convenience endpoint.
+- **F4 — GatewayApi.order() 404→null branch is dead code (LOW).** MP REST Client
+  throws `WebApplicationException` for any non-2xx regardless of the `Response`
+  return type, so the `if (status==NOT_FOUND) return null` line never runs.
+  Client-visible end state (`.data.order==null`) happens to match intent but
+  arrives via a `.errors` `DataFetchingException`. demo-graphql.sh asserts the
+  *actual* behavior, not the intended one.
+- **Demo-only (not source bugs):** gRPC reflection is dev/test-only (packaged
+  needs `-Dquarkus.grpc.server.enable-reflection-service=true`); grpcurl JSON is
+  proto3 snake_case + omits defaults (`-emit-defaults`). Handled in the scripts.
