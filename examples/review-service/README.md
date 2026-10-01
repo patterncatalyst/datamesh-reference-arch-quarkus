@@ -17,9 +17,40 @@ module in the reactor writes to it.
   explicit order clause yet); supports `?sku=...` to filter by product SKU.
 - `GET /reviews/{id}` -- fetch one review by its generated id; `404` if not
   found.
+- `DELETE /reviews/{id}` -- admin-only moderation; `204` on success, `404`
+  if not found. Protected by OIDC bearer-token RBAC (`@RolesAllowed("admin")`):
+  no token -> `401`, a token without the `admin` role -> `403`. This is the
+  reactor's live OIDC + Keycloak Dev Service demo (DRQ-005; see
+  `demos/demo-oidc.sh`) -- see "Security (OIDC)" below.
 - `GET /q/health`, `/q/health/live`, `/q/health/ready` -- SmallRye Health
   probes (liveness/readiness; readiness includes the Postgres datasource
   check registered automatically by `quarkus-agroal`).
+
+## Security (OIDC)
+
+`quarkus-oidc` is on the classpath with no `quarkus.oidc.*` config set, so
+in dev/test Quarkus Dev Services auto-provisions a disposable Keycloak
+container: realm `quarkus`, client `quarkus-app`/`secret`, and the builtin
+users `alice`/`alice` (roles `admin`+`user`) and `bob`/`bob` (role `user`
+only). `DELETE /reviews/{id}` is the only protected endpoint; everything
+else is unauthenticated, unchanged.
+
+```bash
+# from examples/review-service/ (mvn quarkus:dev running on the default port 8080)
+# The Keycloak Dev Service binds a RANDOM host port -- find it from the
+# `quarkus:dev` startup log ("Dev Services for Keycloak started") or the Dev
+# UI; KC_PORT below stands in for whatever that turns out to be.
+TOKEN=$(curl -s -X POST "http://localhost:${KC_PORT}/realms/quarkus/protocol/openid-connect/token" \
+  --user quarkus-app:secret \
+  -d 'username=alice&password=alice&grant_type=password' | jq -r .access_token)
+
+curl -s -o /dev/null -w '%{http_code}\n' -X DELETE localhost:8080/reviews/1                       # 401 (no token)
+curl -s -o /dev/null -w '%{http_code}\n' -X DELETE localhost:8080/reviews/1 -H "Authorization: Bearer $TOKEN"  # 204/404
+```
+
+See `demos/demo-oidc.sh` for the scripted version, including how it
+discovers that random Keycloak port automatically (`docker port` against the
+container id Testcontainers logs).
 
 ## Storage
 
