@@ -227,10 +227,24 @@ compose_up() {
     docker compose "${args[@]}" || fail "docker compose up failed (profiles: ${*:-none})"
 }
 
-# compose_down [extra docker-compose-down flags...] — e.g. `compose_down -v`
-# to also wipe named volumes.
+# compose_down [profile...] [-flag...] — mirror compose_up: pass the SAME
+# profile names you passed to compose_up, or `docker compose down` silently
+# leaves profile-gated services (e.g. `ollama`) running. Args starting with "-"
+# are forwarded to `down` as flags (e.g. `-v` to also wipe named volumes).
 compose_down() {
-    docker compose -f "$COMPOSE_FILE" down "$@" || fail "docker compose down failed"
+    local -a args=(-f "$COMPOSE_FILE")
+    local -a flags=()
+    local a
+    for a in "$@"; do
+        if [[ "$a" == -* ]]; then
+            flags+=("$a")
+        else
+            args+=(--profile "$a")
+        fi
+    done
+    args+=(down "${flags[@]}")
+    info "docker compose ${args[*]}"
+    docker compose "${args[@]}" || fail "docker compose down failed"
 }
 
 # ─── Local Quarkus dev-mode service lifecycle ───────────────────────────────
