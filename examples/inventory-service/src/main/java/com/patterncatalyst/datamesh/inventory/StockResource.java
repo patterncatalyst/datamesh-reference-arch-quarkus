@@ -40,8 +40,16 @@ public class StockResource {
         return toDto(stock);
     }
 
-    /** List current stock levels for every known SKU. */
+    /**
+     * List current stock levels for every known SKU.
+     *
+     * <p>Explicit WILDCARD so this bodyless GET isn't matched against the
+     * sibling POST method's @Consumes(APPLICATION_JSON) -- without it,
+     * RESTEasy Reactive 415s any request whose Content-Type isn't JSON
+     * (e.g. hey's default text/html) even though GET has no body to parse.
+     */
     @GET
+    @Consumes(MediaType.WILDCARD)
     public List<StockDto> list() {
         return Stock.<Stock>listAll().stream().map(StockResource::toDto).toList();
     }
@@ -49,6 +57,7 @@ public class StockResource {
     /** Look up current stock for a single SKU. */
     @GET
     @Path("/{sku}")
+    @Consumes(MediaType.WILDCARD)
     public StockDto get(@PathParam("sku") String sku) {
         Stock stock = Stock.findBySku(sku);
         if (stock == null) {

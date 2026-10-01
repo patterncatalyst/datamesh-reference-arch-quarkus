@@ -50,7 +50,13 @@ public class ReviewResource {
         return Response.status(Status.CREATED).entity(ReviewResponse.from(review)).build();
     }
 
+    // Explicit WILDCARD on this and the other bodyless methods below so
+    // they aren't matched against the sibling POST method's
+    // @Consumes(APPLICATION_JSON) -- without it, RESTEasy Reactive 415s any
+    // request whose Content-Type isn't JSON (e.g. hey's default text/html)
+    // even though these methods have no body to parse.
     @GET
+    @Consumes(MediaType.WILDCARD)
     public List<ReviewResponse> list(@QueryParam("sku") String sku) {
         List<Review> reviews = (sku == null || sku.isBlank())
                 ? Review.listAll()
@@ -60,6 +66,7 @@ public class ReviewResource {
 
     @GET
     @Path("/{id}")
+    @Consumes(MediaType.WILDCARD)
     public Response getById(@PathParam("id") Long id) {
         Review review = Review.findById(id);
         if (review == null) {
@@ -76,6 +83,7 @@ public class ReviewResource {
      */
     @DELETE
     @Path("/{id}")
+    @Consumes(MediaType.WILDCARD)
     @Transactional
     @RolesAllowed("admin")
     public Response delete(@PathParam("id") Long id) {

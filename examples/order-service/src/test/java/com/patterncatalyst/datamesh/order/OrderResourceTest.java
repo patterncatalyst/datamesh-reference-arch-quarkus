@@ -2,13 +2,20 @@ package com.patterncatalyst.datamesh.order;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 import org.junit.jupiter.api.Test;
 
 import capstone.inventory.v1.Inventory.CheckStockResponse;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.RestAssured;
 
 /**
  * REST-level tests for {@link OrderResource}. {@link InventoryClient} is
@@ -79,15 +86,30 @@ class OrderResourceTest {
     }
 
     @Test
-    void listOrders_ignoresNonJsonContentType_sinceGetHasNoRequestBody() {
-        // Regression test: @Consumes must not sit at the class level, or
-        // JAX-RS applies it to every method -- including GETs with no body
-        // -- and rejects any client whose default Content-Type isn't JSON
-        // (e.g. hey's default text/html) with 415 instead of serving it.
-        given()
+    void listOrders_ignoresNonJsonContentType_sinceGetHasNoRequestBody() throws Exception {
+        // Regression test for the 415-on-GET defect: a sibling POST method's
+        // @Consumes(APPLICATION_JSON) must not leak onto this bodyless GET,
+        // or RESTEasy Reactive 415s any client whose Content-Type isn't JSON
+        // (e.g. hey's default text/html) instead of serving it. The fix is
+        // @Consumes(MediaType.WILDCARD) on the GET methods themselves.
+        //
+        // NOTE: this must NOT be written with RestAssured's given()/get() --
+        // confirmed empirically that RestAssured silently drops a
+        // Content-Type header it's told to send on a bodyless GET (no
+        // request body means its underlying Apache HttpClient never
+        // transmits the header), so a RestAssured-based version of this test
+        // passes even when the 415 regression is present (a false pass this
+        // replaces). java.net.http.HttpClient sends exactly the headers it's
+        // given regardless of body, matching the curl-based live
+        // verification this guards.
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(RestAssured.baseURI + ":" + RestAssured.port + "/orders"))
                 .header("Content-Type", "text/html")
-                .when().get("/orders")
-                .then()
-                .statusCode(200);
+                .GET()
+                .build();
+        HttpResponse<Void> response = HttpClient.newHttpClient()
+                .send(request, HttpResponse.BodyHandlers.discarding());
+        assertEquals(200, response.statusCode(),
+                "GET /orders with a non-JSON Content-Type must not 415");
     }
 }
