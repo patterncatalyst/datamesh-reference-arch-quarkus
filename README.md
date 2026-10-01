@@ -69,7 +69,7 @@ mvn package -Pnative             # native build (GraalVM/Mandrel), per service
 
 ## The tutorial + decks
 
-The full narrative — fifteen chapters across five parts — lives in
+The full narrative — twenty-one chapters across six parts — lives in
 [`_docs/`](_docs/) as a Jekyll site (start at
 [`_docs/00-index.md`](_docs/00-index.md) or the published site's homepage).
 It covers the data-mesh concepts, the services and their contracts,

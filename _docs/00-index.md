@@ -2,7 +2,7 @@
 title: "The data mesh — start here"
 order: 0
 part: Foundations
-description: "The map of this tutorial — the five parts, the reading order, and a link to every chapter. Start here."
+description: "The map of this tutorial — the six parts, the reading order, and a link to every chapter. Start here."
 duration: "5 min"
 marker: "00"
 ---
@@ -21,7 +21,7 @@ at the right chapter.
 
 ## How the tutorial is organized
 
-The fifteen chapters fall into five parts. **Part 0, Foundations** (this part) grounds
+The twenty-one chapters fall into six parts. **Part 0, Foundations** (this part) grounds
 the landscape of data architectures, what a data mesh is, and why Kubernetes is a
 natural substrate for one. **Part 1, Building data products** builds the services and
 their data products: the contracts and catalog that make them discoverable, and the data
@@ -32,7 +32,11 @@ even when the technology is sound, then closes by reorganizing the same material
 principle. **Part 4, The Quarkus deep-dive** is specific to this rebuild: a tour of the
 Quarkus capabilities the services exercise, a side-by-side comparison against the Spring
 Boot twin service, and a look at the three different coordination styles the domain
-services demonstrate side by side.
+services demonstrate side by side. **Part 5, Appendices** collects six optional
+deep-dives that go further than the main narrative on single topics: scaling the
+WebSocket push with Kafka, the gotchas hit along the way, agentic-development
+recommendations, testing in detail, in-memory versus Kafka messaging, and the three
+coordination engines compared head to head.
 
 ## Part 0 — Foundations
 
@@ -96,6 +100,30 @@ services demonstrate side by side.
 - [**15 · AI rules triage**]({{ '/docs/14-ai-rules-triage/' | relative_url }}) —
   The `ai-rules-service` triage flow — classification plus a rules decision — exercised
   through both the Camel route and the Quarkus Flow workflow from the previous chapter.
+
+## Part 5 — Appendices
+
+Optional deep-dives — reference material, not required reading. Each goes further
+on a single topic than the main narrative does, and each stands on its own.
+
+- [**16 · Scaling WebSocket push with Kafka**]({{ '/docs/16-websocket-scaling/' | relative_url }}) —
+  What the single-instance push does today, why it breaks across replicas, and the
+  Kafka fan-out pattern a multi-replica deployment would need.
+- [**17 · Gotchas**]({{ '/docs/17-gotchas/' | relative_url }}) —
+  The real pitfalls hit building this reactor — timezone, Avro, gRPC ports,
+  integration-test wiring — each with its symptom and the fix that landed.
+- [**18 · Agentic recommendations**]({{ '/docs/18-agentic-recommendations/' | relative_url }}) —
+  Practical, non-hype guidance for AI-agent-assisted development on a
+  Quarkus/Camel codebase: the plan/execute/validate relay and grounding in MCP tooling.
+- [**19 · Testing, in detail**]({{ '/docs/19-testing-details/' | relative_url }}) —
+  The full test pyramid — unit, integration, functional, and load — and the
+  single-entry runner that walks it.
+- [**20 · In-memory vs. Kafka messaging**]({{ '/docs/20-messaging-in-memory-vs-kafka/' | relative_url }}) —
+  The in-memory Vert.x connector used in tests versus the Kafka connector used in
+  production — same code, different connector — and the trade-offs.
+- [**21 · The three engines, compared**]({{ '/docs/21-orchestration-engines-compared/' | relative_url }}) —
+  A deeper comparison than Part 4's tour: Kafka choreography versus two shapes of
+  orchestration, across coupling, failure handling, debuggability, and more.
 
 ## Who this is for
 
