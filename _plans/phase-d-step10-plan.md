@@ -94,6 +94,27 @@ triage — several undermine the headline "order placement emits events and
 autoscales" narrative when actually deployed (K8s/packaged), so they likely
 warrant real fixes before chapters/deck (steps 11/13) and before any publish.
 
+> **Update (post-step-10 reassessment, HIGH findings fixed + validated).** The
+> three HIGH findings F1/F1b/F2 were fixed in source via the lgtm-relay
+> (plan→execute→validate) and merged onto `build/phase-d-step10-demos`:
+> `60d035f fix(avro)` (image-intrinsic `JAVA_TOOL_OPTIONS` Avro trusted-packages
+> on all 4 Avro services) and `e8f78d5 fix(grpc)` (canonical gRPC port 9000,
+> env-overridable both sides, new inventory-service image + `k8s/base/
+> inventory-service.yaml` + ConfigMap wiring). **Opus live validation PASSED all
+> 6 criteria**: `mvn verify` green with DEF-002 IT intact; `kubectl kustomize`
+> renders inventory + env; and the real-image proof — built order/inventory
+> images, ran against compose with NO `-D` overrides: `Picked up
+> JAVA_TOOL_OPTIONS=...capstone.order.v1`, zero `SecurityException`, a genuine
+> `0x00`-magic-byte Avro `order.placed` record published, and `POST /orders` →
+> 201 (gRPC CheckStock connected on default 9000). The deployed choreography now
+> actually emits events, so KEDA-on-Kafka-lag has something to scale on.
+> **F3/F4/F5 remain open** (MEDIUM/LOW). Two new pre-existing non-blocking nits
+> surfaced during validation (not caused by the fixes): **F6** order-service
+> logs a non-fatal `FileHandler.setFile` stack trace at startup (quarkus.log.file
+> trying to open a path non-root UID 185 can't write — a packaging config nit);
+> **F7** inventory `import.sql` logs a Postgres `null value in column "id" of
+> relation "stock"` during dev/test seeding (noisy, tests still pass). Both LOW.
+
 - **F1 — order.placed never publishes in packaged/%prod runs (HIGH).** Avro
   1.12 `ClassSecurityValidator` throws `SecurityException: Forbidden
   capstone.order.v1.OrderPlaced!` from a plain `java -jar` JVM (a
