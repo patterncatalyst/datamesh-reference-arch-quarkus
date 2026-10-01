@@ -12,13 +12,21 @@
 # `<measured-on-run>` — this script NEVER fabricates a number.
 #
 # ── What is measured, identically for both services ─────────────────────────
-#   jvm-startup — wall-clock seconds from process launch to the first HTTP
-#                 200 from the service's health endpoint (order-service:
-#                 /q/health, spring-boot-compare: /actuator/health),
-#                 cross-checked (best-effort, informational only) against the
-#                 "started in Xs" / "Started ... in X seconds" log line.
-#   jvm-rss     — RSS immediately after that first 200, read from
-#                 /proc/<pid>/status VmRSS, falling back to `ps -o rss=`.
+#   jvm-startup          — wall-clock seconds from process launch to the
+#                           moment the service prints its own framework
+#                           "started" log line (Quarkus: "started in X.XXs",
+#                           Spring Boot: "Started ... in X.XXX seconds").
+#                           This is the startup SIGNAL -- NOT the aggregate
+#                           health endpoint -- because KAFKA_BOOTSTRAP_SERVERS
+#                           below points at a dead port ON PURPOSE, so the
+#                           SmallRye Reactive Messaging readiness/startup
+#                           checks never reach UP and /q/health /
+#                           /actuator/health would never return 200.
+#   jvm-started-selfreported — the framework's own self-reported seconds,
+#                           pulled straight out of that same log line.
+#   jvm-rss              — RSS sampled immediately after the started line is
+#                           detected, read from /proc/<pid>/status VmRSS,
+#                           falling back to `ps -o rss=`.
 #
 # Both services are launched against the SAME throwaway `postgres:18`
 # container (TZ=UTC/PGTZ=UTC), with the SAME JVM system properties:
@@ -64,9 +72,11 @@ Usage: scripts/compare-quarkus-springboot.sh [--help]
 
 Builds and boots (JVM mode only — no native/GraalVM) order-service (Quarkus)
 and examples/spring-boot-compare (Spring Boot) one at a time against the same
-throwaway postgres:18 container, measures wall-clock startup time and
-post-startup RSS for each, and prints an aligned comparison table suitable
-for pasting into tutorial chapter 12.
+throwaway postgres:18 container, measures wall-clock startup time (to the
+framework's own "started" log line -- not the aggregate health endpoint,
+which never goes UP here because Kafka is intentionally unreachable),
+self-reported startup seconds, and post-startup RSS for each, and prints an
+aligned comparison table suitable for pasting into tutorial chapter 12.
 
 Options:
   --help    Show this help and exit.
@@ -118,18 +128,46 @@ PG_PASSWORD=apppass
 # ─── Result placeholders — overwritten only when actually measured ─────────
 Q_JVM_STARTUP="<measured-on-run>"
 Q_JVM_RSS="<measured-on-run>"
+Q_JVM_SELFREPORTED="<measured-on-run>"
 S_JVM_STARTUP="<measured-on-run>"
 S_JVM_RSS="<measured-on-run>"
+S_JVM_SELFREPORTED="<measured-on-run>"
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
-# extract_started_in <logfile> — best-effort cross-check only: pulls the
-# number out of a "started in Xs" (Quarkus) or "Started ... in X seconds"
-# (Spring Boot) log line. Prints nothing (not a failure) if no such line is
-# found — callers must never treat an empty result as an error.
+# STARTED_LOG_REGEX — matches BOTH frameworks' own "boot complete" log line:
+#   Quarkus:     "... started in 2.345s. Listening on: ..."
+#   Spring Boot: "... Started OrderServiceApplication in 3.456 seconds ..."
+# This is the startup SIGNAL used by wait_for_started() below (NOT the
+# aggregate health endpoint -- see header comment) and is also what
+# extract_started_in() re-parses to pull out the self-reported number.
+STARTED_LOG_REGEX='[Ss]tarted[^0-9]*[0-9]+\.[0-9]+ ?s(econds)?'
+
+# wait_for_started <logfile> <timeout_s> — poll <logfile> (0.2s interval)
+# until STARTED_LOG_REGEX appears in it. Returns non-zero on timeout. This
+# replaces polling the aggregate health endpoint: with
+# KAFKA_BOOTSTRAP_SERVERS pointed at a dead port on purpose, SmallRye
+# Reactive Messaging readiness/startup checks never reach UP, so
+# /q/health / /actuator/health would never return 200 and a health-based
+# wait would simply time out regardless of whether the app actually booted.
+wait_for_started() {
+    local logfile="$1" timeout_s="$2"
+    local ticks=$(( timeout_s * 5 )) i
+    for (( i = 0; i < ticks; i++ )); do
+        [[ -f "$logfile" ]] && grep -Eiq "$STARTED_LOG_REGEX" "$logfile" 2>/dev/null && return 0
+        sleep 0.2
+    done
+    [[ -f "$logfile" ]] && grep -Eiq "$STARTED_LOG_REGEX" "$logfile" 2>/dev/null
+}
+
+# extract_started_in <logfile> — pulls the self-reported number out of the
+# same "started in Xs" (Quarkus) / "Started ... in X seconds" (Spring Boot)
+# log line matched by STARTED_LOG_REGEX. Prints nothing (not a failure) if
+# no such line is found — callers must never treat an empty result as an
+# error.
 extract_started_in() {
     local logfile="$1"
-    grep -Eio '[Ss]tarted[^0-9]*[0-9]+\.[0-9]+ ?s(econds)?' "$logfile" 2>/dev/null \
+    grep -Eio "$STARTED_LOG_REGEX" "$logfile" 2>/dev/null \
         | tail -n1 \
         | grep -Eo '[0-9]+\.[0-9]+' \
         | tail -n1 || true
@@ -162,6 +200,15 @@ fmt_rss_kb() {
     fi
 }
 
+fmt_log_secs() {
+    local secs="$1"
+    if [[ -z "$secs" ]]; then
+        printf '<measured-on-run>'
+    else
+        printf '%ss' "$secs"
+    fi
+}
+
 CURRENT_PID=""
 
 # stop_current — TERM, wait up to 5s, then KILL. Safe to call with no process
@@ -183,10 +230,17 @@ stop_current() {
 
 # run_and_measure <health-url> <logfile> <cmd...> — launches <cmd...> in the
 # background (via a subshelled `exec` so $! is the real target PID, same
-# idiom as demos/demo-native.sh), waits for the first HTTP 200 on
-# <health-url>, and sets RESULT_STARTUP_MS / RESULT_RSS_KB / RESULT_LOG_SECS.
-# Hard-fails (via the shared fail()) if the service never answers — a boot
-# failure is a real problem to surface, not a cell to leave blank.
+# idiom as demos/demo-native.sh), then polls <logfile> (NOT <health-url>)
+# for the framework's own "started" log line via wait_for_started(), and
+# sets RESULT_STARTUP_MS / RESULT_RSS_KB / RESULT_LOG_SECS. Hard-fails (via
+# the shared fail()) if that line never appears within 90s — a boot failure
+# is a real problem to surface, not a cell to leave blank.
+#
+# <health-url> is NOT used to gate the measurement -- KAFKA_BOOTSTRAP_SERVERS
+# is pointed at a dead port on purpose for both services, so the aggregate
+# health endpoint's messaging readiness/startup checks never reach UP and
+# would hang forever. It is only used for a brief, non-fatal, informational
+# liveness note logged after the RSS sample is taken.
 RESULT_STARTUP_MS=""
 RESULT_RSS_KB=""
 RESULT_LOG_SECS=""
@@ -197,15 +251,19 @@ run_and_measure() {
     start_ms="$(date +%s%3N)"
     ( exec "$@" ) >"$logfile" 2>&1 &
     CURRENT_PID=$!
-    if ! wait_http "$health_url" 90; then
+    if ! wait_for_started "$logfile" 90; then
         tail -n 60 "$logfile" >&2
-        fail "service did not answer ${health_url} within 90s -- see $logfile"
+        fail "service did not print its \"started\" log line within 90s -- see $logfile"
     fi
-    assert_http_200 "$health_url"
     end_ms="$(date +%s%3N)"
     RESULT_STARTUP_MS=$(( end_ms - start_ms ))
     RESULT_RSS_KB="$(get_rss_kb "$CURRENT_PID")"
     RESULT_LOG_SECS="$(extract_started_in "$logfile")"
+    if curl -fsS -o /dev/null --max-time 2 "$health_url" 2>/dev/null; then
+        info "liveness note: ${health_url} already answers 200"
+    else
+        info "liveness note: ${health_url} not 200 yet (expected -- messaging readiness is DOWN without Kafka; not gated on)"
+    fi
 }
 
 # ─── Cleanup (always runs) ───────────────────────────────────────────────────
@@ -267,7 +325,8 @@ run_and_measure "${Q_BASE_URL}/q/health" "$RUN_LOG" \
     java "${JVM_PROPS[@]}" -Dquarkus.http.port="$Q_PORT" -jar "$Q_JAR"
 Q_JVM_STARTUP="$(fmt_secs_ms "$RESULT_STARTUP_MS")"
 Q_JVM_RSS="$(fmt_rss_kb "$RESULT_RSS_KB")"
-info "order-service: wall-clock ${Q_JVM_STARTUP}, app-reported ${RESULT_LOG_SECS:-n/a}s, RSS ${Q_JVM_RSS}"
+Q_JVM_SELFREPORTED="$(fmt_log_secs "$RESULT_LOG_SECS")"
+info "order-service: wall-clock ${Q_JVM_STARTUP}, self-reported ${Q_JVM_SELFREPORTED}, RSS ${Q_JVM_RSS}"
 stop_current
 
 # ═══ spring-boot-compare (Spring Boot) ══════════════════════════════════════
@@ -312,16 +371,17 @@ run_and_measure "${S_BASE_URL}/actuator/health" "$RUN_LOG2" \
     java "${JVM_PROPS[@]}" -Dspring.profiles.active=prod -jar "$S_JAR" --server.port="$S_PORT"
 S_JVM_STARTUP="$(fmt_secs_ms "$RESULT_STARTUP_MS")"
 S_JVM_RSS="$(fmt_rss_kb "$RESULT_RSS_KB")"
-info "spring-boot-compare: wall-clock ${S_JVM_STARTUP}, app-reported ${RESULT_LOG_SECS:-n/a}s, RSS ${S_JVM_RSS}"
+S_JVM_SELFREPORTED="$(fmt_log_secs "$RESULT_LOG_SECS")"
+info "spring-boot-compare: wall-clock ${S_JVM_STARTUP}, self-reported ${S_JVM_SELFREPORTED}, RSS ${S_JVM_RSS}"
 stop_current
 
 # ═══ Report ══════════════════════════════════════════════════════════════════
 step "comparison table (JVM mode — paste into chapter 12)"
 printf '\n'
-printf '%-22s %-14s %-14s\n' "service" "jvm-startup" "jvm-rss"
-printf '%-22s %-14s %-14s\n' "----------------------" "--------------" "--------------"
-printf '%-22s %-14s %-14s\n' "order-service" "$Q_JVM_STARTUP" "$Q_JVM_RSS"
-printf '%-22s %-14s %-14s\n' "spring-boot-compare" "$S_JVM_STARTUP" "$S_JVM_RSS"
+printf '%-22s %-14s %-26s %-14s\n' "service" "jvm-startup" "jvm-started-selfreported" "jvm-rss"
+printf '%-22s %-14s %-26s %-14s\n' "----------------------" "--------------" "--------------------------" "--------------"
+printf '%-22s %-14s %-26s %-14s\n' "order-service" "$Q_JVM_STARTUP" "$Q_JVM_SELFREPORTED" "$Q_JVM_RSS"
+printf '%-22s %-14s %-26s %-14s\n' "spring-boot-compare" "$S_JVM_STARTUP" "$S_JVM_SELFREPORTED" "$S_JVM_RSS"
 printf '\n'
 printf 'NOTE: both services carry the SAME dependency surface -- REST + JPA/Hibernate\n'
 printf 'ORM + health + Kafka/Avro producer + a gRPC client to inventory-service. No\n'
