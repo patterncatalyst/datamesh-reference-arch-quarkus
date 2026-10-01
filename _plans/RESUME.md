@@ -65,11 +65,11 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
     `.dockerignore` added. **DEF-002 RESOLVED** — `OrderPlacedAvroWireIT` byte-asserts
     Avro magic byte, green in default `mvn verify`.
   - **Step 9 (minikube):** `scripts/` substrate (bootstrap + Strimzi/CNPG/KEDA/
-    Apicurio/LGTM/Istio/Kiali, all flags ON per DRQ-011; KEDA HTTP add-on 0.12.2).
+    Apicurio/LGTM/Istio/Kiali, all flags ON per DRQ-011; KEDA HTTP add-on 0.15.0).
     `k8s/` kustomize (base + minikube overlay) for order/notification/graphql-gateway
     (real in-cluster DNS, securityContext, local images). `k8s/keda/` ScaledObject
     (Kafka-lag → notification-service, scale-from-zero) + HTTPScaledObject
-    (graphql-gateway). CRD-schema-validated (KEDA 2.19.0 / http-add-on 0.12.2); NOT
+    (graphql-gateway). CRD-schema-validated (KEDA 2.19.0 / http-add-on 0.15.0); NOT
     brought up on a live cluster (heavy — deferred to a real minikube run).
   - **Validation:** full `mvn verify -f examples/pom.xml` GREEN — 22 tests, 0 fail,
     0 error (21 Phase-B + DEF-002 IT). Ran with compose down + test-port overrides.

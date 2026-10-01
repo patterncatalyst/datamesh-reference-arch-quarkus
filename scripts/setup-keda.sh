@@ -21,11 +21,13 @@ set -euo pipefail
 NAMESPACE="keda"
 PROFILE_NAME="datamesh"
 KEDA_VERSION="${KEDA_VERSION:-2.19.0}"
-# PINNED to 0.12.2 — v0.14.0 has an upstream Go panic in the interceptor's
-# POST-forwarding path (kedacore/http-add-on#1668): "invalid concurrent
-# Body.Read call" under cold-start connection failures. Fix merged to main,
-# awaiting a tagged release. Do not bump past 0.12.2 until 0.14.1+ ships.
-KEDA_HTTP_VERSION="${KEDA_HTTP_VERSION:-0.12.2}"
+# 0.15.0 — matches the datamesh-reference-arch-python reference (proven there)
+# and enables HTTP/REST request-rate scaling for graphql-gateway. The v0.14.0
+# interceptor POST-forwarding panic (kedacore/http-add-on#1668, "invalid
+# concurrent Body.Read call") is CLOSED — introduced in 0.14.0 and fixed before
+# 0.15.0 (Jun 2025). 0.15.0 also adds HTTP/2 + gRPC scaling and cold-start
+# placeholder responses. (0.16.0 is newer but we track the python-proven pin.)
+KEDA_HTTP_VERSION="${KEDA_HTTP_VERSION:-0.15.0}"
 
 command -v kubectl >/dev/null 2>&1 || { printf 'ERROR: kubectl not in PATH.\n' >&2; exit 1; }
 command -v helm    >/dev/null 2>&1 || { printf 'ERROR: helm not in PATH.\n' >&2; exit 1; }

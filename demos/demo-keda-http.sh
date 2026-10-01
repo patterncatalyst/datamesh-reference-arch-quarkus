@@ -9,15 +9,16 @@
 #   k8s/base/graphql-gateway.yaml          — the Deployment/Service KEDA scales
 #   k8s/keda/gateway-httpscaledobject.yaml — the HTTPScaledObject
 #                                             (http.keda.sh/v1alpha1, KEDA HTTP
-#                                             add-on 0.12.2)
+#                                             add-on 0.15.0)
 #   k8s/overlays/minikube/                 — the app overlay (images ->
 #                                             minikube docker daemon, DRQ-011)
 #   scripts/bootstrap.sh                   — brings up the minikube profile
 #                                             ("datamesh") + the KEDA tier
 #                                             (scripts/setup-keda.sh, pins the
-#                                             HTTP add-on to 0.12.2 — see that
-#                                             script's header for why: v0.14.0
-#                                             has an unfixed interceptor panic)
+#                                             HTTP add-on to 0.15.0 — matches the
+#                                             python reference; the v0.14.0
+#                                             interceptor panic #1668 is fixed
+#                                             before 0.15.0)
 #
 # HTTPScaledObject (see k8s/keda/gateway-httpscaledobject.yaml and its header
 # comment for full sourcing): targets Deployment/Service graphql-gateway

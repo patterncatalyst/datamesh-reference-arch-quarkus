@@ -15,16 +15,18 @@ job — these manifests are the substrate those demos will target.
 | File | Kind | Targets | Trigger |
 |---|---|---|---|
 | `consumer-scaledobject.yaml` | `ScaledObject` (`keda.sh/v1alpha1`, KEDA core) | Deployment `notification-service` | Kafka consumer-group lag on topic `order.placed` |
-| `gateway-httpscaledobject.yaml` | `HTTPScaledObject` (`http.keda.sh/v1alpha1`, KEDA HTTP add-on **0.12.2**) | Deployment/Service `graphql-gateway` | HTTP request rate |
+| `gateway-httpscaledobject.yaml` | `HTTPScaledObject` (`http.keda.sh/v1alpha1`, KEDA HTTP add-on **0.15.0**) | Deployment/Service `graphql-gateway` | HTTP request rate |
 | `kustomization.yaml` | — | groups both for `kubectl apply -k k8s/keda` | — |
 
 ## Prerequisites
 
 Both KEDA core and the HTTP add-on must already be installed
-(`./scripts/setup-keda.sh`, which pins the HTTP add-on to `0.12.2` — see
-`references/known-issues.md` Issue 5 in the `lgtm-minikube-stack` skill:
-v0.14.0 has an unfixed interceptor panic). The target Deployments/Services
-must already exist (`kubectl apply -k k8s/overlays/minikube`, step 9b).
+(`./scripts/setup-keda.sh`, which pins the HTTP add-on to `0.15.0`, matching
+the datamesh-reference-arch-python reference and enabling HTTP/REST
+request-rate scaling. The v0.14.0 interceptor panic — kedacore/http-add-on#1668
+— is closed and fixed before 0.15.0; 0.15.0 also adds HTTP/2 + gRPC scaling).
+The target Deployments/Services must already exist
+(`kubectl apply -k k8s/overlays/minikube`, step 9b).
 
 ## Apply
 
@@ -116,7 +118,7 @@ correct). Three checks were actually run:
    `keda.sh_scaledobjects.yaml` from the `kedacore/keda` `v2.19.0` tag
    (the version `scripts/setup-keda.sh` installs) and
    `http.keda.sh_httpscaledobjects.yaml` from the `kedacore/http-add-on`
-   `v0.12.2` tag (the pinned add-on version) — fetched directly from
+   `v0.15.0` tag (the pinned add-on version) — fetched directly from
    GitHub. `scaleTargetRef.service` is required for `HTTPScaledObject`,
    and exactly one of `port`/`portName` must be set, both satisfied here.
 3. Names/namespace/ports were copied verbatim from `k8s/base/*.yaml`
