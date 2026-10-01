@@ -23,11 +23,11 @@ import jakarta.ws.rs.core.MediaType;
  */
 @Path("/stock")
 @Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 public class StockResource {
 
     /** Seed (create or update) the quantity on hand for a SKU. */
     @POST
+    @Consumes(MediaType.APPLICATION_JSON)
     @Transactional
     public StockDto seed(StockDto request) {
         Stock stock = Stock.findBySku(request.sku());

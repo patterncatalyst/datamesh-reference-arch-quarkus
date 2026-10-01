@@ -26,24 +26,23 @@
 #                       var is overridden to point here -- its own default,
 #                       localhost:8081, collides with compose's Apicurio
 #                       host port).
-#   inventory-service  HTTP 8092, gRPC 9001 (override -- see below).
-#   graphql-gateway    HTTP 8080 (module default), INVENTORY_GRPC_PORT=9001
-#                       override env var.
+#   inventory-service  HTTP 8092, gRPC 9000 (canonical default -- see below).
+#   graphql-gateway    HTTP 8080 (module default), INVENTORY_GRPC_PORT=9000
+#                       env var (matches its own default; set explicitly for
+#                       clarity).
 #
-# ── The inventory gRPC port mismatch (found wiring this demo, same root
-# cause as demo-order.sh/demo-kafka.sh) ─────────────────────────────────────
-# order-service's gRPC CLIENT port is hardcoded, NOT profile- or
-# env-gated: `quarkus.grpc.clients.inventory.port=9001`. inventory-service's
-# gRPC SERVER port default is 9000, and graphql-gateway's own gRPC client
-# default (`INVENTORY_GRPC_PORT:9000`) matches THAT default -- but NOT
-# order-service's hardcoded 9001. Confirmed empirically: with
-# inventory-service left at its default 9000, order-service's POST /orders
-# failed with "503 inventory-service unreachable: UNAVAILABLE: io
-# exception" because it dialed :9001 where nothing was listening. This demo
-# runs inventory-service's gRPC server at 9001 (matching order-service's
-# hardcoded expectation) and overrides graphql-gateway's INVENTORY_GRPC_PORT
-# to 9001 too, so both callers agree -- a runtime config override on both
-# launched processes, no module source touched.
+# ── The inventory gRPC port (F2 fixed; canonical 9000) ──────────────────────
+# order-service's gRPC CLIENT port, inventory-service's gRPC SERVER port, and
+# graphql-gateway's own gRPC client default all resolve to the SAME value,
+# 9000, via the SAME env var: `quarkus.grpc.clients.inventory.port=
+# ${INVENTORY_GRPC_PORT:9000}` (order-service), `quarkus.grpc.server.port=
+# ${INVENTORY_GRPC_PORT:9000}` (inventory-service), and graphql-gateway's own
+# `INVENTORY_GRPC_PORT:9000` client default. All three agree with no override
+# needed. This demo still pins INVENTORY_GRPC_PORT explicitly below and
+# passes it to both the launched inventory-service process
+# (`-Dquarkus.grpc.server.port=$INVENTORY_GRPC_PORT`) and graphql-gateway's
+# environment, purely so all callers stay programmatically in agreement if
+# this value is ever changed -- no module source was touched.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/_demo.sh"
@@ -57,7 +56,7 @@ GATEWAY_DIR="${EXAMPLES_DIR}/graphql-gateway"
 
 ORDER_PORT=8091
 INVENTORY_PORT=8092
-INVENTORY_GRPC_PORT=9001
+INVENTORY_GRPC_PORT=9000
 GATEWAY_PORT=8080
 
 ORDER_BASE="http://localhost:${ORDER_PORT}"

@@ -77,4 +77,17 @@ class OrderResourceTest {
                 .then()
                 .statusCode(200);
     }
+
+    @Test
+    void listOrders_ignoresNonJsonContentType_sinceGetHasNoRequestBody() {
+        // Regression test: @Consumes must not sit at the class level, or
+        // JAX-RS applies it to every method -- including GETs with no body
+        // -- and rejects any client whose default Content-Type isn't JSON
+        // (e.g. hey's default text/html) with 415 instead of serving it.
+        given()
+                .header("Content-Type", "text/html")
+                .when().get("/orders")
+                .then()
+                .statusCode(200);
+    }
 }

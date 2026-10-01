@@ -49,33 +49,33 @@
 # cluster required for that check"), this demo uses `kubectl kustomize`
 # exclusively and does NOT `require` a standalone `kustomize` binary.
 #
-# ── KNOWN SUBSTRATE GAP: order-service's gRPC inventory-check is unwired ────
+# ── order-service's gRPC inventory-check (F2 fixed; canonical 9000) ─────────
 # The "real" way this system emits order.placed is POST /orders on
 # order-service (see examples/order-service/.../OrderResource.java): it
 # synchronously calls InventoryClient.checkStock() over gRPC and ONLY
 # persists + publishes order.placed if that call succeeds; a failed/
 # unreachable call fails CLOSED with HTTP 503 and publishes nothing (by
-# design — see InventoryClient.java's javadoc). As of this step:
+# design — see InventoryClient.java's javadoc). As of F2, this is fully
+# wired on the step-9 substrate:
 #   - examples/order-service/src/main/resources/application.properties sets
-#     `quarkus.grpc.clients.inventory.host=localhost` /
-#     `quarkus.grpc.clients.inventory.port=9001` with NO %prod override and
-#     no env-var indirection (unlike graphql-gateway, which at least has
-#     INVENTORY_GRPC_HOST/PORT env vars wired, even though there is no
-#     inventory-service Service for them to resolve either).
-#   - k8s/base/order-service.yaml and k8s/base/config.yaml do not set any
-#     INVENTORY_GRPC_* env var for order-service, and no inventory-service
-#     Deployment/Service exists anywhere under k8s/.
-# So on the current step-9 substrate, EVERY POST /orders in-cluster will
-# deterministically 503 (order-service's own pod trying to dial
-# localhost:9001, where nothing listens) — no order.placed events are ever
-# published by the real business flow, and this demo's load-generation step
-# (below) will see 100% 503s and correctly observe zero Kafka lag. This is a
-# genuine, pre-existing substrate gap, not something this step is scoped to
-# fix (this step may ONLY add the two demo-keda-*.sh scripts). The load step
-# below still drives the REAL REST endpoint (not an invented bypass/raw
-# producer) precisely so that behavior is visible and diagnosable rather
-# than silently routed around; the scale-up assertion's failure message
-# names this exact gap and the two files above as the fix starting point.
+#     `quarkus.grpc.clients.inventory.host=${INVENTORY_GRPC_HOST:localhost}` /
+#     `quarkus.grpc.clients.inventory.port=${INVENTORY_GRPC_PORT:9000}`.
+#   - k8s/base/config.yaml's datamesh-app-config ConfigMap sets
+#     INVENTORY_GRPC_HOST=inventory-service.datamesh.svc.cluster.local and
+#     INVENTORY_GRPC_PORT=9000, and both order-service.yaml and
+#     inventory-service.yaml consume it via envFrom.configMapRef.
+#   - k8s/base/inventory-service.yaml defines the inventory-service
+#     Deployment/Service (grpc port 9000) and is listed as a resource in
+#     k8s/base/kustomization.yaml, so it is applied as part of
+#     `kubectl apply -k k8s/overlays/minikube` below.
+# So on the current step-9 substrate, POST /orders in-cluster should reach
+# inventory-service over gRPC at the canonical port and succeed, publishing
+# order.placed as the KEDA ScaledObject's trigger expects. This script has
+# never actually been exercised against a live cluster in this environment
+# (see "AUTHOR-ONLY" above), so if the scale-up assertion below still fails,
+# treat it as a live-cluster issue to diagnose fresh (e.g. image build/push,
+# Postgres/Kafka readiness, RBAC) rather than this previously-documented
+# port-wiring gap, which is now fixed.
 #
 # ── Cleanup ──────────────────────────────────────────────────────────────────
 # The only resource this demo itself CREATES is a single throwaway load-
@@ -99,9 +99,8 @@ K8S_DIR="${REPO_ROOT}/k8s"
 narrate "KEDA core scaling notification-service 0 -> N on order.placed consumer"
 narrate "lag, then back to 0 once the backlog drains and cooldownPeriod elapses."
 narrate "Targets the REAL step-9 substrate manifests — see this script's header"
-narrate "comment for exact file references and a known, pre-existing gap in"
-narrate "order-service's gRPC inventory check that this demo surfaces rather"
-narrate "than works around."
+narrate "comment for exact file references for the order-service -> inventory-"
+narrate "service gRPC wiring (canonical port 9000, F2) this flow depends on."
 
 # ─── Static manifest validation (no cluster required) ───────────────────────
 step "static validation: kubectl kustomize (no cluster required)"
@@ -233,7 +232,7 @@ done
 LOADGEN_LOG="$(kubectl logs "$LOADGEN_POD" -n "$NS" 2>/dev/null || true)"
 info "order-service response codes from the burst: ${LOADGEN_LOG:-<none captured>}"
 if [[ -n "$LOADGEN_LOG" ]] && ! grep -q '201' <<<"$LOADGEN_LOG"; then
-    warn "no HTTP 201 responses observed in the burst — this matches the known gap documented in this script's header (order-service's gRPC inventory client is hardcoded to localhost:9001, unwired in this substrate) and means no order.placed events were published"
+    warn "no HTTP 201 responses observed in the burst — the gRPC inventory wiring this flow depends on is canonical (port 9000, F2; see this script's header), so investigate as a live-cluster issue: kubectl logs -n ${NS} -l app.kubernetes.io/name=order-service --tail=50, and confirm inventory-service's pod/service are Ready"
 fi
 
 # ─── Assert: replica count climbs off baseline within a scale-up budget ────
@@ -252,7 +251,7 @@ for (( i = 0; i < SCALE_UP_BUDGET; i += 5 )); do
 done
 
 if (( SCALED_UP == 0 )); then
-    fail "notification-service replicas did not increase above baseline (${BASELINE_REPLICAS}) within ${SCALE_UP_BUDGET}s of the load burst (last observed: ${CURRENT_REPLICAS}). Most likely cause on this substrate: order-service's gRPC inventory check never succeeds (see this script's header, 'KNOWN SUBSTRATE GAP') so no order.placed events reached Kafka and lag never crossed lagThreshold=5. Check: kubectl logs -n ${NS} -l app.kubernetes.io/name=order-service --tail=50, and examples/order-service/src/main/resources/application.properties's quarkus.grpc.clients.inventory.host."
+    fail "notification-service replicas did not increase above baseline (${BASELINE_REPLICAS}) within ${SCALE_UP_BUDGET}s of the load burst (last observed: ${CURRENT_REPLICAS}). The order-service -> inventory-service gRPC wiring is canonical on this substrate (port 9000, F2 -- see this script's header), so this is NOT the previously-documented port gap; diagnose fresh. Check: kubectl logs -n ${NS} -l app.kubernetes.io/name=order-service --tail=50 (did POST /orders calls succeed?), kubectl get pods -n ${NS} -l app.kubernetes.io/name=inventory-service (is it Ready?), and whether lag actually crossed lagThreshold=5 on the ScaledObject."
 fi
 info "notification-service scaled from ${BASELINE_REPLICAS} to ${CURRENT_REPLICAS} replicas"
 

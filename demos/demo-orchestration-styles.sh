@@ -79,13 +79,15 @@
 # topic override only has one side (shipping-service's OUTGOING channel, read
 # back by kcat, not by another service in this reactor).
 #
-# ── inventory-service gRPC port (same fix as demo-order.sh) ─────────────────
-# order-service's gRPC client port is hardcoded to 9001; inventory-service's
-# server default is 9000 -- started here with
-# `-Dquarkus.grpc.server.port=9001` (no module source touched). order-service
-# cannot place an order at all without this (InventoryClient.checkStock fails
-# the whole request closed), so inventory-service is required even though it
-# plays no further part in the choreography/orchestration comparison itself.
+# ── inventory-service gRPC port (canonical 9000, same as demo-order.sh) ─────
+# order-service's gRPC client port and inventory-service's gRPC server port
+# both default to 9000 (F2), both overridable via the same INVENTORY_GRPC_PORT
+# env var -- started here with `-Dquarkus.grpc.server.port=9000` purely to
+# keep the two sides programmatically in agreement. order-service cannot
+# place an order at all without inventory-service reachable
+# (InventoryClient.checkStock fails the whole request closed), so
+# inventory-service is required even though it plays no further part in the
+# choreography/orchestration comparison itself.
 #
 # ── ai-rules-service: Ollama via compose's `ollama` profile ─────────────────
 # ai-rules-service's application.properties points at
@@ -105,7 +107,7 @@
 #
 # ── Port plan (avoiding compose's host-published ports — see .env.example) ──
 #   order-service          HTTP 8091
-#   inventory-service      HTTP 8092, gRPC 9001 (override)
+#   inventory-service      HTTP 8092, gRPC 9000 (canonical default)
 #   notification-service   HTTP 8093
 #   payment-service        HTTP 8094
 #   shipping-service       HTTP 8095
@@ -126,7 +128,7 @@ AI_RULES_DIR="${EXAMPLES_DIR}/ai-rules-service"
 
 ORDER_PORT=8091
 INVENTORY_PORT=8092
-INVENTORY_GRPC_PORT=9001
+INVENTORY_GRPC_PORT=9000
 NOTIFICATION_PORT=8093
 PAYMENT_PORT=8094
 SHIPPING_PORT=8095

@@ -21,11 +21,10 @@
 # `grpcurl ... CheckStock` unary call would both fail outright.
 #
 # ── Port plan (avoiding compose's host-published ports — see .env.example) ──
-#   inventory-service  HTTP 8093, gRPC 9000 (module default -- no override
-#                       needed for this standalone test; see demo-order.sh's
-#                       header comment for the 9000-vs-9001 port mismatch
-#                       this demo deliberately sidesteps by not needing
-#                       order-service at all).
+#   inventory-service  HTTP 8093, gRPC 9000 (module default, canonical since
+#                       F2 -- see demo-order.sh's header comment; no override
+#                       needed, and this demo doesn't need order-service at
+#                       all).
 #
 # ── gRPC reflection is OFF by default outside dev mode (found wiring this
 # demo) ──────────────────────────────────────────────────────────────────
