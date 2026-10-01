@@ -56,8 +56,8 @@
 #
 # ── Port plan (same convention as demo-order.sh/demo-kafka.sh) ─────────────
 #   order-service      HTTP 8091
-#   inventory-service  HTTP 8092, gRPC 9001 (override -- see demo-order.sh's
-#                       header comment for the 9000-vs-9001 port mismatch)
+#   inventory-service  HTTP 8092, gRPC 9000 (canonical default -- see
+#                       demo-order.sh's header comment)
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/_demo.sh"
@@ -70,7 +70,7 @@ INVENTORY_DIR="${EXAMPLES_DIR}/inventory-service"
 
 ORDER_PORT=8091
 INVENTORY_PORT=8092
-INVENTORY_GRPC_PORT=9001
+INVENTORY_GRPC_PORT=9000
 
 ORDER_BASE="http://localhost:${ORDER_PORT}"
 INVENTORY_BASE="http://localhost:${INVENTORY_PORT}"

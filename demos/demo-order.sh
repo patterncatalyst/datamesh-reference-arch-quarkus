@@ -28,19 +28,19 @@
 # Testcontainers (which `mvn quarkus:dev` would instead spin up, bypassing
 # the compose stack entirely).
 #
-# ── The inventory gRPC port mismatch (found wiring this demo) ──────────────
-# order-service's gRPC CLIENT port is hardcoded, NOT profile-gated:
-#     quarkus.grpc.clients.inventory.port=9001
-# but inventory-service's gRPC SERVER port default is ALSO hardcoded,
-# to a DIFFERENT value:
-#     quarkus.grpc.server.port=9000
+# ── The inventory gRPC port (F2 fixed; canonical 9000) ──────────────────────
+# order-service's gRPC CLIENT port and inventory-service's gRPC SERVER port
+# both default to the SAME value, 9000, and are both overridable via the
+# SAME env var:
+#     quarkus.grpc.clients.inventory.port=${INVENTORY_GRPC_PORT:9000}   (order-service)
+#     quarkus.grpc.server.port=${INVENTORY_GRPC_PORT:9000}              (inventory-service)
 # So a bare `java -jar inventory-service quarkus-run.jar` next to a bare
-# `java -jar order-service quarkus-run.jar` would never actually connect —
-# order-service dials :9001, inventory-service listens on :9000. This demo
-# works around it with a runtime override
-# (`-Dquarkus.grpc.server.port=9001` on the inventory-service process) —
-# no module source was touched; see the end-of-run report for why this is
-# flagged rather than silently "just working".
+# `java -jar order-service quarkus-run.jar` connects with no override at
+# all. This demo still pins INVENTORY_GRPC_PORT explicitly (kept at the
+# canonical 9000 below) and passes it to the launched inventory-service
+# process as `-Dquarkus.grpc.server.port=$INVENTORY_GRPC_PORT`, purely so
+# both sides stay programmatically in agreement if this value is ever
+# changed — no module source was touched.
 #
 # ── import.sql seed data never loads in packaged/%prod mode (found wiring
 # this demo) — see the "seed deterministic stock" step below for the full
@@ -81,7 +81,7 @@
 # ── Port plan (deliberately avoiding compose's host-published ports:
 # 5432/9092/9094/8081/3000/4317/4318/9090/3100/3200 — .env.example) ───────
 #   order-service      HTTP 8091
-#   inventory-service  HTTP 8092, gRPC 9001 (override, see above)
+#   inventory-service  HTTP 8092, gRPC 9000 (canonical default, see above)
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/_demo.sh"
@@ -94,7 +94,7 @@ INVENTORY_DIR="${EXAMPLES_DIR}/inventory-service"
 
 ORDER_PORT=8091
 INVENTORY_PORT=8092
-INVENTORY_GRPC_PORT=9001
+INVENTORY_GRPC_PORT=9000
 
 ORDER_BASE="http://localhost:${ORDER_PORT}"
 INVENTORY_BASE="http://localhost:${INVENTORY_PORT}"

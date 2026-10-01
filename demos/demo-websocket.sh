@@ -74,7 +74,7 @@
 #
 # ── Port plan ────────────────────────────────────────────────────────────
 #   order-service         HTTP 8091
-#   inventory-service      HTTP 8092, gRPC 9001 (override, see demo-order.sh)
+#   inventory-service      HTTP 8092, gRPC 9000 (canonical default, see demo-order.sh)
 #   notification-service   HTTP 8093 (REST /notifications + WS /ws/notifications)
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -91,7 +91,7 @@ WS_CLIENT="${SCRIPT_DIR}/jbang/WsNotificationClient.java"
 
 ORDER_PORT=8091
 INVENTORY_PORT=8092
-INVENTORY_GRPC_PORT=9001
+INVENTORY_GRPC_PORT=9000
 NOTIFICATION_PORT=8093
 
 ORDER_BASE="http://localhost:${ORDER_PORT}"
