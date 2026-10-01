@@ -24,12 +24,17 @@ infra/
 | `ollama` | `ollama` | `docker compose --profile ollama up -d` — opt-in, heaviest piece (DEF-001) |
 
 ```bash
+cp .env.example .env                   # first time only — .env is gitignored
 docker compose up -d                   # postgres + kafka + apicurio + lgtm
 docker compose --profile tools up -d   # + kafka-ui
 docker compose --profile ollama up -d  # + ollama
 docker compose down                    # stop, keep volumes
 docker compose down -v                 # stop AND wipe volumes
 ```
+
+> `.env` holds throwaway local-dev credentials and is **gitignored**; copy it
+> from the committed `.env.example` template. Change the Postgres credentials
+> for anything beyond local development.
 
 ## Image tags — the wire-compat crux (DRQ-011)
 

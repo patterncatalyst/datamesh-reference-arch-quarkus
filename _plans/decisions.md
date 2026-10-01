@@ -14,7 +14,7 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
 | Quarkus | **3.39.5** | Current latest **stable** (4.0.0 is Beta only). User's pin confirmed correct. |
 | JDK | **25** (`25-tem`) | Supported on Quarkus 3.39.x; seed pom already compiles source/target 25. |
 | Camel | **platform-aligned** | Import `quarkus-camel-bom:3.39.5`; do NOT pin standalone Camel. |
-| langchain4j (Quarkiverse) | **1.14.1** | Bump from seed's 1.7.4; re-validate Ollama tool-calling path. |
+| langchain4j (Quarkiverse) | **1.7.4** | Reverted to the seed's version (was briefly 1.14.1). Gives a converged, seed-identical classpath (dev.langchain4j 1.11.0) with no manual pin. Version is NOT the cause of the tool-calling failure — see DEF-001. |
 | Maven | 3.9.x | |
 | Base images | UBI (`ubi10/openjdk-25` builder + `-runtime`) | Multi-stage; docker toolchain, NOT podman. |
 
@@ -38,9 +38,39 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
   - **Minikube (step 9):** raw manifests + kustomize (base + minikube overlay) for apps; Helm only for operators (Strimzi, CNPG, KEDA). **Istio + Kiali: ON** (user choice — keep mesh). KEDA HTTP add-on pinned 0.12.2. **Kafka-lag KEDA scaler drives notification-service** (consumes `order.placed`). HTTP scaler on graphql-gateway. **Images built locally into minikube's docker** (`minikube docker-env`), no registry.
   - Phase C lands the KEDA scalers (substrate); the `demo-keda-*.sh` demos come in Phase D.
 
+## Open ideas (to scope in Phase D planning)
+
+- **DRQ-012 (proposed) — real-world AI+rules scenario:** compose Ollama with a
+  Quarkus + Camel + **Drools** (KIE/business-rules) flow for a more realistic
+  demo than a bare LLM call — e.g. order triage where Camel routes an incoming
+  order, Ollama classifies/extracts intent, and a Drools rule set makes the
+  deterministic business decision (fraud hold, expedite, route-to-warehouse) on
+  the shipping/order domain. Candidate home: extend `ai-mcp-service` or a new
+  demo module. NOT yet built — confirm scope/depth during Phase D planning
+  (Drools adds a real dependency + KIE concepts; keep it one focused demo, not
+  speculative infra per scope-discipline).
+
 ## Deferrals
 
-- **DEF-001 — langchain4j version skew (ai-mcp-service) — RESOLVED (compile/pin); behavioral test pending Ollama.** Was: `langchain4j-core` mediated to 1.19.3 while `langchain4j-ollama` stayed 1.20.2 (not converged). **Fix landed:** imported `dev.langchain4j:langchain4j-bom:1.20.2` FIRST in parent `<dependencyManagement>` so it wins mediation over Camel's transitives; `dependency:tree` now shows core/ollama/http-client all 1.20.2 (beta modules 1.20.2-beta30). ai-mcp-service still compiles. **Still open:** the opt-in Ollama `toolExecutions`-non-empty test (`OrderAssistantRouteIT`, `-Dollama.tests.enabled=true`) has NOT been run — Ollama was not running on localhost:11434 during validation. Run it once Ollama is up to close behaviorally.
+- **DEF-001 — Ollama tool-calling does not fire in ai-mcp-service — OPEN (behavioral), with precise root cause; classpath side RESOLVED.**
+
+  **Symptom.** The opt-in IT `OrderAssistantRouteIT` (`-Dollama.tests.enabled=true`) sends "What is the status of order ORD-001?" to `direct:assistant-chat` and asserts the agent actually invoked the `order-status` ai-tool — a non-empty `CamelLangChain4jAgentToolExecutions` header. It fails: the model returns a plain answer in a single ~30s round trip, the `order-lookup-tool` route is never invoked, and the header is absent (null).
+
+  **Root cause (upstream integration, not our code).** `camel-quarkus-support-langchain4j`'s `SupportQuarkusLangchain4jProcessor.enforceJaxRsHttpClient()` *unconditionally* sets the global system property `langchain4j.http.clientBuilderFactory=io.quarkiverse.langchain4j.jaxrsclient.JaxRsHttpClientBuilderFactory` ("Quarkus LangChain4j detected - enforcing JAX-RS HTTP client factory"). Every `dev.langchain4j` model's transport is therefore Quarkus-controlled: the `base-url` set on the hand-built `OllamaChatModel` is not honoured (requests resolve to the dev-service-detected Ollama on 11434, not a configured override), and the agent's tool-calling round trip never carries/elicits a tool call. There is no toggle for the enforcement.
+
+  **Ruled out by diagnosis (so these are NOT the cause):**
+  - *Model capability* — a direct `POST /api/chat` curl with a `tools` array returns a `tool_calls` response from both `qwen2.5:3b` and `qwen2.5:7b-instruct`.
+  - *Tool registration / tags* — the ai-tool route is `tags=shipping`, the agent endpoint is `tags=shipping`; the `order-lookup-tool` route starts before the test runs.
+  - *langchain4j version* — reproduces on every combination tried. Classpath now matches the seed exactly: Quarkiverse 1.7.4, dev.langchain4j 1.11.0, camel 4.22.0 / camel-quarkus 3.39.0. The seed (`enterprise-integration-patterns-with-camel/examples/42-ai-mcp/quarkus`) ships **no** test asserting tool-calling, so "the seed works" was an assumption, not a verified fact.
+  - *Hand-built vs. synthetic model, and explicit JDK HTTP client* — the agent uses our `AgentWithoutMemory` (`AiServices.chatModel(configuration.getChatModel())`); passing `httpClientBuilder(new JdkHttpClientBuilder())` did not change the behaviour (JAX-RS enforcement still wins). Both reverted.
+
+  **Classpath side — RESOLVED.** Reverted the forced `dev.langchain4j-bom:1.20.2` over-pin; `quarkus-langchain4j-bom:1.7.4` is imported FIRST so the whole dev.langchain4j family converges at 1.11.0 with no manual pin (see parent `examples/pom.xml`). Clean, seed-identical, compiles and the default reactor build is green.
+
+  **Why it does not block the build.** The IT is named `*IT` (Surefire skips it), is gated behind `-Dollama.tests.enabled=true`, and failsafe is not bound in ai-mcp-service — so `mvn verify` never runs it and never needs Ollama.
+
+  **Could not capture (needs root).** The decisive remaining datum — the exact JSON body sent to Ollama on 11434, to confirm whether `tools` is serialized at all — requires intercepting 11434. Ollama runs as root (`ollama serve`) and sudo is unavailable in this environment, and the enforced JAX-RS transport ignores a configured proxy port, so the request could not be captured.
+
+  **Options to revisit (Phase D or later):** (a) try a newer camel-quarkus / quarkus-langchain4j train where the JAX-RS enforcement or tool-provider wiring differs; (b) reproduce minimally and file upstream against camel-quarkus-support-langchain4j; (c) demonstrate tool-calling via the embedded MCP server path (external MCP client) instead of the in-process langchain4j-agent; (d) relax the IT to document-only if tool-calling is shown another way. Keep as a documented deferral until one lands.
 - **DEF-002 — Avro-on-the-wire — RESOLVED (byte-asserted, Phase C).** Was: config-proven only; no test read a raw record off a real broker. **Fix landed:** `OrderPlacedAvroWireIT` (order-service, Testcontainers Kafka `apache/kafka-native:4.2.0` + Apicurio `apicurio-registry:3.1.7`) produces a real `capstone.order.v1.OrderPlaced` with `AvroKafkaSerializer`, consumes with a vanilla `KafkaConsumer<byte[],byte[]>`, and asserts `value[0]==0x0` (Avro magic byte) + `value[0]!=0x7B` (not JSON) + schema id present; optional round-trip via `AvroKafkaDeserializer`. Proven to fail loudly if serde regresses to JSON. Runs in the default `mvn verify` (self-provisioning; no compose needed), failsafe execution bound in order-service. Note: Avro 1.12.x `ClassSecurityValidator` required `org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1` on the IT's failsafe execution (plain JUnit, no Quarkus bootstrap to auto-trust the package).
 
 ## Test/build notes

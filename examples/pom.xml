@@ -31,7 +31,21 @@
     <quarkus-camel-bom.version>3.39.5</quarkus-camel-bom.version>
 
     <quarkus-langchain4j-bom.group-id>io.quarkiverse.langchain4j</quarkus-langchain4j-bom.group-id>
-    <quarkus-langchain4j-bom.version>1.14.1</quarkus-langchain4j-bom.version>
+    <!-- DRQ-001/DEF-001: pinned to the seed's version (42-ai-mcp). 1.7.4 lets the
+         Quarkiverse BOM manage the whole dev.langchain4j family at 1.11.0 with no
+         manual pin — the exact, converged classpath the
+         enterprise-integration-patterns-with-camel seed runs (dev.langchain4j
+         1.11.0, Quarkiverse 1.7.4, camel 4.22.0 / camel-quarkus 3.39.0). The
+         earlier 1.14.1 bump needed a forced dev.langchain4j-bom:1.20.2 to converge
+         its split core/ollama versions, which added a manual pin and its own
+         breakage; 1.7.4 avoids all of that.
+         NOTE: version is NOT the cause of the Ollama tool-calling failure. The
+         empty-toolExecutions behaviour (DEF-001) reproduces on every version tried
+         and is an upstream integration issue — camel-quarkus-support-langchain4j
+         forces the JAX-RS HTTP client factory globally, and the agent's tool-call
+         round trip never fires. The behavioural IT is opt-in and deferred; see
+         _plans/decisions.md (DEF-001) and ai-mcp-service AgentProducers javadoc. -->
+    <quarkus-langchain4j-bom.version>1.7.4</quarkus-langchain4j-bom.version>
 
     <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
     <surefire-plugin.version>3.5.2</surefire-plugin.version>
@@ -58,28 +72,28 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- DEF-001: langchain4j family version convergence.
-           Under quarkus-camel-bom:3.39.5 + quarkus-langchain4j-bom:1.14.1 the
-           dev.langchain4j.* artifacts were NOT converged: Camel mediated
-           langchain4j-core to 1.19.3 while quarkus-langchain4j-ollama:1.14.1
-           pulled langchain4j-ollama:1.20.2, a latent NoSuchMethodError /
-           AbstractMethodError risk on the Ollama tool-calling path. Importing
-           the langchain4j BOM aligns the whole family (core, ollama,
-           embeddings, mcp, guardrails, http-client) on a single train. It is
-           declared FIRST so it wins version mediation over the transitive
-           versions dragged in by the Camel BOM. 1.20.2 chosen because both
-           langchain4j-core and langchain4j-ollama publish it, so nothing is
-           downgraded to a non-existent coordinate (langchain4j-ollama has no
-           1.19.3 release). -->
+      <!-- DEF-001: BOM import ORDER is load-bearing, and mirrors the 42-ai-mcp
+           seed exactly. quarkus-langchain4j-bom:1.7.4 is imported FIRST so it wins
+           version mediation for the entire langchain4j surface:
+             - quarkus-langchain4j-core -> 1.7.4 (else quarkus-camel-bom drags it
+               to 1.13.3, splitting the Quarkiverse deployment/runtime pair and
+               throwing NoSuchMethodError in AiServicesProcessor at build time),
+             - dev.langchain4j.* -> 1.11.0 (the converged train the seed ships).
+           No manual dev.langchain4j-bom pin is needed — the seed has none, and a
+           forced dev.langchain4j-bom:1.20.2 (a previous over-fix) added a split of
+           its own. camel-quarkus-langchain4j-agent:3.39.0 is the same artifact the
+           seed ships against 1.11.0, so the down-mediation is API-safe. Child
+           modules must never re-declare or re-pin these imports.
+           This ordering gives a clean, seed-identical classpath; it does NOT make
+           Ollama tool-calling fire — that is the separate upstream DEF-001 issue
+           documented above and in _plans/decisions.md. -->
       <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-bom</artifactId>
-        <version>1.20.2</version>
+        <groupId>${quarkus-langchain4j-bom.group-id}</groupId>
+        <artifactId>quarkus-langchain4j-bom</artifactId>
+        <version>${quarkus-langchain4j-bom.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <!-- Pin the three BOMs ONCE here (scope=import, type=pom). Child
-           modules must never re-declare or re-pin these imports. -->
       <dependency>
         <groupId>${quarkus.platform.group-id}</groupId>
         <artifactId>${quarkus.platform.artifact-id}</artifactId>
@@ -91,13 +105,6 @@
         <groupId>${quarkus-camel-bom.group-id}</groupId>
         <artifactId>quarkus-camel-bom</artifactId>
         <version>${quarkus-camel-bom.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>${quarkus-langchain4j-bom.group-id}</groupId>
-        <artifactId>quarkus-langchain4j-bom</artifactId>
-        <version>${quarkus-langchain4j-bom.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
