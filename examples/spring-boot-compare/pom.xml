@@ -98,10 +98,18 @@
     </dependency>
 
     <!-- Kafka producer: order.placed emitted as Avro via Apicurio (DRQ-009),
-         mirroring quarkus-messaging-kafka + quarkus-apicurio-registry-avro. -->
+         mirroring quarkus-messaging-kafka + quarkus-apicurio-registry-avro.
+         Spring Boot 4.0 extracted Kafka auto-configuration into the dedicated
+         spring-boot-kafka module; spring-kafka core alone does NOT bring it, so
+         spring.kafka.* would be inert and no ProducerFactory/KafkaTemplate
+         beans would be created (context fails to start). Pull both. -->
     <dependency>
       <groupId>org.springframework.kafka</groupId>
       <artifactId>spring-kafka</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-kafka</artifactId>
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
