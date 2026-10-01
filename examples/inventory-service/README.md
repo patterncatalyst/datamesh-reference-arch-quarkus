@@ -22,6 +22,28 @@ and seeded from `src/main/resources/import.sql` with a few demo SKUs
 Dev Services for PostgreSQL starts an ephemeral container automatically in
 dev/test mode -- no datasource URL is configured.
 
+### Seeding in `%prod` (working as intended)
+
+`import.sql` is **deliberately not loaded in `%prod`**. Hibernate's load
+script only runs under `create` / `drop-and-create` generation, and `%prod`
+intentionally uses a non-destructive strategy (`${DB_GENERATION:update}`) so
+a real deployment never drops an existing `stock` table. This means a fresh
+`%prod`/cluster deploy starts with an **empty** inventory — by design, not a
+bug.
+
+Seed demo stock over the REST surface instead (the demo scripts and
+`demos/walkthrough.sh` already do this):
+
+```bash
+curl -s -X POST http://<inventory-host>/stock \
+  -H 'Content-Type: application/json' \
+  -d '{"sku":"WIDGET-1","quantityOnHand":100}'
+```
+
+(Tracked as finding F3 in `_plans/phase-d-step10-plan.md`, disposition:
+won't-fix / documented — auto-seeding `%prod` would require `drop-and-create`
+and its data-loss risk.)
+
 ## gRPC: `InventoryService/CheckStock`
 
 Contract: `capstone.inventory.v1.InventoryService` (see
