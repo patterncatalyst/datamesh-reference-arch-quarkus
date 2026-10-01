@@ -2,7 +2,7 @@
 title: "The data mesh — start here"
 order: 0
 part: Foundations
-description: "The map of this tutorial — the five parts, the reading order, and a link to every chapter. Start here."
+description: "The map of this tutorial — the six parts, the reading order, and a link to every chapter. Start here."
 duration: "5 min"
 marker: "00"
 ---
