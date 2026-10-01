@@ -38,17 +38,32 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
   - **Minikube (step 9):** raw manifests + kustomize (base + minikube overlay) for apps; Helm only for operators (Strimzi, CNPG, KEDA). **Istio + Kiali: ON** (user choice — keep mesh). KEDA HTTP add-on pinned 0.12.2. **Kafka-lag KEDA scaler drives notification-service** (consumes `order.placed`). HTTP scaler on graphql-gateway. **Images built locally into minikube's docker** (`minikube docker-env`), no registry.
   - Phase C lands the KEDA scalers (substrate); the `demo-keda-*.sh` demos come in Phase D.
 
-## Open ideas (to scope in Phase D planning)
+## Phase D decisions
 
-- **DRQ-012 (proposed) — real-world AI+rules scenario:** compose Ollama with a
-  Quarkus + Camel + **Drools** (KIE/business-rules) flow for a more realistic
-  demo than a bare LLM call — e.g. order triage where Camel routes an incoming
-  order, Ollama classifies/extracts intent, and a Drools rule set makes the
-  deterministic business decision (fraud hold, expedite, route-to-warehouse) on
-  the shipping/order domain. Candidate home: extend `ai-mcp-service` or a new
-  demo module. NOT yet built — confirm scope/depth during Phase D planning
-  (Drools adds a real dependency + KIE concepts; keep it one focused demo, not
-  speculative infra per scope-discipline).
+- **DRQ-012 — real-world AI+rules scenario — ACCEPTED (primary AI demo, Phase D step 10).**
+  Compose Ollama with a Quarkus + Camel + **Drools** (business-rules) flow:
+  order triage where Camel routes an incoming order, Ollama classifies/extracts
+  intent, and a Drools rule set makes the deterministic business decision (fraud
+  hold, expedite, route-to-warehouse) on the shipping/order domain. This is the
+  **showcase AI demo** — Drools (not langchain4j tool-calling) makes the business
+  decision, so it **sidesteps DEF-001**: no in-process agent tool-calling round
+  trip is required for the demo to work end to end. Keep it one focused demo (not
+  speculative infra per scope-discipline). Scope/depth settled in the Phase D
+  step-10 plan.
+
+  **Engine decision (user directive):** use **plain embedded Drools** — the rule
+  engine as a library (`org.drools` `drools-core`/`drools-compiler`, a
+  `KieContainer` built at app startup in a CDI bean) — NOT the Kogito/KIE Quarkus
+  extension. **KIE is explicitly not a roadmap item**; no Kogito platform, no KIE
+  process/flow/BPMN. Orchestration is done by **Quarkus + Camel** (the point of the
+  demo). This removes the KIE-extension compatibility spike; the only early check
+  is a light probe that embedded `drools-core` compiles and runs a trivial `.drl`
+  on Quarkus 3.39.5 / JDK 25. ai-rules-service is JVM-mode (native is not a goal
+  for this module).
+- **DRQ-013 — Phase D breadth — staged (demos first).** Phase D is sequenced:
+  plan + build step 10 (demos 1:1 with slides, incl. DRQ-012) first, reassess
+  before steps 11–13 (tutorial chapters, diagrams, deck). Demos are the
+  hardest-to-fake artifact and feed the chapters and deck downstream.
 
 ## Deferrals
 
