@@ -1,5 +1,5 @@
-// build-101.js — Datamesh 101 deck: a Quarkus developer's path from data
-// architectures to a decentralized, domain-owned data mesh.
+// build-101.js — Datamesh 101 deck: data-mesh principles from first
+// principles, demonstrated on Quarkus and Kubernetes — no Quarkus experience assumed.
 // Run from presentation/datamesh-101/:  node build-101.js
 // Requires: deck-lib.js (Red Hat design system), dpng/ + dpng/dims.json
 const {
@@ -19,9 +19,9 @@ function dividerWithNotes(opts) {
 titleSlide({
   eyebrow: "Data Mesh · 101",
   title: "Building a Datamesh using Quarkus and Kubernetes",
-  subtitle: "A Quarkus developer's path from data architectures to a decentralized, domain-owned data mesh",
+  subtitle: "From data-mesh principles to a running platform on Quarkus and Kubernetes — no Quarkus experience assumed",
   breadcrumb: "Data Mesh · 101",
-  notes: "Welcome. This talk is aimed at Quarkus developers, so Quarkus is the lens we'll use throughout — but the destination is a data mesh running on Kubernetes, and the principles we cover apply regardless of runtime. We'll start with the landscape of data architectures that came before the mesh, define the mesh precisely through its four principles, then show why Quarkus and Kubernetes are a natural pairing for building one. By the end you should be able to explain what a data mesh is, when it's the right answer, and where to go deeper if you want to see one actually running.",
+  notes: "Welcome. This talk teaches the data-mesh principles from first principles and doubles as a showroom for Quarkus — no prior Quarkus experience needed; Quarkus is the vehicle we'll demonstrate with, not a prerequisite for following along. The destination is a data mesh running on Kubernetes, and the principles we cover apply regardless of runtime. We'll start with the landscape of data architectures that came before the mesh, define the mesh precisely through its four principles, then show why Quarkus and Kubernetes are a natural pairing for building one. By the end you should be able to explain what a data mesh is, when it's the right answer, and where to go deeper if you want to see one actually running.",
 });
 
 /* ============================ 2 · DIVIDER 01 ============================ */
@@ -91,7 +91,7 @@ dividerWithNotes({
   num: "02",
   title: "The four principles",
   sub: "Domain ownership, data as a product, self-serve platform, federated computational governance.",
-  notes: "With the landscape in place, let's define data mesh precisely. Zhamak Dehghani coined the term in 2019 and formalized it in her 2022 O'Reilly book. It rests on four interlocking principles that depend on each other — implement one without the others and you get a distributed mess, not a mesh. We'll look at all four together, then at the analogy that makes them concrete for a room full of Quarkus developers: the same microservices decomposition you've already lived through, applied to data ownership instead of application code.",
+  notes: "With the landscape in place, let's define data mesh precisely. Zhamak Dehghani coined the term in 2019 and formalized it in her 2022 O'Reilly book. It rests on four interlocking principles that depend on each other — implement one without the others and you get a distributed mess, not a mesh. We'll look at all four together, then at the analogy that makes them concrete for anyone who has lived through a monolith-to-microservices transition: the same decomposition, applied to data ownership instead of application code.",
 });
 
 /* ---- Four principles ---- */
@@ -109,7 +109,7 @@ diagramSlide({
   title: "Domain ownership, made real: monolith to mesh",
   image: "01-monolith-to-mesh",
   caption: "The same monolith-to-microservices transition most engineers have lived through, applied to data ownership instead of application code.",
-  notes: "This is the analogy that lands hardest with this audience. Just as a monolithic application gets refactored into bounded contexts owned by domain teams — the microservices transition most of you have already lived through — a monolithic data platform gets refactored into bounded data products owned by those same domain teams. The mesh is the network of those products plus the platform and standards that let them interoperate. The hard part was never drawing the boxes; it was deciding where one bounded context ends and the next begins, and then living with the contract at that boundary. Decomposing a data platform into data products is the identical exercise, one layer up — the boundary is now a versioned data contract instead of a REST endpoint.",
+  notes: "This is the analogy that tends to land well for anyone who has lived through a monolith-to-microservices transition. Just as a monolithic application gets refactored into bounded contexts owned by domain teams — the microservices transition many engineers have already lived through — a monolithic data platform gets refactored into bounded data products owned by those same domain teams. The mesh is the network of those products plus the platform and standards that let them interoperate. The hard part was never drawing the boxes; it was deciding where one bounded context ends and the next begins, and then living with the contract at that boundary. Decomposing a data platform into data products is the identical exercise, one layer up — the boundary is now a versioned data contract instead of a REST endpoint.",
 });
 
 /* ============================ 12 · DIVIDER 03 ============================ */

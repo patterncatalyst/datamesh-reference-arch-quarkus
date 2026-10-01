@@ -38,10 +38,10 @@ function twoUpDiagramSlide({ eyebrow, title, images, captions, note, notes }) {
 titleSlide({
   eyebrow: "Data Mesh · 201",
   title: "Building a Datamesh using Quarkus and Kubernetes",
-  subtitle: "From the four principles to a running platform on Quarkus + Kubernetes — capability tour, three orchestration engines, AI+rules triage, and live demos.",
+  subtitle: "From the four principles to a running platform on Quarkus + Kubernetes — capability tour, three orchestration engines, AI+rules triage, and live demos; no prior Quarkus experience required.",
   tagline: "The deep-dive, not the pitch",
   breadcrumb: "Data Mesh · 201",
-  notes: "Welcome to the 201 deep-dive. This is not the conceptual case for data mesh — that's the 101 deck. This is the running system: a Quarkus-and-Kubernetes reference architecture, built on the shipping/order domain, with eighteen real demo scripts behind it. Set expectations up front: this is a long walk, deliberately diagram-forward, with code where the code is the lesson, and an honest accounting of what works, what's opt-in, and the one thing (DEF-001) that's documented as broken rather than hidden.",
+  notes: "Welcome to the 201 deep-dive. This is not the conceptual case for data mesh — that's the 101 deck. This is the running system: a Quarkus-and-Kubernetes reference architecture, built on the shipping/order domain, with eighteen real demo scripts behind it. No prior Quarkus experience is assumed — every capability is demonstrated from first principles as it comes up, so this deck doubles as a Quarkus showroom for newcomers to the framework as well as a data-mesh deep dive for anyone who's seen the 101. Set expectations up front: this is a long walk, deliberately diagram-forward, with code where the code is the lesson, and an honest accounting of what works, what's opt-in, and the one thing (DEF-001) that's documented as broken rather than hidden.",
 });
 
 /* ============================ AGENDA ============================ */
