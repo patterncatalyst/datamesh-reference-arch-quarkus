@@ -1,0 +1,81 @@
+# Containerfile.multistage, spring-boot-compare (DRQ-006)
+#
+# Build (context = repo root, run from the repo root directory):
+#   docker build -f examples/spring-boot-compare/src/main/docker/Containerfile.multistage -t datamesh/spring-boot-compare .
+#
+# Build context is the REPO ROOT, not examples/spring-boot-compare, for the
+# same reason as the Quarkus order-service's Containerfile: this module
+# depends on domain-model and contracts as plain jars (installed to the
+# builder's local Maven repo first, NOT reactor modules of
+# examples/pom.xml -- spring-boot-compare is deliberately NOT listed there,
+# see pom.xml's top comment and the module README).
+#
+# Two stages:
+#   1. `build`   -- registry.access.redhat.com/ubi10/openjdk-25 (JDK 25 +
+#                  Maven preinstalled). First `mvn -pl domain-model,contracts
+#                  -am install -DskipTests` from examples/ so this module's
+#                  dependencies resolve from the builder's local repo exactly
+#                  as the README's local build instructions do, then
+#                  `mvn -f examples/spring-boot-compare/pom.xml package
+#                  -DskipTests` builds the executable jar standalone (this
+#                  module has its own parent -- spring-boot-starter-parent --
+#                  not datamesh-examples-parent, so it is never built with
+#                  `-pl ... -am` against the Quarkus reactor).
+#   2. `runtime` -- registry.access.redhat.com/ubi10/openjdk-25-runtime.
+#                  Copies ONLY the repackaged Spring Boot executable jar.
+#
+# spring-boot-compare is a gRPC CLIENT to inventory-service (GrpcClientConfig,
+# see src/main/resources/application.properties) -- it does not host its own
+# gRPC server, so only the HTTP port is exposed here.
+
+# --- Stage 1: build ---------------------------------------------------
+FROM registry.access.redhat.com/ubi10/openjdk-25 AS build
+
+WORKDIR /build
+
+# Copy the whole examples/ tree (domain-model + contracts + this module) --
+# a single COPY is used rather than per-module layering because
+# domain-model/contracts changes should invalidate this build layer anyway
+# (they're compile-time dependencies), so there's no cache-hit to preserve
+# by splitting it further.
+COPY --chown=185 examples/ ./examples/
+
+WORKDIR /build/examples
+
+# Prerequisite: install domain-model + contracts into the builder's local
+# Maven repo (plain jar dependencies, not a reactor relationship -- see
+# pom.xml's top comment).
+RUN mvn -q -pl domain-model,contracts -am install -DskipTests
+
+# Build the twin standalone, against its own parent (spring-boot-starter-parent).
+RUN mvn -q -f spring-boot-compare/pom.xml package -DskipTests
+
+# --- Stage 2: runtime ---------------------------------------------------
+FROM registry.access.redhat.com/ubi10/openjdk-25-runtime AS runtime
+
+WORKDIR /deployments
+COPY --from=build --chown=185 /build/examples/spring-boot-compare/target/spring-boot-compare-*.jar ./app.jar
+
+EXPOSE 8080
+
+# DRQ-011: pin UTC (Postgres rejects legacy Olson zone ids forwarded from the
+# host default -- same crux this module's own pom.xml documents for its test
+# JVM) + run with the `prod` Spring profile so compose/K8s deployments use
+# the same env-driven config (JDBC_URL / KAFKA_BOOTSTRAP_SERVERS /
+# APICURIO_REGISTRY_URL / INVENTORY_GRPC_HOST / INVENTORY_GRPC_PORT) as the
+# rest of the reactor, per DRQ-011.
+#
+# org.apache.avro.SERIALIZABLE_PACKAGES: Avro 1.12's ClassSecurityValidator
+# refuses to (de)serialize generated SpecificRecords from a packaged
+# `java -jar` unless their packages are explicitly trusted -- the same
+# requirement the Quarkus order-service's Containerfile documents for the
+# identical OrderPlaced (capstone.order.v1) record, since both services
+# share the same contracts jar and the same Avro runtime behavior.
+ENV JAVA_TOOL_OPTIONS="-Duser.timezone=UTC -Dspring.profiles.active=prod -Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1"
+
+# UBI OpenJDK runtime images already default to UID 185 (non-root); explicit
+# here for clarity and to guard against a base-image change silently
+# reverting to root.
+USER 185
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
