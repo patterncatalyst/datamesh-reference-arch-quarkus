@@ -475,7 +475,7 @@ contentSlide({ eyebrow: "Security", title: "demo-oidc.sh — live bearer tokens,
 /* ====================== 09 · NATIVE ====================== */
 (() => {
   const s = divider({ num: "09", title: "Native", sub: "A separate axis from the JVM-only Spring Boot comparison — Quarkus with no JVM in the process at all." });
-  s.addNotes("Deliberately kept out of section 05's comparison table so that table compares like with like (JVM to JVM). Native compilation is its own story — sub-100ms startup, tens of MB of RSS — covered here as an opt-in, long-running demo rather than folded into the Spring Boot numbers.");
+  s.addNotes("Deliberately kept out of section 05's comparison table so that table compares like with like (JVM to JVM). No native build was run for this project — the commonly cited native figures (sub-100ms startup, tens of MB of RSS) are general Quarkus numbers, not something measured here. Native is covered as an opt-in, long-running demo (demo-native.sh) rather than folded into the Spring Boot numbers.");
 })();
 
 contentSlide({ eyebrow: "Native", title: "demo-native.sh — no JVM at all",

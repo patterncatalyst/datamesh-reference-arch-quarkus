@@ -9,7 +9,7 @@ Kubernetes** — seven services modeling order-placement-through-shipment,
 each owning its data, its API surface, and its operational lifecycle,
 talking over a deliberate mix of REST, gRPC, GraphQL, and Kafka.
 
-It serves three purposes at once:
+It serves two purposes at once:
 
 1. **A data mesh.** It rebuilds the sibling
    [`datamesh-reference-arch-python`](https://github.com/patterncatalyst/datamesh-reference-arch-python)
@@ -19,15 +19,9 @@ It serves three purposes at once:
    event-driven autoscaling, and full observability.
 2. **A Quarkus showroom.** The same services exercise Panache, gRPC,
    GraphQL, Reactive Messaging, Camel-on-Quarkus, langchain4j/MCP,
-   WebSockets.Next, OIDC, Vert.x reactive, and native compilation — with a
+   WebSockets.Next, OIDC, and Vert.x reactive execution — with a
    runnable Spring Boot twin service (`examples/spring-boot-compare`) for
-   a real side-by-side comparison.
-3. **A case study in agentic-workflow development.** The repo itself was
-   built and iteratively verified using Claude Code's skill/MCP tooling
-   (Quarkus Agent MCP, Camel MCP, and a plan→execute→validate agent relay) —
-   see the chapter **[How this was built](_docs/15-agentic-relay.md)**
-   (agentic development + testing), `CLAUDE.md`'s "Per-task skill / MCP
-   mapping", and the living decision log in `_plans/decisions.md`.
+   a real side-by-side JVM comparison.
 
 ## Architecture at a glance
 
