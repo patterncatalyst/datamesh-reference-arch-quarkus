@@ -3,7 +3,7 @@ title: Observability
 order: 9
 part: Operating the mesh
 description: "Metrics, distributed traces, and the live mesh view — the real LGTM stack and OpenTelemetry wiring this repo installs, and a verified cross-service trace."
-duration: 25 minutes
+duration: 30 minutes
 marker: "08"
 ---
 
@@ -14,6 +14,18 @@ This chapter covers observability as this repo actually ships it: the LGTM stack
 (`scripts/setup-lgtm.sh`) that collects metrics, traces, and logs; the one demo
 (`demos/demo-tracing.sh`) that was run against a real backend and produced a verified
 cross-service trace; and Kiali as the live view of traffic moving through the mesh.
+
+{% include excalidraw.html file="08-reference-architecture" alt="Reference architecture diagram showing the full datamesh stack: data products behind the Istio mesh, KEDA-driven autoscaling, and every signal flowing through the OpenTelemetry Collector into the Grafana LGTM stack and Kiali" caption="Figure 8.1 — the full reference architecture: mesh, scaling, and observability together" %}
+
+Figure 8.1 is the shape of everything the last three chapters have been building
+toward, drawn as one picture: the data products from earlier chapters sit behind the
+selectively-meshed Istio data plane from [Chapter 6](/docs/06-progressive-delivery-mtls/),
+KEDA watches and scales two of them from [Chapter 7](/docs/07-elastic-and-resilient/),
+and every one of those moving parts — the mesh's sidecars, the scalers' activations,
+the services' own request handling — is a source of telemetry that lands in the same
+place: the Collector and LGTM stack this chapter describes. None of the earlier
+chapters' mechanisms are observable in isolation; this chapter is what makes the whole
+picture legible at once.
 
 ## The three signals, and why a mesh needs all of them
 
@@ -29,6 +41,18 @@ to look. A request that touches `graphql-gateway`, `order-service`, and
 `inventory-service` is one user-facing operation spread across three independently
 owned products; understanding it means correlating signals that no single product owns
 in full.
+
+{% include excalidraw.html file="08-three-signals" alt="Diagram of the three observability signal types — metrics, traces, and logs — and what each one answers for a request crossing graphql-gateway, order-service, and inventory-service" caption="Figure 8.2 — metrics, traces, and logs: what each signal answers" %}
+
+None of the three signals substitutes for the others, and the order you reach for them
+in practice usually runs in one direction: a metric (a replica count that climbed, an
+error-rate panel that spiked) tells you *something* changed and roughly *when*; a trace
+for a request in that window tells you *which* products were involved and where the
+time actually went; a log line from the specific span that looks slow tells you *why* —
+the exception, the SQL statement, the retry. Skipping straight to logs without a trace
+to narrow the search means grepping three services' logs for a needle with no idea
+which haystack it's in; that's the specific cost a mesh pays for not wiring up tracing,
+and the specific cost this chapter's stack is built to avoid.
 
 ## Installing the stack: `scripts/setup-lgtm.sh`
 
@@ -62,6 +86,8 @@ metrics — all filesystem-backed, all single-replica — and Grafana wired with
 sidecar pattern so it auto-picks-up any ConfigMap labeled `grafana_datasource: "1"` or
 `grafana_dashboard: "1"`, rather than needing a manual provisioning step per dashboard.
 
+{% include excalidraw.html file="08-observability-stack" alt="Diagram of the four LGTM backends — Loki, Tempo, Mimir, Grafana — each running filesystem-backed and single-replica in the observability namespace, fed by one shared OpenTelemetry Collector" caption="Figure 8.3 — the LGTM stack: four backends, one Collector, one Grafana" %}
+
 ### Everything through one Collector
 
 Applications don't talk to Loki, Tempo, or Mimir directly. They emit OTLP to a single
@@ -93,7 +119,12 @@ pod, and `resource` stamps every signal with a `cluster: minikube` attribute —
 the moment more than one cluster reports into the same Grafana. The payoff of routing
 everything through one Collector rather than wiring each service to each backend
 directly: adding tail sampling, label redaction, or cardinality control later is a
-change to this one file, not to every service that emits telemetry.
+change to this one file, not to every service that emits telemetry. It also means the
+three application services never need to know Mimir uses a remote-write push model
+while Tempo and Loki take OTLP-native exports directly — each pipeline's `exporters`
+list hides that backend-specific detail behind the one `otlp` receiver every service
+actually talks to, so a backend swap (Tempo for a different tracing store, say) is a
+change to one exporter block, not to any service's configuration.
 
 ### Mimir plays double duty as "Prometheus"
 
@@ -162,7 +193,16 @@ nothing), and that extension is a build-time dependency, not something a runtime
 can retrofit onto an already-packaged jar. So the demo takes the zero-pom-touch path:
 it attaches the upstream OpenTelemetry Java auto-instrumentation agent as a
 `-javaagent:` flag to both already-built `quarkus-run.jar` processes, which
-auto-instruments JAX-RS, the gRPC client and server, and JDBC with no source changes:
+auto-instruments JAX-RS, the gRPC client and server, and JDBC with no source changes.
+
+The agent itself isn't vendored into the repo — the demo downloads it once, from the
+upstream `opentelemetry-java-instrumentation` project's `latest` GitHub release, and
+caches it outside the repo tree at `~/.cache/datamesh-demos/opentelemetry-javaagent.jar`
+so subsequent runs skip the download entirely. That cache check is a plain file-exists
+test before anything else runs, and if the download fails — an offline host, a GitHub
+outage — the script fails loudly with the exact `curl` command to fetch the jar
+manually, rather than silently skipping instrumentation and producing a demo that looks
+like it passed but traced nothing:
 
 ```bash
 java -javaagent:"$AGENT_JAR" \
@@ -249,10 +289,21 @@ tunnel 9009 30009 "Mimir:   http://localhost:9009"
 
 `tunnel()` opens a backgrounded SSH forward through the minikube node's own SSH server
 rather than relying on `kubectl port-forward`'s kept-alive HTTP/2 stream, which this
-repo's other scripts note drops under load or after an idle timeout. The same NodePort
-convention is what every `--set service.type=NodePort` in `setup-lgtm.sh` and
-`setup-kiali.sh` exists to set up — this script is simply the one place all of those
-fixed ports get turned into stable `localhost` URLs in one command.
+repo's other scripts note drops under load or after an idle timeout. Getting that SSH
+connection parameterized correctly is its own small piece of plumbing worth
+understanding: the script resolves the private key with `minikube ssh-key -p datamesh`
+and the forwarded port with `docker port datamesh 22/tcp` — because on the `docker`
+driver, the "minikube node" is itself a Docker container, so its SSH daemon is reached
+through whatever host port Docker happens to have mapped to that container's `22/tcp`,
+not a fixed port. Each `tunnel` call is one `ssh -L <local>:localhost:<node_port> -N -f`
+invocation against that resolved key and port, backgrounded with `-f` and kept alive
+with `ServerAliveInterval=30`/`ServerAliveCountMax=3` so a momentarily quiet tunnel
+isn't mistaken for a dead one and dropped. Re-running the script kills any previous
+tunnels first (`pkill -f 'ssh.*docker@127.0.0.1'`) before opening fresh ones, which is
+what makes it safe to re-run after a minikube restart changes the underlying SSH port.
+The same NodePort convention is what every `--set service.type=NodePort` in
+`setup-lgtm.sh` and `setup-kiali.sh` exists to set up — this script is simply the one
+place all of those fixed ports get turned into stable `localhost` URLs in one command.
 
 ## What it all adds up to
 

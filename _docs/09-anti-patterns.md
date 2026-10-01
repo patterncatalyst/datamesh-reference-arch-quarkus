@@ -44,8 +44,11 @@ the software, what you'll have at the end is the old centralized model with a
 new dashboard.
 
 *In this build:* every component this reactor runs — Apicurio, Strimzi
-(Kafka), KEDA, Istio — is deliberately a *substrate* the services build on,
-not a turnkey mesh. The [Foundations]({{ '/parts/foundations/' | relative_url }})
+(Kafka), CloudNativePG (Postgres), KEDA, Istio — is deliberately a
+*substrate* the services build on, not a turnkey mesh. None of them,
+installed alone, makes anything a data product; `order-service` still has
+to define its own entity, emit its own event, and own its own contract on
+top of that substrate. The [Foundations]({{ '/parts/foundations/' | relative_url }})
 part frames each one as serving a principle rather than being the point.
 
 ## Centralization wearing a new name
@@ -123,12 +126,16 @@ nothing ships.
 *In this build:* every Kafka event — `order.placed`, `payment.captured`,
 `shipment.dispatched` — is Avro against the shared Apicurio Schema Registry,
 a global rule every producer and consumer opts into by using the
-`contracts` module, with no manual review step in between. That's real, but
-it's also partial: this build does not yet configure Apicurio's compatibility
-rules to reject a breaking schema change automatically, so the "federated
-*computational*" half of governance here is still, plainly, just
-"federated," with the "computational" enforcement piece open. Naming that
-gap plainly is the point of this page.
+`contracts` module, with no manual review step in between. It's enforced
+hard enough to have a regression test behind it, not just a convention:
+`OrderPlacedAvroWireIT` in `order-service` produces a real event through the
+application's own serializer and then asserts the Avro magic byte is on the
+wire, so a silent regression to JSON fails a build instead of fails quietly
+in production. That's real, but it's also partial: this build does not yet
+configure Apicurio's compatibility rules to reject a breaking schema change
+automatically, so the "federated *computational*" half of governance here
+is still, plainly, just "federated," with the "computational" enforcement
+piece open. Naming that gap plainly is the point of this page.
 
 ## No clear owner, or fuzzy domain boundaries
 
@@ -149,9 +156,13 @@ domains, write down who owns each product, and revisit the boundaries as the
 organization changes.
 
 *In this build:* each service has a single clear responsibility and an
-owner-by-construction — `inventory-service` owns stock levels and answers
-`CheckStock` over gRPC, `order-service` owns orders and never reaches into
-inventory's database directly. The service boundary *is* the domain boundary.
+owner-by-construction — `inventory-service` owns stock levels in its own
+`Stock` entity and answers `CheckStock` over gRPC, `order-service` owns
+orders in its own `Order` entity and never reaches into inventory's database
+directly. Neither service imports the other's entity class, and there is no
+shared "domain model" module quietly reintroducing the coupling a split
+database was supposed to remove. The service boundary *is* the domain
+boundary.
 
 ## The open loop — no feedback
 

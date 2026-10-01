@@ -12,7 +12,9 @@ did not appear out of nowhere — it's a response to specific organizational sca
 problems that earlier data architectures left unsolved. Each of those earlier patterns
 solved a real problem, and each is still the right answer when that problem is the
 dominant one. Understanding what came before, and what each pattern does well, makes the
-mesh's value proposition concrete rather than abstract.
+mesh's value proposition concrete rather than abstract. Figure 1.5, at the end of
+this chapter, lays the whole progression out side by side once each pattern has
+been introduced on its own.
 
 ## Data pipelines
 
@@ -20,7 +22,12 @@ The oldest problem in data architecture is movement: operational systems produce
 analytical systems consume it, and something has to get it from one place to the other.
 That something is a **data pipeline** — a sequence of steps that extracts data from a
 source, transforms it into a shape the destination can use, and loads it into the target
-store. The two canonical patterns are **ETL** (extract-transform-load), where
+store. Figure 1.1 shows the shape of this: a known source, a transformation step, and a
+known destination, repeated once per source-destination pair.
+
+{% include excalidraw.html file="01-data-pipeline-architecture" alt="A linear ETL/ELT data pipeline moving data from an operational source through a transformation step into an analytical destination" caption="Figure 1.1 — Data pipeline architecture" %}
+
+The two canonical patterns are **ETL** (extract-transform-load), where
 transformation happens in transit before the data lands, and **ELT**
 (extract-load-transform), where raw data is landed first and transformed in place
 afterward. The distinction matters for latency, cost, and where you locate your business
@@ -47,7 +54,12 @@ operational fragility that comes with it — that the data warehouse was designe
 ## Data warehouses
 
 A **data warehouse** is a centralized analytical store, purpose-built for structured
-queries across the entire business. Where pipelines are plumbing, the warehouse is a
+queries across the entire business. Figure 1.2 shows the shape that replaces the
+pipeline tangle: many sources converging on one governed, centrally-owned store.
+
+{% include excalidraw.html file="01-data-warehouse-architecture" alt="Multiple operational sources feeding a centralized, schema-on-write data warehouse owned by a central team" caption="Figure 1.2 — Data warehouse architecture" %}
+
+Where pipelines are plumbing, the warehouse is a
 destination — a single place where data from every operational system arrives, gets
 cleaned, modeled into a consistent schema, and becomes queryable by anyone with the right
 access. The intellectual heritage runs through Kimball's dimensional modeling and Inmon's
@@ -79,7 +91,13 @@ bottleneck.
 
 ## Data lakes
 
-The **data lake** emerged as a response to the warehouse's format rigidity. Where a
+The **data lake** emerged as a response to the warehouse's format rigidity. Figure 1.3
+shows the zone structure a well-run lake organizes itself into — raw, curated, and
+refined — still centralized, but no longer demanding a schema up front.
+
+{% include excalidraw.html file="01-data-lake-architecture" alt="A data lake organized into raw, curated, and refined zones, accepting structured, semi-structured, and unstructured data" caption="Figure 1.3 — Data lake architecture" %}
+
+Where a
 warehouse demands that data conform to a schema before it can be stored, a data lake
 accepts data in any format — structured tables, semi-structured JSON and XML,
 unstructured logs and text, binary blobs like images and sensor readings — and defers
@@ -124,7 +142,14 @@ receiving requests from every domain, owning data it did not produce, modeling c
 it does not deeply understand, and scaling its capacity linearly while the demands on it
 grow combinatorially.
 
-The **data mesh** proposes a different axis of change. Instead of building a better
+The **data mesh** proposes a different axis of change. Figure 1.4 shows that
+decentralization directly against the three centralized shapes above: instead of one
+box in the middle, each domain owns its own data product, connected by a shared
+platform rather than funneled through a single team.
+
+{% include excalidraw.html file="01-data-mesh-decentralized" alt="Multiple domain teams each owning a data product, connected by a shared self-serve platform instead of a central team" caption="Figure 1.4 — Data mesh: decentralized domain ownership" %}
+
+Instead of building a better
 center, it decentralizes ownership to the domain teams that produce the data. Each
 domain owns its data as a product — discoverable, addressable, trustworthy,
 self-describing — and publishes it for other domains to consume. A shared **self-serve
@@ -154,6 +179,12 @@ well-run warehouse or a governed lake may be exactly the right answer. The mesh 
 an upgrade in a linear progression — it's a different tool for a different problem.
 
 ## The evolution — and when each pattern fits
+
+Figure 1.5 lays the four patterns out in one sequence, from the earliest, most
+point-to-point pattern to the most decentralized — the progression the rest of this
+section walks through in terms of the problem each one actually solved.
+
+{% include excalidraw.html file="01-architecture-evolution" alt="Timeline showing the progression from data pipelines to data warehouses to data lakes to data mesh, with the problem each pattern solved" caption="Figure 1.5 — The evolution from pipelines to mesh" %}
 
 The progression from pipelines to warehouses to lakes to mesh is not a replacement chain
 where each generation obsoletes the last. It's an expansion of the problem space.

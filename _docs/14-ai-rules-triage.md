@@ -3,7 +3,7 @@ title: "AI-assisted rules triage: Ollama classifies, Drools decides"
 order: 15
 part: The Quarkus deep-dive
 description: "An LLM extracts structured fields from an order; a deterministic Drools rule set makes the actual business decision — plus an honest accounting of where in-process langchain4j tool-calling does and doesn't work on this stack."
-duration: 40 minutes
+duration: 45 minutes
 marker: "14"
 ---
 
@@ -24,6 +24,22 @@ The code is in `examples/ai-rules-service/` (`TriageService`,
 `examples/ai-mcp-service/` (`OrderClassifierRoute`, `OrderLookupToolRoute`,
 `AgentProducers`, `OrderAssistantRoute`); the demo scripts named in each
 section build/set up and run the pieces they cover.
+
+{% include excalidraw.html file="14-ai-rules-triage" alt="The classify-then-decide pipeline: an order flows into TriageService.classify, which calls Ollama's qwen2.5:3b model to produce category, priority, and riskSignal; those fields become an OrderTriageFact handed to a Drools KieSession, which fires order-triage.drl and returns one of FRAUD_HOLD, EXPEDITE, or ROUTE_TO_WAREHOUSE; a separate DEF-001 branch shows ai-mcp-service's in-process langchain4j agent failing to reach the order-status tool while the embedded MCP server reaches the same tool successfully" caption="Figure 14.1 — Ollama classifies, Drools decides, and where DEF-001 breaks the in-process agent path" %}
+
+Read the diagram as two halves. The top half is the pipeline this chapter
+spends most of its words on: one LLM call feeding one deterministic rule
+engine, reached by two different orchestration shapes (Camel, Quarkus Flow)
+that both terminate in the identical `TriageService` methods. The bottom
+half is the cautionary half: the same local model, wired into a
+structurally different capability — multi-turn tool-calling rather than
+single-shot classification — in a *different* service (`ai-mcp-service`),
+where one specific path is broken for a documented, upstream reason while a
+second path that looks superficially similar works perfectly. Keeping those
+two halves visually separate is deliberate: the fact that an LLM call
+succeeds in one part of this reactor is not evidence that a structurally
+different LLM call succeeds somewhere else, and this chapter's second half
+exists specifically to stop that generalization before a reader makes it.
 
 ## The split: classify (LLM), then decide (Drools)
 
@@ -288,6 +304,26 @@ and currently less reliable capability on this specific stack, with a named,
 diagnosed upstream cause — not a vague "AI is flaky" shrug. Knowing exactly
 which of the three you're relying on, in any given endpoint, is the
 difference between a system you can reason about and one you can't.
+
+It's worth being explicit about why the fix belongs upstream rather than in
+this repo. `AgentProducers` already tried the two levers a caller actually
+has: constructing its own `OllamaChatModel` with an explicit `base-url`
+rather than trusting auto-configuration, and passing an explicit
+`httpClientBuilder(new JdkHttpClientBuilder())` to bypass whatever transport
+`camel-quarkus-support-langchain4j` would otherwise pick. Neither changed
+the outcome, because the extension sets `langchain4j.http.clientBuilderFactory`
+as a JVM-wide system property before either bean is constructed, and a
+system property set at that layer wins over a per-model builder argument
+regardless of what the calling code requests — there is no caller-side
+override available, because the extension's global property is set before
+any per-instance configuration has a chance to take effect. That is also why this is logged as a defect
+against the extension (DEF-001) rather than worked around with a classpath
+exclusion or a shaded client: the fix has to come from
+`camel-quarkus-support-langchain4j` making that property conditional, or
+honoring a per-agent client override, not from anything `ai-mcp-service`
+can reasonably do to its own wiring. Re-testing DEF-001 after any
+`camel-quarkus-support-langchain4j` version bump is accordingly listed in
+this chapter's verification footer, not treated as a one-time finding.
 
 ## Build, run, observe
 

@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <style>
+    .lane-bg { fill: #fdfbf7; stroke: #e0d8c8; stroke-width: 1; }
+    .lane-label { font-size: 12px; fill: #8a7a5a; letter-spacing: 1.5px; font-weight: 600; text-transform: uppercase; }
+    .service-box { fill: #e8eef7; stroke: #2c5aa0; stroke-width: 1.5; rx: 4; }
+    .service-label { font-size: 12px; fill: #1a3a6a; font-weight: 600; }
+    .registry-box { fill: #f5edd6; stroke: #c19a6b; stroke-width: 2; rx: 5; }
+    .registry-label { font-size: 12px; fill: #5a3a0a; font-weight: 700; }
+    .kafka-box { fill: #fbe0db; stroke: #c14a3a; stroke-width: 1.5; rx: 4; }
+    .kafka-label { font-size: 12px; fill: #7a2a1a; font-weight: 600; }
+    .catalog-box { fill: #e8f0e0; stroke: #5a8a3a; stroke-width: 2; rx: 5; }
+    .catalog-label { font-size: 12px; fill: #2a5a1a; font-weight: 700; }
+    .source-box { fill: #efefef; stroke: #4a4a4a; stroke-width: 1; rx: 3; }
+    .source-label { font-size: 10px; fill: #2a2a2a; }
+    .title { font-size: 17px; fill: #2a2a2a; font-weight: 700; }
+    .subtitle { font-size: 11px; fill: #6a5a3a; font-style: italic; }
+    .flow-title { font-size: 13px; fill: #2a2a2a; font-weight: 700; }
+    .step-num { font-size: 11px; fill: #fff; font-weight: 700; }
+    .step-text { font-size: 10px; fill: #4a4a4a; }
+    .mono { font-size: 9px; fill: #7a5a2a; font-family: 'SF Mono', Menlo, monospace; }
+    .arrow-runtime { stroke: #c14a3a; stroke-width: 2; fill: none; }
+    .arrow-schema { stroke: #c19a6b; stroke-width: 1.5; stroke-dasharray: 3,2; fill: none; }
+    .arrow-publish { stroke: #2c5aa0; stroke-width: 1.5; stroke-dasharray: 4,3; fill: none; }
+    .arrow-ingest { stroke: #5a8a3a; stroke-width: 1.5; stroke-dasharray: 2,3; fill: none; }
+    .legend-text { font-size: 10px; fill: #4a4a4a; }
+  </style>
+  <defs>
+    <marker id="f-runtime" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0,0 L 10,5 L 0,10 z" fill="#c14a3a"/></marker>
+    <marker id="f-schema" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0,0 L 10,5 L 0,10 z" fill="#c19a6b"/></marker>
+    <marker id="f-publish" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0,0 L 10,5 L 0,10 z" fill="#2c5aa0"/></marker>
+    <marker id="f-ingest" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0,0 L 10,5 L 0,10 z" fill="#5a8a3a"/></marker>
+  </defs>
+
+  <text x="600" y="30" text-anchor="middle" class="title">How a contract flows: runtime path vs discovery path</text>
+  <text x="600" y="50" text-anchor="middle" class="subtitle">two different jobs the registry does, with very different coupling</text>
+
+  <!-- ============ TOP FLOW: runtime serialization (Avro event) ============ -->
+  <rect x="20" y="72" width="1160" height="270" class="lane-bg"/>
+  <text x="32" y="92" class="lane-label">Runtime path — Avro event serialization (hot, online)</text>
+  <text x="32" y="110" class="step-text" style="font-style:italic;">the event will not encode or decode without the registered schema</text>
+
+  <!-- registry at top center -->
+  <rect x="470" y="128" width="260" height="54" class="registry-box"/>
+  <text x="600" y="150" text-anchor="middle" class="registry-label">Apicurio Registry</text>
+  <text x="600" y="168" text-anchor="middle" class="mono">order.placed — Avro v1 (compatibility-checked)</text>
+
+  <!-- producer -->
+  <rect x="80" y="250" width="240" height="64" class="service-box"/>
+  <text x="200" y="276" text-anchor="middle" class="service-label">order-service (producer)</text>
+  <text x="200" y="296" text-anchor="middle" class="mono">serialize order.placed → bytes</text>
+
+  <!-- kafka -->
+  <rect x="480" y="250" width="240" height="64" class="kafka-box"/>
+  <text x="600" y="276" text-anchor="middle" class="kafka-label">Kafka topic: order-placed</text>
+  <text x="600" y="296" text-anchor="middle" class="mono">Avro bytes + schema id</text>
+
+  <!-- consumer -->
+  <rect x="880" y="250" width="240" height="64" class="service-box"/>
+  <text x="1000" y="276" text-anchor="middle" class="service-label">notification-service (consumer)</text>
+  <text x="1000" y="296" text-anchor="middle" class="mono">deserialize bytes → event</text>
+
+  <!-- schema fetches (producer & consumer talk to registry) -->
+  <path d="M 230,250 L 500,184" class="arrow-schema" marker-end="url(#f-schema)"/>
+  <text x="300" y="225" class="step-text" style="fill:#7a5a2a;">① fetch / register schema</text>
+  <path d="M 970,250 L 700,184" class="arrow-schema" marker-end="url(#f-schema)"/>
+  <text x="800" y="225" class="step-text" style="fill:#7a5a2a;">③ fetch schema by id</text>
+
+  <!-- produce -> kafka -> consume -->
+  <path d="M 320,288 L 476,288" class="arrow-runtime" marker-end="url(#f-runtime)"/>
+  <text x="350" y="280" class="step-text" style="fill:#7a2a1a;">② produce</text>
+  <path d="M 720,288 L 876,288" class="arrow-runtime" marker-end="url(#f-runtime)"/>
+  <text x="755" y="280" class="step-text" style="fill:#7a2a1a;">④ consume</text>
+
+  <!-- ============ BOTTOM FLOW: discovery / lineage ============ -->
+  <rect x="20" y="360" width="1160" height="350" class="lane-bg"/>
+  <text x="32" y="380" class="lane-label">Discovery path — publish contracts, ingest into the catalog (offline)</text>
+  <text x="32" y="398" class="step-text" style="font-style:italic;">nothing fails at runtime if absent; this exists to be discovered — by people, CI, and OpenMetadata</text>
+
+  <!-- services publish contracts -->
+  <rect x="60" y="420" width="300" height="120" class="service-box"/>
+  <text x="210" y="444" text-anchor="middle" class="service-label">services publish their contracts</text>
+  <text x="210" y="468" text-anchor="middle" class="mono">OpenAPI  (SmallRye OpenAPI /openapi.json)</text>
+  <text x="210" y="486" text-anchor="middle" class="mono">Protobuf (.proto definitions)</text>
+  <text x="210" y="504" text-anchor="middle" class="mono">GraphQL  SDL (gateway schema)</text>
+  <text x="210" y="524" text-anchor="middle" class="mono">Avro     (also registered, runtime)</text>
+
+  <!-- registry (center) -->
+  <rect x="450" y="430" width="300" height="100" class="registry-box"/>
+  <text x="600" y="456" text-anchor="middle" class="registry-label">Apicurio Registry</text>
+  <text x="600" y="478" text-anchor="middle" class="step-text">all four contract types,</text>
+  <text x="600" y="494" text-anchor="middle" class="step-text">versioned + compatibility rules</text>
+  <text x="600" y="514" text-anchor="middle" class="mono">the single source of contract truth</text>
+
+  <!-- openmetadata -->
+  <rect x="840" y="430" width="300" height="100" class="catalog-box"/>
+  <text x="990" y="456" text-anchor="middle" class="catalog-label">OpenMetadata</text>
+  <text x="990" y="478" text-anchor="middle" class="step-text">ingests &amp; builds lineage:</text>
+  <text x="990" y="496" text-anchor="middle" class="mono">who produces / who consumes</text>
+  <text x="990" y="514" text-anchor="middle" class="mono">discoverable data products</text>
+
+  <!-- publish arrow -->
+  <path d="M 360,480 L 446,480" class="arrow-publish" marker-end="url(#f-publish)"/>
+  <text x="365" y="472" class="step-text" style="fill:#2c5aa0;">⑤ publish</text>
+
+  <!-- ingest arrow registry->catalog -->
+  <path d="M 750,480 L 836,480" class="arrow-ingest" marker-end="url(#f-ingest)"/>
+  <text x="758" y="472" class="step-text" style="fill:#3a6a2a;">⑦ ingest</text>
+
+  <!-- other sources into catalog -->
+  <rect x="450" y="585" width="140" height="54" class="source-box"/>
+  <text x="520" y="608" text-anchor="middle" class="source-label">Postgres schemas</text>
+  <text x="520" y="624" text-anchor="middle" class="source-label">(CNPG)</text>
+
+  <rect x="610" y="585" width="140" height="54" class="source-box"/>
+  <text x="680" y="608" text-anchor="middle" class="source-label">Kafka topics</text>
+  <text x="680" y="624" text-anchor="middle" class="source-label">(Strimzi)</text>
+
+  <path d="M 590,605 C 760,605 820,560 870,532" class="arrow-ingest" marker-end="url(#f-ingest)"/>
+  <path d="M 750,600 C 820,580 850,560 880,532" class="arrow-ingest" marker-end="url(#f-ingest)"/>
+  <text x="600" y="660" class="step-text" style="fill:#3a6a2a;">⑥ ingest data sources (schemas, topics) alongside the contracts</text>
+
+  <!-- lineage result -->
+  <rect x="840" y="585" width="300" height="54" style="fill:#f4f9ef; stroke:#5a8a3a; stroke-width:1; rx:4;"/>
+  <text x="990" y="608" text-anchor="middle" class="step-text" style="font-weight:600; fill:#2a5a1a;">⑧ lineage graph</text>
+  <text x="990" y="626" text-anchor="middle" class="mono" style="fill:#3a6a2a;">order → order.placed → notification</text>
+  <path d="M 990,532 L 990,583" class="arrow-ingest" marker-end="url(#f-ingest)"/>
+
+  <!-- ============ legend ============ -->
+  <rect x="20" y="724" width="1160" height="30" class="lane-bg"/>
+  <line x1="40" y1="739" x2="78" y2="739" class="arrow-runtime" marker-end="url(#f-runtime)"/>
+  <text x="86" y="743" class="legend-text">runtime (event bytes)</text>
+  <line x1="250" y1="739" x2="288" y2="739" class="arrow-schema" marker-end="url(#f-schema)"/>
+  <text x="296" y="743" class="legend-text">schema fetch/register</text>
+  <line x1="470" y1="739" x2="508" y2="739" class="arrow-publish" marker-end="url(#f-publish)"/>
+  <text x="516" y="743" class="legend-text">publish contract</text>
+  <line x1="680" y1="739" x2="718" y2="739" class="arrow-ingest" marker-end="url(#f-ingest)"/>
+  <text x="726" y="743" class="legend-text">ingest into catalog</text>
+</svg>

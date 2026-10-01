@@ -3,7 +3,7 @@ title: "Quarkus vs. Spring Boot"
 order: 13
 part: The Quarkus deep-dive
 description: "The same order-service data product, rebuilt as a Spring Boot twin, measured side by side on the JVM — startup time and resident memory, with an honest account of what is and isn't being compared."
-duration: 25 minutes
+duration: 40 minutes
 marker: "12"
 ---
 
@@ -16,18 +16,45 @@ measures both on the JVM.
 The twin lives at `examples/spring-boot-compare/`. It is deliberately *not*
 a second mesh: it is one service, built to be a fair mirror of one Quarkus
 service, so the numbers reflect the framework and not a difference in scope.
+This chapter is the only place in the deep-dive that steps outside Quarkus
+entirely — every other chapter in Part 4 takes Quarkus as a given and shows
+what it can do; this one exists purely to answer the question a reader who's
+spent eleven chapters inside one framework will eventually ask anyway: *what
+would this have cost in the framework most teams already know?*
 
 ## What the twin is
 
-A standalone Spring Boot **4.0.x** project on the **same JDK 25** the rest of
+A standalone Spring Boot **4.0.8** project on the **same JDK 25** the rest of
 the repo targets. It is intentionally kept out of the Quarkus Maven reactor
-(`examples/pom.xml`) — Spring Boot wants its own `spring-boot-starter-parent`,
-so mixing the two parents in one module would only create dependency-management
-friction. It reuses the project's framework-agnostic jars rather than copying
-anything: the shared `domain-model` DTOs (`OrderDto`, `OrderStatus`, `Topics`)
-and the `contracts` module's generated Avro `capstone.order.v1.OrderPlaced`
-are the *identical* classes both services use, so there is zero schema or DTO
-drift between the two.
+(`examples/pom.xml`'s `<modules>` list runs from `domain-model` through
+`ai-rules-service` and does not mention `spring-boot-compare` anywhere) —
+Spring Boot wants its own `spring-boot-starter-parent`, so mixing the two
+parents in one module would only create dependency-management friction, and
+more importantly would mean the comparison measures a Spring Boot project
+bent to fit Quarkus's BOM and plugin wiring rather than an idiomatic,
+unmodified Spring Boot build. The project's own `pom.xml` says exactly that
+in a comment at the top of the file, tagged against this repo's decision log
+as **DRQ-006** — the decision to ship one runnable twin for a real, not
+hand-waved, side-by-side number.
+
+Despite living outside the reactor, the twin is not a clean-room
+reimplementation. It reuses the project's framework-agnostic jars rather than
+copying anything: the shared `domain-model` DTOs (`OrderDto`, `OrderStatus`,
+`Topics`) and the `contracts` module's generated Avro
+`capstone.order.v1.OrderPlaced` are the *identical* classes both services
+use, so there is zero schema or DTO drift between the two. Concretely, that
+means `spring-boot-compare`'s `pom.xml` declares `domain-model` and
+`contracts` as plain `<dependency>` jars at
+`${datamesh.domain-contracts.version}`, which have to be `mvn install`-ed to
+the local repository before the twin can build — `spring-boot-compare` being
+a standalone Maven project means it cannot `-am` build its siblings the way
+a reactor module can, so both the README and
+`scripts/compare-quarkus-springboot.sh` run that install step explicitly
+before touching the twin at all. The payoff for that extra step is real: the
+`OrderPlaced` Avro record the twin's Kafka producer serializes is the exact
+same generated class `order-service` serializes, compiled from the exact
+same `.proto`/Avro schema source in `contracts`, so there is no hand-copied
+field list to drift out of sync as the schema evolves.
 
 Feature parity is the whole point, so the twin carries the **same dependency
 surface** as the Quarkus order-service:
@@ -43,10 +70,40 @@ surface** as the Quarkus order-service:
 The REST surface matches down to the status codes — `201` on create, `409`
 on insufficient stock, `404` on an unknown id, `503` when inventory is
 unreachable — because both map to the same `OrderDto` and implement the same
-pre-persist `CheckStock` guard. The gRPC client is included on purpose: the
-synchronous internal call to `inventory-service` is central to how this
-architecture works, so leaving it out of the twin would understate Spring's
-real dependency surface and flatter its numbers unfairly.
+pre-persist `CheckStock` guard. `OrderController`
+(`examples/spring-boot-compare/src/main/java/com/patterncatalyst/datamesh/springcompare/OrderController.java`)
+makes that guard explicit: `placeOrder` calls `stockChecker.check(sku, qty)`
+before anything is persisted, catches
+`StockChecker.StockCheckUnavailableException` to return `503` rather than
+letting an order through it couldn't validate, returns `409` when stock
+genuinely isn't available, and only then saves the `OrderEntity` and
+publishes — in that order, so a client never sees an order acknowledged
+before it's durable, the same discipline the Quarkus side follows. The gRPC
+client is included on purpose: the synchronous internal call to
+`inventory-service` is central to how this architecture works, so leaving it
+out of the twin would understate Spring's real dependency surface and
+flatter its numbers unfairly. `GrpcClientConfig`
+(`examples/spring-boot-compare/src/main/java/com/patterncatalyst/datamesh/springcompare/GrpcClientConfig.java`)
+wires a plain `io.grpc` `ManagedChannel` — plaintext, `@Value`-overridable
+host/port with the identical `INVENTORY_GRPC_HOST`/`INVENTORY_GRPC_PORT`
+env var names and the same port-9000 default the Quarkus side's
+`quarkus.grpc.clients.inventory.*` properties use — against stub classes
+generated by the `protobuf-maven-plugin` from the *same* `contracts` proto,
+not a hand-rolled client. The twin's own `StockChecker` interface is seamed
+behind a Spring `@Profile`: `GrpcStockChecker` (the real implementation,
+active everywhere except `dev-no-inventory`/`test`) fails closed on any
+`StatusRuntimeException` — `StockCheckUnavailableException`, mapped to `503`
+— mirroring the Quarkus order-service's handling of the identical exception
+type, since both clients sit on the same underlying gRPC library.
+
+Health is the one row where the two frameworks genuinely answer differently
+rather than just using different package names: Quarkus's
+`quarkus-smallrye-health` aggregates readiness from every extension that
+registers a check automatically, while Spring Boot's
+`spring-boot-starter-actuator` does the same via `HealthIndicator` beans —
+functionally equivalent, but neither one was put in the critical path of
+this chapter's own measurement, for a reason the methodology section below
+explains.
 
 ## The one real code difference: persistence idiom
 
@@ -93,14 +150,115 @@ orderRepository.findAllByOrderByCreatedAtDesc();
 orderRepository.findById(id);
 ```
 
+Neither idiom is "more correct" — they're two answers to the same design
+question (where does query logic live?) that each framework's ecosystem has
+converged on by default. Panache's active record collapses `OrderRepository`
+out of existence entirely: `Order.listAll(...)` and `Order.findById(id)` are
+static methods on the entity itself, so `OrderResource` talks directly to
+`Order`, with nothing in between. Spring Data JPA keeps the repository as a
+named interface — `OrderRepository extends JpaRepository<OrderEntity,
+String>` — and derives `findAllByOrderByCreatedAtDesc()` from the method
+name alone, no query body written by hand; `OrderController` is constructed
+with an `OrderRepository` injected through its constructor rather than
+reaching for a static method on `OrderEntity`. The practical consequence
+shows up in the entities themselves: `Order` extends `PanacheEntityBase` and
+exposes plain public fields, while `OrderEntity` is a conventional
+getter/setter-bearing JPA entity with no framework base class at all —
+Spring Data doesn't require (or offer) an active-record option, so the
+comparison isn't "Quarkus chose active record, Spring chose repository";
+it's closer to "active record is what Panache *is*, and a derived repository
+is what Spring Data *is*," and a team adopting either framework inherits
+that idiom as a near-default rather than picking it independently. Both
+map to the identical `orders` table with the identical column names and
+constraints, so this is purely a code-organization difference, not a schema
+one — the twin's Postgres rows are byte-for-byte interchangeable with
+order-service's.
+
+## A Spring Boot 4.0 gotcha the twin had to work around
+
+Reusing `domain-model`'s and `contracts`' jars unmodified meant the twin had
+to make Spring Boot's own auto-configuration cooperate with a strongly-typed
+`OrderPlaced` producer, and that didn't work out of the box. `KafkaConfig`
+(`examples/spring-boot-compare/src/main/java/com/patterncatalyst/datamesh/springcompare/KafkaConfig.java`)
+exists for exactly one reason, documented in its own Javadoc: Spring Boot's
+Kafka auto-configuration only exposes a raw `KafkaTemplate<Object, Object>`,
+and that generic type does not satisfy the type-aware autowire `@Autowired
+KafkaTemplate<String, OrderPlaced>` would need in `OrderEventProducer` — left
+unaddressed, the application context simply fails to start. The fix is not
+to hand-write the whole producer configuration (bootstrap servers,
+serializers, the `apicurio.registry.*` passthrough already correctly derived
+from `application.properties`'s `spring.kafka.*` keys) a second time; it's
+to reuse the auto-configured `ProducerFactory` bean Spring Boot already built
+and simply re-wrap it in a correctly-typed `KafkaTemplate`:
+
+```java
+@Bean
+@SuppressWarnings({"unchecked", "rawtypes"})
+public KafkaTemplate<String, OrderPlaced> orderPlacedKafkaTemplate(ProducerFactory producerFactory) {
+    return new KafkaTemplate<>((ProducerFactory<String, OrderPlaced>) producerFactory);
+}
+```
+
+Behavior is identical to what auto-configuration would have produced on its
+own; the bean is merely correctly typed. This is a small, five-line fix, but
+it's worth calling out for what it represents: even a twin built to be as
+idiomatic as possible still needed one explicit `@Configuration` class to
+bridge Spring Boot's generic auto-configuration to a schema-aware Avro
+producer — the kind of friction that doesn't show up in a framework's
+marketing copy but does show up the first time a real, strongly-typed event
+contract meets a generic-erasure-based DI container. `application.properties`
+carries a parallel note about the producer's `value-serializer`: on the
+Spring side it's set explicitly for parity and documentation with the
+Quarkus side, which has to set the equivalent property explicitly to dodge
+an Avro serializer autodetection ambiguity of its own (two Avro serdes on
+the classpath, covered in chapter 11's Reactive Messaging section) — two
+different frameworks, two different reasons, the same practical lesson:
+don't trust Kafka serializer autodetection in either stack once Avro and
+dependency management get involved.
+
+## How the numbers were captured
+
+The comparison lives in one script, `scripts/compare-quarkus-springboot.sh`,
+and it is worth understanding *how* it measures before trusting *what* it
+measured. The script builds both services, then boots them one at a time —
+never concurrently, so neither competes with the other for CPU or memory —
+against one shared, throwaway `postgres:18` container, with both JVMs
+launched under the identical system properties
+(`-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1
+-Duser.timezone=UTC`) so neither gets an unfair head start from JIT-friendly
+flags the other lacks.
+
+The deliberately unusual part is what it measures startup *against*. The
+obvious choice — poll `/q/health` or `/actuator/health` until it returns
+`200` — doesn't work here, because the script points
+`KAFKA_BOOTSTRAP_SERVERS` at a dead port *on purpose* for both services. Both
+frameworks' Kafka reactive-messaging health indicators report `DOWN` for as
+long as the broker is unreachable, so the *aggregate* health endpoint would
+never turn green regardless of whether the application itself had finished
+booting — a health-based wait would simply time out on both sides and prove
+nothing. Instead, `wait_for_started()` polls each service's own log file for
+the framework's self-reported "boot complete" line — Quarkus's `started in
+X.XXXs. Listening on: ...` and Spring Boot's `Started
+SpringBootCompareApplication in X.XXX seconds` — via one regex
+(`STARTED_LOG_REGEX`) that matches both phrasings, and `extract_started_in()`
+re-parses that same line for the self-reported number in the results table.
+Resident memory is sampled the instant that line appears, reading
+`/proc/<pid>/status`'s `VmRSS` field (falling back to `ps -o rss=` if `/proc`
+isn't readable), and wall-clock time is simply `date +%s%3N` bracketing the
+process launch and the started-line detection. Every cell the script could
+not actually measure prints the literal placeholder `<measured-on-run>`
+rather than a fabricated number — the script's own header is explicit that
+it never invents a result, and a boot failure within the 90-second budget is
+a hard failure (`fail()`, with the last 60 log lines dumped), not a silently
+blank cell.
+
+{% include excalidraw.html file="12-quarkus-vs-spring-boot" alt="Side-by-side startup diagram: order-service (Quarkus, built-time metaprogramming) and spring-boot-compare (Spring Boot 4.0.8, classpath scanning and reflection at startup) both booting against the same throwaway postgres:18 container under identical JVM flags, each measured via its own self-reported started log line rather than an aggregate health check, ending in the 1.54s/314MB versus 3.21s/494MB comparison" caption="Figure 12.1 — Same workload, same JVM, two startup paths measured identically" %}
+
+With the methodology out of the way, here is what one real run produced.
+
 ## The numbers
 
-Captured by `scripts/compare-quarkus-springboot.sh`, which builds both
-services, boots each under its packaged/`prod` profile against one shared
-throwaway `postgres:18`, and records two things per service: wall-clock time
-from process launch to the framework's own "started" log line, and resident
-set size (RSS) sampled immediately after startup. Both JVMs run with identical
-flags (`-Duser.timezone=UTC`, `-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1`).
+One real run, both services built under their packaged/`prod` profile:
 
 | Service | Startup (self-reported) | Startup (wall-clock) | Resident memory (RSS) |
 |---|---|---|---|

@@ -3,7 +3,7 @@ title: "Progressive delivery and mTLS"
 order: 7
 part: Operating the mesh
 description: "Evolving a data product's contract in the open with an Istio v1→v2 canary over the real mesh substrate, and the decision to mesh selectively rather than enable sidecar injection namespace-wide."
-duration: 25 minutes
+duration: 30 minutes
 marker: "06"
 ---
 
@@ -28,6 +28,19 @@ tree yet. So this chapter walks the canary mechanism conceptually, against the r
 install this repo ships, rather than citing files that don't exist. Where a YAML
 snippet below is illustrative rather than a path in this repo, it's labeled as such.
 
+`k8s/README.md`'s own "Mesh (Istio) decision" section states the current ground truth
+plainly, and it's worth quoting rather than paraphrasing: "Istio + Kiali are installed
+cluster-wide by 9a but the `datamesh` namespace is **not** labeled for sidecar
+auto-injection... None of these three Deployments carry the
+`sidecar.istio.io/inject: "true"` pod annotation, so **none of them are in the mesh**
+for Phase C." That's `order-service`, `notification-service`, and `graphql-gateway` —
+every application Deployment this repo ships, today, running outside the mesh by
+deliberate default. The decision record behind that default is `_plans/decisions.md`'s
+DRQ-011, which settles "Istio + Kiali: ON" as a kept-but-selective capability rather
+than either ripping the mesh out or defaulting every workload into it. This chapter is
+about what changes, and what doesn't, the day a team decides a specific product is
+ready to opt in.
+
 ## Installing the mesh: `scripts/setup-istio.sh`
 
 The control plane is installed the same way every other operator in this stack is —
@@ -42,6 +55,19 @@ helm upgrade --install istiod istio/istiod \
     --namespace istio-system --version 1.29.0 \
     --wait --timeout 5m
 ```
+
+The script runs a short preflight before either `helm upgrade` fires: it checks that
+`kubectl config current-context` actually matches the `datamesh` minikube profile, and
+if it doesn't, it warns and asks for confirmation rather than silently installing into
+whatever cluster happens to be current. That matters more for Istio than for most of
+the operators this stack installs, because `istio-base` lands cluster-scoped CRDs —
+installing against the wrong context doesn't just misconfigure one namespace, it can
+leave CRDs behind in a cluster nobody meant to touch. After `istiod` comes up, the
+script runs `kubectl rollout status deployment/istiod --timeout=5m` as an explicit
+gate — not just trusting Helm's own `--wait`, but confirming the control plane's
+Deployment actually reaches `Available` before declaring the step done. Both `helm
+upgrade --install` invocations are idempotent, so re-running the script against an
+already-installed mesh is a safe no-op rather than an error.
 
 Two decisions in that script matter for everything that follows in this chapter:
 
@@ -58,6 +84,8 @@ Two decisions in that script matter for everything that follows in this chapter:
   > breaks Job pods (hang at 1/2 forever — the sidecar never exits) and
   > CloudNativePG's Postgres pods (mTLS collides with the operator's own TLS). Inject
   > per-Deployment instead, when a given service actually joins the mesh.
+
+{% include excalidraw.html file="06-istio-mesh" alt="Diagram of the Istio control plane installed cluster-wide via Helm, with the datamesh namespace left unlabeled for auto-injection and sidecar membership opted in per Deployment" caption="Figure 6.1 — Istio control-plane install and selective sidecar injection" %}
 
 Opting a specific Deployment into the mesh is one annotation, added under
 `spec.template.metadata`:
@@ -76,12 +104,35 @@ the mesh for every app Deployment, to keep the substrate demo simple"). Adding i
 `order-service`'s Deployment is the first real step toward the canary this chapter
 describes.
 
+Worth understanding is *how* that one annotation actually takes effect, because it
+explains a trap that's easy to hit in practice: `istiod` registers a
+`MutatingWebhookConfiguration` that intercepts Pod admission cluster-wide. When a new
+Pod is created, the webhook inspects it for the `sidecar.istio.io/inject` annotation
+(or the namespace label, when that path is used) and, if present and true, mutates the
+Pod spec on the way in to add the `istio-proxy` container before the API server ever
+persists the object. That mutation happens at **Pod admission time**, not at
+`kubectl apply` time on the Deployment. Concretely: adding the annotation to a
+Deployment that already has running pods changes nothing about those existing pods —
+they keep running unmeshed until something recreates them, whether that's
+`kubectl rollout restart deployment/order-service -n datamesh` or a routine eviction.
+This is the same two-step shape every Kubernetes mutating-admission mechanism has
+(annotate the template, then force a new generation of pods to pick it up), and it's
+worth remembering specifically here because "I added the annotation and nothing
+happened" is the single most common way to think injection is broken when it's
+actually just waiting for a rollout.
+
 One version detail that changes how you check mesh membership: Istio 1.29+ (the
 version this script pins) uses **native sidecars** — `istio-proxy` runs as an
 `initContainer` with `restartPolicy: Always`, not as a second ordinary container. A
 meshed pod still shows `2/2 Ready` in `kubectl get pods`, but a membership check that
 only inspects `.spec.containers` will miss it; it has to look at
-`.spec.initContainers` too.
+`.spec.initContainers` too. Native sidecars also change pod startup ordering in a way
+worth calling out: because `istio-proxy` is an init container (just one with
+`restartPolicy: Always`, so it never blocks the pod the way a normal init container
+would), kubelet starts it before the application container, and the proxy's own
+readiness gate holds the Pod back from `Ready` until the proxy itself has established
+its listeners — so a meshed pod's `startupProbe` is effectively racing against the
+proxy coming up too, not just the JVM.
 
 ## Canarying a contract, not just a binary
 
@@ -166,6 +217,16 @@ different `version` label, rather than two images from two separate commits — 
 keeps the exercise focused on the traffic-management mechanism rather than an image
 pipeline, and the Istio mechanics are identical either way.
 
+What makes each weight step safe to advance, rather than a blind five-minute timer, is
+having something to look at between steps. This repo's observability substrate — the
+[next-but-one chapter](/docs/08-observability/) covers it in full — is exactly that:
+Kiali's live mesh graph would show the v1/v2 split as two weighted edges out of
+`order-service`, and a Grafana dashboard sourced from the same Mimir backend would show
+whether the v2 subset's error rate or latency looks any different from v1's before the
+next weight bump. A canary with no way to observe its own subsets is just a slower
+flag-day cutover with extra YAML; the mesh's routing and this repo's observability
+stack are meant to be read together, not in isolation.
+
 ## mTLS for free
 
 The same mesh that would route the canary also secures it, with no code written for it.
@@ -177,6 +238,26 @@ between products is authenticated and encrypted" becomes a property the platform
 enforces uniformly, not a checklist item each team implements (or forgets to) in its
 own service. A data product's author writes no TLS code; the mesh provides it at the
 network boundary the moment the product opts in.
+
+{% include excalidraw.html file="06-service-mesh" alt="Diagram of meshed data-mesh services communicating over automatic mutual TLS between Istio sidecars, alongside unmeshed workloads such as Postgres and batch jobs that remain outside the mesh" caption="Figure 6.2 — mTLS between meshed services, and what deliberately stays outside the mesh" %}
+
+One nuance worth being precise about, because it's easy to assume mTLS becomes
+mandatory the instant two sidecars exist: Istio's default mesh-wide mTLS mode is
+**PERMISSIVE**, meaning a meshed service's sidecar accepts *both* mTLS and plaintext
+connections on the same port. Istio auto-detects which protocol an inbound connection
+is using and handles either. That default exists specifically for mixed environments —
+exactly this repo's situation, where only some Deployments opt into the mesh at a
+time — because it lets a service be added to the mesh without every one of its
+existing non-meshed callers breaking on day one. Mutual TLS only becomes *mandatory*
+for a given workload once a `PeerAuthentication` resource explicitly sets
+`mtls.mode: STRICT` for it; this repo ships no such policy as of this chapter, which
+is consistent with Phase C's "every app Deployment starts outside the mesh" default —
+there's nothing to make strict yet. The practical implication for whoever eventually
+canaries `order-service`: opting it into the mesh gets it encrypted, authenticated
+traffic with any other meshed caller immediately, under PERMISSIVE, with no risk of
+locking out callers that haven't opted in yet; moving to STRICT is a deliberate,
+separate decision for once enough of the call graph is meshed that plaintext fallback
+is no longer wanted.
 
 ## The decision: mesh selectively, not namespace-wide
 
@@ -219,6 +300,16 @@ every time — in exchange for not coupling Postgres, batch jobs, and anything e
 doesn't belong in the mesh to the mesh's own health. `scripts/setup-istio.sh` takes that
 configuration cost on purpose.
 
+Seeing the effect of that decision doesn't require guessing at pod specs: Kiali's live
+traffic graph, installed by `scripts/setup-kiali.sh` and covered in full in the
+[observability chapter](/docs/08-observability/), only draws an edge for traffic it
+actually observes passing through meshed sidecars. With every app Deployment currently
+outside the mesh, that graph is quiet by design — not broken, just accurately
+reporting that nothing in `datamesh` has opted in yet. The day `order-service` gains
+the injection annotation and the canary above starts routing real weight, that same
+graph is where the v1/v2 split becomes visible as two live edges rather than something
+inferred from `kubectl describe`.
+
 ## Why this belongs to the mesh chapter
 
 Progressive delivery and mTLS are two sides of the same capability: a service mesh
@@ -244,6 +335,7 @@ is documented Istio 1.29+ behavior rather than something observed here, and the
 been applied or rendered. Confirm on a real run: that `helm upgrade --install istiod`
 actually succeeds at the pinned `1.29.0` against this minikube setup, that a pod
 annotated with `sidecar.istio.io/inject: "true"` actually comes up `2/2` with the
-proxy as an `initContainer`, and — once a `v2` order-service build and the Istio
-manifests above exist — that a weighted `VirtualService` split actually lands traffic
-in the stated proportions.*
+proxy as an `initContainer`, that the PERMISSIVE mTLS default is actually what this
+install ships (rather than a chart-level override changing it), and — once a `v2`
+order-service build and the Istio manifests above exist — that a weighted
+`VirtualService` split actually lands traffic in the stated proportions.*

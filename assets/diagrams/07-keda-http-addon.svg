@@ -1,0 +1,86 @@
+<svg width="100%" viewBox="0 0 920 500" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif" font-size="14">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 L 0 40" fill="none" stroke="#ebe5d6" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5e5e5e"/>
+    </marker>
+    <marker id="arrow-thin" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a8170"/>
+    </marker>
+  </defs>
+  <style>
+    .blue       { fill: #dbe6f1; stroke: #4a7bb8; stroke-width: 1.5; }
+    .blue-pale  { fill: #e8eff7; stroke: #4a7bb8; stroke-width: 1.2; }
+    .tan        { fill: #ebe1cc; stroke: #a08456; stroke-width: 1.5; }
+    .neutral    { fill: #ebebe5; stroke: #5e5e5e; stroke-width: 1.2; }
+    .label      { fill: #2c2c2c; }
+    .sublabel   { fill: #5e5e5e; font-size: 11px; }
+    .title      { fill: #2c2c2c; font-weight: 600; font-size: 16px; }
+    .mono       { font-family: ui-monospace, SFMono-Regular, Menlo, "Courier New", monospace; font-size: 12px; fill: #2c2c2c; }
+    .mono-sm    { font-family: ui-monospace, SFMono-Regular, Menlo, "Courier New", monospace; font-size: 10px; fill: #5e5e5e; }
+    .arrow      { stroke: #5e5e5e; stroke-width: 1.5; fill: none; }
+    .control-arrow { stroke: #8a8170; stroke-width: 1; fill: none; stroke-dasharray: 3 3; }
+    .arrow-label { fill: #5e5e5e; font-size: 11px; font-style: italic; }
+    .footnote { fill: #5e5e5e; font-size: 11px; font-style: italic; }
+  </style>
+
+  <rect width="920" height="500" fill="#fdfbf7"/>
+  <rect width="920" height="500" fill="url(#grid)"/>
+
+  <text x="460" y="40" text-anchor="middle" class="title">KEDA HTTP add-on — data flow and control loop</text>
+
+  <rect x="40" y="200" width="110" height="80" rx="4" class="tan"/>
+  <text x="95" y="226" text-anchor="middle" class="label">External</text>
+  <text x="95" y="244" text-anchor="middle" class="label">client</text>
+  <text x="95" y="263" text-anchor="middle" class="mono-sm">curl / hey</text>
+
+  <rect x="200" y="160" width="260" height="160" rx="4" class="blue"/>
+  <text x="330" y="184" text-anchor="middle" class="label">Interceptor</text>
+  <text x="330" y="201" text-anchor="middle" class="sublabel">terminates HTTP, queues per-host</text>
+  <rect x="220" y="220" width="220" height="80" rx="3" class="blue-pale"/>
+  <text x="330" y="240" text-anchor="middle" class="sublabel">request queue (depth = N)</text>
+  <rect x="232" y="252" width="22" height="32" rx="2" fill="#b8c8de" stroke="#4a7bb8" stroke-width="0.8"/>
+  <rect x="262" y="252" width="22" height="32" rx="2" fill="#b8c8de" stroke="#4a7bb8" stroke-width="0.8"/>
+  <rect x="292" y="252" width="22" height="32" rx="2" fill="#b8c8de" stroke="#4a7bb8" stroke-width="0.8"/>
+  <rect x="322" y="252" width="22" height="32" rx="2" fill="#b8c8de" stroke="#4a7bb8" stroke-width="0.8"/>
+  <rect x="352" y="252" width="22" height="32" rx="2" fill="#b8c8de" stroke="#4a7bb8" stroke-width="0.8"/>
+  <rect x="382" y="252" width="22" height="32" rx="2" fill="#b8c8de" stroke="#4a7bb8" stroke-width="0.8"/>
+  <text x="416" y="273" class="mono-sm">…</text>
+
+  <rect x="510" y="180" width="140" height="60" rx="4" class="blue"/>
+  <text x="580" y="204" text-anchor="middle" class="label">Backend Pod</text>
+  <text x="580" y="222" text-anchor="middle" class="mono">nginx</text>
+
+  <rect x="510" y="260" width="140" height="60" rx="4" class="blue"/>
+  <text x="580" y="284" text-anchor="middle" class="label">Backend Pod</text>
+  <text x="580" y="302" text-anchor="middle" class="mono">nginx</text>
+
+  <rect x="700" y="80" width="180" height="64" rx="4" class="neutral"/>
+  <text x="790" y="104" text-anchor="middle" class="label">KEDA scaler</text>
+  <text x="790" y="122" text-anchor="middle" class="sublabel">polls interceptor for</text>
+  <text x="790" y="135" text-anchor="middle" class="sublabel">queue-depth metric</text>
+
+  <rect x="700" y="180" width="180" height="64" rx="4" class="neutral"/>
+  <text x="790" y="204" text-anchor="middle" class="label">KEDA operator</text>
+  <text x="790" y="222" text-anchor="middle" class="sublabel">reconciles</text>
+  <text x="790" y="235" text-anchor="middle" class="mono">HTTPScaledObject</text>
+
+  <path d="M 150 240 L 196 240" class="arrow" marker-end="url(#arrow)"/>
+  <text x="173" y="232" text-anchor="middle" class="arrow-label">HTTP</text>
+
+  <path d="M 460 210 L 506 210" class="arrow" marker-end="url(#arrow)"/>
+  <path d="M 460 240 Q 480 270 506 282" class="arrow" marker-end="url(#arrow)"/>
+  <text x="475" y="200" class="arrow-label">forwards</text>
+
+  <path d="M 700 112 Q 540 130 460 200" class="control-arrow" marker-end="url(#arrow-thin)"/>
+  <text x="540" y="120" class="arrow-label">reads queue depth</text>
+
+  <path d="M 700 212 Q 670 250 654 280" class="control-arrow" marker-end="url(#arrow-thin)"/>
+  <text x="688" y="262" class="arrow-label">scale 0 ↔ N</text>
+
+  <text x="460" y="408" text-anchor="middle" class="sublabel">When backend replicas = 0, interceptor holds the request until the operator brings a Pod up — caller sees added latency, not a 503.</text>
+
+  <text x="460" y="468" text-anchor="middle" class="footnote">Solid arrows = HTTP traffic. Dashed arrows = control loop: scaler measures, operator decides, Deployment changes.</text>
+</svg>
