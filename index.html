@@ -53,10 +53,19 @@ permalink: /
             </p>
             <div class="cards">
                 {%- for part in parts_sorted -%}
+                    {%- assign part_docs = site.docs | where: "part", part.part_name -%}
                     <a class="card" href="{{ part.url | relative_url }}">
                         <div class="card__eyebrow">Part {{ part.order }}</div>
                         <h3 class="card__title">{{ part.title }}</h3>
                         <p class="card__desc">{{ part.blurb }}</p>
+                        <div class="card__meta">
+                            {%- if part_docs.size > 0 -%}
+                                <span>{{ part_docs.size }} chapter{% if part_docs.size != 1 %}s{% endif %}</span>
+                            {%- else -%}
+                                <span>Coming soon</span>
+                            {%- endif -%}
+                            <span>Explore →</span>
+                        </div>
                     </a>
                 {%- endfor -%}
             </div>
