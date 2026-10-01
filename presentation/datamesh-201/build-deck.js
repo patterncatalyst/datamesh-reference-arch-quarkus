@@ -60,9 +60,10 @@ agendaSlide({
     { text: "08 · Security" },
     { text: "09 · Native" },
     { text: "10 · The whole picture" },
+    { text: "11 · Appendices" },
     { text: "Appendix", italic: true },
   ],
-  notes: "Twelve sections. The spine is the same four data-mesh principles the 101 deck introduced, but every section here is anchored to real Quarkus code and a runnable demo script, not a conceptual diagram alone. Section 03 is the centerpiece this deck adds over the Python sibling — three different coordination engines over the same domain. Section 04 is the second centerpiece — AI classification feeding a deterministic rules engine, with an honest caveat about what doesn't work. The appendix is large on purpose: every diagram gets a home, every decision gets a citation, and the matrix of all eighteen demos lives there in one place.",
+  notes: "Thirteen sections. The spine is the same four data-mesh principles the 101 deck introduced, but every section here is anchored to real Quarkus code and a runnable demo script, not a conceptual diagram alone. Section 03 is the centerpiece this deck adds over the Python sibling — three different coordination engines over the same domain. Section 04 is the second centerpiece — AI classification feeding a deterministic rules engine, with an honest caveat about what doesn't work. The appendix is large on purpose: every diagram gets a home, every decision gets a citation, and the matrix of all eighteen demos lives there in one place.",
 });
 
 /* ====================== 00 · FROM PRINCIPLES TO PLATFORM ====================== */
@@ -555,6 +556,42 @@ contentSlide({ eyebrow: "The whole picture", title: "Adoption: start small",
   L.pageNumOnly(s, { dark: true });
   s.addNotes("Closing slide before the appendix. The one-sentence summary: eighteen real demos, three coordination engines over one domain, and an honest accounting of what works (the MCP server path) and what doesn't yet (in-process tool-calling, DEF-001) rather than a glossed-over success story. Open for questions here if this is the end of the live session — the appendix that follows is reference material, not more narrative.");
 })();
+
+/* ====================== 11 · APPENDICES ====================== */
+(() => {
+  const s = divider({ num: "11", title: "Appendices", sub: "Six optional deep-dives — reference material that goes further than the main narrative on one topic each." });
+  s.addNotes("These mirror the six appendix chapters on the site (16-21). They're reference depth, not part of the main arc: scaling the WebSocket push, the gotchas, agentic-development recommendations, testing detail, in-memory vs Kafka messaging, and the three engines compared. Pull up whichever one a question lands on.");
+})();
+
+diagramSlide({ eyebrow: "Appendices", title: "A1 — Scaling WebSocket push with Kafka",
+  image: "16-websocket-scaling",
+  caption: "What the single-instance push does today, and the Kafka fan-out a multi-replica deployment would need — every replica consuming the topic and pushing to its own local sockets.",
+  notes: "Honest framing: the repo runs single-instance push today. Across replicas a socket pins to one replica while a shared consumer group splits partitions — backwards for a push that needs every replica to see every event. The fix is a per-replica unique group.id (broadcast) feeding each replica's own local connection registry, with KEDA scale-to-zero made socket-aware. All of that is recommended, not deployed." });
+
+diagramSlide({ eyebrow: "Appendices", title: "A2 — Gotchas",
+  image: "17-gotchas",
+  caption: "Eight real pitfalls hit building this reactor — timezone, Avro, gRPC ports, integration-test wiring, serde autodetection — each with its symptom and the fix that landed.",
+  notes: "Every cell maps to a committed fix: postgres:18's Olson-timezone rejection, Avro 1.12's ClassSecurityValidator, the gRPC 9001/9000 mismatch, @QuarkusIntegrationTest's separate-process timezone, import.sql skipped in %prod, @Consumes 415 on bodyless GET plus RestAssured's false pass, the Avro serde JSON fallback, and the stale-volume reset. Be honest about the last one — a general operating caution, investigated and ruled out as an actual defect, not a build-specific incident." });
+
+diagramSlide({ eyebrow: "Appendices", title: "A3 — Agentic recommendations",
+  image: "18-agentic-recommendations",
+  caption: "A plan / execute / validate relay — strong model plans and validates, fast model executes — grounded in MCP tooling, with the diff verified independently.",
+  notes: "Non-hype guidance: agentic help works for bounded, well-specified changes grounded in real code and MCP tooling (camel-mcp, quarkus-agent); it does not substitute for architecture decisions or for verification. A subagent's report is a claim, not evidence. The full build case study lives in the repo doc _plans/agentic-relay.md." });
+
+diagramSlide({ eyebrow: "Appendices", title: "A4 — Testing, in detail",
+  image: "19-testing-pyramid",
+  caption: "The test pyramid — unit @QuarkusTest at the base, failsafe integration tests above, functional (Newman) and load (hey/ghz) at the top — and the phases run-all-tests.sh walks.",
+  notes: "Unit tests run under surefire with Dev Services auto-provisioning infra; failsafe *IT tests (OrderPlacedAvroWireIT's byte-level Avro assertion, InventoryCheckStockWireIT's self-seed-then-gRPC) self-provision Testcontainers; functional and load sit on top. scripts/run-all-tests.sh walks the whole pyramid, with flags to select tiers. Ollama-gated ITs are skipped unless their flag is set." });
+
+diagramSlide({ eyebrow: "Appendices", title: "A5 — In-memory vs. Kafka messaging",
+  image: "20-inmemory-vs-kafka",
+  caption: "The same @Incoming/@Outgoing code over two connectors: in-memory Vert.x for fast, deterministic tests, and Kafka for the durable, partitioned production transport.",
+  notes: "Only the connector configuration changes between the two — the application code is identical. In-memory is for proving messaging logic in tests without a broker; it is not a production transport. The trade-offs are across latency, durability, coupling, ordering, back-pressure, and testing ergonomics." });
+
+diagramSlide({ eyebrow: "Appendices", title: "A6 — The three engines, compared",
+  image: "21-three-engines-compare",
+  caption: "Kafka choreography versus two shapes of orchestration (a Camel route, a Quarkus Flow document), compared across who owns the sequence, coupling, failure handling, debuggability, and where the logic lives.",
+  notes: "Deeper than section 03's tour. Terminology stays exact: Kafka is choreography (no central coordinator, each participant reacts to events); Camel and Quarkus Flow are both orchestration (a single component sequences the steps). Failure handling in the repo today is idempotency and exception propagation, not saga compensation — stated honestly rather than implied." });
 
 /* ====================== APPENDIX ====================== */
 (() => {
