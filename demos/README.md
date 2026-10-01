@@ -133,7 +133,7 @@ compose-based demo set.
 
 | Script | What it does |
 |--------|--------------|
-| `walkthrough.sh` | Five-act presenter walkthrough that runs a curated subset of the above demos in sequence with narration and Enter-to-advance pacing (`--only`/`--skip`/`--no-preflight` flags). Acts touching ollama/native/minikube are opt-in and gated behind flags/preflight checks — the default run only needs `docker compose up -d`. |
+| `walkthrough.sh` | Five-act presenter orchestrator over all 18 demos above: **ACT1** data products & protocols (order/grpc/graphql/kafka/tracing/websocket/reactive-vertx/oidc, default), **ACT2** three orchestration styles — DRQ-015 (orchestration-styles, gated), **ACT3** AI/Camel/Drools/MCP (ai-classify/ai-mcp/camel-integration/ai-triage, gated), **ACT4** developer experience & native (jbang-prototype/continuous-testing default, native gated), **ACT5** platform autoscaling (keda-kafka/keda-http, gated). Each demo is invoked as its own child process via `run_act` — the orchestrator never double-manages a demo's own `compose_up`/`compose_down`. Gated acts are gated **per demo**, not per act, behind `--with-ollama`/`--with-native`/`--with-minikube` (cleanly SKIPPED, not failed, when the flag is absent). Also supports `--only <demo[,demo...]>`/`--skip <demo[,demo...]>` (exact demo names, mutually exclusive), `--no-preflight` (skip the toolchain/docker sweep), `--no-pause`/`--auto` (no Enter-to-advance pauses, for CI/self-test), and `-h`/`--help`. Prints a final acts/demos pass-fail-skip tally and exits non-zero if any non-skipped act failed. |
 
 ## Opt-in summary
 
