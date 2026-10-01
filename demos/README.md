@@ -75,12 +75,47 @@ needed).
 | `demo-ai-classify.sh` | langchain4j (single-shot chat classify) | The classify endpoint returns one of the defined category labels |
 | `demo-ai-mcp.sh` | langchain4j + MCP | The MCP-server surface lists the `order-status` tool and returns the deterministic lookup result (`ORD-001`); prints the DEF-001 caveat banner and asserts **only** the MCP-server path, never in-process tool-calling |
 | `demo-camel-integration.sh` | Quarkus + Camel EIP | A Camel route correctly transforms/routes a message end-to-end through its EIPs |
-| `demo-ai-triage.sh` *(showcase, DRQ-012)* | langchain4j classify + embedded Drools decide | ≥2 distinct inputs produce ≥2 distinct Drools decisions among `FRAUD_HOLD` / `EXPEDITE` / `ROUTE_TO_WAREHOUSE`, with zero reliance on LLM tool-calling |
+| `demo-ai-triage.sh` *(showcase, DRQ-012/DRQ-014)* | langchain4j classify + embedded Drools decide, orchestrated two ways (Camel route vs Quarkus Flow) | Both `POST /api/orders/triage` (Camel) and `POST /api/orders/triage-flow` (Quarkus Flow) return the same `TriageDecision` JSON shape; 3 pre-validated inputs (benign/high-value-trusted/high-risk) assert the *specific* expected decision (`ROUTE_TO_WAREHOUSE`/`EXPEDITE`/`FRAUD_HOLD`) on both endpoints — see "ai-rules-service demo notes" below for how determinism was established and a membership fallback is not needed in practice |
 
-Prereqs: everything in the `compose` group, plus `docker compose --profile
-ollama up -d` and a pulled model in the Ollama container. **Opt-in** — this
+Prereqs: everything in the `compose` group, plus either `docker compose
+--profile ollama up -d` and a pulled model in the Ollama container, OR a
+host-installed Ollama already serving on `localhost:11434` with the model
+pulled (`demo-ai-triage.sh` uses whichever is already listening on
+`localhost:11434` — it does not start/stop Ollama itself). **Opt-in** — this
 is the heaviest profile (8g mem budget for Ollama alone); skip it if you
 only need the core service matrix.
+
+#### ai-rules-service demo notes (`demo-ai-triage.sh`)
+
+- **Service lifecycle**: `examples/ai-rules-service/pom.xml` was missing the
+  `quarkus-maven-plugin` `<build>` binding that its sibling modules
+  (`order-service`, et al.) have — without it, `mvn quarkus:dev` silently
+  no-ops ("assumed to be a support library") and `mvn package` only produces
+  a thin jar, not `target/quarkus-app/quarkus-run.jar`. This was fixed
+  (uncommitted, flagged for the next commit) so the demo can package the
+  module and run the resulting `quarkus-run.jar` directly — faster and more
+  reliable here than dev mode. The same gap exists in `ai-mcp-service`,
+  `notification-service`, and `payment-service`; this step only fixed
+  `ai-rules-service` (in scope for this demo) and left the others as-is.
+- **Readiness wait**: this module has no health/actuator endpoint and no
+  GET route that returns 200 (its only routes are the two `POST
+  /api/orders/triage*` endpoints), so the shared harness's `wait_http`
+  (which requires a 2xx/3xx) can't be used directly. The demo waits for
+  *any* HTTP response instead (connection-refused → connected), which is
+  enough to confirm the listener is up before issuing real requests.
+- **Strict vs membership assertions**: the three request bodies were chosen
+  by sampling the live `qwen2.5:3b` classification repeatedly against the
+  exact prompt `TriageService` builds, until riskSignal/amount combinations
+  were found that classified *stably* (not just plausibly) across trials.
+  Because Drools' decision is a deterministic function of the classified
+  fields (not of the LLM's prose), a stable classification means a stable
+  decision — so the demo asserts the *exact* expected `decision` value on
+  every call (strict), backed by a membership check as a baseline sanity
+  net. This is stronger than the module's own opt-in ITs
+  (`OrderTriageRouteIT`/`OrderTriageFlowRouteIT`), which only assert
+  membership because they don't control for classifier noise. Re-running
+  the demo twice in a row against the live model reproduced the same three
+  decisions on both endpoints both times.
 
 ### minikube — reuses the step-9 Kubernetes substrate
 

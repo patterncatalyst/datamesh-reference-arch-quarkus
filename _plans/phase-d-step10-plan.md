@@ -41,17 +41,17 @@ Design decisions:
 
 | # | Step | Depends | Status |
 |---|------|---------|--------|
-| 10.0 | Shared harness `demos/lib/_demo.sh` + `demos/README.md` | — | todo |
+| 10.0 | Shared harness `demos/lib/_demo.sh` + `demos/README.md` | — | **done** (committed; `info()` fixed to write to stderr so `svc_start_dev`'s pidfile-on-stdout contract holds) |
 | 10.1 | Embedded-Drools light probe (drools-core + trivial `.drl`, JDK25/Q3.39.5) | — | **done — GO**: Drools 10.2.0 works on JDK25. Deps: `drools-bom:10.2.0` (import) + `drools-engine:10.2.0` + **`drools-mvel:10.2.0`** (required — ConstraintBuilder SPI). Recipe: in-memory `KieHelper.build()` → `KieBase` at `StartupEvent`, `KieSession` per request. Skews trivial. JVM-only. |
-| 10.2 | `examples/ai-rules-service` module: Camel `OrderTriageRoute` + `.drl` + isolated Drools unit test (in `mvn verify`, no Ollama) + opt-in Ollama IT | 10.1 | todo |
+| 10.2 | `examples/ai-rules-service` module: Camel `OrderTriageRoute` + `.drl` + isolated Drools unit test (in `mvn verify`, no Ollama) + opt-in Ollama IT | 10.1 | **done** (committed; reactor green, 5 tests) |
 | 10.1b | Quarkus Flow version/compat spike (quarkus-flow-bom on Q3.39.5/JDK25; coexist w/ camel-quarkus+langchain4j) | — | **done — GO**: `quarkus-flow-bom:1.1.3` imported LAST (after langchain4j→quarkus→camel), `quarkus-flow` version-less. No kogito/kie/drools pulled; no conflicts; serverlessworkflow-api 7.32.1.Final. Wire steps via `FlowDSL.function(name, bean::method)` + `switchCase(caseOf(...).then(...), caseDefault(...))`; **terminate branches with `.then(FlowDirectiveEnum.END)`** or they fall through. JVM clean on JDK25. |
-| 10.2b | DRQ-014: add Quarkus Flow orchestration of triage to `ai-rules-service` (`POST /api/orders/triage-flow`), reuse DRL + classify + facts; unit test the workflow path | 10.2, 10.1b | todo |
-| 10.3 | `demos/demo-ai-triage.sh` showcase — assert decision enum on BOTH `/triage` (Camel) and `/triage-flow` (Flow); DEF-001-proof | 10.2, 10.2b | todo |
+| 10.2b | DRQ-014: add Quarkus Flow orchestration of triage to `ai-rules-service` (`POST /api/orders/triage-flow`), reuse DRL + classify + facts; unit test the workflow path | 10.2, 10.1b | **done** (committed; shared TriageService, 8 tests, reactor green, Flow pulls serverlessworkflow only) |
+| 10.3 | `demos/demo-ai-triage.sh` showcase — assert decision enum on BOTH `/triage` (Camel) and `/triage-flow` (Flow); DEF-001-proof | 10.2, 10.2b | **done** (live-run ×2; 6 strict + 6 membership + 6 reason-nonnull assertions across both endpoints × 3 inputs) |
 | 10.4 | Honest `demo-ai-classify.sh` + `demo-ai-mcp.sh` (MCP path + caveat) | 10.0 | todo |
 | 10.5 | `demo-camel-integration.sh` | 10.0 | todo |
 | 10.6 | Core: demo-order, demo-grpc, demo-graphql, demo-kafka (Avro byte), demo-tracing, demo-websocket, demo-reactive-vertx | 10.0 | todo |
 | 10.7 | `demo-oidc.sh` (feasibility-gated, DRQ-005) | 10.0 | todo |
-| 10.8 | Toolchain: demo-jbang-prototype, demo-continuous-testing, demo-native (≥1 native build) | 10.0 | todo |
+| 10.8 | Toolchain: demo-jbang-prototype, demo-continuous-testing, demo-native (≥1 native build) | 10.0 | **done** (all 3 real-run end-to-end: jbang via `camel@apache/camel run` on single `.java`; continuous-testing via `quarkus:dev` + `QUARKUS_TEST_CONTINUOUS_TESTING=enabled`, parsed test counts; native via Mandrel `jdk-25` container-build 84s + throwaway `docker run` pg. Each gates its toolchain + fails loud w/ install hint. `TZ=UTC` needed client-side for Dev Services + native runtime — pg18 rejects `US/Eastern`) |
 | 10.9 | KEDA: demo-keda-kafka, demo-keda-http (minikube-gated) | step 9 | todo |
 | 10.10 | `walkthrough.sh` five-act orchestrator | all | todo |
 

@@ -63,7 +63,7 @@ fi
 
 step()    { printf '\n%s%s==>%s %s\n' "$BOLD" "$BLU" "$RST" "$1"; }
 narrate() { printf '%s  ▸ %s%s\n' "$YEL" "$1" "$RST"; }
-info()    { printf '%s    %s%s\n' "$DIM" "$1" "$RST"; }
+info()    { printf '%s    %s%s\n' "$DIM" "$1" "$RST" >&2; }
 warn()    { printf '%s⚠ %s%s\n' "$YEL" "$1" "$RST" >&2; }
 
 # fail <message> — print in red to stderr and exit non-zero. If demo_begin
