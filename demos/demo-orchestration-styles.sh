@@ -435,15 +435,15 @@ narrate "emitted a real Avro shipment.dispatched event -- payment-service never"
 narrate "told it to, and neither service knows the OTHER exists"
 
 # ─── Corroborate: shipping-service's own data product has the row ─────────
-# Column names: Shipment (shipping-service's entity) has no @Column
-# overrides, unlike Order's (order_id/customer_id) -- Hibernate's default
-# naming for a plain camelCase field with no physical-naming-strategy
-# configured here lowercases it WITHOUT inserting underscores, confirmed by
-# inspecting \d shipment against a live run: columns are orderid/customerid/
-# trackingnumber/dispatchedat, not order_id/customer_id/....
+# Column names: Shipment (shipping-service's entity) now carries explicit
+# @Column(name = "...") overrides on its multi-word fields, mirroring
+# Order's (order_id/customer_id) -- confirmed by inspecting \d shipment
+# against a live run: columns are order_id/customer_id/item_sku/
+# tracking_number/dispatched_at (snake_case), no longer the prior
+# Hibernate-default lowercased-no-underscore names.
 step "direct Postgres row check (shippingdb) -- shipping-service's own data product"
 SHIP_ROW_COUNT="$(docker exec datamesh-postgres psql -U "${POSTGRES_USER:-appuser}" -d shippingdb -tAc \
-    "SELECT count(*) FROM shipment WHERE orderid = '${ORDER_ID}' AND customerid = '${CUSTOMER_ID}' AND status = 'dispatched';" \
+    "SELECT count(*) FROM shipment WHERE order_id = '${ORDER_ID}' AND customer_id = '${CUSTOMER_ID}' AND status = 'dispatched';" \
     2>/dev/null | tr -d '[:space:]')"
 [[ "$SHIP_ROW_COUNT" == "1" ]] \
     || fail "expected exactly 1 matching row in shippingdb.shipment for order ${ORDER_ID}, found '${SHIP_ROW_COUNT}'"
