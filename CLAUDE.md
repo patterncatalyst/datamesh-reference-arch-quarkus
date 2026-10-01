@@ -28,7 +28,7 @@ coding task; decisions/plan changes go through the planning skill).
 | Quarkus | **3.39.5** | Current latest stable (4.0.0 is Beta only). |
 | JDK | **25** (`25-tem`) | Supported on Quarkus 3.39.x. |
 | Camel | **platform-aligned** | Import `quarkus-camel-bom:3.39.5`; do NOT pin a standalone Camel version. |
-| langchain4j (Quarkiverse) | **1.14.1** | Watch for tool-calling API drift (empty `toolExecutions`), especially against Ollama. |
+| langchain4j (Quarkiverse) | **1.7.4** | Seed-matched; converges dev.langchain4j to 1.11.0 with no manual pin. Ollama tool-calling is an open upstream deferral (DEF-001), independent of version. |
 | Maven | 3.9.x | |
 | Base images | UBI (`ubi10/openjdk-25` builder + `-runtime`) | Multi-stage builds. |
 | Container toolchain | **docker** / docker compose | NOT podman — see `lgtm-docker-stack` skill. |

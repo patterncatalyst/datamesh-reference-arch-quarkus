@@ -15,20 +15,40 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 /**
  * Supplies the agent that {@code langchain4j-agent:} endpoints reference by name.
  *
- * <p>The chat model is built here rather than injecting the {@code ChatModel}
- * that quarkus-langchain4j produces. That bean drives the
- * {@code langchain4j-chat} classifier fine, but the agent never offered the
- * registered {@code ai-tool} routes to the model through it — the model
- * answered in a single round trip and {@code toolExecutions} came back empty.
- * Building the model directly, exactly as the Spring Boot variant does, makes
- * tool calling work on both runtimes.
+ * <p>Built directly from an {@link OllamaChatModel}, mirroring the
+ * enterprise-integration-patterns-with-camel "42-ai-mcp" seed and the Spring Boot
+ * variant, rather than injecting the synthetic {@code ChatModel} that
+ * quarkus-langchain4j produces. The two paths behave identically here (see the
+ * DEF-001 note below); the explicit build is kept because it is the form the
+ * tutorial explains and the one that is portable across runtimes.
  *
- * <p>Ported from the enterprise-integration-patterns-with-camel "42-ai-mcp"
- * seed (quarkus-langchain4j-bom 1.7.4) onto this reactor's pinned
- * quarkus-langchain4j-bom 1.14.1. The {@code OllamaChatModel.builder()} /
- * {@code Agent} / {@code AgentConfiguration} / {@code AgentWithoutMemory}
- * signatures used below are unchanged across that bump — see this module's
- * README for the compile-time verification notes.
+ * <p><strong>DEF-001 (open behavioral deferral) — tool calling does not fire on
+ * this stack.</strong> The {@code OrderAssistantRouteIT} assertion that the agent
+ * invokes the {@code order-status} ai-tool (a non-empty
+ * {@code CamelLangChain4jAgentToolExecutions} header) currently fails: the model
+ * answers in a single round trip and never calls the tool. Root cause, after
+ * exhaustive diagnosis, is upstream integration — not this code, the model, the
+ * tags, or the langchain4j version:
+ * <ul>
+ *   <li>{@code camel-quarkus-support-langchain4j} unconditionally sets the global
+ *       {@code langchain4j.http.clientBuilderFactory} system property to the
+ *       Quarkiverse JAX-RS factory ("enforcing JAX-RS HTTP client factory"), so
+ *       the transport is Quarkus-controlled regardless of what this builder sets —
+ *       the configured {@code base-url} on the hand-built model is not honoured
+ *       (requests resolve to the dev-service-detected Ollama on 11434), and an
+ *       explicit {@code httpClientBuilder(new JdkHttpClientBuilder())} does not
+ *       change it.</li>
+ *   <li>Ruled out: model capability (a direct {@code /api/chat} curl with a tools
+ *       array elicits a {@code tool_calls} response from both {@code qwen2.5:3b}
+ *       and {@code qwen2.5:7b-instruct}); tool registration and tag matching (the
+ *       ai-tool route is tagged {@code shipping}, the agent filters on
+ *       {@code shipping}); and langchain4j versions (classpath matches the seed
+ *       exactly — Quarkiverse 1.7.4, dev.langchain4j 1.11.0, camel 4.22.0 /
+ *       camel-quarkus 3.39.0; the seed itself ships no test asserting this).</li>
+ * </ul>
+ * The IT is opt-in ({@code -Dollama.tests.enabled=true}) and is not bound into the
+ * default {@code mvn verify}, so the deferral does not break the reactor build.
+ * See {@code _plans/decisions.md} (DEF-001) for the full write-up.
  *
  * <p>{@link AgentWithoutMemory} treats every exchange as an independent
  * conversation. For a multi-turn assistant, produce an {@code AgentWithMemory}
