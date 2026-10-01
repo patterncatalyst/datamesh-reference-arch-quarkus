@@ -1,0 +1,16 @@
+{
+  "name": "datamesh-201",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build-deck.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pptxgenjs": "^4.0.1",
+    "sharp": "^0.35.3"
+  }
+}
