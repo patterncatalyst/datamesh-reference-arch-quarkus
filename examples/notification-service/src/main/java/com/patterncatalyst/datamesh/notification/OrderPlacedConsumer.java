@@ -7,7 +7,9 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.jboss.logging.Logger;
 
 import capstone.order.v1.OrderPlaced;
+import io.quarkus.websockets.next.OpenConnections;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 /**
@@ -31,6 +33,13 @@ public class OrderPlacedConsumer {
 
     private static final Logger LOG = Logger.getLogger(OrderPlacedConsumer.class);
 
+    // NEW for demos/demo-websocket.sh (Phase D step 10.6, "WebSockets.Next"):
+    // every open /ws/notifications connection (see OrderNotificationSocket)
+    // gets the freshly persisted Notification pushed to it as soon as this
+    // consumer commits it -- a real, event-driven push, not a poll.
+    @Inject
+    OpenConnections wsConnections;
+
     @Incoming("order-placed")
     @Transactional
     public void consume(OrderPlaced event) {
@@ -52,6 +61,14 @@ public class OrderPlacedConsumer {
         notification.persist();
 
         LOG.infof("persisted notification for order %s (%s)", orderId, event.getEventType());
+
+        // Push to every open WebSocket client -- see OrderNotificationSocket.
+        // WebSockets.Next serializes the Notification entity to JSON the
+        // same way the REST layer does (Jackson). Best-effort like the rest
+        // of this consumer's side effects: a client that isn't listening
+        // right now simply misses this push (no retry/queue), which is the
+        // expected semantics for a live notification feed.
+        wsConnections.listAll().forEach(connection -> connection.sendTextAndAwait(notification));
     }
 
     private static BigDecimal parseAmount(String amount) {

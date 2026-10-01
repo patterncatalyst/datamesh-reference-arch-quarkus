@@ -65,6 +65,14 @@
       <artifactId>quarkus-rest-jackson</artifactId>
     </dependency>
 
+    <!-- WebSockets.Next (demos/demo-websocket.sh, Phase D step 10.6) — pushes
+         a notification over a live WebSocket as soon as OrderPlacedConsumer
+         persists it; see OrderNotificationSocket. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-websockets-next</artifactId>
+    </dependency>
+
     <!-- Health -->
     <dependency>
       <groupId>io.quarkus</groupId>
