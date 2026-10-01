@@ -171,4 +171,19 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Without this, the parent's pluginManagement execution
+           (build/generate-code/generate-code-tests) never binds to this
+           module's actual build: quarkus:dev treats it as a "support
+           library" and skips, and `mvn package` only produces a plain jar
+           (no target/quarkus-app/quarkus-run.jar). Mirrors order-service's
+           identical declaration. -->
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 </project>
