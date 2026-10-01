@@ -6,5 +6,6 @@ namespace: datamesh
 resources:
   - config.yaml
   - order-service.yaml
+  - inventory-service.yaml
   - notification-service.yaml
   - graphql-gateway.yaml
