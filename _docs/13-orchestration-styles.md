@@ -3,7 +3,7 @@ title: "Orchestration styles: choreography vs. two kinds of orchestration"
 order: 14
 part: The Quarkus deep-dive
 description: "Three coordination engines over the same shipping/order domain — Kafka choreography, a Camel route, and a declarative Quarkus Flow workflow — teaching when decentralized reaction beats a named coordinator, and when it doesn't."
-duration: 45 minutes
+duration: 50 minutes
 marker: "13"
 ---
 
@@ -191,6 +191,26 @@ return FlowWorkflowBuilder.workflow("order-triage")
     .build();
 ```
 
+{% include excalidraw.html file="13-orchestration-styles" alt="Three coordination shapes over the same shipping/order domain: decentralized Kafka choreography across order-service, payment-service, shipping-service and notification-service with no central caller; a Camel route in ai-rules-service explicitly sequencing classify then decide; and a declarative Quarkus Flow workflow document expressing the same two tasks" caption="Figure 13.1 — Choreography and two orchestration shapes, side by side" %}
+
+The three boxes in that diagram are worth tracing with your finger before
+reading further, because the shape each one draws is the entire argument of
+this chapter. The choreography box has no single arrow entering from "the
+top" — every service subscribes to a topic and publishes to another, and
+the diagram has no node labeled "coordinator" because there isn't one. The
+two orchestration boxes both have exactly one entry point and one box that
+owns the sequence, but they draw that ownership differently: the Camel box
+is a straight line of named steps, because a route *is* a sequence of
+method calls; the Quarkus Flow box is a small graph of tasks with declared
+dependencies, because a workflow document describes *what* must happen
+before what, and leaves *how* to call it to the engine. That distinction —
+code that calls things in order versus data that declares an order — is
+the one this chapter spends the most effort separating from "orchestration
+versus choreography," because learners who are new to this space tend to
+conflate "a coordinator exists" with "the coordinator is a hand-written
+imperative function," and the Quarkus Flow leg exists specifically to break
+that assumption.
+
 ## When to reach for which
 
 | | Kafka choreography | Camel orchestration | Quarkus Flow orchestration |
@@ -226,6 +246,23 @@ quantity, amount) and the **comparison** this chapter exists to teach: one
 decentralized mechanism versus two differently-shaped centralized ones,
 coordinating the same *kind* of step. Don't claim more continuity between
 the legs than that — the demo doesn't, and neither should you.
+
+The reason the demo picked a *pre-validated* input for Act 2 and Act 3,
+rather than reusing whatever order Act 1 happened to place, is itself a
+lesson about mixing a deterministic coordinator with a non-deterministic
+step: Chapter 14 shows that `/triage` and `/triage-flow` both delegate their
+actual classification to a small local LLM (`qwen2.5:3b` via Ollama) before
+Drools ever sees a fact. An LLM classification is not guaranteed to repeat
+identically on every input, so asserting a *specific* decision
+(`ROUTE_TO_WAREHOUSE`, not merely "one of three valid decisions") requires
+an input whose classification has already been shown stable across repeated
+trials. Act 1's order was never put through that trial, because Act 1 isn't
+testing classification at all — it's testing whether four independently
+deployed services correctly react to Kafka events, a question that has
+nothing to do with what the order's fields happen to be. Keeping the three
+acts' test inputs deliberately uncoupled, rather than threading one order
+through all three for narrative tidiness, is what lets each act make a
+strict assertion instead of a hedged one.
 
 ## Build, run, observe
 

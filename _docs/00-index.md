@@ -96,6 +96,101 @@ services demonstrate side by side.
   The `ai-rules-service` triage flow — classification plus a rules decision — exercised
   through both the Camel route and the Quarkus Flow workflow from the previous chapter.
 
+## Who this is for
+
+This tutorial assumes you can read Java comfortably and have used Kubernetes at
+the level of `kubectl apply` and `kubectl get pods` — it does not re-teach either.
+It does *not* assume prior exposure to data mesh as a pattern (Part 0 builds that
+from the ground up), nor does it assume you've used Kafka, Avro, gRPC, GraphQL,
+Istio, or KEDA before; each gets introduced at the point the build first needs it,
+with a pointer to the real file that uses it. Two audiences get the most out of
+it: platform or data engineers evaluating whether data mesh is the right answer
+for their organization, and Quarkus developers who want a single, coherent,
+non-trivial codebase that exercises most of the framework's reactive and
+imperative surface area at once rather than ten disconnected quickstarts.
+
+If you're coming from the sibling `datamesh-reference-arch-python` repository,
+the domain, the four principles, and the chapter structure are intentionally
+familiar — this build is the same reference architecture re-expressed on
+Quarkus, not a different design. `_plans/reconciliation.md` tracks where the two
+repos deliberately diverge (and where a divergence is a bug to fix rather than a
+choice).
+
+## Prerequisites to actually run anything
+
+Reading Part 0 needs nothing but a browser. Once you reach Part 1 and want to run
+the services rather than just read about them, you'll want: JDK 25 (`25-tem`),
+Maven 3.9.x, Docker plus the Compose v2 plugin (this repo standardizes on Docker,
+not Podman, for every compose and container workflow), and — only once you reach
+Part 2's Kubernetes material — `minikube`, `kubectl`, and `helm`. The
+[Kubernetes substrate chapter]({{ '/docs/02-kubernetes-substrate/' | relative_url }})
+covers the heavier `./scripts/bootstrap.sh` prerequisites (32 GB of host RAM
+recommended) in full; nothing before that chapter needs a cluster at all. Part 4's
+native-compilation material additionally wants a GraalVM/Mandrel distribution,
+called out again at that point.
+
+## How the chapters map to runnable code
+
+Every part past Part 0 is backed by something you can actually execute, not just
+read. The mapping is deliberately 1:1 wherever possible:
+
+- **Part 1's services** are the Maven reactor under `examples/` — `order-service`,
+  `inventory-service`, `payment-service`, `shipping-service`,
+  `notification-service`, `review-service`, `graphql-gateway`, plus the shared,
+  framework-agnostic `domain-model` and `contracts` modules every service depends
+  on. `examples/spring-boot-compare` is the one runnable Spring Boot twin that
+  Part 4's comparison chapter measures against.
+- **Part 2's operating concerns** — progressive delivery, KEDA autoscaling,
+  observability — run against the Kubernetes substrate `scripts/bootstrap.sh`
+  stands up, with the application manifests living under `k8s/`.
+- **Nearly every capability chapter has a matching demo script** under `demos/` —
+  `demo-order.sh` for the Panache/REST data product, `demo-grpc.sh` for the
+  order→inventory gRPC call, `demo-graphql.sh` for the gateway fan-out,
+  `demo-kafka.sh` for the Avro/Apicurio event path, `demo-keda-http.sh` and
+  `demo-keda-kafka.sh` for the two autoscaling triggers, `demo-tracing.sh` for
+  the observability stack, and several more for the AI, Camel, and orchestration
+  material in Part 4. Each demo is a thin, assertion-driven script — it checks a
+  specific field, status code, or replica count, never just an exit code — and
+  `demos/README.md` has the full matrix grouped by how much infrastructure each
+  one needs (bare JVM, `docker compose`, or compose plus the opt-in Ollama
+  profile). `demos/walkthrough.sh` chains the core set into a single five-act
+  presenter run, if you'd rather watch the whole system than drive it chapter by
+  chapter.
+- **Part 4's orchestration-styles and AI-rules chapters** are backed by
+  `examples/ai-rules-service` and `examples/ai-mcp-service`, exercised by
+  `demo-orchestration-styles.sh`, `demo-ai-triage.sh`, `demo-ai-classify.sh`, and
+  `demo-ai-mcp.sh` — the last two needing the heavier, opt-in Ollama compose
+  profile rather than the baseline stack.
+
+If a chapter cites a path, it's a path in this layout — the chapters are written
+against the actual repository, not an idealized one, and each closes with a
+verification-status footer noting what has and hasn't been run end to end.
+
+## Suggested reading paths
+
+**Straight through**, start to finish, is the path the tutorial is written for —
+each chapter assumes the vocabulary and the running example built up by the ones
+before it. Budget roughly four to five hours for Parts 0 through 3 if you read
+without running code, longer if you run the demos alongside each chapter.
+
+**Evaluating data mesh as a pattern, not as a Quarkus build?** Read Part 0 in
+full, then [anti-patterns]({{ '/docs/09-anti-patterns/' | relative_url }}) and
+[the summary]({{ '/docs/10-summary/' | relative_url }}), and treat Parts 1
+through 4 as a reference to dip into for the specific mechanism you need to see
+made concrete (contracts, mTLS, autoscaling).
+
+**Here for Quarkus, already know data mesh?** Skim Part 0 for the vocabulary
+this build's comments and prose assume, then jump straight to
+[Part 4]({{ '/docs/11-quarkus-capability-tour/' | relative_url }}) — the
+capability tour, the Spring Boot comparison, and the orchestration-styles and
+AI-rules chapters stand on their own and don't require having run the Part 1–2
+services first, though the cross-references will make more sense if you have.
+
+**Building something similar yourself?** Part 1 (data products, contracts,
+planes) and Part 2 (delivery, scaling, observability) are the operational core —
+read those closely, run the demos as you go, and treat Part 0 and Part 3 as the
+framing that explains *why* the Part 1–2 decisions were made the way they were.
+
 ## If you have time for only a few
 
 Read [**concepts & principles**]({{ '/docs/01-concepts/' | relative_url }}) for the

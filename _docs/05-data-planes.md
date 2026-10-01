@@ -3,7 +3,7 @@ title: "The data planes"
 order: 6
 part: Building data products
 description: "The asynchronous Kafka backbone and the synchronous GraphQL read layer that federates REST and gRPC — two planes, and why Camel's EIPs are the right lens for the routing logic inside each."
-duration: 25 minutes
+duration: 30 minutes
 marker: "05"
 ---
 
@@ -22,6 +22,18 @@ in the first chapter of this part), `examples/notification-service/`, and
 `examples/graphql-gateway/`. `demos/demo-kafka.sh`, `demos/demo-graphql.sh`,
 and `demos/demo-grpc.sh` exercise each piece; `demos/demo-camel-integration.sh`
 exercises the Camel route this chapter closes with.
+
+Figure 5.1 previews the shape the rest of the chapter fills in: four
+protocols, each earning its place by fitness to a job rather than by
+house-wide mandate, each backed by the contract type the previous chapter
+covered, and each wired to a specific Quarkus extension — `quarkus-rest` at
+the edge, `quarkus-grpc` between services, `quarkus-smallrye-graphql`
+composing reads, and Reactive Messaging carrying events. The rest of this
+chapter builds the async and sync halves of that picture in running code,
+then returns to the fitness argument explicitly before closing with Camel's
+EIPs as the lens for the routing logic inside either half.
+
+{% include excalidraw.html file="05-api-implementations" alt="Diagram of four protocols — REST, gRPC, GraphQL, and events — each matched to the job it fits best, its contract type, and the Quarkus extension that implements it" caption="Figure 5.1 — Four protocols, four contracts, each by fitness" %}
 
 ## The async backbone: domains reacting to events
 
@@ -97,6 +109,23 @@ push, with no retry or queued delivery — which is the right semantics for a
 live feed and the wrong semantics for anything that needs guaranteed
 delivery (that guarantee, if needed, belongs to the Kafka topic itself, not
 this fan-out).
+
+Figure 5.2 puts a data-mesh name on the seam `OrderPlacedConsumer` crosses
+every time it runs: `OrderPlaced` is an immutable event — a fact that an
+order *was* placed, which never changes after the fact — and the
+`Notification` row it's turned into is a stateful entity, queryable and
+updatable going forward. That's the same refinement the diagram draws one
+step further, into aggregates and a published analytical view; this reactor
+stops at the entity step. Nothing here aggregates or republishes
+notifications for analytical consumption, and no CDC or streaming ingestion
+layer — Figure 5.3's territory — exists in this repository to pick raw
+change data back up off `orders` or `notifications` for that purpose; both
+diagrams describe the target shape of an analytical plane this reactor's
+operational services feed, not code that runs today.
+
+{% include excalidraw.html file="05-analytical-data-composition" alt="Diagram showing operational data refined through events and entities into a published data product that analytics consumes" caption="Figure 5.2 — How analytical data is composed from operational events and entities" %}
+
+{% include excalidraw.html file="05-ingestion-streaming-sourcing" alt="Diagram of an ingestion layer sourcing analytical data from operational microservices via messaging events and Debezium-style change-data-capture" caption="Figure 5.3 — Ingestion, streaming, and CDC sourcing (conceptual; not built in this reactor)" %}
 
 Widen this one flow and you get the full choreography this reactor models:
 inventory-service and payment-service also react to `order.placed`, and

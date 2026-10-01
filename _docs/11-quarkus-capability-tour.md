@@ -3,7 +3,7 @@ title: "A Quarkus capability tour"
 order: 12
 part: The Quarkus deep-dive
 description: "Panache, gRPC, GraphQL, Reactive Messaging, WebSockets.Next, unified Vert.x reactive/imperative execution, continuous testing, native compilation, OIDC, and JBang — each anchored to a real endpoint or demo in this reactor."
-duration: 40 minutes
+duration: 45 minutes
 marker: "11"
 ---
 
@@ -20,6 +20,15 @@ The code is in `examples/notification-service/`, `examples/inventory-service/`,
 `examples/graphql-gateway/`; each section below names its own demo script —
 the run script there builds/sets up and runs it; its `README.md` (where one
 exists) covers what it does and how to drive it.
+
+{% include excalidraw.html file="11-capability-tour" alt="Nine Quarkus capabilities arranged around the services that demonstrate them: Panache and Vert.x unification in inventory-service, gRPC between inventory-service and the gateway, GraphQL federation in graphql-gateway, Reactive Messaging and WebSockets.Next between order-service and notification-service, continuous testing and native compilation in order-service, OIDC in review-service, and JBang prototyping standalone" caption="Figure 11.1 — The nine capabilities and the services that demonstrate them" %}
+
+Read it left to right as a map, not a sequence: nothing here depends on
+anything else in this tour running first, and the only two capabilities the
+rest of the book leans on by name are Reactive Messaging (chapter 13's
+choreography leg republishes the exact `OrderEventProducer` shown below) and
+the orchestration shapes built on top of plain bean calls (chapters 13 and
+14). Everything else is read independently, a capability at a time.
 
 ## Panache: the entity *is* the repository
 
@@ -268,6 +277,17 @@ concurrently against the one running process, asserting every response
 comes back correct and uncorrelated — the textbook Quarkus/Vert.x claim
 ("unified reactive and imperative, one reactor") exercised under genuine
 concurrent load, not just asserted in prose.
+
+This matters beyond the demo: most real services in this reactor are not
+purely one style or the other. `inventory-service` picked reactive for its
+gRPC surface because that's the idiomatic shape `quarkus-grpc` generates,
+and imperative for its REST surface because the handler is a two-line
+lookup with no benefit from `Uni` wrapping — there was no migration, no
+"reactive-ification" effort, and no second event loop spun up to host the
+imperative side. Both styles are just method bodies registered with the
+same Vert.x instance; the framework, not the developer, decides which
+thread pool a given request lands on based on `@Blocking` and the handler's
+declared return type.
 
 ## Continuous testing + Dev Services: tests that run themselves, against real infra
 

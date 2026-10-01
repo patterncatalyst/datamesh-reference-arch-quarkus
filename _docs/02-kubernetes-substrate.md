@@ -3,7 +3,7 @@ title: "Kubernetes as the substrate"
 order: 3
 part: Foundations
 description: "Why Kubernetes is a natural substrate for a data mesh, how the four principles map onto namespaces, operators, and RBAC, and the Docker-built minikube substrate this build stands up."
-duration: "20 min"
+duration: "25 min"
 marker: "02"
 ---
 
@@ -13,7 +13,12 @@ it. So why build this reference on Kubernetes at all? Because the four principle
 onto Kubernetes primitives unusually cleanly — cleanly enough that "implement a data mesh
 on Kubernetes" stops feeling like a translation exercise and starts feeling like the
 primitives were waiting for it. This chapter makes that mapping explicit, then walks the
-actual substrate this build stands up on minikube.
+actual substrate this build stands up on minikube. Figure 2.1, the capstone diagram for
+this part, shows where this chapter is headed — the full data mesh this build runs,
+domain services and platform tier together, on top of the single minikube profile
+`scripts/bootstrap.sh` stands up.
+
+{% include excalidraw.html file="02-capstone-data-mesh" alt="The complete data mesh reference architecture running on minikube — domain services, the service mesh, and the self-serve platform tier underneath them" caption="Figure 2.1 — The capstone: a data mesh on minikube" %}
 
 ## Why the alignment is so good
 
@@ -27,6 +32,11 @@ certainly run Kubernetes without building a mesh. But the alignment is strong en
 each principle has a natural home in Kubernetes primitives you already know.
 
 ## The four principles, mapped to primitives
+
+Figure 2.2 lays the four principles directly alongside the Kubernetes primitives that
+realize them, as a single reference before the detail below walks each pairing in turn.
+
+{% include excalidraw.html file="02-principles-to-pieces" alt="The four data mesh principles mapped to their corresponding Kubernetes primitives — namespaces, Deployments and CRDs, operators, and admission/mesh policy" caption="Figure 2.2 — From principles to Kubernetes pieces" %}
 
 **Domain ownership → namespaces, ServiceAccounts, RBAC, quotas.** The unit of tenancy in
 Kubernetes is the namespace, and it carries its own identities (ServiceAccounts), its own
@@ -161,10 +171,44 @@ right there in minikube's own daemon. That coupling between "build into minikube
 daemon" and "pull policy must be `IfNotPresent`" is the one fragile assumption worth
 remembering before you change either side of it independently.
 
+Build context matters too, and it's easy to get backwards the first time: every
+`Containerfile.multistage` build in `k8s/README.md` runs from the **repo root**, not from
+inside `examples/<service>/`. That's because each service's builder stage needs the whole
+`examples/` Maven reactor on disk to resolve `domain-model` and `contracts` as reactor
+dependencies rather than as published artifacts — building from inside a single service
+directory would leave those two modules unreachable and the build would fail at the
+Maven step, not at the Docker step, which makes the mistake more confusing than it needs
+to be the first time you hit it.
+
+The same `base`/`overlay` split also carries the one non-secret configuration contract
+every Deployment shares: `k8s/base/config.yaml` is a ConfigMap (`datamesh-app-config`)
+that every Deployment pulls in wholesale via `envFrom`, rather than each Deployment
+listing its own `env:` entries. Its values are not placeholders — they're the literal
+in-cluster DNS names the platform tier's own setup scripts produce, e.g.
+`KAFKA_BOOTSTRAP_SERVERS=datamesh-kafka-bootstrap.datamesh.svc.cluster.local:9092` (from
+Strimzi's own Service-naming convention off the Kafka CR name in
+`scripts/setup-kafka-operator.sh`) and
+`APICURIO_REGISTRY_URL=http://apicurio.datamesh.svc.cluster.local:8080/apis/registry/v3`
+(the v3 API path `scripts/setup-apicurio.sh` installs). Because Quarkus does relaxed
+env-var binding onto its own `kafka.bootstrap.servers` and `apicurio.registry.url`
+config keys, those two values need zero `application.properties` changes to take effect
+in-cluster — the ConfigMap *is* the production configuration, which is the self-serve
+principle showing up again at the manifest layer: a domain service declares that it
+wants the platform's Kafka and registry, and gets the real addresses without hand-wiring
+them. Database credentials are the one value deliberately **not** in that ConfigMap —
+they come from the CloudNativePG-managed `datamesh-postgres-app` Secret instead, so the
+operator remains the single source of truth for a credential it already owns and rotates,
+rather than that secret being duplicated into a ConfigMap a human might forget to update.
+
 ## The shape of the system
 
-With the mapping and the substrate both in hand, here's the system this build runs. It
-has three horizontal tiers: **external clients** at the top, the **service mesh**
+With the mapping and the substrate both in hand, here's the system this build runs.
+Figure 2.3 draws it as three horizontal planes, which is the layout worth holding in
+mind for every chapter that follows.
+
+{% include excalidraw.html file="02-platform-planes" alt="Three horizontal planes — external clients, the service-mesh plane running the domain services, and the self-serve platform plane underneath — with protocols labeled on the flows between them" caption="Figure 2.3 — The three planes: clients, mesh, platform" %}
+
+It has three horizontal tiers: **external clients** at the top, the **service mesh**
 running the domain services in the middle, and the **self-serve platform** providing
 shared infrastructure underneath. REST crosses the ingress between external clients and
 services, gRPC flows synchronously between services inside the mesh, GraphQL composes

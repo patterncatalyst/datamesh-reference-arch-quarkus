@@ -3,7 +3,7 @@ title: "Contracts & the catalog"
 order: 5
 part: Building data products
 description: "Versioned Avro and Protobuf contracts in a shared contracts module and Apicurio registry, and why a discovery catalog is a mesh requirement even though it isn't built yet."
-duration: 25 minutes
+duration: 35 minutes
 marker: "04"
 ---
 
@@ -20,6 +20,20 @@ than it might look.
 The code is in `examples/contracts/`. There's no standalone demo script for
 the registry itself; `demos/demo-kafka.sh` exercises it as part of proving
 the Kafka data plane, and that's where this chapter's cross-check comes from.
+
+Figure 4.1 is the shape of this whole chapter before the detail. Every
+protocol surface in the mesh carries its own contract — REST's is an OpenAPI
+document, gRPC's is the `.proto`, GraphQL's is its SDL schema, Kafka's is an
+Avro schema — and Apicurio Registry is the one home for all of them
+regardless of format, with OpenMetadata sitting downstream to turn those
+contracts plus the running Postgres schemas and Kafka topics into a lineage
+graph. That target picture is wider than what this chapter's code actually
+wires up today, and the sections below are deliberately precise about which
+pieces of it are real, running enforcement and which are still the
+conceptual target — starting with the two contract types `contracts` itself
+owns.
+
+{% include excalidraw.html file="04-capstone-contracts" alt="Diagram showing every protocol's contract type feeding into Apicurio Registry, with OpenMetadata downstream building a lineage graph from the registry and the running data stores" caption="Figure 4.1 — Contracts, the registry, and the catalog across the mesh" %}
 
 ## One module, two contract types
 
@@ -141,6 +155,32 @@ single, versioned home (so a consumer can always find the exact shape a
 gRPC service expects), but the coupling is loose and offline rather than
 tight and online.
 
+Figure 4.2 walks that distinction as two numbered paths through the same
+registry. The runtime path is exactly the four steps this reactor runs: ①
+`OrderEventProducer` serializes `OrderPlaced` and registers (or fetches) its
+schema against Apicurio, ② the Avro bytes plus a 4-byte schema id land on the
+`order-placed` Kafka topic, ③ `OrderPlacedConsumer` in notification-service
+fetches that same schema by id, and ④ it deserializes the bytes back into an
+`OrderPlaced` record before persisting a `Notification` — the exact round
+trip the previous chapter's `OrderEventProducer`/`OrderPlacedConsumer` pair
+walks through in code. The discovery path (⑤–⑧) is where the diagram gets
+ahead of what's actually wired up: it shows all four services publishing
+contracts — OpenAPI, Protobuf, GraphQL SDL, and Avro again — into the same
+registry, with OpenMetadata ingesting them alongside the Postgres schemas and
+Kafka topics to build a lineage graph. Of those four, only Protobuf is a real,
+checked-in discovery contract in this reactor (`inventory.proto`, packaged
+into the `contracts` jar as covered above); `order-service` and
+`inventory-service` don't add the `quarkus-smallrye-openapi` extension, so
+there's no `/openapi.json` document generated today for REST to publish
+anywhere, and while `graphql-gateway`'s `quarkus-smallrye-graphql` extension
+does derive a GraphQL SDL schema from `GatewayApi`'s annotations (what the
+diagram draws as `schema.graphql`), nothing in this repository registers it
+anywhere or ingests it into a catalog. Figure 4.2 is honest about drawing
+⑤–⑧ as the target shape of federated governance, not a claim about code that
+runs today.
+
+{% include excalidraw.html file="04-contract-flow" alt="Diagram contrasting the Avro runtime path (serialize, publish, fetch schema, deserialize) with the discovery path where services publish OpenAPI, Protobuf, GraphQL SDL and Avro contracts for a catalog to ingest" caption="Figure 4.2 — How a contract flows: runtime path vs. discovery path" %}
+
 Conflating the two is how teams get surprised in both directions: treating
 the Avro schema as "just documentation" would miss that a bad change breaks
 every consumer immediately; treating the proto as if it were enforced like
@@ -181,6 +221,17 @@ from. That's a catalog's job — ingesting from the registry, the databases,
 and the event backbone to assemble a discoverable picture with lineage: the
 producer-and-consumer graph across domains, so a change's downstream blast
 radius is something you can look up rather than reverse-engineer from code.
+
+Figure 4.3 is the same picture as Figure 4.1, but with each contract marked
+by which job it actually does: a filled dot for the one **runtime** contract
+(Avro, enforced live against Apicurio) and hollow dots for the three
+**discovery** contracts (OpenAPI, Protobuf, GraphQL SDL). That marking is the
+payoff of the distinction this chapter draws — it's also exactly why the
+OpenMetadata box belongs on the far side of a gap: everything to its left is
+either running code or a checked-in artifact in this repository today, and
+everything inside it is not.
+
+{% include excalidraw.html file="04-contracts-registry-catalog" alt="Diagram marking each protocol's contract as either a runtime contract (Avro, filled dot) or a discovery contract (OpenAPI, Protobuf, GraphQL SDL, hollow dots), all registered in Apicurio, with OpenMetadata downstream ingesting contracts and data sources into a lineage graph" caption="Figure 4.3 — Runtime vs. discovery contracts, and the catalog gap" %}
 
 This reactor does not build that catalog yet. That's worth stating plainly
 rather than gesturing at a diagram that implies otherwise: there is no

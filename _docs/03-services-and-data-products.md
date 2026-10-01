@@ -31,6 +31,17 @@ serves data out, the transformation between them, and enough self-description
 that another domain can find it, understand its shape, and depend on it
 safely.
 
+Figure 3.1 draws that quantum exactly as the data mesh literature does: input
+and output ports where data crosses the product's boundary, three structural
+pieces doing the work inside — code (pipelines, APIs, policy-as-code), data &
+metadata (polyglot storage, schema, SLOs), and infrastructure (build, deploy,
+run, serve) — and a control port layered on top carrying governance, SLOs,
+and access policy, plus the checklist a product is expected to satisfy:
+discoverable, addressable, understandable, trustworthy, natively accessible,
+interoperable, valuable on its own, and secure.
+
+{% include excalidraw.html file="03-data-product-anatomy" alt="Diagram of a data product's architectural quantum: input and output ports, the code, data and infrastructure components inside, and a governance control port on top" caption="Figure 3.1 — The data product architectural quantum" %}
+
 In this reactor, that abstraction is concrete: **each domain service *is* a
 data product.** It owns a slice of Postgres (its internal state), serves
 data through its REST/gRPC endpoints (output ports), optionally accepts
@@ -418,7 +429,10 @@ claim, so a request with no token gets `401`, and one with a token lacking
 the `admin` role gets `403` — all before this method body ever runs. It's
 the smallest possible illustration that a data product's surface can carry
 its own authorization policy, scoped to exactly the operation that needs it
-(creating and reading reviews stays open; moderating them doesn't).
+(creating and reading reviews stays open; moderating them doesn't). Zoom back
+out to Figure 3.1 and this is the control port made literal: the governance
+layer the diagram draws wrapping the product isn't a separate component
+bolted on here, it's a single annotation on the one method that needs it.
 
 ## Build, run, observe
 

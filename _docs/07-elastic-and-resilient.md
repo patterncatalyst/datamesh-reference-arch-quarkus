@@ -3,7 +3,7 @@ title: "Elastic and resilient"
 order: 8
 part: Operating the mesh
 description: "Scaling two real data products to demand — and to zero — with KEDA, the manifests and demos that prove it, and the recoverability Kubernetes gives a product for free."
-duration: 25 minutes
+duration: 30 minutes
 marker: "07"
 ---
 
@@ -24,7 +24,27 @@ proxy for what a data product is actually waiting on. A consumer's load is *mess
 waiting to be processed*; a gateway's load is *requests arriving*. KEDA — Kubernetes
 Event-Driven Autoscaling — scales on those real signals instead, and it can scale a
 workload all the way to **zero** when the signal is absent, then back up the moment it
-returns. `scripts/setup-keda.sh` installs both pieces this build uses: KEDA core and
+returns.
+
+It's worth being precise about what KEDA actually *is*, because the name undersells
+it: KEDA doesn't replace the HPA, it drives one. A KEDA `ScaledObject` is consumed by
+the KEDA operator, which creates and manages a standard Kubernetes `HorizontalPodAutoscaler`
+on the target Deployment behind the scenes, fed by an `external.metrics.k8s.io` metrics
+server that KEDA itself runs — so from `1` replica upward, the familiar HPA control
+loop is doing the scaling, just on a Kafka-lag or HTTP-rate metric instead of CPU. The
+part the HPA fundamentally cannot do on its own is the zero-to-one transition: a
+`HorizontalPodAutoscaler` has never been able to target `minReplicas: 0`, because
+nothing would ever ask it to wake back up once there were no pods left to measure.
+KEDA's operator sits outside that loop specifically to cover this gap — it polls the
+trigger source directly (Kafka consumer-group lag, an HTTP request-rate signal) even
+while the Deployment is at zero replicas, and the moment that signal crosses the
+activation threshold, KEDA itself scales the Deployment from `0` to `1`, at which point
+the ordinary HPA it created takes back over for `1` through `maxReplicaCount`. Both
+scalers in this repo ride that same two-tier shape.
+
+{% include excalidraw.html file="07-hpa-vs-keda" alt="Diagram comparing the stock Kubernetes HPA scaling on CPU/memory with KEDA driving an HPA from external signals (Kafka lag, HTTP rate) and handling the zero-to-one activation the HPA cannot do on its own" caption="Figure 7.1 — the stock HPA vs. KEDA's two-tier scale-to-zero model" %}
+
+`scripts/setup-keda.sh` installs both pieces this build uses: KEDA core and
 the KEDA HTTP add-on, pinned to `2.19.0` and `0.15.0` respectively —
 
 ```bash
@@ -90,6 +110,14 @@ group that no longer exists. `minReplicaCount: 0` is what makes this scale-to-ze
 when there's no backlog, KEDA's HPA holds the Deployment at zero replicas; once lag on
 `order.placed` crosses `lagThreshold: 5`, it scales up, and once lag drains back under
 threshold and stays there for `cooldownPeriod: 120` seconds, it scales back to zero.
+`pollingInterval: 15` is the other half of the activation latency budget: KEDA's
+external scaler polls the Kafka consumer-group offsets API for this topic/group pair
+every 15 seconds while the Deployment sits at zero, so in the worst case a burst of
+messages can sit for close to that long before KEDA even notices lag has crossed the
+threshold — a cost accepted here in exchange for not hammering the broker's offset API
+every second.
+
+{% include excalidraw.html file="07-keda-lag" alt="Diagram of the KEDA Kafka-lag scaler polling consumer-group lag on the order.placed topic and scaling notification-service from zero to N replicas once lag crosses the threshold, then back to zero after the cooldown period" caption="Figure 7.2 — Kafka consumer-group lag driving notification-service from zero" %}
 
 ### HTTP-request scaling: `graphql-gateway`
 
@@ -132,6 +160,21 @@ set to that FQDN. A request sent directly to `graphql-gateway`'s own `ClusterIP`
 Service bypasses the interceptor entirely — it is never counted, and it will not wake a
 scaled-to-zero Deployment. `scaleTargetRef.service` plus exactly one of `port`/
 `portName` is required by the add-on's CRD; both are set here.
+
+The HTTP add-on is itself a small system, not a single component, and it's worth
+knowing its two moving parts because both show up in the manifest above and in how the
+demo below actually works. The **interceptor** is the proxy every request transits —
+it buffers requests to a scaled-to-zero target (rather than failing them immediately)
+and reports live request-rate metrics for whatever `host`/`pathPrefix` pair matches.
+The **external scaler** is what the HTTPScaledObject's `scalingMetric.requestRate`
+section feeds into KEDA core's own external-scaler protocol, translating the
+interceptor's observed rate into the activation/deactivation decisions described
+above. `pathPrefixes: [/graphql]` matters because the interceptor is matching on route,
+not just host — a request to `graphql-gateway.datamesh.svc.cluster.local/q/health/ready`
+through the same interceptor would not count toward this scaler's `requestRate`, since
+it falls outside the declared prefix.
+
+{% include excalidraw.html file="07-keda-http-addon" alt="Diagram of the KEDA HTTP add-on's interceptor proxy buffering requests to graphql-gateway and reporting request-rate to the external scaler, which drives the HTTPScaledObject's zero-to-N activation" caption="Figure 7.3 — the KEDA HTTP add-on's interceptor and external scaler" %}
 
 ### Why the HTTP scaler goes on the gateway, not on order-service
 
@@ -184,6 +227,23 @@ get_replicas() {
 }
 ```
 
+The budgets each script polls against aren't round numbers picked for convenience —
+each is sized against a concrete, named cost in the path it's measuring.
+`demo-keda-http.sh` polls for up to `SCALE_UP_BUDGET=240` seconds after its load burst,
+in five-second increments, before failing with a message that points at the exact
+things to check (interceptor logs, the `Host` header match, the `HTTPScaledObject`'s
+own status). `demo-keda-kafka.sh` polls a `SCALE_UP_BUDGET=180` seconds for the climb
+off baseline, then a separate `SCALE_DOWN_BUDGET=300` seconds — in ten-second
+increments — for the drain back to baseline, which is deliberately wider than
+`cooldownPeriod: 120` to leave margin for KEDA's own `pollingInterval` and the HPA's
+downscale stabilization window on top of the manifest's nominal cooldown. The 180s
+scale-up budget itself has to absorb a chain of sequential, not parallel, requests:
+the load generator fires 60 requests one after another, and each one, in the worst
+case, can take as long as `order-service`'s synchronous gRPC call to
+`inventory-service` is willing to wait before giving up — `InventoryClient`'s
+`CALL_TIMEOUT` is 3 seconds — so a budget that only accounted for fast successful
+calls would be too tight the moment any of those 60 requests hits a slow path.
+
 Driving load for `demo-keda-kafka.sh` means POSTing to the real `/orders` endpoint on
 `order-service`, which performs a synchronous gRPC `CheckStock` against
 `inventory-service` before it publishes `order.placed`. That path is wired end-to-end
@@ -196,6 +256,8 @@ genuine application traffic to act on — the demo drives the real endpoint rath
 bypassing it with a raw Kafka producer, so any scale-up you observe is caused by the
 actual order flow. The scaler and manifest are correct and complete; a live scale-up on
 a real cluster remains the thing to confirm (see the verification note below).
+
+{% include excalidraw.html file="07-keda-http" alt="Diagram of demo-keda-http.sh driving a request burst through the interceptor proxy with the Host header set, polling graphql-gateway's replica count until it climbs off baseline within the 240-second scale-up budget" caption="Figure 7.4 — demo-keda-http.sh: burst load through the interceptor, polled against the scale-up budget" %}
 
 ## Resilience: recoverability as a platform property
 
@@ -264,6 +326,6 @@ has been run end to end here. Confirm on a real run: that
 broker); that with the now-correct gRPC wiring (canonical port 9000 +
 `inventory-service` Deployment) `POST /orders` succeeds in-cluster and
 `demo-keda-kafka.sh` drives real `order.placed` traffic, so the lag-based
-scale-up and scale-down actually land within the scripts' timing budgets; and
-that `demo-keda-http.sh`'s burst through the
+scale-up and scale-down actually land within the scripts' timing budgets (180s/300s);
+and that `demo-keda-http.sh`'s burst through the
 interceptor proxy actually wakes `graphql-gateway` from zero within its 240s budget.*
