@@ -1,0 +1,884 @@
+{
+	"info": {
+		"name": "DataMesh Reference Architecture (Quarkus)",
+		"description": "Newman/Postman collection exercising order-service, inventory-service, graphql-gateway, and review-service end-to-end: REST CRUD, gRPC-backed stock checks from order-service, GraphQL REST+gRPC federation from graphql-gateway, Bean Validation, and the OIDC-protected DELETE /reviews/{id} endpoint on review-service. See tooling/newman/run-newman.sh.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "order-service health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{orderBase}}/q/health",
+							"host": [
+								"{{orderBase}}"
+							],
+							"path": [
+								"q",
+								"health"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('status is UP', function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.status).to.eql('UP');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "inventory-service health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{inventoryBase}}/q/health",
+							"host": [
+								"{{inventoryBase}}"
+							],
+							"path": [
+								"q",
+								"health"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('status is UP', function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.status).to.eql('UP');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "gateway health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gatewayBase}}/q/health",
+							"host": [
+								"{{gatewayBase}}"
+							],
+							"path": [
+								"q",
+								"health"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('status is UP', function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.status).to.eql('UP');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "review-service health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{reviewBase}}/q/health",
+							"host": [
+								"{{reviewBase}}"
+							],
+							"path": [
+								"q",
+								"health"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('status is UP', function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.status).to.eql('UP');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Inventory",
+			"item": [
+				{
+					"name": "POST /stock WIDGET-1",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{inventoryBase}}/stock",
+							"host": [
+								"{{inventoryBase}}"
+							],
+							"path": [
+								"stock"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\"sku\": \"WIDGET-1\", \"quantityOnHand\": 50, \"available\": true}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('sku is WIDGET-1', function () {",
+									"    pm.expect(pm.response.json().sku).to.eql('WIDGET-1');",
+									"});",
+									"",
+									"pm.test('available is true', function () {",
+									"    pm.expect(pm.response.json().available).to.eql(true);",
+									"});",
+									"",
+									"pm.test('quantityOnHand is 50', function () {",
+									"    pm.expect(pm.response.json().quantityOnHand).to.eql(50);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /stock WIDGET-OOS",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{inventoryBase}}/stock",
+							"host": [
+								"{{inventoryBase}}"
+							],
+							"path": [
+								"stock"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\"sku\": \"WIDGET-OOS\", \"quantityOnHand\": 0, \"available\": false}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('available is false', function () {",
+									"    pm.expect(pm.response.json().available).to.eql(false);",
+									"});",
+									"",
+									"pm.environment.set('oosSku', 'WIDGET-OOS');"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /stock",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{inventoryBase}}/stock",
+							"host": [
+								"{{inventoryBase}}"
+							],
+							"path": [
+								"stock"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('response is an array', function () {",
+									"    pm.expect(Array.isArray(pm.response.json())).to.be.true;",
+									"});",
+									"",
+									"pm.test('contains WIDGET-1', function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.some(s => s.sku === 'WIDGET-1')).to.be.true;",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /stock/WIDGET-1",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{inventoryBase}}/stock/WIDGET-1",
+							"host": [
+								"{{inventoryBase}}"
+							],
+							"path": [
+								"stock",
+								"WIDGET-1"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('quantityOnHand is 50', function () {",
+									"    pm.expect(pm.response.json().quantityOnHand).to.eql(50);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /stock/NOPE-404",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{inventoryBase}}/stock/NOPE-404",
+							"host": [
+								"{{inventoryBase}}"
+							],
+							"path": [
+								"stock",
+								"NOPE-404"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Order",
+			"item": [
+				{
+					"name": "POST /orders (placed)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{orderBase}}/orders",
+							"host": [
+								"{{orderBase}}"
+							],
+							"path": [
+								"orders"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\"customerId\": \"cust-newman\", \"itemSku\": \"WIDGET-1\", \"quantity\": 2, \"amount\": 59.98}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('status is PLACED', function () {",
+									"    pm.expect(pm.response.json().status).to.eql('PLACED');",
+									"});",
+									"",
+									"pm.test('itemSku is WIDGET-1', function () {",
+									"    pm.expect(pm.response.json().itemSku).to.eql('WIDGET-1');",
+									"});",
+									"",
+									"pm.test('quantity is 2', function () {",
+									"    pm.expect(pm.response.json().quantity).to.eql(2);",
+									"});",
+									"",
+									"pm.environment.set('orderId', pm.response.json().orderId);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /orders/{{orderId}}",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{orderBase}}/orders/{{orderId}}",
+							"host": [
+								"{{orderBase}}"
+							],
+							"path": [
+								"orders",
+								"{{orderId}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('orderId matches', function () {",
+									"    pm.expect(pm.response.json().orderId).to.eql(pm.environment.get('orderId'));",
+									"});",
+									"",
+									"pm.test('amount is 59.98', function () {",
+									"    pm.expect(pm.response.json().amount).to.eql(59.98);",
+									"});",
+									"",
+									"pm.test('status is PLACED', function () {",
+									"    pm.expect(pm.response.json().status).to.eql('PLACED');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /orders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{orderBase}}/orders",
+							"host": [
+								"{{orderBase}}"
+							],
+							"path": [
+								"orders"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('response is an array', function () {",
+									"    pm.expect(Array.isArray(pm.response.json())).to.be.true;",
+									"});",
+									"",
+									"pm.test('contains orderId', function () {",
+									"    const json = pm.response.json();",
+									"    const orderId = pm.environment.get('orderId');",
+									"    pm.expect(json.some(o => o.orderId === orderId)).to.be.true;",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /orders (insufficient stock)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{orderBase}}/orders",
+							"host": [
+								"{{orderBase}}"
+							],
+							"path": [
+								"orders"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\"customerId\": \"cust-newman\", \"itemSku\": \"WIDGET-OOS\", \"quantity\": 1, \"amount\": 10.0}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 409', function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"",
+									"pm.test('body mentions insufficient stock', function () {",
+									"    pm.expect(pm.response.text()).to.include('insufficient stock');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /orders/{unknown-id} (404)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{orderBase}}/orders/00000000-0000-0000-0000-000000000000",
+							"host": [
+								"{{orderBase}}"
+							],
+							"path": [
+								"orders",
+								"00000000-0000-0000-0000-000000000000"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "GraphQL",
+			"item": [
+				{
+					"name": "POST /graphql order+stock federation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayBase}}/graphql",
+							"host": [
+								"{{gatewayBase}}"
+							],
+							"path": [
+								"graphql"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\"query\": \"{ order(id:\\\"{{orderId}}\\\") { id itemSku quantity stock { sku available quantityOnHand } } }\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('no graphql errors', function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.errors).to.be.undefined;",
+									"});",
+									"",
+									"pm.test('order.id matches', function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.data.order.id).to.eql(pm.environment.get('orderId'));",
+									"});",
+									"",
+									"pm.test('order.stock is present with boolean available', function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.data.order.stock).to.not.be.null;",
+									"    pm.expect(typeof json.data.order.stock.available).to.eql('boolean');",
+									"});",
+									"",
+									"pm.test('order.stock.sku matches order.itemSku', function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.data.order.stock.sku).to.eql(json.data.order.itemSku);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Review",
+			"item": [
+				{
+					"name": "POST /reviews (valid)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{reviewBase}}/reviews",
+							"host": [
+								"{{reviewBase}}"
+							],
+							"path": [
+								"reviews"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\"sku\": \"WIDGET-1\", \"rating\": 5, \"reviewer\": \"newman\", \"comment\": \"great\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('rating is 5', function () {",
+									"    pm.expect(pm.response.json().rating).to.eql(5);",
+									"});",
+									"",
+									"pm.test('sku is WIDGET-1', function () {",
+									"    pm.expect(pm.response.json().sku).to.eql('WIDGET-1');",
+									"});",
+									"",
+									"pm.environment.set('reviewId', String(pm.response.json().id));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /reviews (invalid rating)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{reviewBase}}/reviews",
+							"host": [
+								"{{reviewBase}}"
+							],
+							"path": [
+								"reviews"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\"sku\": \"WIDGET-1\", \"rating\": 9, \"reviewer\": \"newman\", \"comment\": \"bad rating\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /reviews?sku=WIDGET-1",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{reviewBase}}/reviews?sku=WIDGET-1",
+							"host": [
+								"{{reviewBase}}"
+							],
+							"path": [
+								"reviews"
+							],
+							"query": [
+								{
+									"key": "sku",
+									"value": "WIDGET-1"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('response is an array', function () {",
+									"    pm.expect(Array.isArray(pm.response.json())).to.be.true;",
+									"});",
+									"",
+									"pm.test('contains reviewId', function () {",
+									"    const json = pm.response.json();",
+									"    const reviewId = pm.environment.get('reviewId');",
+									"    pm.expect(json.some(r => String(r.id) === reviewId)).to.be.true;",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /reviews/{{reviewId}}",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{reviewBase}}/reviews/{{reviewId}}",
+							"host": [
+								"{{reviewBase}}"
+							],
+							"path": [
+								"reviews",
+								"{{reviewId}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('id matches', function () {",
+									"    pm.expect(String(pm.response.json().id)).to.eql(pm.environment.get('reviewId'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /reviews/{{reviewId}} (no auth)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{reviewBase}}/reviews/{{reviewId}}",
+							"host": [
+								"{{reviewBase}}"
+							],
+							"path": [
+								"reviews",
+								"{{reviewId}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status code is 401 (OIDC-protected, no Authorization header)', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}
