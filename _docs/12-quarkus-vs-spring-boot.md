@@ -277,9 +277,12 @@ build time.
 Being precise about the boundaries is what keeps the numbers honest:
 
 - **JVM only.** This is a JVM-to-JVM comparison — no native image on either
-  side. Quarkus's native story (sub-100 ms startup, tens of MB of RSS) is a
-  separate axis covered in [chapter 11]({{ '/docs/11-quarkus-capability-tour/' | relative_url }})
-  via `demo-native.sh`; it is deliberately kept out of this chapter so the
+  side, and **no native build was run for this project**. Quarkus's native
+  story (the commonly cited figures are sub-100 ms startup and tens of MB of
+  RSS — general Quarkus numbers, not measured here) is a separate axis you can
+  exercise yourself via the opt-in `demo-native.sh` (see
+  [chapter 11]({{ '/docs/11-quarkus-capability-tour/' | relative_url }})); it
+  is deliberately kept out of this chapter so the
   table compares like with like.
 - **Indicative, not a benchmark.** These are single-run measurements on one
   developer machine, with no JIT warm-up or averaging across runs. They show a
