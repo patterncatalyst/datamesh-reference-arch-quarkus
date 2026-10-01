@@ -1,8 +1,8 @@
 ---
 title: "Anti-patterns"
 order: 10
-marker: "09"
 part: Lessons & close
+marker: "10"
 description: "The conceptual and organizational ways data-mesh efforts go wrong, drawn from the literature — so you can recognize them early."
 duration: 15 minutes
 ---

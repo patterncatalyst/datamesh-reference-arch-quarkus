@@ -121,7 +121,7 @@ correct). Three checks were actually run:
    `v0.15.0` tag (the pinned add-on version) — fetched directly from
    GitHub. `scaleTargetRef.service` is required for `HTTPScaledObject`,
    and exactly one of `port`/`portName` must be set, both satisfied here.
-3. Names/namespace/ports were copied verbatim from `k8s/base/*.yaml`
+4. Names/namespace/ports were copied verbatim from `k8s/base/*.yaml`
    (step 9b), not invented.
 
 If a real cluster with the KEDA CRDs installed is available later, the

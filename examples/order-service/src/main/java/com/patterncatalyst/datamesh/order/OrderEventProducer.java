@@ -5,9 +5,12 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
+import org.jboss.logging.Logger;
 
 import capstone.order.v1.OrderPlaced;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
 import jakarta.inject.Inject;
 
 /**
@@ -15,10 +18,18 @@ import jakarta.inject.Inject;
  * Registry (DRQ-009) after an order has been durably persisted. Mirrors
  * {@code app/events.py::publish_order_placed} in the Python reference
  * architecture: publishing happens strictly after commit, and a publish
- * failure must never fail the already-committed order -- the caller
- * ({@link OrderResource}) treats this as best-effort and only logs on
- * failure. The dual-write gap this leaves is the outbox pattern's job in
- * production, not this example.
+ * failure must never fail the already-committed order -- this class treats
+ * it as best-effort and only logs on failure. The dual-write gap this
+ * leaves is the outbox pattern's job in production, not this example.
+ *
+ * <p>"Strictly after commit" is enforced, not just ordered-by-convention:
+ * {@link OrderResource#placeOrder} fires a CDI {@code Event<Order>} right
+ * after {@code order.persist()}, and {@link #onOrderPlaced} below observes
+ * it with {@code @Observes(during = TransactionPhase.AFTER_SUCCESS)}, a
+ * transactional observer that JTA only invokes once the surrounding
+ * {@code @Transactional} method's transaction has actually committed. Only
+ * that observer calls {@link #publish}; nothing calls it from inside the
+ * transaction.
  *
  * <p>The outgoing channel ({@code order-placed}, mapped to the
  * {@code order.placed} Kafka topic in {@code application.properties}) uses
@@ -32,9 +43,27 @@ import jakarta.inject.Inject;
 @ApplicationScoped
 public class OrderEventProducer {
 
+    private static final Logger LOG = Logger.getLogger(OrderEventProducer.class);
+
     @Inject
     @Channel("order-placed")
     Emitter<OrderPlaced> emitter;
+
+    /**
+     * Transactional observer: fires only after the transaction that
+     * persisted {@code order} has committed successfully (JTA
+     * {@code AFTER_SUCCESS} synchronization), so by the time this runs the
+     * order is already durable. A publish failure here must never roll
+     * back or otherwise affect the (already-committed) order -- it is
+     * logged and swallowed, same as before this was moved out of the
+     * caller's transaction.
+     */
+    void onOrderPlaced(@Observes(during = TransactionPhase.AFTER_SUCCESS) Order order) {
+        publish(order).exceptionally(ex -> {
+            LOG.warnf(ex, "failed to publish order.placed for %s", order.id);
+            return null;
+        });
+    }
 
     public CompletionStage<Void> publish(Order order) {
         OrderPlaced event = OrderPlaced.newBuilder()

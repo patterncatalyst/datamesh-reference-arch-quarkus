@@ -4,7 +4,7 @@ order: 7
 part: Operating the mesh
 description: "Evolving a data product's contract in the open with an Istio v1→v2 canary over the real mesh substrate, and the decision to mesh selectively rather than enable sidecar injection namespace-wide."
 duration: 30 minutes
-marker: "06"
+marker: "07"
 ---
 
 Data products evolve. A product whose contract can never change is one nobody builds

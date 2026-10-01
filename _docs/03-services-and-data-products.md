@@ -4,7 +4,7 @@ order: 4
 part: Building data products
 description: "The anatomy of a data product, order-service as the template built end to end, and inventory/review as further products that demonstrate the pattern varying by role."
 duration: 30 minutes
-marker: "03"
+marker: "04"
 ---
 
 A data mesh's central claim is that a domain team ships data the same way it

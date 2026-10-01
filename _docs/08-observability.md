@@ -1,10 +1,10 @@
 ---
-title: Observability
+title: "Observability"
 order: 9
 part: Operating the mesh
+marker: "09"
 description: "Metrics, distributed traces, and the live mesh view — the real LGTM stack and OpenTelemetry wiring this repo installs, and a verified cross-service trace."
 duration: 30 minutes
-marker: "08"
 ---
 
 The [previous chapter](/docs/07-elastic-and-resilient/) ended on scaling and recovery —

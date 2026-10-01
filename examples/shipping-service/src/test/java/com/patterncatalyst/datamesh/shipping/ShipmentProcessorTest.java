@@ -84,8 +84,21 @@ class ShipmentProcessorTest {
         assertTrue(dispatched.getQuantity() >= 1 && dispatched.getQuantity() <= 5);
     }
 
+    /**
+     * At-least-once delivery means the same {@code PaymentCaptured} event can
+     * be redelivered. A redelivery for an order that already has a {@link
+     * Shipment} must not insert a second row -- {@link
+     * ShipmentProcessor#process} looks the order up first and treats it as
+     * already-dispatched (mirrors notification-service's
+     * redelivery-is-idempotent guard). The redelivery may still re-emit a
+     * dispatch (reactive-messaging processors always produce an outgoing
+     * message per invocation), so this also asserts that redelivery's
+     * carrier/tracking/sku/quantity are identical to the first, i.e. it
+     * reflects the one persisted {@link Shipment}, not a freshly re-derived
+     * one.
+     */
     @Test
-    void assignsTheSameCarrierAndTrackingNumberForTheSameOrder() {
+    void redeliveryOfSameOrderIsIdempotent() {
         InMemorySource<PaymentCaptured> paymentsIn = connector.source(Topics.PAYMENT_CAPTURED_CHANNEL);
         InMemorySink<ShipmentDispatched> shipmentsOut = connector.sink(Topics.SHIPMENT_DISPATCHED_CHANNEL);
 
@@ -99,9 +112,20 @@ class ShipmentProcessorTest {
                 .build();
 
         paymentsIn.send(PaymentCaptured.newBuilder(template).build());
+
+        await().<List<? extends Message<ShipmentDispatched>>>until(shipmentsOut::received, received -> received.size() == 1);
+
         paymentsIn.send(PaymentCaptured.newBuilder(template).build());
 
+        // The redelivery is still processed and still re-emits a dispatch
+        // (reactive-messaging processors always produce an outgoing message
+        // per invocation); waiting for the second message is therefore a
+        // reliable sync point for "the redelivery has been fully handled".
         await().<List<? extends Message<ShipmentDispatched>>>until(shipmentsOut::received, received -> received.size() == 2);
+
+        // The core correctness property: the redelivery must not persist a
+        // second Shipment row for the same order.
+        assertEquals(1, Shipment.count("orderId", "order-789"));
 
         ShipmentDispatched first = shipmentsOut.received().get(0).getPayload();
         ShipmentDispatched second = shipmentsOut.received().get(1).getPayload();

@@ -177,7 +177,7 @@ docker compose --profile ollama up -d
 docker exec -it ollama ollama pull qwen2.5:3b   # first run only
 
 cd examples/ai-rules-service
-mvn quarkus:dev                   # or: mvn quarkus:dev -f ../pom.xml -pl ai-rules-service
+mvn quarkus:dev                   # or, from the repo root: mvn -pl ai-rules-service quarkus:dev -f examples/pom.xml
 
 curl -X POST http://localhost:8089/api/orders/triage \
   -H 'Content-Type: application/json' \

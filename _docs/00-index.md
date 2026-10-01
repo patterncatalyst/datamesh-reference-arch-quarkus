@@ -21,7 +21,7 @@ at the right chapter.
 
 ## How the tutorial is organized
 
-The fourteen chapters fall into five parts. **Part 0, Foundations** (this part) grounds
+The sixteen chapters fall into six parts. **Part 0, Foundations** (this part) grounds
 the landscape of data architectures, what a data mesh is, and why Kubernetes is a
 natural substrate for one. **Part 1, Building data products** builds the services and
 their data products: the contracts and catalog that make them discoverable, and the data
@@ -31,8 +31,10 @@ with mutual TLS, elastic scaling and recovery, and the observability to see it a
 even when the technology is sound, then closes by reorganizing the same material by
 principle. **Part 4, The Quarkus deep-dive** is specific to this rebuild: a tour of the
 Quarkus capabilities the services exercise, a side-by-side comparison against the Spring
-Boot twin service, and a look at the three different orchestration styles the domain
-services demonstrate side by side.
+Boot twin service, and a look at the three different coordination styles the domain
+services demonstrate side by side. **Part 5, How this was built** turns the lens on the
+build itself — the agentic Plan/Execute/Validate relay that wrote and verified
+everything in Parts 1 through 4.
 
 ## Part 0 — Foundations
 
@@ -40,61 +42,70 @@ services demonstrate side by side.
 - [**01 · Data architectures**]({{ '/docs/01-data-architectures/' | relative_url }}) —
   The landscape from pipelines to warehouses to lakes to mesh — what each pattern is, the
   problem it solves, and why the mesh is a different kind of answer.
-- [**01 · Concepts & principles**]({{ '/docs/01-concepts/' | relative_url }}) —
+- [**02 · Concepts & principles**]({{ '/docs/01-concepts/' | relative_url }}) —
   What a data mesh is, operational versus analytical data, and Dehghani's four
   principles. The grounding before any commands.
-- [**02 · Kubernetes as the substrate**]({{ '/docs/02-kubernetes-substrate/' | relative_url }}) —
+- [**03 · Kubernetes as the substrate**]({{ '/docs/02-kubernetes-substrate/' | relative_url }}) —
   Why the four principles map cleanly onto namespaces, operators, RBAC, and platform
   primitives, and the shape of the minikube substrate this build stands up with Docker.
 
 ## Part 1 — Building data products
 
-- [**03 · Services & data products**]({{ '/docs/03-services-and-data-products/' | relative_url }}) —
+- [**04 · Services & data products**]({{ '/docs/03-services-and-data-products/' | relative_url }}) —
   The anatomy of a data product, the domain services plus the GraphQL gateway, and the
   order-service template the others follow.
-- [**04 · Contracts & the catalog**]({{ '/docs/04-contracts-and-catalog/' | relative_url }}) —
+- [**05 · Contracts & the catalog**]({{ '/docs/04-contracts-and-catalog/' | relative_url }}) —
   Versioned Avro contracts in the Apicurio registry, the runtime-versus-discovery
   distinction, and why a catalog is a mesh requirement rather than an add-on.
-- [**05 · The data planes**]({{ '/docs/05-data-planes/' | relative_url }}) —
+- [**06 · The data planes**]({{ '/docs/05-data-planes/' | relative_url }}) —
   The synchronous read layer (REST, gRPC, a GraphQL gateway) and the asynchronous event
   backbone, and why the build uses all of them.
 
 ## Part 2 — Operating the mesh
 
-- [**06 · Progressive delivery & mTLS**]({{ '/docs/06-progressive-delivery-mtls/' | relative_url }}) —
+- [**07 · Progressive delivery & mTLS**]({{ '/docs/06-progressive-delivery-mtls/' | relative_url }}) —
   Evolving a contract in the open with a canary, mTLS for free from the service mesh, and
   the decision to mesh selectively rather than namespace-wide.
-- [**07 · Elastic & resilient**]({{ '/docs/07-elastic-and-resilient/' | relative_url }}) —
+- [**08 · Elastic & resilient**]({{ '/docs/07-elastic-and-resilient/' | relative_url }}) —
   Scaling to demand and to zero with KEDA, and the cloud-native recoverability the
   platform provides.
-- [**08 · Observability**]({{ '/docs/08-observability/' | relative_url }}) —
+- [**09 · Observability**]({{ '/docs/08-observability/' | relative_url }}) —
   Metrics, distributed traces across products, and the live view of traffic moving
   through the mesh.
 
 ## Part 3 — Lessons & close
 
-- [**09 · Anti-patterns**]({{ '/docs/09-anti-patterns/' | relative_url }}) —
+- [**10 · Anti-patterns**]({{ '/docs/09-anti-patterns/' | relative_url }}) —
   The conceptual and organizational ways data-mesh efforts go wrong, so you can recognize
   them early.
-- [**10 · Summary**]({{ '/docs/10-summary/' | relative_url }}) —
+- [**11 · Summary**]({{ '/docs/10-summary/' | relative_url }}) —
   Each principle, reorganized: the value it delivers, the implementation pieces that
   realize it, and the failure mode when it's missing.
 
 ## Part 4 — The Quarkus deep-dive
 
-- [**11 · Quarkus capability tour**]({{ '/docs/11-quarkus-capability-tour/' | relative_url }}) —
+- [**12 · Quarkus capability tour**]({{ '/docs/11-quarkus-capability-tour/' | relative_url }}) —
   A tour of the Quarkus capabilities the domain services exercise side by side — Panache,
-  gRPC, GraphQL, Reactive Messaging, Camel-on-Quarkus, langchain4j/MCP, WebSockets.Next,
-  OIDC, and native compilation.
-- [**12 · Quarkus vs. Spring Boot**]({{ '/docs/12-quarkus-vs-spring-boot/' | relative_url }}) —
+  gRPC, GraphQL, Reactive Messaging, WebSockets.Next, unified Vert.x reactive/imperative
+  execution, continuous testing with Dev Services, native compilation, OIDC, and JBang
+  prototyping.
+- [**13 · Quarkus vs. Spring Boot**]({{ '/docs/12-quarkus-vs-spring-boot/' | relative_url }}) —
   The one runnable Spring Boot twin service this build ships, and the side-by-side
   startup-time, memory, and native-build numbers it produces.
-- [**13 · Orchestration styles**]({{ '/docs/13-orchestration-styles/' | relative_url }}) —
+- [**14 · Orchestration styles**]({{ '/docs/13-orchestration-styles/' | relative_url }}) —
   The same order-to-shipment domain, coordinated three different ways: Kafka
   choreography, a Camel route, and a Quarkus Flow workflow.
-- [**14 · AI rules triage**]({{ '/docs/14-ai-rules-triage/' | relative_url }}) —
+- [**15 · AI rules triage**]({{ '/docs/14-ai-rules-triage/' | relative_url }}) —
   The `ai-rules-service` triage flow — classification plus a rules decision — exercised
   through both the Camel route and the Quarkus Flow workflow from the previous chapter.
+
+## Part 5 — How this was built
+
+- [**16 · How this was built: the agentic relay**]({{ '/docs/15-agentic-relay/' | relative_url }}) —
+  The third showroom dimension: the Plan (Opus) → Execute (Sonnet, fan-out) →
+  Validate (Opus) model relay that built and tested this repo, and the real
+  defects independent re-verification caught that a subagent's own report
+  would have missed.
 
 ## Who this is for
 

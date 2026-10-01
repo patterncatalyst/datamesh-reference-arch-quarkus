@@ -4,7 +4,7 @@ order: 5
 part: Building data products
 description: "Versioned Avro and Protobuf contracts in a shared contracts module and Apicurio registry, and why a discovery catalog is a mesh requirement even though it isn't built yet."
 duration: 35 minutes
-marker: "04"
+marker: "05"
 ---
 
 The previous chapter established that each service is a data product. A

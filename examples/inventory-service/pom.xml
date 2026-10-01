@@ -93,6 +93,46 @@
         <groupId>${quarkus.platform.group-id}</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
       </plugin>
+      <!-- Parent pom's pluginManagement pins the failsafe version + UTC
+           system property reactor-wide but does NOT bind any executions
+           (only surefire's default test-compile/test lifecycle binding and
+           the quarkus-maven-plugin's build/generate-code executions are
+           bound there). Without this execution, *IT classes (e.g.
+           InventoryCheckStockWireIT) are compiled by test-compile but
+           failsafe never runs them under `mvn verify`. Bind
+           integration-test+verify explicitly here, mirroring
+           order-service/pom.xml's identical binding (DRQ-011). No Avro
+           SERIALIZABLE_PACKAGES system property is needed here, unlike
+           order-service's binding: inventory-service's IT drives a plain
+           io.grpc ManagedChannel/blocking stub against the packaged
+           service's gRPC port, not a raw Avro-encoded Kafka record. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <!-- InventoryCheckStockWireIT is a @QuarkusIntegrationTest: it
+                 launches the packaged quarkus-run.jar as a SEPARATE process,
+                 which does NOT inherit this test JVM's user.timezone=UTC
+                 (set in the parent pom's surefire/failsafe config). Without
+                 UTC, the PostgreSQL JDBC driver forwards the host's legacy
+                 Olson zone (e.g. US/Eastern) as the connection TimeZone,
+                 which postgres:18 rejects ("FATAL: invalid value for
+                 parameter TimeZone"), so Hibernate can't connect and the app
+                 fails to start (DRQ-011). quarkus.test.arg-line forwards the
+                 JVM arg to the launched integration-test process. -->
+            <quarkus.test.arg-line>-Duser.timezone=UTC</quarkus.test.arg-line>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>

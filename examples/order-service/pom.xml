@@ -49,6 +49,13 @@
       <artifactId>quarkus-rest-jackson</artifactId>
     </dependency>
 
+    <!-- Bean Validation (OrderCreate -> 400 on violation, parity with
+         review-service's quarkus-hibernate-validator usage). -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-hibernate-validator</artifactId>
+    </dependency>
+
     <!-- Persistence: Panache-owned Order entity + Postgres (Dev Services in dev/test) -->
     <dependency>
       <groupId>io.quarkus</groupId>

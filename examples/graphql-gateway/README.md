@@ -66,9 +66,11 @@ No `.proto` file is duplicated in this module — see `contracts/README.md`.
 
 ## order-service contract
 
-**order-service is still a placeholder module in this reactor** (DRQ-008).
-`OrderRestClient` and `GatewayApi.order(id)` assume that once built,
-`GET /orders/{id}` returns:
+order-service is a fully implemented module in this reactor (real Panache
+persistence, gRPC stock check, `order.placed` Avro event emission — see
+`examples/order-service/README.md`). `OrderRestClient` and
+`GatewayApi.order(id)` federate against its real `GET /orders/{id}`
+endpoint, which returns:
 
 - `200` with a JSON body whose fields match
   `com.patterncatalyst.datamesh.domain.OrderDto`'s record components
@@ -82,8 +84,11 @@ No `.proto` file is duplicated in this module — see `contracts/README.md`.
 ## Local run
 
 ```properties
-# defaults target port-forwards / local processes; override per environment
-ORDER_SERVICE_URL=http://localhost:8081
+# defaults target port-forwards / local processes; override per environment.
+# order-service runs on 8091 in this reactor's demos/compose stack --
+# 8081 is already taken by the Apicurio Schema Registry's compose host port
+# (infra/.env's APICURIO_PORT), so don't reuse it here.
+ORDER_SERVICE_URL=http://localhost:8091
 INVENTORY_GRPC_HOST=localhost
 INVENTORY_GRPC_PORT=9000
 ```
@@ -98,4 +103,5 @@ mvn -pl graphql-gateway -am quarkus:dev -f examples/pom.xml
 (`@InjectMock @RestClient`) and the `inventory` gRPC blocking stub
 (`@InjectMock @GrpcClient("inventory")`) and asserts the federated response
 via REST Assured against `/graphql` — it exercises the gateway's own
-stitching logic, not the (not-yet-built) downstream services.
+stitching logic in isolation, with the real order-service/inventory-service
+calls mocked out rather than run against live downstream services.

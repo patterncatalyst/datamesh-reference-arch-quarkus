@@ -45,13 +45,17 @@ never hardcoded string literals in `ShipmentProcessor`.
 Both channels serialize through `io.apicurio.registry.serde.avro.*` (via the
 `quarkus-apicurio-registry-avro` extension), not JSON. `value.serializer` /
 `value.deserializer` and `apicurio.registry.use-specific-avro-reader` are all
-**autodetected** by Quarkus from the `@Incoming`/`@Outgoing` payload types
-plus the extension being on the classpath — they are intentionally *not* set
-in `application.properties` (verified against the Quarkus 3.39.5
-`kafka-schema-registry-avro.adoc` guide's "serialization-autodetection"
-section). The one property that must be set explicitly is
-`apicurio.registry.auto-register=true` on the outgoing channel, so the
-`ShipmentDispatched` schema registers itself with Apicurio on first publish.
+set **explicitly** in `application.properties`, not left to Quarkus's
+autodetection. order-service empirically proved that autodetection silently
+falls back to a Jackson (JSON) serializer here: two Apicurio artifacts
+(`apicurio-registry-avro-serde-kafka` + `apicurio-registry-serde-common-avro`)
+share the `io.apicurio.registry.serde.avro` package (flagged by the build's
+own `SplitPackageProcessor` warning), which breaks Quarkus's serde
+autodetection (`kafka-schema-registry-avro.adoc`,
+"serialization-autodetection"). Explicit keys are required here to keep
+events Avro on the wire (DRQ-009). `apicurio.registry.auto-register=true` is
+also set on the outgoing channel, so the `ShipmentDispatched` schema
+registers itself with Apicurio on first publish.
 
 In dev and test mode, both Kafka and the Apicurio Registry are started
 automatically via Dev Services — no local broker or registry needed.

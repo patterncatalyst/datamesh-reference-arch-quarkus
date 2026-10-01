@@ -83,7 +83,7 @@ ollama pull qwen2.5:3b
 ollama serve                      # http://localhost:11434 by default
 
 cd examples/ai-mcp-service
-mvn quarkus:dev                   # or: mvn quarkus:dev -f ../pom.xml -pl ai-mcp-service
+mvn quarkus:dev                   # or, from the repo root: mvn -pl ai-mcp-service quarkus:dev -f examples/pom.xml
 
 curl -X POST http://localhost:8088/api/orders/classify \
   -H 'Content-Type: application/json' \
@@ -110,6 +110,7 @@ curl -X POST http://localhost:8088/api/assistant/chat \
   not part of the default build:
 
   ```bash
+  # from the repo root
   mvn failsafe:integration-test failsafe:verify \
-    -Dollama.tests.enabled=true -f ../pom.xml -pl ai-mcp-service
+    -Dollama.tests.enabled=true -f examples/pom.xml -pl ai-mcp-service
   ```

@@ -4,7 +4,7 @@ order: 14
 part: The Quarkus deep-dive
 description: "Three coordination engines over the same shipping/order domain — Kafka choreography, a Camel route, and a declarative Quarkus Flow workflow — teaching when decentralized reaction beats a named coordinator, and when it doesn't."
 duration: 50 minutes
-marker: "13"
+marker: "14"
 ---
 
 Every event-driven system eventually has to answer one question: when

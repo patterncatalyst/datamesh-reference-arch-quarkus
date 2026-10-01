@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
+import org.jboss.logging.Logger;
 
 import capstone.payment.v1.PaymentCaptured;
 import capstone.shipping.v1.ShipmentDispatched;
@@ -33,9 +34,17 @@ import jakarta.transaction.Transactional;
  * deterministically from the order id as well, which is sufficient for the
  * reference architecture without pulling in a cross-service query just for
  * this example.
+ *
+ * <p>At-least-once delivery means the same {@code PaymentCaptured} event can
+ * be redelivered; dispatch is idempotent on the order id -- a redelivery
+ * looks up the {@link Shipment} already persisted for that order instead of
+ * inserting a second one (mirrors notification-service's {@code
+ * OrderPlacedConsumer} redelivery guard).
  */
 @ApplicationScoped
 public class ShipmentProcessor {
+
+    private static final Logger LOG = Logger.getLogger(ShipmentProcessor.class);
 
     private static final List<String> CARRIERS = List.of("UPS", "FedEx", "DHL", "USPS");
     private static final List<String> SKUS = List.of("SKU-WIDGET", "SKU-GADGET", "SKU-GIZMO", "SKU-DOOHICKEY");
@@ -47,6 +56,13 @@ public class ShipmentProcessor {
     @Transactional
     public ShipmentDispatched process(PaymentCaptured paymentCaptured) {
         String orderId = paymentCaptured.getOrderId();
+
+        Shipment existingShipment = Shipment.findByOrderId(orderId);
+        if (existingShipment != null) {
+            LOG.infof("skipping duplicate delivery for order %s (already dispatched)", orderId);
+            return toDispatched(existingShipment);
+        }
+
         String customerId = paymentCaptured.getCustomerId();
         String carrier = pick(CARRIERS, orderId, 0);
         String itemSku = pick(SKUS, orderId, 1);
@@ -65,16 +81,20 @@ public class ShipmentProcessor {
         shipment.dispatchedAt = dispatchedAt;
         shipment.persist();
 
+        return toDispatched(shipment);
+    }
+
+    private static ShipmentDispatched toDispatched(Shipment shipment) {
         return ShipmentDispatched.newBuilder()
                 .setEventType("shipment.dispatched")
-                .setOrderId(orderId)
-                .setCustomerId(customerId)
-                .setItemSku(itemSku)
-                .setQuantity(quantity)
-                .setCarrier(carrier)
-                .setTrackingNumber(trackingNumber)
-                .setStatus(DISPATCHED_STATUS)
-                .setCreatedAt(dispatchedAt.toString())
+                .setOrderId(shipment.orderId)
+                .setCustomerId(shipment.customerId)
+                .setItemSku(shipment.itemSku)
+                .setQuantity(shipment.quantity)
+                .setCarrier(shipment.carrier)
+                .setTrackingNumber(shipment.trackingNumber)
+                .setStatus(shipment.status)
+                .setCreatedAt(shipment.dispatchedAt.toString())
                 .build();
     }
 

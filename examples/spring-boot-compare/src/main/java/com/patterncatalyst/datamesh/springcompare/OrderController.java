@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.patterncatalyst.datamesh.domain.OrderCreate;
 import com.patterncatalyst.datamesh.domain.OrderDto;
+
+import jakarta.validation.Valid;
 
 /**
  * Order data product REST endpoints -- the Spring Boot twin of the Quarkus
@@ -39,18 +42,18 @@ public class OrderController {
 
     private final OrderRepository orderRepository;
     private final StockChecker stockChecker;
-    private final OrderEventProducer eventProducer;
+    private final ApplicationEventPublisher eventPublisher;
 
     public OrderController(OrderRepository orderRepository, StockChecker stockChecker,
-            OrderEventProducer eventProducer) {
+            ApplicationEventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
         this.stockChecker = stockChecker;
-        this.eventProducer = eventProducer;
+        this.eventPublisher = eventPublisher;
     }
 
     @PostMapping
     @Transactional
-    public ResponseEntity<?> placeOrder(@RequestBody OrderCreate payload) {
+    public ResponseEntity<?> placeOrder(@Valid @RequestBody OrderCreate payload) {
         StockChecker.StockResult stock;
         try {
             stock = stockChecker.check(payload.itemSku(), payload.quantity());
@@ -72,11 +75,17 @@ public class OrderController {
                 payload.amount());
         orderRepository.save(order);
 
-        // Emit only after the order is durably persisted. A publish failure
-        // must not fail the order -- it's already committed. The dual-write
-        // gap this leaves is the outbox pattern's job in production (see
-        // OrderEventProducer).
-        eventProducer.publish(order);
+        // Publish an application event rather than calling OrderEventProducer
+        // directly here. OrderEventProducer listens with
+        // @TransactionalEventListener(phase = AFTER_COMMIT), so the actual
+        // Kafka publish only runs once this method's transaction has
+        // committed -- the order is genuinely durable by the time anyone
+        // downstream sees order.placed. A publish failure must not fail
+        // this (already-committed) order; see OrderEventProducer. The
+        // dual-write gap this leaves (commit succeeds, process crashes
+        // before the listener runs) is the transactional outbox pattern's
+        // job in production, not this example.
+        eventPublisher.publishEvent(order);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(toDto(order));
     }

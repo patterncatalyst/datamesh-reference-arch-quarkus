@@ -90,11 +90,12 @@ scripts**, not invented ones:
 `kafka.bootstrap.servers` and `apicurio.registry.url` config keys via
 relaxed env-var binding. `QUARKUS_DATASOURCE_JDBC_URL` likewise needs no
 properties change (it's a first-class Quarkus datasource property). `JDBC_URL`
-is also set, matching the literal name used in `_plans/decisions.md`, but it
-only takes effect once `application.properties` gains something like
-`%prod.quarkus.datasource.jdbc.url=${JDBC_URL}` — that line does not exist
-yet in `order-service`/`notification-service` as of this step; flagged as a
-follow-up outside this manifest-only step's scope.
+is also set, matching the literal name used in `_plans/decisions.md`, and is
+wired in both `order-service`'s and `notification-service`'s
+`application.properties` (`%prod.quarkus.datasource.jdbc.url=${JDBC_URL:...}`,
+`order-service` line 51 / `notification-service` line 36), so the ConfigMap
+value takes effect against the real `%prod` datasource with no further
+follow-up needed.
 
 **DB username/password** come from the **CloudNativePG-managed Secret**
 `datamesh-postgres-app` (auto-created in the `datamesh` namespace by the

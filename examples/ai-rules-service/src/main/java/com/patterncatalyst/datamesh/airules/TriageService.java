@@ -136,8 +136,20 @@ public class TriageService {
             kieSession.dispose();
         }
 
+        // Defensive fallback: every rule in order-triage.drl guards on
+        // `decision == null` and the default rule (salience 10) always
+        // fires if none of the others do, so fact.getDecision() is never
+        // actually null today. But an edited DRL that drops or
+        // mis-guards the default rule must not NPE here -- fail safe by
+        // treating an unset decision as FRAUD_HOLD (hold for manual
+        // review) rather than silently routing an unreviewed order to
+        // fulfillment.
+        TriageDecision.Decision decision = fact.getDecision() != null
+            ? TriageDecision.Decision.valueOf(fact.getDecision())
+            : TriageDecision.Decision.FRAUD_HOLD;
+
         return new TriageDecision(
-            TriageDecision.Decision.valueOf(fact.getDecision()),
+            decision,
             fact.getReason(),
             fact.getCategory(),
             fact.getPriority(),

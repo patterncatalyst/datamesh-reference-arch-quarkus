@@ -1,5 +1,7 @@
 package com.patterncatalyst.datamesh.airules;
 
+import java.time.Duration;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -22,6 +24,6 @@ public class OrderTriageFlowRunner {
     public TriageDecision run(OrderCreate order) {
         return workflow.startInstance(order)
             .onItem().transform(model -> model.as(TriageDecision.class).orElseThrow())
-            .await().indefinitely();
+            .await().atMost(Duration.ofSeconds(120));
     }
 }

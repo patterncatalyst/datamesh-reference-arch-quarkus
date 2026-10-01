@@ -12,11 +12,17 @@ import jakarta.persistence.Entity;
  * shipping service would own a richer aggregate -- but it demonstrates that
  * the choreography step also updates the service's own data product, not
  * just the outbound event.
+ *
+ * <p>{@code order_id} is unique: at-least-once delivery means the same
+ * {@code PaymentCaptured} event can be redelivered, and {@link
+ * ShipmentProcessor} dedupes redeliveries via {@link #findByOrderId} before
+ * inserting a new row (mirrors notification-service's {@code Notification}
+ * entity).
  */
 @Entity
 public class Shipment extends PanacheEntity {
 
-    @Column(name = "order_id")
+    @Column(name = "order_id", nullable = false, unique = true)
     public String orderId;
 
     @Column(name = "customer_id")
@@ -35,4 +41,8 @@ public class Shipment extends PanacheEntity {
 
     @Column(name = "dispatched_at")
     public Instant dispatchedAt;
+
+    public static Shipment findByOrderId(String orderId) {
+        return find("orderId", orderId).firstResult();
+    }
 }

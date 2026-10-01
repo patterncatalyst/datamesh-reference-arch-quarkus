@@ -4,7 +4,7 @@ order: 2
 part: Foundations
 description: "What a data mesh is, operational vs. analytical data, and Dehghani's four principles — the conceptual grounding before any commands."
 duration: "20 min"
-marker: "01"
+marker: "02"
 ---
 
 The [previous chapter]({{ '/docs/01-data-architectures/' | relative_url }}) covered the
