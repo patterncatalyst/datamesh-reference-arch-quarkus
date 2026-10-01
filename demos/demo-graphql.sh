@@ -247,23 +247,20 @@ narrate "confirmed: one GraphQL query fanned out to order-service (REST) AND"
 narrate "inventory-service (gRPC) and returned both halves, error-free:"
 narrate "order ${ORDER_ID} (WIDGET-2) with live stock quantityOnHand=${STOCK_QOH} available=${STOCK_AVAILABLE}"
 
-# Negative control: unknown order id. GatewayApi.order()'s own Javadoc says
-# it returns a raw jakarta.ws.rs.core.Response (not an OrderDto) specifically
-# "so GatewayApi can distinguish a 404 ... without needing a
-# ResponseExceptionMapper", implying a clean `return null` for a 404. FOUND
-# wiring this demo (confirmed empirically, with
+# Negative control: unknown order id. GatewayApi.order() used to have an
+# `if (response.getStatus() == NOT_FOUND) return null` branch, but that
+# branch was unreachable dead code (confirmed empirically, with
 # quarkus.smallrye-graphql.show-runtime-exception-message enabled for a
 # one-off debug run): Quarkus's MP REST Client still throws a
 # WebApplicationException ("Received: 'Not Found, status code 404' ...") for
-# ANY non-2xx response even when the method return type is Response -- the
-# `if (response.getStatus() == NOT_FOUND) return null` branch in GatewayApi
-# is unreachable dead code. SmallRye GraphQL then catches that exception at
-# the field resolver level and nulls out the (nullable) `order` field while
-# ALSO reporting a DataFetchingException in `.errors` -- so the client-
-# visible end result (`.data.order == null`) matches what the code's intent
-# was, but via error recovery, not a clean return. This demo asserts what
-# ACTUALLY happens (null data + a reported error), not the originally
-# intended-but-unreachable code path.
+# ANY non-2xx response even when the method return type is Response. The
+# dead branch has since been removed (see OrderRestClient's Javadoc).
+# SmallRye GraphQL catches that exception at the field resolver level and
+# nulls out the (nullable) `order` field while ALSO reporting a
+# DataFetchingException in `.errors` -- so the client-visible end result
+# (`.data.order == null`) is reached via error recovery, not a clean
+# return. This demo asserts what ACTUALLY happens (null data + a reported
+# error).
 step "negative control: unknown order id -- .data.order is null (see note above)"
 GQL_NULL_QUERY='{"query":"{ order(id: \"does-not-exist\") { id } }"}'
 GQL_NULL_RESP="$(curl -fsS --max-time 15 -X POST "${GATEWAY_BASE}/graphql" \
@@ -273,7 +270,7 @@ info "response: $GQL_NULL_RESP"
 assert_json_field "$GQL_NULL_RESP" '.data.order' 'null'
 assert_json_field "$GQL_NULL_RESP" '.errors[0].extensions.classification' 'DataFetchingException'
 narrate "confirmed: unknown order id -> .data.order is null (via a reported"
-narrate "DataFetchingException, not a clean 404-to-null branch -- see the"
-narrate "GatewayApi.order() dead-code finding above)"
+narrate "DataFetchingException, not a clean 404-to-null branch -- the dead"
+narrate "branch in GatewayApi.order() has been removed)"
 
 demo_ok
