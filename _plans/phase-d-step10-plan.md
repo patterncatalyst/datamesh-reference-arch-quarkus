@@ -44,7 +44,7 @@ Design decisions:
 | 10.0 | Shared harness `demos/lib/_demo.sh` + `demos/README.md` | — | todo |
 | 10.1 | Embedded-Drools light probe (drools-core + trivial `.drl`, JDK25/Q3.39.5) | — | **done — GO**: Drools 10.2.0 works on JDK25. Deps: `drools-bom:10.2.0` (import) + `drools-engine:10.2.0` + **`drools-mvel:10.2.0`** (required — ConstraintBuilder SPI). Recipe: in-memory `KieHelper.build()` → `KieBase` at `StartupEvent`, `KieSession` per request. Skews trivial. JVM-only. |
 | 10.2 | `examples/ai-rules-service` module: Camel `OrderTriageRoute` + `.drl` + isolated Drools unit test (in `mvn verify`, no Ollama) + opt-in Ollama IT | 10.1 | todo |
-| 10.1b | Quarkus Flow version/compat spike (quarkus-flow-bom on Q3.39.5/JDK25; coexist w/ camel-quarkus+langchain4j) | — | todo |
+| 10.1b | Quarkus Flow version/compat spike (quarkus-flow-bom on Q3.39.5/JDK25; coexist w/ camel-quarkus+langchain4j) | — | **done — GO**: `quarkus-flow-bom:1.1.3` imported LAST (after langchain4j→quarkus→camel), `quarkus-flow` version-less. No kogito/kie/drools pulled; no conflicts; serverlessworkflow-api 7.32.1.Final. Wire steps via `FlowDSL.function(name, bean::method)` + `switchCase(caseOf(...).then(...), caseDefault(...))`; **terminate branches with `.then(FlowDirectiveEnum.END)`** or they fall through. JVM clean on JDK25. |
 | 10.2b | DRQ-014: add Quarkus Flow orchestration of triage to `ai-rules-service` (`POST /api/orders/triage-flow`), reuse DRL + classify + facts; unit test the workflow path | 10.2, 10.1b | todo |
 | 10.3 | `demos/demo-ai-triage.sh` showcase — assert decision enum on BOTH `/triage` (Camel) and `/triage-flow` (Flow); DEF-001-proof | 10.2, 10.2b | todo |
 | 10.4 | Honest `demo-ai-classify.sh` + `demo-ai-mcp.sh` (MCP path + caveat) | 10.0 | todo |

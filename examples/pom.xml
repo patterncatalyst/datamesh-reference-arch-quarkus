@@ -68,6 +68,7 @@
     <module>review-service</module>
     <module>graphql-gateway</module>
     <module>ai-mcp-service</module>
+    <module>ai-rules-service</module>
   </modules>
 
   <dependencyManagement>

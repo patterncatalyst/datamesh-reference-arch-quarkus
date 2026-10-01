@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.patterncatalyst.datamesh</groupId>
+    <artifactId>datamesh-examples-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>ai-rules-service</artifactId>
+  <packaging>jar</packaging>
+
+  <name>DataMesh :: AI Rules Service</name>
+  <description>
+    DRQ-012 showcase: Camel-on-Quarkus + langchain4j (single-shot
+    langchain4j-chat classify, NO agent/tool-calling) + plain embedded Drools
+    10.2.0. An incoming order is classified/extracted by Ollama into a small
+    structured fact (category/priority/riskSignal); a Drools rule set --
+    NOT the LLM -- makes the deterministic business decision (FRAUD_HOLD,
+    EXPEDITE, ROUTE_TO_WAREHOUSE). Because the business decision is made by
+    rules rather than by an in-process langchain4j tool-calling round trip,
+    this module sidesteps DEF-001 entirely (see ai-mcp-service and
+    _plans/decisions.md) -- it has no langchain4j-agent, ai-tool, or
+    mcp-server dependency and structurally cannot regress into that
+    deferral. All Quarkus/Camel/langchain4j BOM versions are inherited from
+    the parent (../pom.xml); this module does NOT re-pin them. Drools is NOT
+    inherited from the parent -- it is managed in this module's own
+    dependencyManagement via drools-bom:10.2.0 (plain embedded Drools, no
+    Kogito/KIE Quarkus extension -- see DRQ-012 in _plans/decisions.md).
+  </description>
+
+  <properties>
+    <drools.version>10.2.0</drools.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- DRQ-012: plain embedded Drools, managed locally, NOT inherited
+           from the parent reactor pom, which only manages the Quarkus/
+           Camel/langchain4j BOM family. -->
+      <dependency>
+        <groupId>org.drools</groupId>
+        <artifactId>drools-bom</artifactId>
+        <version>${drools.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.patterncatalyst.datamesh</groupId>
+      <artifactId>domain-model</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-rest</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-platform-http</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-direct</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-log</artifactId>
+    </dependency>
+    <!-- Single-shot classify only, deliberately NO camel-quarkus-ai-tool,
+         camel-quarkus-langchain4j-agent, or camel-quarkus-mcp-server. This
+         module structurally cannot regress into DEF-001 (no in-process
+         tool-calling round trip exists to fail). -->
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-langchain4j-chat</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkiverse.langchain4j</groupId>
+      <artifactId>quarkus-langchain4j-ollama</artifactId>
+    </dependency>
+
+    <!-- DRQ-012: plain embedded Drools 10.2.0, NOT the Kogito/KIE Quarkus
+         extension. drools-mvel is REQUIRED (not optional): the MVEL-backed
+         ConstraintBuilder SPI it provides is what KieHelper#build() needs at
+         runtime; without it, PatternBuilder throws
+         UnsupportedOperationException while compiling the DRL. -->
+    <dependency>
+      <groupId>org.drools</groupId>
+      <artifactId>drools-engine</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.drools</groupId>
+      <artifactId>drools-mvel</artifactId>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
