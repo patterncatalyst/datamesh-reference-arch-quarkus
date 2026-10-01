@@ -35,7 +35,7 @@ layout: default
       {%- if this_part -%}
         <a href="{{ this_part.url | relative_url }}">{{ this_part.title }}</a>
       {%- else -%}
-        <a href="{{ '/docs/00-prerequisites/' | relative_url }}">Tutorial</a>
+        <a href="{{ '/docs/00-index/' | relative_url }}">Tutorial</a>
       {%- endif -%}
       <span class="breadcrumb__sep">/</span>
       <span class="breadcrumb__current">{{ page.title }}</span>
@@ -54,8 +54,10 @@ layout: default
           {%- endif -%}
           {%- if page.label -%}
             <span class="chip">{{ page.label }}</span>
+          {%- elsif page.order == 0 -%}
+            <span class="chip">Overview</span>
           {%- else -%}
-            <span class="chip">Chapter {{ page.order }}</span>
+            <span class="chip">Chapter {{ page.marker | default: page.order }}</span>
           {%- endif -%}
           {%- if page.part -%}<span class="chip chip--accent">{{ page.part }}</span>{%- endif -%}
         </div>

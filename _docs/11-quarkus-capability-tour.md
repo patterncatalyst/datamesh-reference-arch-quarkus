@@ -4,7 +4,7 @@ order: 12
 part: The Quarkus deep-dive
 description: "Panache, gRPC, GraphQL, Reactive Messaging, WebSockets.Next, unified Vert.x reactive/imperative execution, continuous testing, native compilation, OIDC, and JBang — each anchored to a real endpoint or demo in this reactor."
 duration: 45 minutes
-marker: "11"
+marker: "12"
 ---
 
 Every chapter so far has used Quarkus as plumbing. This one stops and looks

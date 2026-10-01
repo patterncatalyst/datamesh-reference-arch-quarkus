@@ -31,6 +31,12 @@ import capstone.payment.v1.PaymentCaptured;
  * generated payment id, mirroring the order's amount and customer. A real
  * payment service would call out to a payment gateway and could fail/decline
  * a capture; that branching is out of scope for this capstone slice.
+ *
+ * <p>At-least-once delivery means the same {@code OrderPlaced} event can be
+ * redelivered; capture is idempotent on the order id -- a redelivery returns
+ * the payment already captured for that order instead of minting a second
+ * one (mirrors notification-service's {@code OrderPlacedConsumer} redelivery
+ * guard).
  */
 @ApplicationScoped
 public class PaymentProcessor {
@@ -49,14 +55,22 @@ public class PaymentProcessor {
     @Incoming(Topics.ORDER_PLACED_CHANNEL)
     @Outgoing(Topics.PAYMENT_CAPTURED_CHANNEL)
     public PaymentCaptured process(OrderPlaced orderPlaced) {
+        String orderId = orderPlaced.getOrderId();
+
+        PaymentCaptured existing = paymentStore.findByOrderId(orderId);
+        if (existing != null) {
+            LOG.infof("skipping duplicate delivery for order %s (already captured)", orderId);
+            return existing;
+        }
+
         String paymentId = "pay-" + UUID.randomUUID();
 
         LOG.infof("Capturing payment %s for order %s (customer=%s, amount=%s)",
-                paymentId, orderPlaced.getOrderId(), orderPlaced.getCustomerId(), orderPlaced.getAmount());
+                paymentId, orderId, orderPlaced.getCustomerId(), orderPlaced.getAmount());
 
         PaymentCaptured captured = PaymentCaptured.newBuilder()
                 .setEventType(PAYMENT_CAPTURED_EVENT_TYPE)
-                .setOrderId(orderPlaced.getOrderId())
+                .setOrderId(orderId)
                 .setCustomerId(orderPlaced.getCustomerId())
                 .setAmount(orderPlaced.getAmount())
                 .setStatus(CAPTURED_STATUS)

@@ -4,7 +4,7 @@ order: 13
 part: The Quarkus deep-dive
 description: "The same order-service data product, rebuilt as a Spring Boot twin, measured side by side on the JVM — startup time and resident memory, with an honest account of what is and isn't being compared."
 duration: 40 minutes
-marker: "12"
+marker: "13"
 ---
 
 Every claim about a framework is cheap until you run the same workload on

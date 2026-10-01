@@ -9,6 +9,9 @@ import org.jboss.logging.Logger;
 import capstone.order.v1.OrderPlaced;
 import io.quarkus.websockets.next.OpenConnections;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
@@ -27,6 +30,16 @@ import jakarta.transaction.Transactional;
  * write is idempotent -- if a {@link Notification} already exists for the
  * order id, the redelivery is a no-op (mirrors the Python reference's
  * {@code ON CONFLICT DO NOTHING} behavior).
+ *
+ * <p>The WebSocket push (see {@link #onNotificationPersisted}) is fired as a
+ * CDI event right after {@code notification.persist()} and observed with
+ * {@code @Observes(during = TransactionPhase.AFTER_SUCCESS)}, so it only
+ * runs once this method's transaction has actually committed -- the same
+ * transactional-observer pattern used for the {@code order.placed} Kafka
+ * publish in order-service's {@code OrderEventProducer}. This is what makes
+ * {@link OrderNotificationSocket}'s "reports an already-committed event"
+ * claim true: before this, the push ran synchronously inside the
+ * {@code @Transactional} method, i.e. strictly before commit.
  */
 @ApplicationScoped
 public class OrderPlacedConsumer {
@@ -39,6 +52,9 @@ public class OrderPlacedConsumer {
     // consumer commits it -- a real, event-driven push, not a poll.
     @Inject
     OpenConnections wsConnections;
+
+    @Inject
+    Event<Notification> notificationPersistedEvent;
 
     @Incoming("order-placed")
     @Transactional
@@ -62,13 +78,35 @@ public class OrderPlacedConsumer {
 
         LOG.infof("persisted notification for order %s (%s)", orderId, event.getEventType());
 
-        // Push to every open WebSocket client -- see OrderNotificationSocket.
-        // WebSockets.Next serializes the Notification entity to JSON the
-        // same way the REST layer does (Jackson). Best-effort like the rest
-        // of this consumer's side effects: a client that isn't listening
-        // right now simply misses this push (no retry/queue), which is the
-        // expected semantics for a live notification feed.
-        wsConnections.listAll().forEach(connection -> connection.sendTextAndAwait(notification));
+        // Fire rather than push directly: onNotificationPersisted below only
+        // runs after THIS transaction commits (see class Javadoc), so the
+        // WebSocket broadcast can never race ahead of the durable write.
+        notificationPersistedEvent.fire(notification);
+    }
+
+    /**
+     * Transactional observer: pushes {@code notification} to every open
+     * {@code /ws/notifications} connection only after the transaction that
+     * persisted it has committed successfully (JTA {@code AFTER_SUCCESS}
+     * synchronization) -- see {@link OrderNotificationSocket}.
+     *
+     * <p>Uses the non-blocking {@code Sender#sendText} (a
+     * {@code Uni<Void>}) rather than {@code sendTextAndAwait}: this observer
+     * runs synchronously as part of transaction completion on the Reactive
+     * Messaging consumer thread, and awaiting each client send in a loop
+     * would block that thread for longer than necessary. Subscribing
+     * fire-and-forget keeps the existing best-effort semantics (a client
+     * that isn't listening right now simply misses this push -- no
+     * retry/queue) without adding blocking I/O to the commit path.
+     */
+    void onNotificationPersisted(@Observes(during = TransactionPhase.AFTER_SUCCESS) Notification notification) {
+        wsConnections.listAll().forEach(connection -> connection.sendText(notification)
+                .subscribe().with(
+                        ignored -> {
+                        },
+                        failure -> LOG.warnf(failure,
+                                "failed to push notification for order %s to a WebSocket client",
+                                notification.orderId)));
     }
 
     private static BigDecimal parseAmount(String amount) {

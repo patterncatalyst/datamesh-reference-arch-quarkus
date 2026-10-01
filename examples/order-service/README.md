@@ -52,8 +52,11 @@ version (not guessed):
 quarkus.generate-code.grpc.scan-for-proto=com.patterncatalyst.datamesh:contracts
 
 # gRPC client used by @GrpcClient("inventory")
-quarkus.grpc.clients.inventory.host=localhost
-quarkus.grpc.clients.inventory.port=9001
+# Env-overridable so compose/K8s can point at the real inventory-service
+# without a code change; 9000 matches inventory-service's server default --
+# do NOT reintroduce 9001 (the old mismatch that broke %prod/K8s).
+quarkus.grpc.clients.inventory.host=${INVENTORY_GRPC_HOST:localhost}
+quarkus.grpc.clients.inventory.port=${INVENTORY_GRPC_PORT:9000}
 
 # Kafka outgoing channel -> order.placed topic, Avro via Apicurio
 mp.messaging.outgoing.order-placed.connector=smallrye-kafka
@@ -62,26 +65,33 @@ mp.messaging.outgoing.order-placed.apicurio.registry.auto-register=true
 ```
 
 The Avro serializer itself
-(`io.apicurio.registry.serde.avro.AvroKafkaSerializer`) is **not** set
-explicitly -- Quarkus autodetects it from the `@Channel("order-placed")
-Emitter<OrderPlaced>` declaration (`OrderPlaced` is an Avro
-`SpecificRecord`) plus the presence of `quarkus-apicurio-registry-avro` on
-the classpath. This is the documented behavior (`kafka-schema-registry-avro.adoc`,
-"The Movie producer"), not an omission.
+(`io.apicurio.registry.serde.avro.AvroKafkaSerializer`) **is set explicitly**
+as `mp.messaging.outgoing.order-placed.value.serializer` in
+`application.properties` -- it is not left to autodetection here. This build
+pulls an older `apicurio-registry-serdes-avro-serde` transitively alongside
+the expected serde (confirmed via the build's own
+`io.quarkus.arc.deployment.SplitPackageProcessor` warning for
+`io.apicurio.registry.serde.avro`), which makes Quarkus's serializer
+autodetection (`kafka-schema-registry-avro.adoc`,
+"serialization-autodetection") ambiguous; verified empirically, the
+unconfigured build logged "Generating Jackson serializer for type
+capstone.order.v1.OrderPlaced" -- a silent fallback to JSON that would
+violate DRQ-009. Setting `value.serializer` explicitly avoids that fallback.
 
 Kafka and the Apicurio Schema Registry are both provided by Quarkus Dev
 Services (Testcontainers) automatically in dev/test; inventory-service must
 be running separately at `quarkus.grpc.clients.inventory.host`/`.port`
-above (`localhost:9001` locally) for `POST /orders` to succeed end to end.
+above (`localhost:9000` locally, overridable via `INVENTORY_GRPC_HOST`/
+`INVENTORY_GRPC_PORT`) for `POST /orders` to succeed end to end.
 
 ## Building and running
 
 ```bash
-# from the examples/ reactor root
-mvn -pl order-service package -f pom.xml
+# from the repo root
+mvn -pl order-service package -f examples/pom.xml
 
 # dev loop (needs inventory-service reachable for POST /orders to succeed)
-mvn -pl order-service quarkus:dev -f pom.xml
+mvn -pl order-service quarkus:dev -f examples/pom.xml
 ```
 
 ## Testing

@@ -344,4 +344,87 @@ const save = (name, svg) => {
   save("14-ai-rules-triage", s);
 })();
 
+/* ========== 15. AGENTIC RELAY: PLAN (OPUS) -> EXECUTE (SONNET, FAN-OUT) -> VALIDATE (OPUS) ========== */
+(() => {
+  const s = new SVG(1180, 700);
+  s.title(
+    "The agentic relay — Plan (Opus) → Execute (Sonnet, fan-out) → Validate (Opus)",
+    "A subagent's report is a claim, not evidence — validation reads the real diff and runs the real build, independent of the executor's own summary"
+  );
+
+  const marginX = 40;
+
+  // PLAN
+  const planW = 230, planX = marginX, planY = 90, planH = 90;
+  s.rect(planX, planY, planW, planH, "blue");
+  s.text(planX + planW / 2, planY + 26, "PLAN — Opus", { size: 13, anchor: "middle", weight: 700, fill: "#1a3a6a" });
+  s.lines(planX + 16, planY + 48, ["approach + steps +", "checkable acceptance criteria"], { size: 10, fill: "#3a3a3a", lh: 15 });
+
+  // human gate
+  const gateX = planX + planW + 30, gateW = 150;
+  s.arrow(planX + planW, planY + planH / 2, gateX, planY + planH / 2, { color: "#2c5aa0", marker: "arrB", w: 1.8 });
+  s.plainRect(gateX, planY + 10, gateW, planH - 20, "#ffffff", "#5a3a0a", { rx: 6, dash: "5 3" });
+  s.text(gateX + gateW / 2, planY + 34, "HUMAN GATE", { size: 10.5, anchor: "middle", weight: 700, fill: "#5a3a0a" });
+  s.lines(gateX + 14, planY + 54, ["approve the plan", "before code is written"], { size: 9, fill: "#5a3a0a", lh: 13 });
+
+  // EXECUTE fan-out — N file-disjoint executors
+  const execLabelX = gateX + gateW + 30;
+  s.arrow(gateX + gateW, planY + planH / 2, execLabelX, planY + planH / 2, { color: "#5a3a0a", marker: "arr", w: 1.8 });
+
+  const execColX = execLabelX, execColW = 330;
+  s.text(execColX + execColW / 2, 70, "EXECUTE — Sonnet, one agent per file-disjoint step", { size: 12, anchor: "middle", weight: 700, fill: "#2a5a1a" });
+
+  const execRows = [
+    "order-service",
+    "inventory-service + review-service",
+    "payment-service",
+    "shipping-service",
+    "notification-service",
+    "graphql-gateway",
+    "ai-mcp-service",
+  ];
+  const execTop = 92, execH = 36, execGap = 8;
+  execRows.forEach((name, i) => {
+    const y = execTop + i * (execH + execGap);
+    s.plainRect(execColX, y, execColW, execH, "#ffffff", "#5a8a3a", { rx: 6 });
+    s.text(execColX + 14, y + 23, name, { size: 10.5, fill: "#2a5a1a", weight: 700 });
+    s.text(execColX + execColW - 14, y + 23, "checkpoint commit", { size: 8.5, anchor: "end", italic: true, fill: "#666666" });
+  });
+
+  // converge into validate
+  const valX = execColX + execColW + 60, valW = 230, valY = 90, valH = 90;
+  execRows.forEach((_, i) => {
+    const y = execTop + i * (execH + execGap) + execH / 2;
+    s.arrow(execColX + execColW, y, valX, valY + valH / 2, { color: "#5a8a3a", marker: "arrG", w: 1.3 });
+  });
+
+  s.rect(valX, valY, valW, valH, "red");
+  s.text(valX + valW / 2, valY + 26, "VALIDATE — Opus", { size: 13, anchor: "middle", weight: 700, fill: "#a8331f" });
+  s.lines(valX + 16, valY + 48, ["reads the real diff, runs the", "real build — not the report"], { size: 10, fill: "#3a3a3a", lh: 15 });
+
+  // repair loop feedback edge (capped at 2)
+  const repairY = valY + valH + 40;
+  s.parts.push(`<path d="M ${valX + valW / 2} ${valY + valH} C ${valX + valW / 2} ${repairY + 20}, ${execColX + execColW / 2} ${repairY + 20}, ${execColX + execColW / 2} ${execTop + execRows.length * (execH + execGap)}" fill="none" stroke="#c14a3a" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#arrR)"/>`);
+  s.text((valX + execColX + execColW) / 2, repairY + 36, "repair round (capped at 2) — a 3rd failure means the PLAN was wrong", {
+    size: 10, anchor: "middle", italic: true, fill: "#a8331f", weight: 700,
+  });
+
+  // PR rail across the bottom
+  const railY = 560, railH = 54;
+  s.rect(marginX, railY, 1180 - 2 * marginX, railH, "tan");
+  s.text(marginX + 20, railY + 23, "EVERY PHASE RIDES THE SAME RAIL:", { size: 9.5, weight: 700, fill: "#8a7a5a" });
+  s.text(marginX + 20, railY + 41, "branch → checkpoint commits → PR → squash-merge to main  (this build: 14 PRs, #1–#14, Phases A–E)", {
+    size: 11, fill: "#5a3a0a", weight: 700,
+  });
+
+  // caption row: the thesis
+  s.plainRect(marginX, 632, 1180 - 2 * marginX, 46, "#151515", "#151515", { rx: 8 });
+  s.text(590, 660, "A subagent's report is a claim, not evidence — the method's value is the independent verification, not the first draft", {
+    size: 12.5, anchor: "middle", weight: 700, fill: "#ffffff",
+  });
+
+  s.footer("Subagents don't inherit skills or model tier — every executor prompt restates conventions; every nested Agent call states its model explicitly.");
+  save("15-agentic-relay", s);
+})();
+
 console.log("DONE");

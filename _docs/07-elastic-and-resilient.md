@@ -4,7 +4,7 @@ order: 8
 part: Operating the mesh
 description: "Scaling two real data products to demand — and to zero — with KEDA, the manifests and demos that prove it, and the recoverability Kubernetes gives a product for free."
 duration: 30 minutes
-marker: "07"
+marker: "08"
 ---
 
 A data product's demand is not constant. An event consumer has work only when events

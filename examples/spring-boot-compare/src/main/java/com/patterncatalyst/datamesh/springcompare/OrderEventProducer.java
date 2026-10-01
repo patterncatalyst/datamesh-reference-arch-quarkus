@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import com.patterncatalyst.datamesh.domain.Topics;
 
@@ -18,9 +20,18 @@ import capstone.order.v1.OrderPlaced;
  * Registry (DRQ-009) after an order has been durably persisted. Mirrors
  * {@code OrderEventProducer} in the Quarkus order-service: publishing
  * happens strictly after commit, and a publish failure must never fail the
- * already-committed order -- {@link OrderController} treats this as
- * best-effort and only logs on failure. The dual-write gap this leaves is
- * the outbox pattern's job in production, not this example.
+ * already-committed order -- this class treats it as best-effort and only
+ * logs on failure. The dual-write gap this leaves is the outbox pattern's
+ * job in production, not this example.
+ *
+ * <p>"Strictly after commit" is enforced, not just ordered-by-convention:
+ * {@link OrderController#placeOrder} publishes an {@code ApplicationEvent}
+ * (the raw {@link OrderEntity}) right after {@code orderRepository.save(...)},
+ * and {@link #onOrderPlaced} below is a
+ * {@code @TransactionalEventListener(phase = AFTER_COMMIT)}, which Spring
+ * only invokes once the surrounding {@code @Transactional} method's
+ * transaction has actually committed. Only that listener calls
+ * {@link #publish}; nothing calls it from inside the transaction.
  *
  * <p>The topic name comes from {@link Topics#ORDER_PLACED_TOPIC} (the same
  * shared constant the Quarkus side's channel-to-topic mapping resolves to),
@@ -39,6 +50,20 @@ public class OrderEventProducer {
 
     public OrderEventProducer(KafkaTemplate<String, OrderPlaced> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
+    }
+
+    /**
+     * Transactional listener: invoked only after the transaction that
+     * persisted {@code order} has committed successfully (Spring's
+     * {@code AFTER_COMMIT} phase), so by the time this runs the order is
+     * already durable. A publish failure here must never roll back or
+     * otherwise affect the (already-committed) order -- it is logged and
+     * swallowed by {@link #publish}, same as before this was moved out of
+     * the caller's transaction.
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onOrderPlaced(OrderEntity order) {
+        publish(order);
     }
 
     public CompletableFuture<SendResult<String, OrderPlaced>> publish(OrderEntity order) {

@@ -4,7 +4,7 @@ order: 6
 part: Building data products
 description: "The asynchronous Kafka backbone and the synchronous GraphQL read layer that federates REST and gRPC — two planes, and why Camel's EIPs are the right lens for the routing logic inside each."
 duration: 30 minutes
-marker: "05"
+marker: "06"
 ---
 
 Services expose contracts, and the previous chapter covered how those

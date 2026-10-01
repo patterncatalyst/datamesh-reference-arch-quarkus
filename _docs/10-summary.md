@@ -1,8 +1,8 @@
 ---
 title: "Summary — the four principles, realized"
 order: 11
-marker: "10"
 part: Lessons & close
+marker: "11"
 description: "A closing summary — for each of the four data-mesh principles, the value it delivers, the Quarkus pieces in this repo that realize it, and what happens without it."
 duration: 12 minutes
 ---

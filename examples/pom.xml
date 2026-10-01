@@ -51,12 +51,7 @@
     <surefire-plugin.version>3.5.2</surefire-plugin.version>
   </properties>
 
-  <!--
-    Batch A (this build) creates only domain-model and contracts.
-    Every remaining module is listed up front per DRQ-008 so later executors
-    only need to fill in the directory. Do NOT run a full reactor build
-    until those directories exist (see examples/README or _plans/build-plan.md).
-  -->
+  <!-- All 11 modules below are implemented; this is a full reactor build. -->
   <modules>
     <module>domain-model</module>
     <module>contracts</module>

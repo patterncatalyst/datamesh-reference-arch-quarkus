@@ -4,7 +4,7 @@ order: 3
 part: Foundations
 description: "Why Kubernetes is a natural substrate for a data mesh, how the four principles map onto namespaces, operators, and RBAC, and the Docker-built minikube substrate this build stands up."
 duration: "25 min"
-marker: "02"
+marker: "03"
 ---
 
 The [previous chapter]({{ '/docs/01-concepts/' | relative_url }}) ended on a claim worth

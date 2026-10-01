@@ -4,7 +4,7 @@ order: 15
 part: The Quarkus deep-dive
 description: "An LLM extracts structured fields from an order; a deterministic Drools rule set makes the actual business decision — plus an honest accounting of where in-process langchain4j tool-calling does and doesn't work on this stack."
 duration: 45 minutes
-marker: "14"
+marker: "15"
 ---
 
 The previous chapter used `ai-rules-service`'s two triage endpoints as the

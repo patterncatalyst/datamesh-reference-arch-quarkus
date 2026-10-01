@@ -11,8 +11,10 @@ import com.patterncatalyst.datamesh.domain.OrderDto;
 import capstone.inventory.v1.Inventory.CheckStockResponse;
 import io.grpc.StatusRuntimeException;
 import io.quarkus.panache.common.Sort;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -44,13 +46,19 @@ public class OrderResource {
     @Inject
     InventoryClient inventoryClient;
 
+    // Fired after order.persist() below and observed by OrderEventProducer
+    // ONLY once this method's surrounding transaction has committed (see
+    // OrderEventProducer#onOrderPlaced) -- this is what makes the
+    // order.placed Kafka publish happen strictly after the order is
+    // durable, instead of racing ahead of the commit from inside this
+    // @Transactional method.
     @Inject
-    OrderEventProducer eventProducer;
+    Event<Order> orderPlacedEvent;
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Transactional
-    public Response placeOrder(OrderCreate payload) {
+    public Response placeOrder(@Valid OrderCreate payload) {
         CheckStockResponse stock;
         try {
             stock = inventoryClient.checkStock(payload.itemSku(), payload.quantity());
@@ -73,14 +81,17 @@ public class OrderResource {
         Order order = Order.create(payload.customerId(), payload.itemSku(), payload.quantity(), payload.amount());
         order.persist();
 
-        // r25: emit only after the order is durably persisted. A publish
-        // failure must not fail the order -- it's already committed. The
-        // dual-write gap this leaves is the outbox pattern's job in
-        // production (see OrderEventProducer).
-        eventProducer.publish(order).exceptionally(ex -> {
-            LOG.warnf(ex, "failed to publish order.placed for %s", order.id);
-            return null;
-        });
+        // r25: fire a CDI event rather than publishing to Kafka directly
+        // here. OrderEventProducer observes this event with
+        // @Observes(during = TransactionPhase.AFTER_SUCCESS), so the actual
+        // publish only runs once the transaction wrapping this method has
+        // committed -- the order is genuinely durable by the time anyone
+        // downstream sees order.placed. A publish failure must not fail
+        // this (already-committed) order; see OrderEventProducer. The
+        // dual-write gap this leaves (commit succeeds, process crashes
+        // before the observer runs) is the transactional outbox pattern's
+        // job in production, not this example.
+        orderPlacedEvent.fire(order);
 
         return Response.status(Response.Status.CREATED).entity(toDto(order)).build();
     }

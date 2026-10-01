@@ -13,6 +13,8 @@ import java.net.http.HttpResponse;
 import org.junit.jupiter.api.Test;
 
 import capstone.inventory.v1.Inventory.CheckStockResponse;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
@@ -67,6 +69,25 @@ class OrderResourceTest {
                 .when().post("/orders")
                 .then()
                 .statusCode(409);
+    }
+
+    @Test
+    void placeOrder_returns503_whenInventoryUnreachable() {
+        // Finding L6: InventoryClient#checkStock propagates a
+        // StatusRuntimeException uncaught when inventory-service is
+        // unreachable/times out; OrderResource must fail closed (503)
+        // rather than place an order it couldn't validate -- see
+        // OrderResource#placeOrder's try/catch and InventoryClient's class
+        // Javadoc.
+        when(inventoryClient.checkStock("sku-unreachable", 1))
+                .thenThrow(new StatusRuntimeException(Status.UNAVAILABLE.withDescription("inventory-service unreachable")));
+
+        given()
+                .contentType("application/json")
+                .body("{\"customerId\":\"cust-unreachable\",\"itemSku\":\"sku-unreachable\",\"quantity\":1,\"amount\":9.99}")
+                .when().post("/orders")
+                .then()
+                .statusCode(503);
     }
 
     @Test

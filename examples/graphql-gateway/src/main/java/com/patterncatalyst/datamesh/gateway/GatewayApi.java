@@ -1,5 +1,7 @@
 package com.patterncatalyst.datamesh.gateway;
 
+import java.util.concurrent.TimeUnit;
+
 import org.eclipse.microprofile.graphql.GraphQLApi;
 import org.eclipse.microprofile.graphql.Name;
 import org.eclipse.microprofile.graphql.Query;
@@ -48,10 +50,11 @@ public class GatewayApi {
      * that don't select {@code stock}.
      */
     public StockView stock(@Source OrderView order) {
-        CheckStockResponse response = inventoryClient.checkStock(CheckStockRequest.newBuilder()
-                .setSku(order.itemSku())
-                .setQuantity(order.quantity())
-                .build());
+        CheckStockResponse response = inventoryClient.withDeadlineAfter(3, TimeUnit.SECONDS)
+                .checkStock(CheckStockRequest.newBuilder()
+                        .setSku(order.itemSku())
+                        .setQuantity(order.quantity())
+                        .build());
         return new StockView(order.itemSku(), response.getQuantityOnHand(), response.getAvailable());
     }
 }

@@ -78,6 +78,16 @@
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
 
+    <!-- Bean Validation (OrderCreate -> 400 on violation, parity with the
+         Quarkus order-service's quarkus-hibernate-validator usage). NOT
+         pulled in transitively by spring-boot-starter-web; Boot ships
+         the Hibernate Validator implementation only via this dedicated
+         starter. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
     <!-- Persistence: JPA-owned OrderEntity + Postgres (Quarkus twin uses
          Panache; Spring has no equivalent active-record layer in scope, so
          this is plain Spring Data JPA). -->

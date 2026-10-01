@@ -79,8 +79,8 @@ curl -s 'localhost:8080/reviews?sku=SKU-ABC-42'
 ## Test
 
 ```bash
-# from examples/pom.xml (reactor)
-mvn -pl review-service test -f ../pom.xml
+# from the repo root
+mvn -pl review-service test -f examples/pom.xml
 ```
 
 `ReviewResourceTest` (`@QuarkusTest`) covers: successful creation, rating

@@ -25,7 +25,19 @@
 
   <dependencies>
     <!-- No Quarkus runtime dependency needed: this module contains plain
-         records/enums/constants only. -->
+         records/enums/constants only.
+
+         jakarta.validation-api IS a compile dependency, though: OrderCreate
+         carries Bean Validation annotations (@NotBlank/@Positive/etc.) so
+         every consumer gets the same constraints for free. This is the
+         framework-agnostic *annotation* API only (no validator
+         implementation, no Quarkus/Spring runtime pulled in); version is
+         inherited from the parent reactor's quarkus-bom import
+         (dependencyManagement), not re-pinned here. -->
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
