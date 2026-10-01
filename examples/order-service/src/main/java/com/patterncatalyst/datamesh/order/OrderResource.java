@@ -85,7 +85,12 @@ public class OrderResource {
         return Response.status(Response.Status.CREATED).entity(toDto(order)).build();
     }
 
+    // Explicit WILDCARD so this bodyless GET isn't matched against the
+    // sibling POST method's @Consumes(APPLICATION_JSON) -- without it,
+    // RESTEasy Reactive 415s any request whose Content-Type isn't JSON
+    // (e.g. hey's default text/html) even though GET has no body to parse.
     @GET
+    @Consumes(MediaType.WILDCARD)
     public List<OrderDto> listOrders() {
         return Order.<Order>listAll(Sort.by("createdAt").descending())
                 .stream()
@@ -95,6 +100,7 @@ public class OrderResource {
 
     @GET
     @Path("/{id}")
+    @Consumes(MediaType.WILDCARD)
     public Response getOrder(@PathParam("id") String id) {
         Order order = Order.findById(id);
         if (order == null) {
