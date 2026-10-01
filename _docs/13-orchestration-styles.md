@@ -137,13 +137,15 @@ bridges this back to the REST layer:
 public TriageDecision run(OrderCreate order) {
     return workflow.startInstance(order)
         .onItem().transform(model -> model.as(TriageDecision.class).orElseThrow())
-        .await().indefinitely();
+        .await().atMost(Duration.ofSeconds(120));
 }
 ```
 
 `startInstance(order)` returns a `Uni` (Flow instances run asynchronously);
-`.await().indefinitely()` blocks the calling thread until the workflow
-completes, then `.as(TriageDecision.class)` unwraps the workflow's final
+`.await().atMost(Duration.ofSeconds(120))` blocks the calling thread until the
+workflow completes (with a bounded timeout rather than an unbounded wait, so a
+stuck instance fails the request instead of hanging it), then
+`.as(TriageDecision.class)` unwraps the workflow's final
 model back into the exact same response shape `/triage` returns. Both
 endpoints call the identical `TriageService.classify`/`decide` methods — the
 workflow does not reimplement any part of the classify-or-decide logic as,

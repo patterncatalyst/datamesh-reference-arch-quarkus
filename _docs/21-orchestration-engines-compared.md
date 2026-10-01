@@ -367,8 +367,7 @@ is still `@Disabled` for the stated reason (no independently launchable
 container image for `payment-service`/`shipping-service` in this reactor) on
 the current `main`, since fixing that gap would invalidate this appendix's
 "full chain can't be ITed" claim; that `OrderTriageFlowRunner.run` still
-awaits with `Duration.ofSeconds(120)` rather than blocking indefinitely, since
-the chapter 13 text quotes an older `.await().indefinitely()` form that no
-longer matches this file; and that neither `OrderTriageRoute` nor
+awaits with `Duration.ofSeconds(120)` rather than blocking indefinitely; and
+that neither `OrderTriageRoute` nor
 `OrderTriageWorkflow` has since grown an `.onException()`/retry/compensation
 clause that would make the "unexercised failure handling" section stale.*
