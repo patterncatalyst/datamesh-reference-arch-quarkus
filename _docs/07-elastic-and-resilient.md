@@ -261,8 +261,9 @@ live minikube cluster was available while writing this chapter, so neither KEDA 
 has been run end to end here. Confirm on a real run: that
 `notification-service`'s runtime consumer-group id is actually
 `notification-service` (documented Quarkus default, not confirmed against a live
-broker); that `demo-keda-kafka.sh` reproduces the documented substrate gap (100% `503`
-from `POST /orders`, zero scale-up) exactly as described, and that fixing the gRPC
-client wiring is enough to make the lag-based scale-up and scale-down actually land
-within the scripts' timing budgets; and that `demo-keda-http.sh`'s burst through the
+broker); that with the now-correct gRPC wiring (canonical port 9000 +
+`inventory-service` Deployment) `POST /orders` succeeds in-cluster and
+`demo-keda-kafka.sh` drives real `order.placed` traffic, so the lag-based
+scale-up and scale-down actually land within the scripts' timing budgets; and
+that `demo-keda-http.sh`'s burst through the
 interceptor proxy actually wakes `graphql-gateway` from zero within its 240s budget.*
