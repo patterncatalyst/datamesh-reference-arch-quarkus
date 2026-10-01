@@ -7,7 +7,7 @@ description: Read this FIRST after a context compaction or restart to resume the
 
 **Read this first after any /compact or restart.** Then read
 [build-plan.md](build-plan.md) (steps + status table) and
-[decisions.md](decisions.md) (DRQ-001…008).
+[decisions.md](decisions.md) (DRQ-001…015).
 
 ## What this is
 Building NEW repo `datamesh-reference-arch-quarkus`: rebuild the Python DataMesh
@@ -26,9 +26,11 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
 
 ## Repo location + git state
 - Repo: `/home/rsedor/Dev/datamesh-reference-arch-quarkus`
-- Branch: `build/initial-scaffold` (NOT pushed — publish to
-  github.com/patterncatalyst/datamesh-reference-arch-quarkus PUBLIC only after
-  user approval, Step 17).
+- Default branch: `main`. **Repo is PUBLIC and live**:
+  https://github.com/patterncatalyst/datamesh-reference-arch-quarkus (it was
+  already public — no separate "flip" was needed at Step 17).
+- Workflow: branch per step → commit (Conventional Commits, no attribution) →
+  push → PR → squash-merge to `main`. All phases through Step 14 merged.
 - Commit checkpoints per step; commit messages Conventional Commits, no attribution.
 
 ## Progress
@@ -73,11 +75,39 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
     brought up on a live cluster (heavy — deferred to a real minikube run).
   - **Validation:** full `mvn verify -f examples/pom.xml` GREEN — 22 tests, 0 fail,
     0 error (21 Phase-B + DEF-002 IT). Ran with compose down + test-port overrides.
+- **Phase D — DONE + VALIDATED** (steps 10–13), all merged to `main` via PRs #4–#10:
+  - **Step 10 demos:** full `demos/` suite + `walkthrough.sh`. Step-10 review findings
+    F1–F7 all resolved: F1/F1b (Avro `SERIALIZABLE_PACKAGES` via `JAVA_TOOL_OPTIONS`),
+    F2 (order→inventory gRPC canonical **9000** + `k8s/base/inventory-service.yaml`),
+    F3 (import.sql %prod — won't-fix/documented), F4/F5/F6/F7 (LOW, fixed).
+  - **Step 11 chapters:** 16 tutorial chapters (`_docs/`) + 5 parts (`_parts/`), each
+    ≥2000 prose words; includes DRQ-015 three-engines (ch13), AI+rules (ch14), and the
+    **Spring Boot twin** `examples/spring-boot-compare` (DRQ-006, JVM-only, measured:
+    Quarkus 1.54s/314MB vs Spring Boot 3.21s/494MB via `scripts/compare-quarkus-springboot.sh`).
+  - **Step 12 diagrams:** 36 paired SVG+Excalidraw in `assets/diagrams/` (27 reused from
+    the Python repo relabeled to the Quarkus/K8s stack, 5 adapted, 4 new), terracotta house
+    style (`scripts/svglib.js`); embedded across the chapters.
+  - **Step 13 decks:** `presentation/datamesh-101/` (17 slides) + `datamesh-201/` (81, with
+    one-slide-per-demo + large appendix), pptxgenjs, Red Hat house style.
+- **Phase E — in progress**, merged to `main`:
+  - **Step 14 (DONE):** `tooling/newman/` Postman collection (49 assertions) + runner, and
+    `tooling/load/load-orders.sh` (hey). PRs #11–#13.
+  - **Step 15 (DONE):** Notion talk abstract — private draft, reframed as a dual "showroom"
+    (teaches data mesh + demonstrates Quarkus; NO Quarkus background assumed). Both the
+    Python and Quarkus data-mesh abstracts linked in the Notion Abstracts index. Open: moving
+    the Quarkus page out of private-draft needs the `mcp__notion__notion-move-pages` permission
+    (or a manual drag). See memory `reference_datamesh_quarkus_talk_abstract`.
+  - **Pre-publish sweep (DONE):** reactor `mvn verify` green (35 tests, DEF-002 IT intact),
+    `jekyll build` clean, live newman 37/37 + GraphQL REST+gRPC federation at 9000. 3 defects
+    found + fixed: demo gRPC 9001→9000 drift (#12), `@Consumes`-on-GET 415 (#12 + #13
+    WILDCARD + genuine `HttpClient` regression test), inventory stale-volume (documented, not
+    a code bug — fresh `%prod` db POST /stock works).
 - **Still open:** DEF-001 Ollama behavioral IT (needs Ollama running); live minikube
-  bring-up of the step-9 substrate (scripts authored + schema-checked, not run).
-- **NEXT — Phase D** content (steps 10–13: demos 1:1 with slides incl. demo-keda-*,
-  tutorial chapters + Spring-Boot compare, diagrams, deck), then Phase E finish
-  (steps 14–17). See build-plan.md status table.
+  bring-up of the step-9 substrate (scripts authored + schema-checked, not run); the Notion
+  page move (permission); **Step 16** (optional lgtm-quarkus pin refresh).
+- **IN FLIGHT (current session):** a critical re-evaluation via lgtm-relay — code review,
+  site/README/markdown review, and a full test-suite plan (unit + integration + load + a
+  single `scripts/run-all-tests.sh` runner). Findings to be triaged + executed.
 
 ## Settled scope answers (do not re-ask)
 - Repo: local-first, PUBLIC, push only after approval.
