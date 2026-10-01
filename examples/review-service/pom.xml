@@ -69,6 +69,16 @@
       <artifactId>quarkus-smallrye-health</artifactId>
     </dependency>
 
+    <!-- OIDC bearer-token auth for DELETE /reviews/{id} (DRQ-005 live demo).
+         No quarkus.oidc.* config needed: with no auth-server-url set, Quarkus
+         Dev Services auto-provisions a Keycloak container in dev/test with
+         the default "quarkus" realm, "quarkus-app" client, and builtin
+         alice/alice (admin+user) and bob/bob (user) accounts. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-oidc</artifactId>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>io.quarkus</groupId>

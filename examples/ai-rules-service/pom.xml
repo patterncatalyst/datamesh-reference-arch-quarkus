@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.patterncatalyst.datamesh</groupId>
+    <artifactId>datamesh-examples-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>ai-rules-service</artifactId>
+  <packaging>jar</packaging>
+
+  <name>DataMesh :: AI Rules Service</name>
+  <description>
+    DRQ-012 showcase: Camel-on-Quarkus + langchain4j (single-shot
+    langchain4j-chat classify, NO agent/tool-calling) + plain embedded Drools
+    10.2.0. An incoming order is classified/extracted by Ollama into a small
+    structured fact (category/priority/riskSignal); a Drools rule set --
+    NOT the LLM -- makes the deterministic business decision (FRAUD_HOLD,
+    EXPEDITE, ROUTE_TO_WAREHOUSE). Because the business decision is made by
+    rules rather than by an in-process langchain4j tool-calling round trip,
+    this module sidesteps DEF-001 entirely (see ai-mcp-service and
+    _plans/decisions.md) -- it has no langchain4j-agent, ai-tool, or
+    mcp-server dependency and structurally cannot regress into that
+    deferral. All Quarkus/Camel/langchain4j BOM versions are inherited from
+    the parent (../pom.xml); this module does NOT re-pin them. Drools is NOT
+    inherited from the parent -- it is managed in this module's own
+    dependencyManagement via drools-bom:10.2.0 (plain embedded Drools, no
+    Kogito/KIE Quarkus extension -- see DRQ-012 in _plans/decisions.md).
+
+    DRQ-014 adds a second showcase alongside the Camel one: the exact same
+    classify-then-decide logic (extracted into TriageService), orchestrated
+    by a Quarkus Flow workflow instead of a Camel route, exposed as
+    POST /api/orders/triage-flow -- a true A/B of orchestration styles on
+    one application. quarkus-flow-bom:1.1.3 is likewise managed in this
+    module's own dependencyManagement (same reasoning as drools-bom) and
+    pulls zero Kogito/KIE/Drools artifacts.
+  </description>
+
+  <properties>
+    <drools.version>10.2.0</drools.version>
+    <!-- DRQ-014: Quarkus Flow, the A/B contrast to the Camel orchestration
+         above. Managed locally, same reasoning as drools-bom: no other
+         module needs it, and the spike confirmed it pulls zero Kogito/KIE/
+         Drools artifacts (just serverlessworkflow-api et al.), so there is
+         no interaction with this module's own Drools dependency. -->
+    <quarkus-flow-bom.version>1.1.3</quarkus-flow-bom.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- DRQ-012: plain embedded Drools, managed locally, NOT inherited
+           from the parent reactor pom, which only manages the Quarkus/
+           Camel/langchain4j BOM family. -->
+      <dependency>
+        <groupId>org.drools</groupId>
+        <artifactId>drools-bom</artifactId>
+        <version>${drools.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- DRQ-014: Quarkus Flow BOM, managed locally; see the property
+           comment above. -->
+      <dependency>
+        <groupId>io.quarkiverse.flow</groupId>
+        <artifactId>quarkus-flow-bom</artifactId>
+        <version>${quarkus-flow-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.patterncatalyst.datamesh</groupId>
+      <artifactId>domain-model</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-rest</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-platform-http</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-direct</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-log</artifactId>
+    </dependency>
+    <!-- Required for the .bean(...) EIP used by OrderTriageRoute to
+         delegate to TriageService; without this extension, Camel on
+         Quarkus has no build-time bean-binding/reflection registration for
+         it (see OrderTriageRoute and the git history of this module, where
+         .bean(...) was previously avoided for the same reason). -->
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-bean</artifactId>
+    </dependency>
+    <!-- DRQ-014: Quarkus Flow, the A/B orchestration contrast to the
+         Camel route above. Version-less: managed by quarkus-flow-bom in
+         this module's own dependencyManagement. Confirmed by the spike (and
+         by this module's own `dependency:tree` after adding it) to pull no
+         Kogito/KIE/Drools artifacts, only serverlessworkflow-api et al. -->
+    <dependency>
+      <groupId>io.quarkiverse.flow</groupId>
+      <artifactId>quarkus-flow</artifactId>
+    </dependency>
+    <!-- Single-shot classify only, deliberately NO camel-quarkus-ai-tool,
+         camel-quarkus-langchain4j-agent, or camel-quarkus-mcp-server. This
+         module structurally cannot regress into DEF-001 (no in-process
+         tool-calling round trip exists to fail). -->
+    <dependency>
+      <groupId>org.apache.camel.quarkus</groupId>
+      <artifactId>camel-quarkus-langchain4j-chat</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkiverse.langchain4j</groupId>
+      <artifactId>quarkus-langchain4j-ollama</artifactId>
+    </dependency>
+
+    <!-- DRQ-012: plain embedded Drools 10.2.0, NOT the Kogito/KIE Quarkus
+         extension. drools-mvel is REQUIRED (not optional): the MVEL-backed
+         ConstraintBuilder SPI it provides is what KieHelper#build() needs at
+         runtime; without it, PatternBuilder throws
+         UnsupportedOperationException while compiling the DRL. -->
+    <dependency>
+      <groupId>org.drools</groupId>
+      <artifactId>drools-engine</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.drools</groupId>
+      <artifactId>drools-mvel</artifactId>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Mocks TriageService.classify in OrderTriageFlowTest so the Flow
+         path can be verified (orchestration + real Drools decide) WITHOUT
+         Ollama running. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5-mockito</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Without this, the parent's pluginManagement execution
+           (build/generate-code/generate-code-tests) never binds to this
+           module's actual build: quarkus:dev treats it as a "support
+           library" and skips, and `mvn package` only produces a plain jar
+           (no target/quarkus-app/quarkus-run.jar). Mirrors order-service's
+           identical declaration. -->
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

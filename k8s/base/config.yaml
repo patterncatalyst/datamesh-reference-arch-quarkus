@@ -58,3 +58,12 @@ data:
 
   JAVA_OPTS_APPEND: "-Duser.timezone=UTC"
   QUARKUS_PROFILE: "prod"
+
+  # F2: order-service's @GrpcClient("inventory") target. Consumed via Quarkus
+  # relaxed env binding (INVENTORY_GRPC_HOST/PORT -> ${INVENTORY_GRPC_HOST}/
+  # ${INVENTORY_GRPC_PORT} in order-service's application.properties). Host is
+  # the inventory-service Service DNS name (same namespace); port is the F2
+  # canonical 9000. Harmless to the other Deployments that read this ConfigMap
+  # but have no inventory client.
+  INVENTORY_GRPC_HOST: "inventory-service.datamesh.svc.cluster.local"
+  INVENTORY_GRPC_PORT: "9000"

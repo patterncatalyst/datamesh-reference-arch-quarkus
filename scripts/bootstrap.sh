@@ -26,7 +26,7 @@
 #   2. Istio control plane                           (ENABLE_ISTIO, default true)
 #   3. CloudNativePG operator + Postgres cluster CR  (ENABLE_POSTGRES, default true)
 #   4. Strimzi operator + Kafka cluster CR           (ENABLE_KAFKA, default true)
-#   5. KEDA core + HTTP add-on (pinned 0.12.2)       (ENABLE_KEDA, default true)
+#   5. KEDA core + HTTP add-on (pinned 0.15.0)       (ENABLE_KEDA, default true)
 #   6. LGTM observability stack                      (ENABLE_LGTM, default true)
 #      (Loki + Grafana + Tempo + Mimir + OTel Collector)
 #   7. Kiali mesh-topology UI                         (ENABLE_KIALI, default = ENABLE_ISTIO)
@@ -128,7 +128,7 @@ else
 fi
 
 # ─── Tier 5: KEDA ───────────────────────────────────────────────────────────
-step "5/8 KEDA (core + HTTP add-on, pinned 0.12.2)"
+step "5/8 KEDA (core + HTTP add-on, pinned 0.15.0)"
 if [[ "$ENABLE_KEDA" == "true" ]]; then
     if kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
         ok "KEDA CRDs already present"

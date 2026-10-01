@@ -8,11 +8,13 @@
 # (k8s/base/graphql-gateway.yaml, step 9b — name/namespace/labels/port
 # copied verbatim: Service "graphql-gateway" port "http" = 8080).
 #
-# Schema is the KEDA HTTP add-on v0.12.2 API (http.keda.sh/v1alpha1,
-# kind: HTTPScaledObject) — verified against the v0.12.2 tag's CRD
+# Schema is the KEDA HTTP add-on v0.15.0 API (http.keda.sh/v1alpha1,
+# kind: HTTPScaledObject) — verified against the v0.15.0 tag's CRD
 # (config/crd/bases/http.keda.sh_httpscaledobjects.yaml in
-# kedacore/http-add-on). scaleTargetRef requires "service" plus exactly one
-# of "port"/"portName"; "name"/"kind"/"apiVersion" identify the workload to
+# kedacore/http-add-on): hosts, pathPrefixes, scaleTargetRef, replicas, and
+# scalingMetric.requestRate{granularity,targetValue,window} all present and
+# unchanged. scaleTargetRef requires "service" plus exactly one of
+# "port"/"portName"; "name"/"kind"/"apiVersion" identify the workload to
 # scale (Deployment graphql-gateway, apps/v1).
 #
 # hosts is set to the in-cluster Service FQDN because this stack has no

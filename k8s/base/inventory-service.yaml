@@ -1,0 +1,118 @@
+# inventory-service — gRPC SERVER for stock lookups (CheckStock), called by
+# order-service's @GrpcClient("inventory") during order placement (F2). Unlike
+# order/notification it hosts a gRPC server (quarkus.grpc.server,
+# use-separate-server=true) in addition to HTTP, so BOTH a http (8080) and a
+# grpc (9000, F2 canonical) port are exposed and served by the Service.
+#
+# Added as part of the F2 fix: order-service's POST /orders does a synchronous
+# gRPC CheckStock, so without inventory-service on the cluster order placement
+# fails closed (503). order-service reaches it via INVENTORY_GRPC_HOST=
+# inventory-service / INVENTORY_GRPC_PORT=9000 (see config.yaml) — the Service
+# name below is that DNS target.
+#
+# Mesh: NOT injected (Phase C default is out of the mesh for every app
+# Deployment — see order-service.yaml for the opt-in annotation).
+#
+# Health: inventory-service has quarkus-smallrye-health on its classpath
+# (examples/inventory-service/pom.xml), so /q/health/{started,ready,live} are
+# all live.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-service
+  namespace: datamesh
+  labels:
+    app.kubernetes.io/name: inventory-service
+    app.kubernetes.io/part-of: datamesh
+    app.kubernetes.io/component: data-product
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: inventory-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: inventory-service
+        app.kubernetes.io/part-of: datamesh
+        app.kubernetes.io/component: data-product
+    spec:
+      containers:
+        - name: inventory-service
+          image: datamesh/inventory-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: grpc
+              containerPort: 9000
+          envFrom:
+            - configMapRef:
+                name: datamesh-app-config
+          env:
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: datamesh-postgres-app
+                  key: username
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: datamesh-postgres-app
+                  key: password
+          startupProbe:
+            httpGet:
+              path: /q/health/started
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 150m
+              memory: 320Mi
+            limits:
+              cpu: 750m
+              memory: 640Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 185
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-service
+  namespace: datamesh
+  labels:
+    app.kubernetes.io/name: inventory-service
+    app.kubernetes.io/part-of: datamesh
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: inventory-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    - name: grpc
+      port: 9000
+      targetPort: grpc

@@ -35,20 +35,69 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
   - **Docker (step 8):** BOTH standalone `docker compose` (standing infra for humans/services) AND Testcontainers (self-provisioning ITs). Root `compose.yaml`; support configs under `infra/`. Config wiring via a single `%prod` env-driven profile (`${KAFKA_BOOTSTRAP_SERVERS}`/`${APICURIO_REGISTRY_URL}`/`${JDBC_URL}`) so the same image serves compose and K8s. Multi-stage UBI Containerfiles (`ubi10/openjdk-25`) under each module `src/main/docker/`. **LGTM observability stack: always-on baseline** (user choice — not profile-gated). Ollama remains `--profile ollama` opt-in (DEF-001 stays opt-in).
   - **Image tags pinned once** in `.env` == Quarkus 3.39.5 Dev Services tags == the DEF-002 IT Testcontainers tags (wire-compat crux). Postgres/app containers run `TZ=UTC` + JVM `-Duser.timezone=UTC` (no US/Eastern regression).
   - **DEF-002 home:** `order-service` module — Testcontainers failsafe IT (`OrderPlacedAvroWireIT`) asserts Avro magic byte `0x0` + schema id, fails if JSON. Runs in default `mvn verify` (self-provisions; no compose needed). Failsafe `integration-test`+`verify` execution wired in order-service.
-  - **Minikube (step 9):** raw manifests + kustomize (base + minikube overlay) for apps; Helm only for operators (Strimzi, CNPG, KEDA). **Istio + Kiali: ON** (user choice — keep mesh). KEDA HTTP add-on pinned 0.12.2. **Kafka-lag KEDA scaler drives notification-service** (consumes `order.placed`). HTTP scaler on graphql-gateway. **Images built locally into minikube's docker** (`minikube docker-env`), no registry.
+  - **Minikube (step 9):** raw manifests + kustomize (base + minikube overlay) for apps; Helm only for operators (Strimzi, CNPG, KEDA). **Istio + Kiali: ON** (user choice — keep mesh). KEDA HTTP add-on pinned 0.15.0 (matches the python reference; enables HTTP/REST request-rate scaling — v0.14.0 panic #1668 fixed before 0.15.0, which also adds HTTP/2 + gRPC). **Kafka-lag KEDA scaler drives notification-service** (consumes `order.placed`). HTTP scaler on graphql-gateway. **Images built locally into minikube's docker** (`minikube docker-env`), no registry.
   - Phase C lands the KEDA scalers (substrate); the `demo-keda-*.sh` demos come in Phase D.
 
-## Open ideas (to scope in Phase D planning)
+## Phase D decisions
 
-- **DRQ-012 (proposed) — real-world AI+rules scenario:** compose Ollama with a
-  Quarkus + Camel + **Drools** (KIE/business-rules) flow for a more realistic
-  demo than a bare LLM call — e.g. order triage where Camel routes an incoming
-  order, Ollama classifies/extracts intent, and a Drools rule set makes the
-  deterministic business decision (fraud hold, expedite, route-to-warehouse) on
-  the shipping/order domain. Candidate home: extend `ai-mcp-service` or a new
-  demo module. NOT yet built — confirm scope/depth during Phase D planning
-  (Drools adds a real dependency + KIE concepts; keep it one focused demo, not
-  speculative infra per scope-discipline).
+- **DRQ-012 — real-world AI+rules scenario — ACCEPTED (primary AI demo, Phase D step 10).**
+  Compose Ollama with a Quarkus + Camel + **Drools** (business-rules) flow:
+  order triage where Camel routes an incoming order, Ollama classifies/extracts
+  intent, and a Drools rule set makes the deterministic business decision (fraud
+  hold, expedite, route-to-warehouse) on the shipping/order domain. This is the
+  **showcase AI demo** — Drools (not langchain4j tool-calling) makes the business
+  decision, so it **sidesteps DEF-001**: no in-process agent tool-calling round
+  trip is required for the demo to work end to end. Keep it one focused demo (not
+  speculative infra per scope-discipline). Scope/depth settled in the Phase D
+  step-10 plan.
+
+  **Engine decision (user directive):** use **plain embedded Drools** — the rule
+  engine as a library (`org.drools` `drools-core`/`drools-compiler`, a
+  `KieContainer` built at app startup in a CDI bean) — NOT the Kogito/KIE Quarkus
+  extension. **KIE is explicitly not a roadmap item**; no Kogito platform, no KIE
+  process/flow/BPMN. The first cut orchestrates the triage with a **Camel route**
+  (`POST /api/orders/triage`); the workflow-engine orchestration is added as a
+  contrast by **Quarkus Flow** (see DRQ-014), NOT by KIE. This removes the
+  KIE-extension compatibility spike; the only early check is a light probe that
+  embedded `drools-core` compiles and runs a trivial `.drl` on Quarkus 3.39.5 /
+  JDK 25. ai-rules-service is JVM-mode (native is not a goal for this module).
+- **DRQ-014 — Quarkus Flow as the orchestration / workflow-engine showcase — ACCEPTED
+  (AI/agentic orchestration framing).** Add the Quarkiverse **Quarkus Flow**
+  extension (`io.quarkiverse.flow:quarkus-flow`, via `quarkus-flow-bom`) to
+  re-orchestrate the DRQ-012 triage pipeline (receive → Ollama classify → Drools
+  decide → route) as a **declarative workflow**, exposed alongside the Camel-route
+  version for a direct A/B (candidate: second endpoint `POST /api/orders/triage-flow`
+  in `ai-rules-service`, reusing the same fact POJO, `order-triage.drl`, and
+  classify prompt). Quarkus Flow implements the CNCF **Open/Serverless Workflow
+  Specification** (fluent Java DSL + YAML), is low-dependency and native-friendly,
+  and crucially **does NOT pull Kogito/KIE/Drools** — consistent with "KIE is not a
+  roadmap item." Built against Quarkus **3.39.0** (same 3.39.x train as our 3.39.5);
+  Java 17+ (we run 25). Exact version pinned via a light compat spike (like Drools):
+  confirm the `quarkus-flow-bom` version that runs a minimal Java-DSL workflow on
+  Quarkus 3.39.5 / JDK 25 AND coexists with camel-quarkus + langchain4j in the
+  reactor. Keep it one focused demo (scope-discipline): the contrast, not a second
+  product. Docs: https://docs.quarkiverse.io/quarkus-flow/dev/
+- **DRQ-015 — "three engines, different orchestration styles" is a required narrative
+  (docs + deck) — ACCEPTED (user directive).** The project deliberately demonstrates
+  three integration/orchestration mechanisms over the SAME shipping/order domain, and
+  this comparison must be explicitly documented in the tutorial chapters (step 11) and
+  featured in the presentation deck (step 13):
+    - **Kafka** — event-driven **choreography** (decentralized; no central
+      coordinator). DRQ-009/010: `order.placed` → payment-service → `payment-captured`
+      → shipping-service → `shipment-dispatched`, Avro over Kafka.
+    - **Camel** — route/EIP **orchestration** (centralized route coordinates steps).
+      ai-rules-service `POST /api/orders/triage` and the Camel EIP demos.
+    - **Quarkus Flow** — declarative **workflow-engine orchestration** (CNCF Open/
+      Serverless Workflow). DRQ-014: ai-rules-service `POST /api/orders/triage-flow`.
+  Terminology discipline for the deck: Kafka is **choreography**, Camel and Quarkus
+  Flow are **orchestration** — present the choreography-vs-orchestration distinction
+  as the teaching point, framed by the user as "different orchestrations," i.e. three
+  engines solving coordination differently. Each engine → at least one demo + one
+  slide; include a side-by-side comparison slide (when to reach for which).
+- **DRQ-013 — Phase D breadth — staged (demos first).** Phase D is sequenced:
+  plan + build step 10 (demos 1:1 with slides, incl. DRQ-012) first, reassess
+  before steps 11–13 (tutorial chapters, diagrams, deck). Demos are the
+  hardest-to-fake artifact and feed the chapters and deck downstream.
 
 ## Deferrals
 

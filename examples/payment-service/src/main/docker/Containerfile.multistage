@@ -66,6 +66,13 @@ EXPOSE 8080
 # the reactor, per DRQ-011.
 ENV JAVA_OPTS_APPEND="-Duser.timezone=UTC -Dquarkus.profile=prod"
 
+# F1/F1b (DEF-002): Avro 1.12's ClassSecurityValidator refuses to (de)serialize
+# generated SpecificRecords from a packaged `java -jar` unless their packages
+# are trusted. The bare-java ENTRYPOINT does NOT read JAVA_OPTS_APPEND, so this
+# rides JAVA_TOOL_OPTIONS (honored by the JVM itself). payment-service consumes
+# OrderPlaced (capstone.order.v1) and produces PaymentCaptured (capstone.payment.v1).
+ENV JAVA_TOOL_OPTIONS="-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1,capstone.payment.v1"
+
 # UBI OpenJDK runtime images already default to UID 185 (non-root); explicit
 # here for clarity and to guard against a base-image change silently
 # reverting to root.

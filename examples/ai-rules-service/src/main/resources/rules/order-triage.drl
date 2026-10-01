@@ -1,0 +1,51 @@
+package rules
+
+import com.patterncatalyst.datamesh.airules.OrderTriageFact
+
+// DRQ-012: Drools -- not the LLM -- makes the business decision. The LLM
+// (OrderTriageRoute's langchain4j-chat call) only classifies/extracts
+// category, priority, and riskSignal onto the OrderTriageFact before it is
+// inserted; everything below is deterministic rule logic.
+//
+// Exactly one decision is produced per fact: every rule below guards on
+// `decision == null` and writes its outcome back onto the same fact via
+// `modify()`. Because `modify()` re-evaluates the fact against every rule's
+// LHS, once one rule fires, the `decision == null` guard removes every other
+// rule's (still-pending) activation for this fact -- so only one rule's
+// consequence ever actually runs, regardless of agenda order. `salience`
+// additionally fixes a deterministic firing order for readability and for
+// the (today impossible, but defensive) case of two conditions matching at
+// once.
+
+rule "Fraud hold on high risk"
+    salience 30
+    when
+        $fact : OrderTriageFact(decision == null, riskSignal == "HIGH")
+    then
+        modify($fact) {
+            setDecision("FRAUD_HOLD"),
+            setReason("Classifier flagged a HIGH fraud/risk signal")
+        }
+end
+
+rule "Expedite large trusted order"
+    salience 20
+    when
+        $fact : OrderTriageFact(decision == null, amount != null, amount >= 1000, riskSignal == "LOW")
+    then
+        modify($fact) {
+            setDecision("EXPEDITE"),
+            setReason("Order amount >= 1000 with a LOW risk signal")
+        }
+end
+
+rule "Default route to warehouse"
+    salience 10
+    when
+        $fact : OrderTriageFact(decision == null)
+    then
+        modify($fact) {
+            setDecision("ROUTE_TO_WAREHOUSE"),
+            setReason("No fraud-hold or expedite condition matched; standard fulfillment")
+        }
+end
