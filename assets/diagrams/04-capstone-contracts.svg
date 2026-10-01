@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <style>
+    .lane-bg { fill: #fdfbf7; stroke: #e0d8c8; stroke-width: 1; }
+    .lane-label { font-size: 12px; fill: #8a7a5a; letter-spacing: 1.5px; font-weight: 600; text-transform: uppercase; }
+    .service-box { fill: #e8eef7; stroke: #2c5aa0; stroke-width: 1.5; rx: 4; }
+    .service-label { font-size: 12px; fill: #1a3a6a; font-weight: 600; }
+    .registry-box { fill: #f5edd6; stroke: #c19a6b; stroke-width: 2; rx: 6; }
+    .registry-label { font-size: 15px; fill: #5a3a0a; font-weight: 700; }
+    .artifact-box { fill: #fffdf6; stroke: #c19a6b; stroke-width: 1; rx: 3; }
+    .artifact-label { font-size: 11px; fill: #5a3a0a; font-weight: 600; }
+    .artifact-sub { font-size: 9px; fill: #7a5a2a; font-family: 'SF Mono', Menlo, monospace; }
+    .catalog-box { fill: #e8f0e0; stroke: #5a8a3a; stroke-width: 2; rx: 6; }
+    .catalog-label { font-size: 15px; fill: #2a5a1a; font-weight: 700; }
+    .catalog-sub { font-size: 10px; fill: #3a6a2a; }
+    .source-box { fill: #efefef; stroke: #4a4a4a; stroke-width: 1; rx: 3; }
+    .source-label { font-size: 10px; fill: #2a2a2a; font-family: 'SF Mono', Menlo, monospace; }
+    .title { font-size: 17px; fill: #2a2a2a; font-weight: 700; }
+    .subtitle { font-size: 11px; fill: #6a5a3a; font-style: italic; }
+    .note { font-size: 10px; fill: #6a5a3a; }
+    .mono { font-size: 9px; fill: #7a5a2a; font-family: 'SF Mono', Menlo, monospace; }
+    .arrow-runtime { stroke: #c14a3a; stroke-width: 2; fill: none; }
+    .arrow-publish { stroke: #2c5aa0; stroke-width: 1.5; stroke-dasharray: 4,3; fill: none; }
+    .arrow-ingest { stroke: #5a8a3a; stroke-width: 1.5; stroke-dasharray: 2,3; fill: none; }
+    .legend-text { font-size: 10px; fill: #4a4a4a; }
+  </style>
+  <defs>
+    <marker id="ah-runtime" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0,0 L 10,5 L 0,10 z" fill="#c14a3a"/></marker>
+    <marker id="ah-publish" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0,0 L 10,5 L 0,10 z" fill="#2c5aa0"/></marker>
+    <marker id="ah-ingest" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0,0 L 10,5 L 0,10 z" fill="#5a8a3a"/></marker>
+  </defs>
+
+  <text x="600" y="30" text-anchor="middle" class="title">§04 — Contracts, the registry, and the catalog</text>
+  <text x="600" y="50" text-anchor="middle" class="subtitle">every protocol's contract lives in Apicurio; OpenMetadata builds lineage from it</text>
+
+  <!-- ===== TOP: the four protocol surfaces ===== -->
+  <rect x="20" y="70" width="1160" height="118" class="lane-bg"/>
+  <text x="32" y="88" class="lane-label">Protocol surfaces — each service's contract</text>
+
+  <!-- REST -->
+  <rect x="60" y="104" width="250" height="68" class="service-box"/>
+  <text x="185" y="126" text-anchor="middle" class="service-label">REST  (order-service…)</text>
+  <text x="185" y="146" text-anchor="middle" class="artifact-sub">contract = OpenAPI document</text>
+  <text x="185" y="162" text-anchor="middle" class="mono">/openapi.json  (media-type versioned)</text>
+
+  <!-- gRPC -->
+  <rect x="330" y="104" width="250" height="68" class="service-box"/>
+  <text x="455" y="126" text-anchor="middle" class="service-label">gRPC  (inventory-service)</text>
+  <text x="455" y="146" text-anchor="middle" class="artifact-sub">contract = Protobuf (.proto)</text>
+  <text x="455" y="162" text-anchor="middle" class="mono">capstone.inventory.v1</text>
+
+  <!-- GraphQL -->
+  <rect x="600" y="104" width="250" height="68" class="service-box"/>
+  <text x="725" y="126" text-anchor="middle" class="service-label">GraphQL  (graphql-gateway)</text>
+  <text x="725" y="146" text-anchor="middle" class="artifact-sub">contract = GraphQL SDL</text>
+  <text x="725" y="162" text-anchor="middle" class="mono">schema.graphql</text>
+
+  <!-- Kafka -->
+  <rect x="870" y="104" width="270" height="68" class="service-box"/>
+  <text x="1005" y="126" text-anchor="middle" class="service-label">Kafka events  (order→notification)</text>
+  <text x="1005" y="146" text-anchor="middle" class="artifact-sub">contract = Avro schema</text>
+  <text x="1005" y="162" text-anchor="middle" class="mono">order.placed</text>
+
+  <!-- ===== MIDDLE: Apicurio registry ===== -->
+  <rect x="120" y="270" width="960" height="150" class="registry-box"/>
+  <text x="600" y="298" text-anchor="middle" class="registry-label">Apicurio Registry — the contract metadata (one home, many formats)</text>
+
+  <rect x="150" y="320" width="210" height="78" class="artifact-box"/>
+  <text x="255" y="344" text-anchor="middle" class="artifact-label">OpenAPI artifacts</text>
+  <text x="255" y="362" text-anchor="middle" class="artifact-sub">REST surfaces</text>
+  <text x="255" y="384" text-anchor="middle" class="note">discovery contract</text>
+
+  <rect x="380" y="320" width="210" height="78" class="artifact-box"/>
+  <text x="485" y="344" text-anchor="middle" class="artifact-label">Protobuf artifacts</text>
+  <text x="485" y="362" text-anchor="middle" class="artifact-sub">gRPC service defs</text>
+  <text x="485" y="384" text-anchor="middle" class="note">discovery contract</text>
+
+  <rect x="610" y="320" width="210" height="78" class="artifact-box"/>
+  <text x="715" y="344" text-anchor="middle" class="artifact-label">GraphQL SDL</text>
+  <text x="715" y="362" text-anchor="middle" class="artifact-sub">gateway schema</text>
+  <text x="715" y="384" text-anchor="middle" class="note">discovery contract</text>
+
+  <rect x="840" y="320" width="210" height="78" class="artifact-box" style="stroke-width:2; stroke:#c14a3a;"/>
+  <text x="945" y="344" text-anchor="middle" class="artifact-label">Avro schemas</text>
+  <text x="945" y="362" text-anchor="middle" class="artifact-sub">event payloads</text>
+  <text x="945" y="384" text-anchor="middle" class="note" style="fill:#c14a3a; font-weight:600;">RUNTIME contract</text>
+
+  <!-- arrows: surfaces -> registry -->
+  <!-- REST publish -->
+  <path d="M 185,172 L 255,318" class="arrow-publish" marker-end="url(#ah-publish)"/>
+  <!-- gRPC publish -->
+  <path d="M 455,172 L 485,318" class="arrow-publish" marker-end="url(#ah-publish)"/>
+  <!-- GraphQL publish -->
+  <path d="M 725,172 L 715,318" class="arrow-publish" marker-end="url(#ah-publish)"/>
+  <!-- Kafka runtime (serialize/deserialize against registry) -->
+  <path d="M 1005,172 L 945,318" class="arrow-runtime" marker-end="url(#ah-runtime)"/>
+
+  <!-- ===== BOTTOM: OpenMetadata + its other sources ===== -->
+  <rect x="120" y="500" width="960" height="150" class="catalog-box"/>
+  <text x="600" y="528" text-anchor="middle" class="catalog-label">OpenMetadata — lineage &amp; discovery metadata</text>
+  <text x="600" y="548" text-anchor="middle" class="catalog-sub">ingests contracts + data sources, assembles the "who produces / who consumes" graph</text>
+
+  <rect x="430" y="566" width="340" height="64" style="fill:#f4f9ef; stroke:#5a8a3a; stroke-width:1; rx:4;"/>
+  <text x="600" y="590" text-anchor="middle" class="catalog-sub" style="font-weight:600;">lineage graph</text>
+  <text x="600" y="610" text-anchor="middle" class="mono" style="fill:#3a6a2a;">order-service —[order.placed]→ notification-service</text>
+
+  <!-- other ingestion sources flanking -->
+  <rect x="150" y="566" width="210" height="64" class="source-box"/>
+  <text x="255" y="592" text-anchor="middle" class="source-label">Postgres schemas</text>
+  <text x="255" y="612" text-anchor="middle" class="source-label">(per service, CNPG)</text>
+
+  <rect x="840" y="566" width="210" height="64" class="source-box"/>
+  <text x="945" y="592" text-anchor="middle" class="source-label">Kafka topics</text>
+  <text x="945" y="612" text-anchor="middle" class="source-label">(Strimzi)</text>
+
+  <!-- arrows: registry + sources -> catalog (ingest) -->
+  <path d="M 600,420 L 600,564" class="arrow-ingest" marker-end="url(#ah-ingest)"/>
+  <text x="612" y="465" class="note" style="fill:#3a6a2a;">ingest contracts</text>
+  <path d="M 255,420 C 255,470 255,500 255,564" class="arrow-ingest" marker-end="url(#ah-ingest)"/>
+  <path d="M 945,420 C 945,470 945,500 945,564" class="arrow-ingest" marker-end="url(#ah-ingest)"/>
+
+  <!-- ===== legend ===== -->
+  <rect x="20" y="668" width="1160" height="40" class="lane-bg"/>
+  <line x1="40" y1="688" x2="80" y2="688" class="arrow-runtime" marker-end="url(#ah-runtime)"/>
+  <text x="90" y="692" class="legend-text">runtime contract — producer/consumer serialize against the registry (the event won't encode without it)</text>
+  <line x1="640" y1="688" x2="680" y2="688" class="arrow-publish" marker-end="url(#ah-publish)"/>
+  <text x="690" y="692" class="legend-text">publish (discovery)</text>
+  <line x1="830" y1="688" x2="870" y2="688" class="arrow-ingest" marker-end="url(#ah-ingest)"/>
+  <text x="880" y="692" class="legend-text">ingest into catalog</text>
+</svg>
