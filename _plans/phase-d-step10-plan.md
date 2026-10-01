@@ -108,12 +108,17 @@ warrant real fixes before chapters/deck (steps 11/13) and before any publish.
 > `0x00`-magic-byte Avro `order.placed` record published, and `POST /orders` →
 > 201 (gRPC CheckStock connected on default 9000). The deployed choreography now
 > actually emits events, so KEDA-on-Kafka-lag has something to scale on.
-> **F3 resolved won't-fix/documented** (see F3 entry below); **F4/F5 remain open** (LOW). Two new pre-existing non-blocking nits
-> surfaced during validation (not caused by the fixes): **F6** order-service
-> logs a non-fatal `FileHandler.setFile` stack trace at startup (quarkus.log.file
-> trying to open a path non-root UID 185 can't write — a packaging config nit);
-> **F7** inventory `import.sql` logs a Postgres `null value in column "id" of
-> relation "stock"` during dev/test seeding (noisy, tests still pass). Both LOW.
+> **F3 resolved won't-fix/documented** (see F3 entry below). **F4/F5/F6/F7 all
+> RESOLVED + validated** (lgtm-relay, Opus verdict FIXES SOUND) in four commits on
+> `fix/phase-d-low-findings`: `fix(gateway)...(F4)`, `fix(shipping)...(F5)`,
+> `fix(order)...(F6)`, `fix(inventory)...(F7)`. `mvn verify` green on all four
+> touched modules with DEF-002 `OrderPlacedAvroWireIT` intact (Tests run: 1,
+> Failures: 0). **F6** (order-service non-fatal `FileHandler.setFile` startup
+> trace — quarkus.log.file on a path non-root UID 185 can't write) fixed by gating
+> file logging to `%dev`/`%test` so `%prod` is console-only per 12-factor. **F7**
+> (inventory `import.sql` Postgres `null value in column "id"` seed warning) fixed
+> by switching `Stock` to `PanacheEntityBase` + `GenerationType.IDENTITY`. With
+> these, all step-10 review findings F1–F7 are closed.
 
 - **F1 — order.placed never publishes in packaged/%prod runs (HIGH).** Avro
   1.12 `ClassSecurityValidator` throws `SecurityException: Forbidden
@@ -152,19 +157,29 @@ warrant real fixes before chapters/deck (steps 11/13) and before any publish.
   `%prod` deploy is correct. Seeding is done over the REST surface (demos +
   `walkthrough.sh` already do this). Documented in
   `examples/inventory-service/README.md` ("Seeding in `%prod`"). No source change.
-- **F4 — GatewayApi.order() 404→null branch is dead code (LOW).** MP REST Client
+- **F4 — GatewayApi.order() 404→null branch is dead code (LOW) — RESOLVED.** MP REST Client
   throws `WebApplicationException` for any non-2xx regardless of the `Response`
   return type, so the `if (status==NOT_FOUND) return null` line never runs.
   Client-visible end state (`.data.order==null`) happens to match intent but
   arrives via a `.errors` `DataFetchingException`. demo-graphql.sh asserts the
   *actual* behavior, not the intended one.
-- **F5 — `Shipment` entity has no `@Column` overrides (LOW, cosmetic).** Unlike
+  **Fixed:** dead branch removed, `OrderRestClient` javadoc corrected, and the
+  `GatewayApiTest` negative-control reworked to mock a thrown `WebApplicationException`
+  and assert the real `DataFetchingException` path. demo-graphql.sh assertions
+  unchanged (narration only).
+- **F5 — `Shipment` entity has no `@Column` overrides (LOW, cosmetic) — RESOLVED.** Unlike
   `Order` (explicit `customer_id`/`item_sku`/…), `shipping-service`'s `Shipment`
   uses Hibernate default naming → columns `orderid`/`customerid`/`trackingnumber`/
   `dispatchedat` (lowercased, no underscores). Hibernate round-trips it correctly;
   only matters for hand-written SQL (demo-orchestration-styles.sh's `psql` assert
   uses `orderid`, documented inline). Not a functional gap — a naming-consistency
   nit vs the other entities; optional tidy-up before chapters/deck.
+  **Fixed:** snake_case `@Column(name=...)` added (`order_id`/`customer_id`/`item_sku`/
+  `tracking_number`/`dispatched_at`); demo-orchestration-styles.sh psql assert updated
+  in lockstep. %prod `update`-generation note: on an EXISTING shippingdb Hibernate
+  adds the new columns and leaves the old lowercased ones as nullable orphans — run
+  the demo against a fresh shippingdb for a clean schema (dev/test drop-and-create
+  is clean).
 - **Demo-only (not source bugs):** gRPC reflection is dev/test-only (packaged
   needs `-Dquarkus.grpc.server.enable-reflection-service=true`); grpcurl JSON is
   proto3 snake_case + omits defaults (`-emit-defaults`). Handled in the scripts.
