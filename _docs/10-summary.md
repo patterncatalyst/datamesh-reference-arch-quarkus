@@ -55,14 +55,18 @@ imports the other's entity class. `order-service` never reaches into
 inventory's schema directly; it calls `inventory-service` over gRPC
 (`CheckStock`, defined in `examples/contracts`'s `inventory.proto`, under
 the `capstone.inventory.v1` package) the same way any other consumer would.
-Notably, `examples/domain-model` exists in the reactor as a placeholder for
-a shared, framework-agnostic model (per the repo's own structure notes) but
-currently holds no Java classes at all — an empty `src/main/java` tree with
-just a `pom.xml`. That's worth reading as a feature rather than an
-oversight: a populated shared-entity module is exactly the kind of
-convenience that quietly recreates coupling between domains, so its
-emptiness is domain ownership holding the line rather than a module nobody
-got around to filling in.
+What crosses a domain boundary, by contrast, is a deliberately narrow
+*contract* — never another domain's entity. `examples/domain-model` holds
+the shared, framework-agnostic edge types every service depends on
+(`OrderDto`, `OrderCreate`, `OrderStatus`, `StockDto`, `ReviewDto`,
+`NotificationDto`, and the `Topics` constants), and `examples/contracts`
+holds the versioned Avro schemas and the gRPC `.proto`. The discipline is in
+*what* is shared: DTOs and events that are explicitly part of a service's
+published interface, not its internal persistence model. A service's Panache
+entity (`Order`, `Stock`) stays private to that service; only its DTO and its
+event schema are shared. That is the line domain ownership actually draws
+here — a shared contract module is fine, a shared *entity* module would be
+the coupling to avoid.
 
 Worth naming plainly: this build runs all seven modules in a single shared
 `datamesh` Kubernetes namespace (`k8s/base/`), not one namespace per domain,
