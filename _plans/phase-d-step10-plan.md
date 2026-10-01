@@ -52,7 +52,7 @@ Design decisions:
 | 10.6 | Core: demo-order, demo-grpc, demo-graphql, demo-kafka (Avro byte), demo-tracing, demo-websocket, demo-reactive-vertx | 10.0 | todo |
 | 10.7 | `demo-oidc.sh` (feasibility-gated, DRQ-005) | 10.0 | todo |
 | 10.8 | Toolchain: demo-jbang-prototype, demo-continuous-testing, demo-native (≥1 native build) | 10.0 | **done** (all 3 real-run end-to-end: jbang via `camel@apache/camel run` on single `.java`; continuous-testing via `quarkus:dev` + `QUARKUS_TEST_CONTINUOUS_TESTING=enabled`, parsed test counts; native via Mandrel `jdk-25` container-build 84s + throwaway `docker run` pg. Each gates its toolchain + fails loud w/ install hint. `TZ=UTC` needed client-side for Dev Services + native runtime — pg18 rejects `US/Eastern`) |
-| 10.9 | KEDA: demo-keda-kafka, demo-keda-http (minikube-gated) | step 9 | todo |
+| 10.9 | KEDA: demo-keda-kafka, demo-keda-http (minikube-gated) | step 9 | **done — author-only** (no live cluster here). Both reference real step-9 manifests (`k8s/keda/{consumer-scaledobject,gateway-httpscaledobject}.yaml`, `k8s/overlays/minikube`); run `kubectl kustomize` in-script + grep-assert the rendered ScaledObject/HTTPScaledObject; no-cluster gate fails loud → `./scripts/bootstrap.sh`. Live path asserts jsonpath-parsed replica delta. Use bundled `kubectl kustomize` (no standalone binary). **Substrate gap (DEFER):** `order-service` hardcodes `quarkus.grpc.clients.inventory.host=localhost`, no `%prod`/env override in `k8s/base/*` → `POST /orders` 503s on cluster, no `order.placed` emitted. kafka demo documents + fails honestly rather than faking a bypass producer. |
 | 10.10 | `walkthrough.sh` five-act orchestrator | all | todo |
 
 ## Acceptance criteria
