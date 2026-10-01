@@ -108,7 +108,7 @@ warrant real fixes before chapters/deck (steps 11/13) and before any publish.
 > `0x00`-magic-byte Avro `order.placed` record published, and `POST /orders` →
 > 201 (gRPC CheckStock connected on default 9000). The deployed choreography now
 > actually emits events, so KEDA-on-Kafka-lag has something to scale on.
-> **F3/F4/F5 remain open** (MEDIUM/LOW). Two new pre-existing non-blocking nits
+> **F3 resolved won't-fix/documented** (see F3 entry below); **F4/F5 remain open** (LOW). Two new pre-existing non-blocking nits
 > surfaced during validation (not caused by the fixes): **F6** order-service
 > logs a non-fatal `FileHandler.setFile` stack trace at startup (quarkus.log.file
 > trying to open a path non-root UID 185 can't write — a packaging config nit);
@@ -141,11 +141,17 @@ warrant real fixes before chapters/deck (steps 11/13) and before any publish.
   to 9000 and `k8s/base/*` sets no inventory Service/env. Side-by-side packaged
   runs never connect; on-cluster `POST /orders` fails closed (503). Demos
   force `-Dquarkus.grpc.server.port=9001` on inventory-service.
-- **F3 — seed data never loads in packaged/%prod (MEDIUM).** inventory-service's
-  `%prod.quarkus.hibernate-orm.database.generation=${DB_GENERATION:update}`
+- **F3 — seed data never loads in packaged/%prod (MEDIUM) — DISPOSITION: WON'T-FIX / DOCUMENTED.**
+  inventory-service's `%prod.quarkus.hibernate-orm.database.generation=${DB_GENERATION:update}`
   (deprecated alias) overrides `schema-management.strategy=drop-and-create`, so
   `import.sql` (WIDGET-1/2, GADGET-1) is skipped outside dev/test. Demos seed via
   the existing `POST /stock` convenience endpoint.
+  **Resolved as working-as-intended:** auto-seeding `%prod` would require
+  `create`/`drop-and-create` generation and its data-loss risk, which is against
+  secure-by-design defaults for a real deployment — an empty inventory on a fresh
+  `%prod` deploy is correct. Seeding is done over the REST surface (demos +
+  `walkthrough.sh` already do this). Documented in
+  `examples/inventory-service/README.md` ("Seeding in `%prod`"). No source change.
 - **F4 — GatewayApi.order() 404→null branch is dead code (LOW).** MP REST Client
   throws `WebApplicationException` for any non-2xx regardless of the `Response`
   return type, so the `if (status==NOT_FOUND) return null` line never runs.
