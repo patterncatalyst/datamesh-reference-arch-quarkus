@@ -1,20 +1,25 @@
 # DataMesh :: AI Rules Service
 
 DRQ-012 showcase: **the LLM classifies, Drools decides.** Camel-on-Quarkus
-combines a single-shot `langchain4j-chat` classification (Ollama,
+combines a single-shot `langchain4j-chat`-style classification (Ollama,
 `qwen2.5:3b`) with a plain embedded Drools 10.2.0 rule set that makes the
 actual order-triage business decision.
+
+DRQ-014 showcase: the exact same classify-then-decide logic, orchestrated
+**two different ways** as an A/B contrast -- a Camel route and a Quarkus
+Flow workflow. See [A/B: Camel route vs. Quarkus Flow](#ab-camel-route-vs-quarkus-flow)
+below.
 
 ```
 POST /api/orders/triage  (order JSON)
         │
         ▼
   direct:triage
-        │  single-shot langchain4j-chat classify
-        │  (category / priority / riskSignal JSON)
+        │  TriageService.classify (single-shot chat call)
+        │  (category / priority / riskSignal, merged with order fields)
         ▼
   OrderTriageFact (merged order + classification)
-        │  KieSession.insert + fireAllRules
+        │  TriageService.decide: KieSession.insert + fireAllRules
         ▼
   TriageDecision JSON  (FRAUD_HOLD | EXPEDITE | ROUTE_TO_WAREHOUSE)
 ```
@@ -104,6 +109,65 @@ match is invalidated for that fact. `salience` additionally fixes a
 deterministic firing order. See the comments in the `.drl` file for the full
 reasoning.
 
+## A/B: Camel route vs. Quarkus Flow
+
+DRQ-014: the same two steps -- classify, then let Drools decide -- are
+orchestrated two different ways, as a direct A/B contrast of orchestration
+styles on the same Quarkus application:
+
+| Endpoint | Orchestrator | Route/bean |
+|---|---|---|
+| `POST /api/orders/triage` | **Camel route** | `OrderTriageRoute`'s `triage-order` route: `.bean(triageService, "classify")` chained into `.bean(triageService, "decide")` |
+| `POST /api/orders/triage-flow` | **Quarkus Flow workflow** | `OrderTriageWorkflow` (`extends Flow`): a `FlowWorkflowBuilder.workflow("order-triage")` with two `FlowDSL.function(...)` tasks, started by `OrderTriageFlowRunner` |
+
+Both paths delegate every bit of classify/decide logic to the **same**
+`TriageService` CDI bean -- `TriageService.classify(OrderCreate)` and
+`TriageService.decide(ClassificationResult)`. Neither orchestrator
+reimplements any part of that logic itself (in particular, the Flow
+workflow does **not** reimplement the decision as a Flow `switchCase` --
+Drools still makes the decision, exactly as in the Camel path). This makes
+the comparison a true A/B of *how the two steps are sequenced*, not of two
+different implementations of the business logic.
+
+### Quarkus Flow in three lines
+
+```java
+@ApplicationScoped
+public class OrderTriageWorkflow extends Flow {
+    @Inject TriageService triageService;
+
+    @Override
+    public Workflow descriptor() {
+        return FlowWorkflowBuilder.workflow("order-triage")
+            .tasks(
+                FlowDSL.function("classify", triageService::classify),
+                FlowDSL.function("decide", triageService::decide))
+            .build();
+    }
+}
+```
+
+`FlowDSL.function(name, bean::method)` runs a CDI bean method as a workflow
+task; by default each task's input is the prior task's output (chained),
+which is why `ClassificationResult` -- not just the LLM's three classified
+fields -- carries the order's own `customerId`/`itemSku`/`quantity`/`amount`
+fields too: `decide` only ever sees `classify`'s output, so that output has
+to be self-sufficient for Drools' amount-based `EXPEDITE` rule to evaluate
+identically on both paths. (`inputFrom(...)`/`exportAs(...)` exist to
+reshape a task's input when the default chaining isn't enough; this
+workflow doesn't need them.) `OrderTriageFlowRunner` starts an instance
+(`workflow.startInstance(order)`, which returns a `Uni<WorkflowModel>`) and
+awaits it, reading the result back out with
+`model.as(TriageDecision.class).orElseThrow()`.
+
+`io.quarkiverse.flow:quarkus-flow-bom:1.1.3` is managed in this module's own
+`<dependencyManagement>` (same pattern as `drools-bom`) -- see the pom
+comments. It pulls in `serverlessworkflow-api` and friends but **zero**
+Kogito/KIE/Drools artifacts; this module's own Drools 10.2.0 (via
+`drools-bom`) remains the only rules engine on the classpath, confirmed by
+`mvn -pl ai-rules-service dependency:tree | grep -iE "kogito|kie|drools"`
+showing only `org.drools:*:10.2.0` / `org.kie:*:10.2.0`.
+
 ## Run instructions
 
 ```bash
@@ -116,6 +180,12 @@ cd examples/ai-rules-service
 mvn quarkus:dev                   # or: mvn quarkus:dev -f ../pom.xml -pl ai-rules-service
 
 curl -X POST http://localhost:8089/api/orders/triage \
+  -H 'Content-Type: application/json' \
+  -d '{"customerId":"CUST-42","itemSku":"LAPTOP-15","quantity":1,"amount":1899.99}'
+
+# Same request/response shape, orchestrated by the Quarkus Flow workflow
+# instead of the Camel route:
+curl -X POST http://localhost:8089/api/orders/triage-flow \
   -H 'Content-Type: application/json' \
   -d '{"customerId":"CUST-42","itemSku":"LAPTOP-15","quantity":1,"amount":1899.99}'
 ```
@@ -144,5 +214,21 @@ clash.
 
   ```bash
   mvn test -Dollama.tests.enabled=true -Dtest=OrderTriageRouteIT \
+    -f examples/pom.xml -pl ai-rules-service
+  ```
+
+- `OrderTriageFlowTest` (`*Test`, `@QuarkusTest`) — the DRQ-014 Flow-path
+  counterpart to `OrderTriageDrlTest`: `TriageService` is `@InjectSpy`'d so
+  only `classify` is stubbed with a canned `ClassificationResult` (a
+  HIGH-risk one and a benign one), while `decide` runs for real against the
+  real, CDI-injected `KieBase`. Proves the `OrderTriageWorkflow` Flow
+  orchestration and the Drools wiring together, without calling Ollama.
+  Runs under the default `mvn verify`.
+- `OrderTriageFlowRouteIT` (`*IT`, opt-in) — the `/triage-flow` counterpart
+  to `OrderTriageRouteIT`: same live-Ollama, opt-in idiom, asserting Drools
+  returned one of the three valid decisions. Run with:
+
+  ```bash
+  mvn test -Dollama.tests.enabled=true -Dtest=OrderTriageFlowRouteIT \
     -f examples/pom.xml -pl ai-rules-service
   ```

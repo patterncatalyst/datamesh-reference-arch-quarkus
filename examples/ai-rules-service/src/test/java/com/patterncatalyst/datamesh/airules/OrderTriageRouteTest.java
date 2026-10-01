@@ -43,6 +43,21 @@ class OrderTriageRouteTest {
         assertTrue(status.isStarted(), () -> "Expected route 'triage-order' to be started, was " + status);
     }
 
+    /**
+     * DRQ-014: the Quarkus Flow A/B contrast route also boots and registers,
+     * without calling Ollama. The behavioral assertion that it produces a
+     * correct Drools decision lives in {@link OrderTriageFlowTest} (mocked
+     * classify) and {@link OrderTriageFlowRouteIT} (opt-in, live Ollama).
+     */
+    @Test
+    void contextStartsWithTriageFlowRouteRegistered() {
+        Route route = camelContext.getRoute("triage-flow-order");
+        assertNotNull(route, "Expected route 'triage-flow-order' to be registered");
+
+        ServiceStatus status = camelContext.getRouteController().getRouteStatus("triage-flow-order");
+        assertTrue(status.isStarted(), () -> "Expected route 'triage-flow-order' to be started, was " + status);
+    }
+
     @Test
     void kieBaseIsProducedAndUsable() {
         assertNotNull(orderTriageKieBase);
