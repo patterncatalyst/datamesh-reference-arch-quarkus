@@ -805,6 +805,7 @@ pre code {
 }
 .status--unverified { background: #fff8ef; border-color: #f0c98a; color: #8a5a00; }
 .status--verified   { background: #f1f8f2; border-color: #9cc79f; color: #2e7d32; }
+.status--conceptual { background: #eef2f7; border-color: #b9c6d6; color: #3a5673; }
 
 /* ── multi-language code tabs (codetabs.js) ───────────────────────────── */
 .codetabs-wrap{ margin:var(--space-5) 0; border:1px solid var(--border-strong);
