@@ -140,13 +140,16 @@ helm upgrade --install mimir grafana/mimir-distributed \
     --set 'metaMonitoring.serviceMonitor.enabled=false' \
     --set 'minio.enabled=false' \
     --set 'mimir.structuredConfig.common.storage.backend=filesystem' \
-    --set 'mimir.structuredConfig.common.storage.filesystem.dir=/data' \
+    --set 'mimir.structuredConfig.common.storage.filesystem.dir=/data/common' \
     --set 'mimir.structuredConfig.blocks_storage.backend=filesystem' \
     --set 'mimir.structuredConfig.blocks_storage.filesystem.dir=/data/blocks' \
     --set 'mimir.structuredConfig.ruler_storage.backend=filesystem' \
     --set 'mimir.structuredConfig.ruler_storage.filesystem.dir=/data/ruler' \
     --set 'mimir.structuredConfig.alertmanager_storage.backend=filesystem' \
     --set 'mimir.structuredConfig.alertmanager_storage.filesystem.dir=/data/alertmanager' \
+    --set 'mimir.structuredConfig.compactor.data_dir=/data/compactor' \
+    --set 'mimir.structuredConfig.ruler.rule_path=/data/ruler-work' \
+    --set 'mimir.structuredConfig.alertmanager.data_dir=/data/alertmanager-work' \
     --set 'nginx.service.type=NodePort' \
     --set 'nginx.service.nodePort=30009'
 

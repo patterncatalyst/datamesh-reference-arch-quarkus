@@ -17,7 +17,9 @@ set -euo pipefail
 
 NS="datamesh"
 STRIMZI_VERSION="${STRIMZI_VERSION:-0.51.0}"
-KAFKA_VERSION="${KAFKA_VERSION:-3.9.0}"
+# Strimzi 0.51.0 supports Kafka 4.1.0/4.1.1/4.2.0 (3.9.0 was dropped); 4.2.0
+# also matches the apache/kafka-native:4.2.0 image the compose stack uses.
+KAFKA_VERSION="${KAFKA_VERSION:-4.2.0}"
 CLUSTER_NAME="datamesh"
 
 step() { printf '\n==> %s\n' "$1"; }

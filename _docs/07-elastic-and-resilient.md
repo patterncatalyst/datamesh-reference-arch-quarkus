@@ -322,4 +322,4 @@ products.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. The two KEDA demos require a live minikube cluster, which was not bootstrapped; both were skipped in this pass.*
+*Verification status: <span class="status status--verified">verified</span>. Observed directly on the minikube substrate: both ScaledObjects drive their targets to zero at rest (`notification-service` and `graphql-gateway` sit at 0 replicas), and `notification-service` scales up from zero on real Kafka consumer-group lag — placing valid orders emits `order.placed`, lag crosses the threshold, and KEDA activates the ScaledObject and scales the deployment 0→1. Driving this surfaced a bug in `demo-keda-kafka.sh` (it posted orders for an unseeded SKU, so order placement 409'd and produced no events), now fixed by seeding stock before the burst. The KEDA HTTP add-on scaler (scale-from-zero on request rate) was not separately confirmed in this pass.*

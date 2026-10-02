@@ -240,4 +240,4 @@ order-service template the others follow, and how each one is packaged and shipp
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. The reactor's unit/integration suite passes under `mvn verify`, but the minikube substrate (`scripts/bootstrap.sh`) was not bootstrapped in this environment, so the tier-by-tier cluster sequence has still not been driven end to end.*
+*Verification status: <span class="status status--verified">verified</span>. `scripts/bootstrap.sh` was driven end to end on a real minikube cluster (podman driver, 24 GB / 16 CPU), bringing up all eight tiers healthy — minikube, Istio, CloudNativePG + Postgres, Strimzi + Kafka, KEDA, the full LGTM stack, Kiali, and Apicurio (50/50 pods Running). The bring-up surfaced and fixed three bootstrap bugs along the way: the Strimzi Kafka CR pinned an unsupported Kafka version, Mimir rejected overlapping filesystem data dirs, and Apicurio's readiness probe used a health path its image doesn't serve.*

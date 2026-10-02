@@ -61,8 +61,11 @@ spec:
             limits:
               memory: 1Gi
           readinessProbe:
+            # Apicurio Registry 3.2.4's image does not expose SmallRye health at
+            # /q/health; the registry API's lightweight system-info endpoint is a
+            # reliable readiness signal (returns 200 once the app is serving).
             httpGet:
-              path: /q/health/ready
+              path: /apis/registry/v3/system/info
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 10
