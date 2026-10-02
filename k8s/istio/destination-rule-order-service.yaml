@@ -1,0 +1,23 @@
+# destination-rule-order-service.yaml — defines the v1/v2 subsets the
+# VirtualService splits traffic across. Subsets key on the `version` pod
+# label: `v1` is the existing order-service Deployment (relabeled by
+# inject-order-service.yaml), `v2` is order-service-v2.yaml. Both are
+# fronted by the same Kubernetes Service
+# (order-service.datamesh.svc.cluster.local, k8s/base/order-service.yaml),
+# so Istio's Pilot discovers both subsets' endpoints from that one Service
+# and distinguishes them purely by the `version` label on each endpoint pod
+# — no second Service needed.
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: order-service
+  namespace: datamesh
+spec:
+  host: order-service.datamesh.svc.cluster.local
+  subsets:
+    - name: v1
+      labels:
+        version: v1
+    - name: v2
+      labels:
+        version: v2

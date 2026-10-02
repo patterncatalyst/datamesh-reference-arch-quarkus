@@ -118,14 +118,24 @@ Everything in `k8s/base` targets `datamesh` — both via explicit
 Istio + Kiali are installed cluster-wide by 9a but the `datamesh` namespace
 is **not** labeled for sidecar auto-injection (9a's own design — per-
 Deployment opt-in, not namespace-wide). None of these three Deployments
-carry the `sidecar.istio.io/inject: "true"` pod annotation, so **none of
+carry the `sidecar.istio.io/inject: "true"` pod **label**, so **none of
 them are in the mesh** for this stage. This is the deliberate default per the
-task brief: keep this stage simple, defer the mesh demo to a later phase. To
-add a service to the mesh later, add that annotation under
-`spec.template.metadata.annotations` for that Deployment (remember: Istio
-1.29+ injects as a native `initContainer`, so mesh-membership checks must
-look at `.spec.initContainers`, not `.spec.containers` — see the
-`lgtm-minikube-stack` skill's `known-issues.md`).
+task brief: keep this stage simple, defer the mesh demo to a later phase.
+
+Opt-in is a pod-template **label**, not an annotation: Istio's
+sidecar-injection `MutatingWebhookConfiguration` matches pods via an
+`objectSelector` (`sidecar.istio.io/inject In ["true"]`), and a webhook
+`objectSelector` is evaluated against the pod's labels, never its
+annotations — so in this unlabeled namespace, an annotation of the same key
+silently injects nothing (confirmed live on the cluster). `k8s/istio/` is
+the overlay that adds that label to these three Deployments —
+`kubectl apply -k k8s/istio` — without editing `k8s/base` itself (remember:
+Istio 1.29+ injects as a native `initContainer`, so mesh-membership checks
+must look at `.spec.initContainers`, not `.spec.containers` — see the
+`lgtm-minikube-stack` skill's `known-issues.md`). That same overlay also
+ships the namespace-wide `PeerAuthentication` (STRICT mTLS) and the
+`order-service` v1/v2 canary (`DestinationRule`/`VirtualService` +
+`order-service-v2` Deployment) — see `k8s/istio/README.md`.
 
 ## replicas vs. KEDA (9c)
 

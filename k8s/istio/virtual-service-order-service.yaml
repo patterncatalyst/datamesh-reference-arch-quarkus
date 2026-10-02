@@ -1,0 +1,24 @@
+# virtual-service-order-service.yaml — the weighted canary split: 90% of
+# traffic to order-service.datamesh.svc.cluster.local stays on the v1
+# subset, 10% shifts to v2. Advancing the canary (90/10 -> 50/50 -> 0/100)
+# is just re-applying this file with different `weight` values; rolling
+# back is the same edit in reverse. No other resource needs to change to
+# shift the split.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-service
+  namespace: datamesh
+spec:
+  hosts:
+    - order-service.datamesh.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: order-service.datamesh.svc.cluster.local
+            subset: v1
+          weight: 90
+        - destination:
+            host: order-service.datamesh.svc.cluster.local
+            subset: v2
+          weight: 10

@@ -350,4 +350,4 @@ Boot (Chapter 12) puts a number on what all of this costs at startup.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. Ollama is not available in this environment, so the triage classifications and the AI demos could not be run; the classifier-drift risk remains unexercised here.*
+*Verification status: <span class="status status--verified">verified</span>. Run against the compose stack with the Ollama profile and a live `qwen2.5:3b`: `demo-ai-classify.sh`, `demo-ai-mcp.sh`, `demo-camel-integration.sh`, and `demo-ai-triage.sh` all passed. The triage showcase returned the exact expected decisions (ROUTE_TO_WAREHOUSE / EXPEDITE / FRAUD_HOLD) for all three inputs on both the Camel `/api/orders/triage` and the Quarkus Flow `/api/orders/triage-flow` endpoints — the LLM classifies, Drools decides. The in-process tool-calling defect remains documented as before; it is the MCP-server path that is exercised, consistent with the chapter.*

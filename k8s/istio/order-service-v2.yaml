@@ -1,0 +1,127 @@
+# order-service-v2.yaml — the "v2" canary subset. SAME image as
+# order-service (datamesh/order-service:latest) — this repo ships no second
+# build of the contract; see _docs/06-progressive-delivery-mtls.md for why
+# that's a deliberate simplification (the Istio routing mechanics this
+# manifest demonstrates are identical whether v2 is a same-image relabel or
+# a real new build). Container spec (env, probes, resources,
+# securityContext) is copied verbatim from k8s/base/order-service.yaml so v2
+# is a fully functional second instance of the same producer, not a stub.
+#
+# Pod template carries THREE labels beyond the standard
+# app.kubernetes.io/* set:
+#   - app.kubernetes.io/name: order-service   — REQUIRED so the existing
+#     order-service Kubernetes Service (selector: app.kubernetes.io/name:
+#     order-service only, unchanged) picks these pods up as additional
+#     endpoints alongside v1's. Istio's DestinationRule/VirtualService then
+#     split traffic between v1/v2 by the `version` label at the Envoy layer;
+#     the Service itself does plain round-robin across the union of both.
+#   - version: v2               — the subset key destination-rule-order-
+#     service.yaml selects on.
+#   - sidecar.istio.io/inject: "true" — mesh opt-in label (see
+#     inject-order-service.yaml for why this must be a LABEL, not an
+#     annotation).
+#
+# Selector caveat (read before assuming this is adoption-safe): this
+# Deployment's own spec.selector.matchLabels is
+# {app.kubernetes.io/name: order-service, version: v2} — deliberately more
+# specific than the base order-service Deployment's unchanged selector
+# ({app.kubernetes.io/name: order-service} alone, left untouched because
+# Deployment selectors are immutable on an object that may already be
+# running in-cluster). That means base order-service's selector is, in raw
+# label-set terms, also satisfied by these v2 pods. In practice this is
+# safe: Kubernetes controllers only adopt UNOWNED pods/ReplicaSets matching
+# their selector (they check for an existing controller ownerReference
+# first), and every pod here is owned by order-service-v2's own
+# ReplicaSet — so the order-service Deployment controller will see them,
+# recognize they're already controlled by a different Deployment, and skip
+# them. No pod-adoption fight occurs. This is the same "one Service, N
+# Deployments keyed by version" shape Istio's own bookinfo sample uses for
+# reviews-v1/v2/v3, with one difference: bookinfo's v1 Deployment ALSO pins
+# version in its own selector (fully disjoint selectors); this repo can't
+# retrofit that onto order-service's selector without risking an
+# "immutable field" apply error against an already-running Deployment, so
+# the overlap described above is accepted rather than eliminated. Flagged
+# explicitly in k8s/istio/README.md as the one uncertain part of this canary
+# wiring.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service-v2
+  namespace: datamesh
+  labels:
+    app.kubernetes.io/name: order-service
+    app.kubernetes.io/part-of: datamesh
+    app.kubernetes.io/component: producer
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: order-service
+      version: v2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: order-service
+        app.kubernetes.io/part-of: datamesh
+        app.kubernetes.io/component: producer
+        version: v2
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: order-service
+          image: datamesh/order-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: datamesh-app-config
+          env:
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: datamesh-postgres-app
+                  key: username
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: datamesh-postgres-app
+                  key: password
+          startupProbe:
+            httpGet:
+              path: /q/health/started
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 150m
+              memory: 320Mi
+            limits:
+              cpu: 750m
+              memory: 640Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 185
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
