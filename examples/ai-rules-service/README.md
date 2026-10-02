@@ -1,11 +1,11 @@
 # DataMesh :: AI Rules Service
 
-DRQ-012 showcase: **the LLM classifies, Drools decides.** Camel-on-Quarkus
+This module showcases **the LLM classifies, Drools decides.** Camel-on-Quarkus
 combines a single-shot `langchain4j-chat`-style classification (Ollama,
 `qwen2.5:3b`) with a plain embedded Drools 10.2.0 rule set that makes the
 actual order-triage business decision.
 
-DRQ-014 showcase: the exact same classify-then-decide logic, orchestrated
+It also showcases the exact same classify-then-decide logic, orchestrated
 **two different ways** as an A/B contrast -- a Camel route and a Quarkus
 Flow workflow. See [A/B: Camel route vs. Quarkus Flow](#ab-camel-route-vs-quarkus-flow)
 below.
@@ -24,26 +24,27 @@ POST /api/orders/triage  (order JSON)
   TriageDecision JSON  (FRAUD_HOLD | EXPEDITE | ROUTE_TO_WAREHOUSE)
 ```
 
-## How this sidesteps DEF-001
+## How this sidesteps the tool-calling limitation
 
 `ai-mcp-service` (the sibling AI example in this reactor) demonstrates
 langchain4j **tool-calling**: an agent that decides, on its own, to invoke an
-`ai-tool` route. That round trip is the subject of **DEF-001** (open,
-documented in `_plans/decisions.md`): `camel-quarkus-support-langchain4j`
+`ai-tool` route. That round trip is an open, documented limitation:
+`camel-quarkus-support-langchain4j`
 unconditionally enforces the Quarkiverse JAX-RS HTTP client transport, and
 the in-process tool-calling round trip never fires on this stack.
 
 This module makes **no** agent-mediated business decision at all. The LLM's
 only job is a single-shot classify call (`langchain4j-chat`) — the exact
-same proven, DEF-001-free pattern as ai-mcp-service's `OrderClassifierRoute`
-— with a tightly constrained prompt that asks for a small, closed JSON
-shape (three string enums). The actual business decision (fraud hold vs.
-expedite vs. route-to-warehouse) is made entirely by the embedded Drools
-rule set in `rules/order-triage.drl`, evaluating the classified fields as a
-plain Java fact. There is no in-process tool-calling round trip to fail, so
-this module structurally cannot regress into DEF-001 — it has no
-`camel-quarkus-ai-tool`, `camel-quarkus-langchain4j-agent`, or
-`camel-quarkus-mcp-server` dependency at all.
+same proven pattern that avoids the tool-calling defect, as ai-mcp-service's
+`OrderClassifierRoute` — with a tightly constrained prompt that asks for a
+small, closed JSON shape (three string enums). The actual business decision
+(fraud hold vs. expedite vs. route-to-warehouse) is made entirely by the
+embedded Drools rule set in `rules/order-triage.drl`, evaluating the
+classified fields as a plain Java fact. There is no in-process tool-calling
+round trip to fail, so this module structurally cannot regress into that
+tool-calling defect — it has no `camel-quarkus-ai-tool`,
+`camel-quarkus-langchain4j-agent`, or `camel-quarkus-mcp-server` dependency
+at all.
 
 ## Drools 10.2.0 + drools-mvel
 
@@ -51,8 +52,8 @@ This module uses **plain embedded Drools as a library** — `drools-engine` +
 a `KieBase` built once at startup via `KieHelper` from a classpath `.drl`
 resource, with a short-lived `KieSession` minted per request. This is **not**
 the Kogito/KIE Quarkus extension; no Kogito platform, no KIE process/flow/
-BPMN engine is used or planned (see DRQ-012 in `_plans/decisions.md` — KIE
-is explicitly not a roadmap item for this reactor). Orchestration is done by
+BPMN engine is used or planned — KIE is explicitly not a roadmap item for
+this reactor. Orchestration is done by
 Quarkus + Camel, which is the point of the demo.
 
 `drools-mvel` is a **required** runtime dependency, not optional: it supplies
@@ -111,7 +112,7 @@ reasoning.
 
 ## A/B: Camel route vs. Quarkus Flow
 
-DRQ-014: the same two steps -- classify, then let Drools decide -- are
+The same two steps -- classify, then let Drools decide -- are
 orchestrated two different ways, as a direct A/B contrast of orchestration
 styles on the same Quarkus application:
 
@@ -172,7 +173,7 @@ showing only `org.drools:*:10.2.0` / `org.kie:*:10.2.0`.
 
 ```bash
 # Start Ollama as infra (opt-in compose profile; see infra/README.md and
-# demos/README.md — DEF-001 keeps Ollama opt-in across this reactor):
+# demos/README.md — the tool-calling limitation keeps Ollama opt-in across this reactor):
 docker compose --profile ollama up -d
 docker exec -it ollama ollama pull qwen2.5:3b   # first run only
 
@@ -217,7 +218,7 @@ clash.
     -f examples/pom.xml -pl ai-rules-service
   ```
 
-- `OrderTriageFlowTest` (`*Test`, `@QuarkusTest`) — the DRQ-014 Flow-path
+- `OrderTriageFlowTest` (`*Test`, `@QuarkusTest`) — the Flow-path
   counterpart to `OrderTriageDrlTest`: `TriageService` is `@InjectSpy`'d so
   only `classify` is stubbed with a canned `ClassificationResult` (a
   HIGH-risk one and a benign one), while `decide` runs for real against the

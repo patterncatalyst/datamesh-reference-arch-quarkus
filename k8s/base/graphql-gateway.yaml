@@ -1,9 +1,9 @@
-# graphql-gateway — the HTTP scale target for 9c's KEDA HTTP add-on
+# graphql-gateway — the HTTP scale target for the KEDA HTTP add-on
 # ScaledObject. Federates order-service (REST) and inventory-service (gRPC)
 # behind /graphql; owns no data of its own.
 #
-# DEVIATION FROM THE /q/health/* PROBE SPEC: graphql-gateway's pom.xml does
-# NOT depend on quarkus-smallrye-health (checked: only quarkus-smallrye-graphql,
+# Deviation from the /q/health/* probe spec: graphql-gateway's pom.xml does
+# not depend on quarkus-smallrye-health (checked: only quarkus-smallrye-graphql,
 # quarkus-rest-client[-jackson], quarkus-grpc, quarkus-arc, domain-model,
 # contracts). Without that extension /q/health/ready and /q/health/live
 # return 404, so httpGet probes on those paths would never succeed and the
@@ -21,7 +21,7 @@
 # until that Service is added; this does not block graphql-gateway's own
 # startup/readiness since it has no health dependency wired to that call.
 #
-# Mesh: NOT injected — see order-service.yaml for the Phase C mesh-opt-out
+# Mesh: not injected — see order-service.yaml for the mesh-opt-out
 # rationale (applies identically here).
 apiVersion: apps/v1
 kind: Deployment

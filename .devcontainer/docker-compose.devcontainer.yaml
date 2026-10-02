@@ -3,7 +3,7 @@
 # Companion compose file for devcontainer.json in this same directory.
 # Defines the `workspace` service devcontainer.json's `"service"` key points
 # at, plus a network the workspace can join to reach the observability/infra
-# stack (root `compose.yaml`, per _plans/decisions.md DRQ-003) by service
+# stack (root `compose.yaml`) by service
 # name once both are brought up.
 #
 # This is intentionally a SEPARATE compose file from the root compose.yaml --

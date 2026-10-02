@@ -185,6 +185,42 @@ function codeSlide({ eyebrow, title, lang, code, note, notes }) {
   return s;
 }
 
+// ---- TABLE slide: titled slide with a pptxgenjs table in house style ----
+function tableSlide({ eyebrow, title, headers, rows, note, notes }) {
+  const s = pres.addSlide();
+  s.background = { color: C.white };
+  head(s, eyebrow, title);
+  const tx = 0.7, ty = 1.95, tw = PW - 1.4;
+  const colCount = (headers && headers.length) || (rows && rows[0] && rows[0].length) || 1;
+  const colW = Array(colCount).fill(tw / colCount);
+  const cellOpts = { fontFace: F.body, fontSize: 13, align: "left", valign: "middle" };
+  const tableRows = [];
+  if (headers) {
+    tableRows.push(headers.map((h) => ({
+      text: h,
+      options: { ...cellOpts, bold: true, color: C.white, fill: { color: C.red }, fontSize: 14 },
+    })));
+  }
+  (rows || []).forEach((r, i) => {
+    const fill = i % 2 === 1 ? C.paleR2 : C.white;
+    tableRows.push(r.map((cell) => ({
+      text: String(cell),
+      options: { ...cellOpts, color: C.body, fill: { color: fill } },
+    })));
+  });
+  s.addTable(tableRows, {
+    x: tx, y: ty, w: tw, colW,
+    autoPage: false,
+    rowH: 0.5,
+    border: { type: "solid", color: "E6E6E6", pt: 0.75 },
+    margin: [4, 8, 4, 8],
+  });
+  if (note) s.addText(note, { x: tx, y: PH - 1.05, w: tw, h: 0.45, fontSize: 13, color: C.gray, fontFace: F.body, italic: true, valign: "top", margin: 0 });
+  footer(s);
+  if (notes) s.addNotes(notes);
+  return s;
+}
+
 // split code into colored runs: full-line comments and inline (# ...) → green
 function buildCodeRuns(code) {
   const runs = [];
@@ -218,4 +254,4 @@ function findComment(ln) {
   return -1;
 }
 
-module.exports = { pres, C, F, PW, PH, titleSlide, agendaSlide, divider, contentSlide, diagramSlide, codeSlide, head, addBullets, footer, pageNumOnly, DIMS, IMG, LOGO_DARK, LOGO_LIGHT, LOGO_AR, ILLUS };
+module.exports = { pres, C, F, PW, PH, titleSlide, agendaSlide, divider, contentSlide, diagramSlide, codeSlide, tableSlide, head, addBullets, footer, pageNumOnly, DIMS, IMG, LOGO_DARK, LOGO_LIGHT, LOGO_AR, ILLUS };

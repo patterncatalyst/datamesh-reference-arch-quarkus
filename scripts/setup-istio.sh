@@ -5,7 +5,7 @@
 # other operator in this stack is installed (Strimzi, CNPG, KEDA all use
 # `helm upgrade --install`). No istioctl dependency.
 #
-# Scope: control plane only, no ingress gateway (not needed for the Phase C
+# Scope: control plane only, no ingress gateway (not needed for the
 # substrate; add `istio/gateway` later if an ingress path is needed).
 #
 # IMPORTANT — mesh selectively, not namespace-wide (lgtm-minikube-stack

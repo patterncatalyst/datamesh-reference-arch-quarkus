@@ -12,9 +12,9 @@ contracts are registered and enforced. This chapter is about how data
 actually *moves* between services — the planes the mesh runs on. There are
 two: an **asynchronous event backbone** on Kafka, and a **synchronous read
 layer** where a GraphQL gateway composes REST and gRPC calls into one
-response. Both are real, running code in this reactor, and both can be read
+response. Both are real, running code in this project, and both can be read
 through the same lens — Apache Camel's enterprise integration patterns
-(EIPs) — which is also where this reactor's Camel-on-Quarkus work actually
+(EIPs) — which is also where this project's Camel-on-Quarkus work actually
 shows up.
 
 The code is in `examples/order-service/` (the producer side, already built
@@ -25,13 +25,18 @@ exercises the Camel route this chapter closes with.
 
 Figure 5.1 previews the shape the rest of the chapter fills in: four
 protocols, each earning its place by fitness to a job rather than by
-house-wide mandate, each backed by the contract type the previous chapter
-covered, and each wired to a specific Quarkus extension — `quarkus-rest` at
-the edge, `quarkus-grpc` between services, `quarkus-smallrye-graphql`
-composing reads, and Reactive Messaging carrying events. The rest of this
-chapter builds the async and sync halves of that picture in running code,
-then returns to the fitness argument explicitly before closing with Camel's
-EIPs as the lens for the routing logic inside either half.
+house-wide mandate.
+
+| Protocol | Job it fits | Contract type | Quarkus extension |
+|---|---|---|---|
+| REST | client-facing edge | OpenAPI | `quarkus-rest` |
+| gRPC | service-to-service calls | Protobuf | `quarkus-grpc` |
+| GraphQL | composing reads across domains | GraphQL SDL | `quarkus-smallrye-graphql` |
+| Events | asynchronous reactions | Avro | Reactive Messaging |
+
+The rest of this chapter builds the async and sync halves of that picture in
+running code, then returns to the fitness argument explicitly before closing
+with Camel's EIPs as the lens for the routing logic inside either half.
 
 {% include excalidraw.html file="05-api-implementations" alt="Diagram of four protocols — REST, gRPC, GraphQL, and events — each matched to the job it fits best, its contract type, and the Quarkus extension that implements it" caption="Figure 5.1 — Four protocols, four contracts, each by fitness" %}
 
@@ -115,19 +120,19 @@ every time it runs: `OrderPlaced` is an immutable event — a fact that an
 order *was* placed, which never changes after the fact — and the
 `Notification` row it's turned into is a stateful entity, queryable and
 updatable going forward. That's the same refinement the diagram draws one
-step further, into aggregates and a published analytical view; this reactor
+step further, into aggregates and a published analytical view; this project
 stops at the entity step. Nothing here aggregates or republishes
 notifications for analytical consumption, and no CDC or streaming ingestion
 layer — Figure 5.3's territory — exists in this repository to pick raw
 change data back up off `orders` or `notifications` for that purpose; both
-diagrams describe the target shape of an analytical plane this reactor's
+diagrams describe the target shape of an analytical plane this project's
 operational services feed, not code that runs today.
 
 {% include excalidraw.html file="05-analytical-data-composition" alt="Diagram showing operational data refined through events and entities into a published data product that analytics consumes" caption="Figure 5.2 — How analytical data is composed from operational events and entities" %}
 
-{% include excalidraw.html file="05-ingestion-streaming-sourcing" alt="Diagram of an ingestion layer sourcing analytical data from operational microservices via messaging events and Debezium-style change-data-capture" caption="Figure 5.3 — Ingestion, streaming, and CDC sourcing (conceptual; not built in this reactor)" %}
+{% include excalidraw.html file="05-ingestion-streaming-sourcing" alt="Diagram of an ingestion layer sourcing analytical data from operational microservices via messaging events and Debezium-style change-data-capture" caption="Figure 5.3 — Ingestion, streaming, and CDC sourcing (conceptual; not built in this project)" %}
 
-Widen this one flow and you get the full choreography this reactor models:
+This same flow extends into the full choreography this project models:
 inventory-service and payment-service also react to `order.placed`, and
 shipping-service reacts to `payments.processed` — each consumer added
 independently, with no change required to the producer that emits the event
@@ -199,7 +204,7 @@ One `POST /graphql` request; `order` resolves over REST, `stock` resolves
 over gRPC, and SmallRye GraphQL assembles both into one JSON response under
 `.data.order`.
 
-This reactor deliberately uses **gateway orchestration** rather than true
+This project deliberately uses **gateway orchestration** rather than true
 GraphQL subgraph federation: one stateless gateway owns the whole schema and
 its resolvers call each domain's *existing* REST/gRPC interface directly,
 with zero GraphQL added to order-service or inventory-service themselves.
@@ -216,7 +221,7 @@ products it doesn't own, not a domain with data of its own.
 
 ## Protocols by fitness, not by hierarchy
 
-Across both planes, this reactor deliberately uses four different
+Across both planes, this project deliberately uses four different
 protocols rather than picking one and forcing every interaction through it,
 because each is best suited to a different job: REST at the edge (clients
 calling `order-service`, universal and cacheable); gRPC between services
@@ -233,7 +238,7 @@ asserted in prose.
 
 Both planes above move data without any *conditional routing logic* inside
 them — order-service always publishes to the same topic, the gateway always
-calls the same two backends. Where this reactor's data flow does branch on
+calls the same two backends. Where this project's data flow does branch on
 content, it's modeled as a textbook Camel enterprise integration pattern:
 the **Content-Based Router**. `examples/ai-mcp-service`'s
 `OrderLookupToolRoute` is reached through Camel's `ai-tool:` component (the
@@ -308,7 +313,7 @@ The two are equivalent route definitions, not two different behaviors: the
 Java DSL version is the one actually running in `examples/ai-mcp-service`
 (it's what `demos/demo-camel-integration.sh` exercises, asserting all four
 branches including the `.otherwise()` fallback), and the YAML DSL block is
-the same route expressed in Camel's YAML route syntax, which this reactor
+the same route expressed in Camel's YAML route syntax, which this project
 does not currently ship as a running example — it's shown here because the
 Content-Based Router pattern reads identically either way: a `.choice()` (or
 `choice:` step) evaluates its `.when()` predicates (here, Camel's `simple`
@@ -327,12 +332,10 @@ The synchronous and asynchronous planes aren't competitors; they're
 complementary. `GatewayApi` composes *current* state on demand, the moment a
 client asks. `OrderPlacedConsumer` and its siblings propagate *change* as it
 happens, so downstream consumers attach to the live operational flow rather
-than a stale snapshot. REST crosses the trust boundary at the edge, gRPC
-moves between services internally, GraphQL shapes a composite response for
-the caller, and the event backbone carries reactions — and where routing
-logic needs to branch on content inside any of them, Camel's EIPs are the
-pattern vocabulary this reactor reaches for, with a real Content-Based
-Router already running in `examples/ai-mcp-service`.
+than a stale snapshot. Where routing logic needs to branch on content inside
+either plane, Camel's EIPs are the pattern vocabulary this project reaches
+for, with a real Content-Based Router already running in
+`examples/ai-mcp-service`.
 
 ## Build, run, observe
 
@@ -359,14 +362,14 @@ does not cover.
 
 - The async backbone (`OrderEventProducer` → `OrderPlacedConsumer`) and the
   sync read layer (`GatewayApi` composing `OrderRestClient` + a gRPC stub)
-  are both real, running planes in this reactor, each suited to a different
+  are both real, running planes in this project, each suited to a different
   job — propagating change versus composing current state on demand.
 - `@Source`-annotated GraphQL resolvers are lazy: the federated `stock`
   field only triggers inventory-service's gRPC call when a client's query
   actually selects it, which is what makes gateway composition a real
   optimization rather than an always-pay-for-both call.
 - Camel's Content-Based Router EIP is the right lens for conditional routing
-  logic in this reactor, and it's not hypothetical — `OrderLookupToolRoute`
+  logic in this project, and it's not hypothetical — `OrderLookupToolRoute`
   is a real `.choice()/.when()/.otherwise()` route reachable through the
   embedded MCP server, with an equivalent YAML DSL expression of the same
   route shown here for comparison.
@@ -377,4 +380,4 @@ made real in running Quarkus code.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. Confirm on a real run: `demo-graphql.sh`'s negative-control query for a nonexistent order id and the exact `GatewayApi` 404-handling behavior it documents; that `@Transactional` reliably makes `OrderPlacedConsumer.consume` blocking without an explicit `@Blocking` across the SmallRye Reactive Messaging version pinned in this reactor; and that the YAML DSL route shown is accepted as-is by Camel's YAML routes loader on Quarkus (it has not been run — only the Java DSL original has, via `demo-camel-integration.sh`).*
+*Verification status: <span class="status status--unverified">unverified</span>. Confirm on a real run: `demo-graphql.sh`'s negative-control query for a nonexistent order id and the exact `GatewayApi` 404-handling behavior it documents; that `@Transactional` reliably makes `OrderPlacedConsumer.consume` blocking without an explicit `@Blocking` across the SmallRye Reactive Messaging version pinned in this project; and that the YAML DSL route shown is accepted as-is by Camel's YAML routes loader on Quarkus (it has not been run — only the Java DSL original has, via `demo-camel-integration.sh`).*

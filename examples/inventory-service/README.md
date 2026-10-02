@@ -40,9 +40,8 @@ curl -s -X POST http://<inventory-host>/stock \
   -d '{"sku":"WIDGET-1","quantityOnHand":100}'
 ```
 
-(Tracked as finding F3 in `_plans/phase-d-step10-plan.md`, disposition:
-won't-fix / documented — auto-seeding `%prod` would require `drop-and-create`
-and its data-loss risk.)
+(Disposition: won't-fix / documented — auto-seeding `%prod` would require
+`drop-and-create` and its data-loss risk.)
 
 ### Stale `inventorydb` volumes predate the `Stock` IDENTITY change (F7)
 

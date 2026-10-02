@@ -2,7 +2,7 @@
   "type": "record",
   "name": "PaymentCaptured",
   "namespace": "capstone.payment.v1",
-  "doc": "Emitted by payment-service after a payment for an order is captured. Runtime contract for the payment-captured Kafka topic (DRQ-010).",
+  "doc": "Emitted by payment-service after a payment for an order is captured. Runtime contract for the payment-captured Kafka topic.",
   "fields": [
     { "name": "event_type",  "type": "string", "doc": "Always 'payment.captured'." },
     { "name": "order_id",    "type": "string", "doc": "Order aggregate id this payment belongs to (also the Kafka message key)." },

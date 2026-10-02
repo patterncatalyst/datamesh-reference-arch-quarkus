@@ -25,7 +25,7 @@ import jakarta.ws.rs.core.Response.Status;
  *   POST   /reviews          -- create a review (400 on invalid rating)
  *   GET    /reviews           -- list reviews, optionally filtered by ?sku=
  *   GET    /reviews/{id}      -- fetch one review
- *   DELETE /reviews/{id}      -- admin-only moderation (DRQ-005 OIDC demo):
+ *   DELETE /reviews/{id}      -- admin-only moderation (OIDC demo):
  *                                 requires a bearer token with the "admin"
  *                                 role, so this one endpoint doubles as this
  *                                 reactor's live Quarkus OIDC + Keycloak Dev

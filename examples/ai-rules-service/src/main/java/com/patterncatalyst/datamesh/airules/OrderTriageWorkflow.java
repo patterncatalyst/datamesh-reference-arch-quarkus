@@ -9,7 +9,7 @@ import io.quarkiverse.flow.dsl.FlowWorkflowBuilder;
 import io.serverlessworkflow.api.types.Workflow;
 
 /**
- * DRQ-014 showcase: the Quarkus Flow A/B contrast to {@link OrderTriageRoute}'s
+ * Showcase: the Quarkus Flow A/B contrast to {@link OrderTriageRoute}'s
  * Camel orchestration of the same {@link TriageService} logic.
  *
  * <p>This workflow orchestrates exactly two tasks -- {@code classify} then

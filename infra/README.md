@@ -1,7 +1,7 @@
 # infra/ — standalone docker compose stack
 
-Support configs for the repo-root `compose.yaml` (DRQ-011, Phase C step
-8a). `docker compose up -d` from the repo root brings up the baseline
+Support configs for the repo-root `compose.yaml`.
+`docker compose up -d` from the repo root brings up the baseline
 infrastructure; see `CLAUDE.md`'s "Build / test commands" section.
 
 ```
@@ -19,9 +19,9 @@ infra/
 | `postgres` | (none — baseline) | `postgres:18`, one DB per service |
 | `kafka` | (none — baseline) | KRaft mode, two listeners |
 | `apicurio` | (none — baseline) | Schema Registry v3 API, in-memory H2 |
-| `lgtm` | (none — baseline) | Grafana + Loki + Tempo + Mimir + OTel Collector, **always-on per DRQ-011** (user choice — NOT profile-gated, unlike the lgtm-docker-stack skill's generic `compose-full.yaml` template where observability ships alongside a profiled Kafka/Postgres/Apicurio) |
+| `lgtm` | (none — baseline) | Grafana + Loki + Tempo + Mimir + OTel Collector, **always-on by deliberate choice** (NOT profile-gated, unlike the lgtm-docker-stack skill's generic `compose-full.yaml` template where observability ships alongside a profiled Kafka/Postgres/Apicurio) |
 | `kafka-ui` | `tools` | `docker compose --profile tools up -d` |
-| `ollama` | `ollama` | `docker compose --profile ollama up -d` — opt-in, heaviest piece (DEF-001) |
+| `ollama` | `ollama` | `docker compose --profile ollama up -d` — opt-in, heaviest piece (kept opt-in given the Ollama tool-calling limitation) |
 
 ```bash
 cp .env.example .env                   # first time only — .env is gitignored
@@ -36,13 +36,13 @@ docker compose down -v                 # stop AND wipe volumes
 > from the committed `.env.example` template. Change the Postgres credentials
 > for anything beyond local development.
 
-## Image tags — the wire-compat crux (DRQ-011)
+## Image tags — the wire-compat crux
 
 **Requirement:** `POSTGRES_IMAGE`, `KAFKA_IMAGE`, and `APICURIO_IMAGE` in
 `.env` (repo root) MUST equal the exact tags Quarkus 3.39.5 Dev Services
 pulls by default, so `mvn verify` (Testcontainers/Dev Services) and this
 standalone compose stack exercise identical broker/registry/database
-behavior. Step 8b's service Containerfiles/`application.properties` should
+behavior. Each service's Containerfiles/`application.properties` should
 pin the SAME tags into `quarkus.*.devservices.image-name` where relevant.
 
 | Component | Pinned tag | Quarkus 3.39.5 Dev Services default | Confirmed by |
@@ -105,7 +105,7 @@ and actually run** (`docker pull` + `docker run`) as part of writing
 
 `kafka:9094` is the in-network listener (other compose services, and the
 same name/port a `Service` object would use in the minikube-stack handoff
-— K8s parity per DRQ-011). `localhost:9092` is the host listener for
+— for K8s parity). `localhost:9092` is the host listener for
 `kcat`/`kafkacat`, IDE plugins, and CLI tools run directly on the laptop.
 Both were verified live with `kafkacat -L` (see "Validation").
 
@@ -161,12 +161,12 @@ not by reading the lgtm-docker-stack skill's generic templates:
    nothing. Healthcheck test switched to `curl -sf`.
 
 **No service emits OTLP yet.** Quarkus OTel instrumentation lands in
-Phase D (see `_plans/build-plan.md`). Until then, Grafana's application
+a later phase. Until then, Grafana's application
 dashboards are empty — the collector's *own* self-monitoring metrics
 (`otelcol_*`) DO show up, since the stack scrapes itself for the readiness
 probe above, but there is no application trace/log/metric data. This is
 expected, not a bug: `OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4318` is the
-env var a Phase D service will set to start sending data through this
+env var a future service will set to start sending data through this
 exact, already-validated pipeline with zero further config changes here.
 
 ## Postgres
@@ -180,8 +180,7 @@ compatible with pg_ctlcluster" (confirmed by running the pinned image).
 `compose.yaml` mounts the named volume at the new path.
 
 `TZ=UTC` / `PGTZ=UTC` env vars plus `-c timezone=UTC` on the server
-command avoid the US/Eastern boot failure documented in
-`_plans/decisions.md` ("Test/build notes" — `postgres:18` Dev Services
+command avoid the US/Eastern boot failure (`postgres:18` Dev Services
 containers reject legacy Olson zone ids like `US/Eastern` forwarded by
 pgjdbc from a non-UTC host).
 
@@ -194,7 +193,7 @@ One Postgres instance, one database per service that carries
 `orderdb`, `inventorydb`, `notificationdb`, `reviewdb`, `shippingdb`. All
 owned by the single bootstrap login role (`POSTGRES_USER`/
 `POSTGRES_PASSWORD` in `.env`) — only the database name differs between
-each service's `%prod` `${JDBC_URL}` (DRQ-011's single env-driven
+each service's `%prod` `${JDBC_URL}` (the single env-driven
 profile). The default `POSTGRES_DB` (`appdb`) is left as a generic/shared
 database for ad hoc `psql` exploration. See `infra/db/init/00-init.sql`.
 
@@ -217,7 +216,7 @@ All of the following were run live in this environment (Docker Engine
   from their respective sides.
 - `curl http://localhost:8081/apis/registry/v3/system/info` — HTTP 200,
   confirms the v3 API path required by the `AvroKafka{Serializer,
-  Deserializer}` config in DRQ-009.
+  Deserializer}` config.
 - `curl http://localhost:3000/api/datasources` — confirms Tempo/Loki/
   Prometheus datasources are provisioned with the custom trace↔log
   correlation `jsonData`, not the image's built-in defaults.
@@ -229,8 +228,8 @@ All of the following were run live in this environment (Docker Engine
 - `docker compose --profile tools --profile ollama config` — parses with
   no error (the `ollama` profile itself was NOT brought up — it requires
   an 8 GB image pull and is opt-in by design; config-level validation was
-  judged sufficient for a profile nothing in Phase C depends on).
+  judged sufficient for a profile nothing in this stage depends on).
 
 Not verified: end-to-end Avro produce/consume through this stack from an
-actual example service (that requires step 8b's `%prod` wiring) and the
+actual example service (that requires the services' `%prod` wiring) and the
 `ollama` profile's runtime behavior.

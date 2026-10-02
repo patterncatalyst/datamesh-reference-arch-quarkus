@@ -7,7 +7,7 @@
 # COPY the whole `examples/` Maven reactor (shipping-service's sibling modules
 # domain-model and contracts, both required at compile time: domain-model for
 # shared DTOs/Topics, contracts for the payment.captured / shipment.dispatched
-# Avro schemas, DRQ-010) in one shot. docker compose / K8s manifests that
+# Avro schemas) in one shot. docker compose / K8s manifests that
 # build this image must set the same context (repo root) and this exact -f
 # path.
 #
@@ -23,7 +23,7 @@
 #                  reactor, never the builder's Maven cache.
 #
 # shipping-service is a pure Kafka choreography processor (payment.captured
-# in, shipment.dispatched out via Avro/Apicurio, DRQ-010) with no gRPC server
+# in, shipment.dispatched out via Avro/Apicurio) with no gRPC server
 # — only the HTTP port (health/metrics) is exposed here.
 
 # ─── Stage 1: build (reactor-aware) ──────────────────────────────────────
@@ -60,14 +60,14 @@ COPY --from=build --chown=185 /build/examples/shipping-service/target/quarkus-ap
 
 EXPOSE 8080
 
-# DRQ-011: pin UTC (Postgres Dev Services / real Postgres rejects legacy
+# Pin UTC (Postgres Dev Services / real Postgres rejects legacy
 # Olson zone ids forwarded from the host default) + run with the %prod
 # profile so compose/K8s deployments use the same env-driven config
 # (KAFKA_BOOTSTRAP_SERVERS / APICURIO_REGISTRY_URL / JDBC_URL) as the rest of
-# the reactor, per DRQ-011.
+# the project.
 ENV JAVA_OPTS_APPEND="-Duser.timezone=UTC -Dquarkus.profile=prod"
 
-# F1/F1b (DEF-002): Avro 1.12's ClassSecurityValidator refuses to (de)serialize
+# Avro 1.12's ClassSecurityValidator refuses to (de)serialize
 # generated SpecificRecords from a packaged `java -jar` unless their packages
 # are trusted. The bare-java ENTRYPOINT does NOT read JAVA_OPTS_APPEND, so this
 # rides JAVA_TOOL_OPTIONS (honored by the JVM itself). shipping-service consumes

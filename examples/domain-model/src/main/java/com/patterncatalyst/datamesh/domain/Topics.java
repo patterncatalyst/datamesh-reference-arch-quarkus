@@ -2,7 +2,7 @@ package com.patterncatalyst.datamesh.domain;
 
 /**
  * Single source of truth for Kafka topic names and Reactive Messaging
- * channel ids used across the reference architecture. Per DRQ-009, every
+ * channel ids used across the reference architecture. Every
  * event on these topics is Avro-serialized against the Apicurio Schema
  * Registry from the start -- see the {@code contracts} module for the
  * {@code .avsc} schemas ({@code order-placed.avsc}, {@code

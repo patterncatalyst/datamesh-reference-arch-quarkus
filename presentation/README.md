@@ -7,7 +7,7 @@ sibling `datamesh-reference-arch-python` decks):
 | Deck | Dir | Audience / use |
 |------|-----|----------------|
 | **101** | `datamesh-101/` | Concept-forward overview for Quarkus developers — data-architecture landscape, the four principles, Quarkus/Kubernetes teaser. ~17 slides. |
-| **201** | `datamesh-201/` | Deep-dive with **live demos** and a large **appendix** — capability tour, the three orchestration engines (DRQ-015), AI+rules triage, Quarkus-vs-Spring-Boot (JVM), platform/observability. ~81 slides. |
+| **201** | `datamesh-201/` | Deep-dive with **live demos** and a large **appendix** — capability tour, the three orchestration engines, AI+rules triage, Quarkus-vs-Spring-Boot (JVM), platform/observability. ~89 slides. |
 
 ## Build
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# demos/demo-kafka.sh — Phase D step 10.6 "compose (infra baseline)" demo:
-# Kafka via Reactive Messaging, Avro-serialized (DRQ-009 / DEF-002).
+# demos/demo-kafka.sh — "compose (infra baseline)" demo:
+# Kafka via Reactive Messaging, Avro-serialized.
 #
 # order-service's OrderEventProducer publishes order.placed as a real Avro
 # record against the Apicurio Schema Registry (io.apicurio.registry.serde.
@@ -12,10 +12,9 @@
 # RAW bytes back off the real compose Kafka broker with a plain byte-level
 # consumer (kcat) -- no Avro deserializer involved on the read side -- and
 # asserts the Apicurio/Confluent wire-format magic byte (0x00) is the first
-# byte of the record value, per DEF-002 (see _plans/decisions.md). This is
-# the same proof OrderPlacedAvroWireIT makes with Testcontainers in `mvn
-# verify`; this demo makes the identical proof against the real standing
-# compose stack instead.
+# byte of the record value. This is the same proof
+# OrderPlacedAvroWireIT makes with Testcontainers in `mvn verify`; this demo
+# makes the identical proof against the real standing compose stack instead.
 #
 # ── Why a per-run unique topic name ─────────────────────────────────────────
 # order.placed's Kafka topic lives on compose's `kafka-data` NAMED VOLUME,
@@ -48,8 +47,8 @@
 # packages/classes may be instantiated via reflection during Avro
 # (de)serialization, and a plain `java -jar` (unlike a Quarkus-bootstrapped
 # dev/test JVM, which trusts the application's own packages implicitly)
-# trusts nothing by default. _plans/decisions.md's DEF-002 entry already
-# names the identical fix for the OTHER place this bites
+# trusts nothing by default. The identical fix is already documented
+# for the OTHER place this bites
 # (OrderPlacedAvroWireIT's failsafe execution passes
 # org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 as a plain JUnit
 # system property for the same reason). This demo applies the same fix as a
@@ -94,9 +93,9 @@ TOPIC="order.placed.demo.$$"
 
 narrate "Reactive Messaging + Avro: placing a real order triggers"
 narrate "OrderEventProducer to publish order.placed as Avro against Apicurio."
-narrate "This demo reads the RAW bytes back off the real compose Kafka broker"
+narrate "This demo reads the raw bytes back off the real compose Kafka broker"
 narrate "(kcat, no Avro decoder) and asserts the Apicurio/Confluent wire-format"
-narrate "magic byte 0x00 per DEF-002 -- proof it's Avro on the wire, not JSON."
+narrate "magic byte 0x00 -- confirmation it's Avro on the wire, not JSON."
 
 # ─── .env prereq (compose var resolution) ───────────────────────────────────
 if [[ ! -f "${REPO_ROOT}/.env" ]]; then
@@ -240,11 +239,11 @@ FIRST_BYTE_HEX="$(od -An -tx1 -N1 "$RAW_FILE" | tr -d '[:space:]')"
 info "raw record value: ${RAW_LEN} bytes, first byte = 0x${FIRST_BYTE_HEX}"
 
 [[ "$FIRST_BYTE_HEX" == "00" ]] \
-    || fail "expected Apicurio/Confluent Avro wire-format magic byte 0x00 as the first byte, got 0x${FIRST_BYTE_HEX} (DEF-002 regression -- is OrderEventProducer still using AvroKafkaSerializer?)"
+    || fail "expected Apicurio/Confluent Avro wire-format magic byte 0x00 as the first byte, got 0x${FIRST_BYTE_HEX} (is OrderEventProducer still using AvroKafkaSerializer?)"
 [[ "$FIRST_BYTE_HEX" != "7b" ]] \
-    || fail "record value starts with '{' (0x7b) -- serde has regressed to JSON, violating DRQ-009/DEF-002"
+    || fail "record value starts with '{' (0x7b) -- serde has regressed to JSON (Avro wire format expected)"
 narrate "confirmed: order.placed value on the real compose Kafka broker starts with the"
-narrate "Avro wire-format magic byte 0x00 (DEF-002) -- not JSON, not any other encoding"
+narrate "Avro wire-format magic byte 0x00 -- not JSON, not any other encoding"
 
 # ─── Corroborate: Apicurio registered a schema for this publish ────────────
 step "Apicurio registry -- confirm a schema was registered for this run"

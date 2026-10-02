@@ -17,7 +17,7 @@ import capstone.order.v1.OrderPlaced;
 
 /**
  * Publishes {@code order.placed} as Avro against the Apicurio Schema
- * Registry (DRQ-009) after an order has been durably persisted. Mirrors
+ * Registry after an order has been durably persisted. Mirrors
  * {@code OrderEventProducer} in the Quarkus order-service: publishing
  * happens strictly after commit, and a publish failure must never fail the
  * already-committed order -- this class treats it as best-effort and only

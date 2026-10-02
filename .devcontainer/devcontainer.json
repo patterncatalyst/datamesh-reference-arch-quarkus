@@ -46,8 +46,8 @@
   },
 
   // App HTTP and Grafana at minimum, plus OTLP HTTP and the Mimir/Prometheus
-  // remote-read port, matching the always-on LGTM baseline (see
-  // _plans/decisions.md DRQ-003 / step 8) once `compose.yaml` is brought up
+  // remote-read port, matching the always-on LGTM baseline,
+  // once `compose.yaml` is brought up
   // from inside this devcontainer.
   "forwardPorts": [8080, 3000, 4318, 9090],
   "portsAttributes": {

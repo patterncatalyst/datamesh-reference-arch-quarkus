@@ -1,7 +1,6 @@
 # k8s — kustomize app manifests
 
-Step 9b of the Phase C minikube substrate (see `_plans/decisions.md`
-DRQ-011). This directory holds the **application** manifests (order-service,
+Step 9b of the minikube substrate. This directory holds the **application** manifests (order-service,
 notification-service, graphql-gateway) that run on top of the substrate
 step 9a's `scripts/bootstrap.sh` brings up (Istio, KEDA, Strimzi/Kafka,
 CloudNativePG/Postgres, Apicurio — all in the `datamesh` namespace, except
@@ -28,7 +27,7 @@ k8s/
 
 ## Build images into minikube's own Docker daemon (no registry)
 
-DRQ-011: images are built locally straight into minikube's Docker daemon —
+Images are built locally straight into minikube's Docker daemon —
 there is no image registry in this stack. From the repo root, with the
 minikube profile (`datamesh`) already running:
 
@@ -70,7 +69,7 @@ Rendering was verified with `kubectl kustomize k8s/overlays/minikube`
 (kustomize v5.7.1, bundled in kubectl v1.35.3) — no cluster required for
 that check, it's pure manifest templating.
 
-## Env contract (DRQ-011)
+## Env contract
 
 All three Deployments pull the shared, non-secret env vars from the
 `datamesh-app-config` ConfigMap (`k8s/base/config.yaml`) via `envFrom`. The
@@ -82,15 +81,15 @@ scripts**, not invented ones:
 | `KAFKA_BOOTSTRAP_SERVERS` | `datamesh-kafka-bootstrap.datamesh.svc.cluster.local:9092` | `scripts/setup-kafka-operator.sh` (Kafka CR name `datamesh` → Strimzi Service `<name>-kafka-bootstrap`) |
 | `APICURIO_REGISTRY_URL` | `http://apicurio.datamesh.svc.cluster.local:8080/apis/registry/v3` | `scripts/setup-apicurio.sh` (Service `apicurio`, v3 API) |
 | `JDBC_URL` / `QUARKUS_DATASOURCE_JDBC_URL` | `jdbc:postgresql://datamesh-postgres-rw.datamesh.svc.cluster.local:5432/datamesh` | `scripts/setup-postgres-operator.sh` (Cluster CR `datamesh-postgres` → CNPG Service `<name>-rw`, db `datamesh`) |
-| `JAVA_OPTS_APPEND` | `-Duser.timezone=UTC` | DRQ-011 |
-| `QUARKUS_PROFILE` | `prod` | DRQ-011 |
+| `JAVA_OPTS_APPEND` | `-Duser.timezone=UTC` | UTC convention (the postgres timezone fix) |
+| `QUARKUS_PROFILE` | `prod` | production profile |
 
 `KAFKA_BOOTSTRAP_SERVERS` and `APICURIO_REGISTRY_URL` work with **zero**
 `application.properties` changes — they land on Quarkus's own
 `kafka.bootstrap.servers` and `apicurio.registry.url` config keys via
 relaxed env-var binding. `QUARKUS_DATASOURCE_JDBC_URL` likewise needs no
 properties change (it's a first-class Quarkus datasource property). `JDBC_URL`
-is also set, matching the literal name used in `_plans/decisions.md`, and is
+is also set, matching the literal env-var name the services' `application.properties` expect, and is
 wired in both `order-service`'s and `notification-service`'s
 `application.properties` (`%prod.quarkus.datasource.jdbc.url=${JDBC_URL:...}`,
 `order-service` line 51 / `notification-service` line 36), so the ConfigMap
@@ -120,8 +119,8 @@ Istio + Kiali are installed cluster-wide by 9a but the `datamesh` namespace
 is **not** labeled for sidecar auto-injection (9a's own design — per-
 Deployment opt-in, not namespace-wide). None of these three Deployments
 carry the `sidecar.istio.io/inject: "true"` pod annotation, so **none of
-them are in the mesh** for Phase C. This is the deliberate default per the
-task brief: keep Phase C simple, defer the mesh demo to a later phase. To
+them are in the mesh** for this stage. This is the deliberate default per the
+task brief: keep this stage simple, defer the mesh demo to a later phase. To
 add a service to the mesh later, add that annotation under
 `spec.template.metadata.annotations` for that Deployment (remember: Istio
 1.29+ injects as a native `initContainer`, so mesh-membership checks must

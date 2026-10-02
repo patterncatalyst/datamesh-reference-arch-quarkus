@@ -1,8 +1,8 @@
-# compose.yaml — datamesh-reference-arch-quarkus standing infra (DRQ-011,
-# step 8a). `docker compose up -d` from the repo root (per CLAUDE.md).
+# compose.yaml — datamesh-reference-arch-quarkus standing infra.
+# `docker compose up -d` from the repo root (per CLAUDE.md).
 #
 # Baseline (no --profile flag needed): postgres, kafka, apicurio, lgtm.
-# LGTM observability is an ALWAYS-ON baseline per DRQ-011 (user choice) —
+# LGTM observability is an always-on baseline (by deliberate choice) —
 # it is deliberately NOT profile-gated, unlike the lgtm-docker-stack
 # skill's compose-full.yaml default template.
 #
@@ -20,7 +20,7 @@
 #
 # Image tags are pinned ONCE in .env — see .env and infra/README.md for the
 # exact Kafka/Apicurio/Postgres tags and how they were confirmed to match
-# Quarkus 3.39.5 Dev Services defaults (the wire-compat crux, DRQ-011).
+# Quarkus 3.39.5 Dev Services defaults (the wire-compat crux).
 #
 # Requires the Docker Compose v2 CLI plugin (`docker compose`, not the
 # legacy `docker-compose` binary). Docker only — no podman (CLAUDE.md).
@@ -29,8 +29,7 @@ services:
   # ─── Postgres (baseline) ─────────────────────────────────────────────────
   # postgres:18 pinned to match Quarkus 3.39.5 Dev Services' default
   # PostgresImageSelector image exactly (see infra/README.md). TZ=UTC /
-  # PGTZ=UTC avoid the US/Eastern boot failure documented in
-  # _plans/decisions.md ("Test/build notes" — postgres:18 rejects legacy
+  # PGTZ=UTC avoid the US/Eastern boot failure (postgres:18 rejects legacy
   # Olson zone ids like US/Eastern forwarded by pgjdbc from a non-UTC host).
   postgres:
     image: ${POSTGRES_IMAGE}
@@ -77,7 +76,7 @@ services:
   #   - PLAINTEXT (localhost:9092) — host access (CLI tools, IDE, `kcat`)
   #   - INTERNAL  (kafka:9094)     — in-network access for other compose
   #     services AND K8s parity (a Service named `kafka` on port 9094 is
-  #     the minikube-stack equivalent, per DRQ-011's Phase C -> 9 handoff).
+  #     the minikube-stack equivalent).
   kafka:
     image: ${KAFKA_IMAGE}
     container_name: datamesh-kafka
@@ -122,7 +121,7 @@ services:
   # Services' default image exactly (see infra/README.md). Serves the v3
   # API at /apis/registry/v3, wire-compatible with the explicit
   # io.apicurio.registry.serde.avro.AvroKafka{Serializer,Deserializer}
-  # config in order-service/shipping-service/notification-service (DRQ-009).
+  # config in order-service/shipping-service/notification-service.
   # In-memory H2 storage — registry contents reset on container restart;
   # fine for local dev, not for anything persistent.
   apicurio:
@@ -153,9 +152,9 @@ services:
       retries: 12
       start_period: 20s
 
-  # ─── LGTM observability (ALWAYS-ON baseline — DRQ-011, not profiled) ────
+  # ─── LGTM observability (always-on baseline — not profiled) ────
   # Grafana + Loki + Tempo + Mimir + an OTel Collector, all in one image.
-  # No example service emits OTLP yet (that lands in Phase D) — dashboards
+  # No example service emits OTLP yet (that comes later) — dashboards
   # will be empty until then. That is expected; the stack is wired and
   # ready. See infra/README.md.
   lgtm:

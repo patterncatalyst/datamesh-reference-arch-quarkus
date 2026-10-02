@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# demos/demo-camel-integration.sh — Phase D step 10.5: Quarkus + Camel EIP
+# demos/demo-camel-integration.sh — Quarkus + Camel EIP
 # ("A Camel route correctly transforms/routes a message end-to-end through
 # its EIPs" — demos/README.md).
 #
@@ -20,14 +20,15 @@
 # Why reach it through /mcp at all? ai-tool: is a Camel component consumed
 # by registered callers in the shared AiToolRegistry — there is no plain
 # REST endpoint for it. The only two consumers wired in this module are the
-# in-process langchain4j-agent (OrderAssistantRoute — broken by DEF-001, see
-# demo-ai-mcp.sh's caveat banner) and the embedded Camel MCP server
-# (camel-quarkus-mcp-server). The MCP server's tools/call JSON-RPC method is
-# therefore the only HTTP-reachable way to actually invoke this route from
-# outside the JVM, and crucially it is a STRUCTURALLY SEPARATE code path
-# from the broken in-process agent (no langchain4j-agent, no in-process tool
-# calling anywhere in this demo) — so routing a message through it here is
-# not a DEF-001 regression risk.
+# in-process langchain4j-agent (OrderAssistantRoute — broken by the known
+# tool-calling limitation, see demo-ai-mcp.sh's caveat banner) and the
+# embedded Camel MCP server (camel-quarkus-mcp-server). The MCP server's
+# tools/call JSON-RPC method is therefore the only HTTP-reachable way to
+# actually invoke this route from outside the JVM, and crucially it is a
+# structurally separate code path from the broken in-process agent (no
+# langchain4j-agent, no in-process tool calling anywhere in this demo) —
+# so routing a message through it here carries no regression risk from that
+# limitation.
 #
 # Infra: this demo OWNS the compose ollama-profile lifecycle itself
 # (compose_up ollama / compose_down), per the "compose + --profile ollama"
@@ -162,7 +163,7 @@ info "routed body: $R3"
 assert_json_field "$R3" '.status' 'DELIVERED'
 
 step "Content-Based Router EIP — branch 4 of 4: .otherwise() fallback"
-narrate "an order id matching NONE of the .when() predicates must fall through"
+narrate "an order id matching none of the .when() predicates must fall through"
 narrate "to the .otherwise() branch — expect {\"error\":\"Order not found\"}"
 R4="$(route_order_status "ORD-NO-SUCH-ORDER")"
 info "routed body: $R4"

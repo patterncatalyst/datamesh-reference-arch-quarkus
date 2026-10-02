@@ -2,7 +2,7 @@
 #
 # setup-profile.sh — create (or replace) the minikube profile sized for the
 # datamesh-reference-arch-quarkus stack (Istio + Kiali + KEDA + LGTM + Strimzi
-# + CloudNativePG + Apicurio all ON — DRQ-011).
+# + CloudNativePG + Apicurio all ON).
 #
 # Docker toolchain: uses --driver=docker and --container-runtime=containerd.
 # No podman (repo-wide convention — see CLAUDE.md).
@@ -119,7 +119,7 @@ printf '\n'
 printf '==> Profile is ready.\n'
 printf '\n'
 printf 'Application images are built directly into this profile'\''s docker daemon\n'
-printf '(DRQ-011 — no in-cluster registry):\n'
+printf '(no in-cluster registry):\n'
 printf '  eval $(minikube docker-env -p %s)\n' "$PROFILE_NAME"
 printf '  docker build -t <service>:v1 examples/<service>\n'
 printf '\n'

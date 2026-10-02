@@ -16,7 +16,7 @@
 
   <name>DataMesh :: AI MCP Service</name>
   <description>
-    Camel-on-Quarkus + langchain4j + MCP example (DRQ unrelated to DRQ-009):
+    Camel-on-Quarkus + langchain4j + MCP example:
     an order classifier (langchain4j-chat), an order-status lookup tool
     published via ai-tool, an assistant agent (langchain4j-agent) that calls
     that tool, and an embedded MCP server exposing shipping-tagged tools to

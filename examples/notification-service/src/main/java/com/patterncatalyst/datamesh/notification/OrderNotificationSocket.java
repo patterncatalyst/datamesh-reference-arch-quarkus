@@ -4,7 +4,7 @@ import io.quarkus.websockets.next.OnOpen;
 import io.quarkus.websockets.next.WebSocket;
 
 /**
- * NEW for demos/demo-websocket.sh (Phase D step 10.6, "WebSockets.Next"
+ * NEW for demos/demo-websocket.sh ("WebSockets.Next"
  * capability) — a minimal push-notification socket for the order/shipping
  * domain: a client connects here to be told, in real time, when
  * notification-service persists a new {@link Notification} (i.e. when it

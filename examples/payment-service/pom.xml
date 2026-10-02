@@ -16,7 +16,7 @@
 
   <name>DataMesh :: Payment Service</name>
   <description>
-    Real event-driven choreography processor (DRQ-009, DRQ-010): consumes
+    Real event-driven choreography processor: consumes
     OrderPlaced (capstone.order.v1) Avro events from the order.placed Kafka
     topic and emits PaymentCaptured (capstone.payment.v1) Avro events to the
     payment.captured Kafka topic. Both channels are Avro-serialized against
@@ -44,7 +44,7 @@
       <artifactId>quarkus-messaging-kafka</artifactId>
     </dependency>
 
-    <!-- Avro serde against the Apicurio Schema Registry (DRQ-009) -->
+    <!-- Avro serde against the Apicurio Schema Registry -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-apicurio-registry-avro</artifactId>

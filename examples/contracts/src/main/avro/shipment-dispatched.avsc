@@ -2,7 +2,7 @@
   "type": "record",
   "name": "ShipmentDispatched",
   "namespace": "capstone.shipping.v1",
-  "doc": "Emitted by shipping-service after a shipment for an order is dispatched. Runtime contract for the shipment-dispatched Kafka topic (DRQ-010).",
+  "doc": "Emitted by shipping-service after a shipment for an order is dispatched. Runtime contract for the shipment-dispatched Kafka topic.",
   "fields": [
     { "name": "event_type",       "type": "string", "doc": "Always 'shipment.dispatched'." },
     { "name": "order_id",         "type": "string", "doc": "Order aggregate id this shipment belongs to (also the Kafka message key)." },

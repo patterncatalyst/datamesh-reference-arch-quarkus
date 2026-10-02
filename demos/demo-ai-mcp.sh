@@ -1,39 +1,38 @@
 #!/usr/bin/env bash
 #
-# demos/demo-ai-mcp.sh — Phase D step 10.4 (second half): the embedded Camel
-# MCP server surface (DEF-001-honest).
+# demos/demo-ai-mcp.sh — the embedded Camel MCP server surface, with a clear
+# account of the tool-calling limitation.
 #
-# ╔══════════════════════════════════════════════════════════════════════════╗
-# ║ DEF-001 CAVEAT — READ BEFORE TRUSTING ANYTHING THIS DEMO PRINTS          ║
-# ║                                                                          ║
-# ║ camel-quarkus-support-langchain4j unconditionally enforces the          ║
-# ║ Quarkiverse JAX-RS HTTP client factory for EVERY dev.langchain4j model  ║
-# ║ on the classpath (SupportQuarkusLangchain4jProcessor.enforceJaxRsHttp   ║
-# ║ Client() sets the global system property                                ║
-# ║ langchain4j.http.clientBuilderFactory -- there is no toggle for it).     ║
-# ║ This means the hand-built OllamaChatModel backing                       ║
-# ║ OrderAssistantRoute's langchain4j-agent:assistant endpoint              ║
-# ║ (AgentProducers.assistantAgent()) does NOT get the transport its own    ║
-# ║ builder configured -- and the agent's in-process TOOL-CALLING round     ║
-# ║ trip to the order-status ai-tool NEVER FIRES on this stack. This is     ║
-# ║ DEF-001, an OPEN upstream deferral (see _plans/decisions.md), confirmed ║
-# ║ by exhaustive diagnosis in this repo: direct Ollama /api/chat calls DO  ║
-# ║ return tool_calls for qwen2.5:3b, tool/tag registration is correct, and ║
-# ║ the behaviour reproduces across every langchain4j version tried. It is ║
-# ║ a transport-wiring bug in camel-quarkus-support-langchain4j, not a bug  ║
-# ║ in this module, not a model-capability gap, and not something this     ║
-# ║ demo can route around in-process.                                       ║
-# ║                                                                          ║
-# ║ CONSEQUENCE FOR THIS DEMO: it NEVER calls POST /api/assistant/chat and  ║
-# ║ NEVER treats a non-empty chat response as evidence of tool calling      ║
-# ║ (that would be a green-washed lie over a known-broken path). Instead it ║
-# ║ demonstrates the ONE part of this stack that genuinely works end to     ║
-# ║ end: the embedded Camel MCP server (camel-quarkus-mcp-server, which     ║
-# ║ wraps the Quarkiverse quarkus-mcp-server-http extension) publishing the ║
-# ║ shipping-tagged order-status ai-tool to EXTERNAL MCP clients speaking   ║
-# ║ the real MCP Streamable HTTP wire protocol -- a completely separate     ║
-# ║ code path from the in-process langchain4j-agent that DEF-001 breaks.   ║
-# ╚══════════════════════════════════════════════════════════════════════════╝
+# ╔════════════════════════════════════════════════════════════════════════════╗
+# ║ Known limitation -- about this demo's tool-calling path                   ║
+# ║                                                                            ║
+# ║ camel-quarkus-support-langchain4j unconditionally enforces the Quarkiverse║
+# ║ JAX-RS HTTP client factory for every dev.langchain4j model on the         ║
+# ║ classpath (SupportQuarkusLangchain4jProcessor.enforceJaxRsHttpClient()    ║
+# ║ sets the global system property langchain4j.http.clientBuilderFactory --  ║
+# ║ there is no toggle for it). This means the hand-built OllamaChatModel     ║
+# ║ backing OrderAssistantRoute's langchain4j-agent:assistant endpoint        ║
+# ║ (AgentProducers.assistantAgent()) does not get the transport its own      ║
+# ║ builder configured -- and the agent's in-process tool-calling round trip  ║
+# ║ to the order-status ai-tool never fires on this stack. This is a known,   ║
+# ║ open upstream issue, confirmed by exhaustive diagnosis in this repo:      ║
+# ║ direct Ollama /api/chat calls do return tool_calls                        ║
+# ║ for qwen2.5:3b, tool/tag registration is correct, and the behaviour       ║
+# ║ reproduces across every langchain4j version tried. It is a transport-     ║
+# ║ wiring bug in camel-quarkus-support-langchain4j, not a bug in this module,║
+# ║ not a model-capability gap, and not something this demo can route around  ║
+# ║ in-process.                                                               ║
+# ║                                                                            ║
+# ║ Consequence for this demo: it never calls POST /api/assistant/chat and    ║
+# ║ never treats a non-empty chat response as evidence of tool calling (that  ║
+# ║ would be a misleading claim over a known-broken path). Instead it         ║
+# ║ demonstrates the one part of this stack that genuinely works end to end:  ║
+# ║ the embedded Camel MCP server (camel-quarkus-mcp-server, which wraps the  ║
+# ║ Quarkiverse quarkus-mcp-server-http extension) publishing the shipping-   ║
+# ║ tagged order-status ai-tool to external MCP clients speaking the real MCP ║
+# ║ Streamable HTTP wire protocol -- a completely separate code path from the ║
+# ║ in-process langchain4j-agent affected by the issue above.                 ║
+# ╚════════════════════════════════════════════════════════════════════════════╝
 #
 # What this demo asserts (MCP-server surface ONLY):
 #   1. POST /mcp {method:"initialize"} succeeds and returns a protocolVersion
@@ -75,21 +74,21 @@ OLLAMA_URL="http://localhost:11434"
 cat >&2 <<'BANNER'
 
 ################################################################################
-#  DEF-001 CAVEAT: in-process langchain4j-agent tool-calling does NOT fire   #
-#  on this stack (camel-quarkus-support-langchain4j unconditionally enforces #
-#  a JAX-RS HTTP client transport that ignores the agent's configured Ollama #
-#  base-url). This demo NEVER calls /api/assistant/chat and NEVER asserts    #
-#  tool-calling succeeded. It asserts ONLY the embedded MCP server's wire    #
-#  protocol surface (tools/list, tools/call) talked to directly as an        #
-#  external MCP client would. See _plans/decisions.md (DEF-001) and         #
+#  Known limitation: in-process langchain4j-agent tool-calling does not      #
+#  fire on this stack (camel-quarkus-support-langchain4j unconditionally    #
+#  enforces a JAX-RS HTTP client transport that ignores the agent's          #
+#  configured Ollama base-url). This demo never calls /api/assistant/chat    #
+#  and never asserts tool-calling succeeded. It asserts only the embedded    #
+#  MCP server's wire protocol surface (tools/list, tools/call) talked to     #
+#  directly as an external MCP client would. See                            #
 #  examples/ai-mcp-service/README.md for the full root-cause writeup.        #
 ################################################################################
 
 BANNER
 
 narrate "Demonstrating the embedded Camel MCP server (camel-quarkus-mcp-server)"
-narrate "as seen by an EXTERNAL MCP client speaking the real Streamable HTTP"
-narrate "JSON-RPC 2.0 wire protocol -- NOT the broken in-process agent path."
+narrate "as seen by an external MCP client speaking the real Streamable HTTP"
+narrate "JSON-RPC 2.0 wire protocol -- not the broken in-process agent path."
 
 step "bring up compose (baseline + ollama profile)"
 compose_up ollama
@@ -234,6 +233,6 @@ narrate "An external MCP client (plain curl+jq speaking real JSON-RPC 2.0 over"
 narrate "the MCP Streamable HTTP transport) listed the order-status tool and"
 narrate "invoked it 3x with deterministic results -- all through the embedded"
 narrate "Camel MCP server, zero in-process langchain4j-agent tool-calling"
-narrate "anywhere in this demo. DEF-001 remains open and undemonstrated-as-fixed."
+narrate "anywhere in this demo. The tool-calling limitation remains open and unfixed."
 
 demo_ok

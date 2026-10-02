@@ -16,7 +16,7 @@
 
   <name>DataMesh :: Shipping Service</name>
   <description>
-    Real event-choreography processor (DRQ-009/DRQ-010): consumes
+    Real event-choreography processor: consumes
     PaymentCaptured (Avro, topic payment.captured) and produces
     ShipmentDispatched (Avro, topic shipment.dispatched) via SmallRye
     Reactive Messaging + Kafka, serialized against the Apicurio Schema
@@ -44,7 +44,7 @@
       <artifactId>quarkus-messaging-kafka</artifactId>
     </dependency>
 
-    <!-- Apicurio Schema Registry Avro serde (DRQ-009) -->
+    <!-- Apicurio Schema Registry Avro serde -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-apicurio-registry-avro</artifactId>

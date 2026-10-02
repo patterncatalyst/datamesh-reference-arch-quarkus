@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# demos/demo-continuous-testing.sh — Phase D step 10.8 "bare" toolchain demo.
+# demos/demo-continuous-testing.sh — "bare" toolchain demo.
 #
 # Demonstrates Quarkus continuous testing + Dev Services together: `mvn
 # quarkus:dev` on order-service, with continuous testing set to auto-run

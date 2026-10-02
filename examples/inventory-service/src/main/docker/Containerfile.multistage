@@ -21,7 +21,7 @@
 #                  ONLY inventory-service's target/quarkus-app/ fast-jar output
 #                  (lib/, quarkus-run.jar, app/, quarkus/).
 #
-# inventory-service HOSTS a gRPC server (quarkus.grpc.server, port 9000, F2
+# inventory-service HOSTS a gRPC server (quarkus.grpc.server, port 9000,
 # canonical) in addition to its HTTP port, so BOTH are exposed here. It has no
 # Kafka/Avro channels, so (unlike order/payment/shipping/notification) it needs
 # no JAVA_TOOL_OPTIONS Avro trusted-packages override.
@@ -58,15 +58,15 @@ COPY --from=build --chown=185 /build/examples/inventory-service/target/quarkus-a
 COPY --from=build --chown=185 /build/examples/inventory-service/target/quarkus-app/app/ ./app/
 COPY --from=build --chown=185 /build/examples/inventory-service/target/quarkus-app/quarkus/ ./quarkus/
 
-# HTTP (8080) + gRPC server (9000, F2 canonical — use-separate-server=true).
+# HTTP (8080) + gRPC server (9000, canonical — use-separate-server=true).
 EXPOSE 8080
 EXPOSE 9000
 
-# DRQ-011: pin UTC (Postgres Dev Services / real Postgres rejects legacy
+# Pin UTC (Postgres Dev Services / real Postgres rejects legacy
 # Olson zone ids forwarded from the host default) + run with the %prod
 # profile so compose/K8s deployments use the same env-driven config
 # (KAFKA_BOOTSTRAP_SERVERS / APICURIO_REGISTRY_URL / JDBC_URL) as the rest of
-# the reactor, per DRQ-011.
+# the project.
 ENV JAVA_OPTS_APPEND="-Duser.timezone=UTC -Dquarkus.profile=prod"
 
 # UBI OpenJDK runtime images already default to UID 185 (non-root); explicit

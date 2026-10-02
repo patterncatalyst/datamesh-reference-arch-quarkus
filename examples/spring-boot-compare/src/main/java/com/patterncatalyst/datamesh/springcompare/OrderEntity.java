@@ -15,7 +15,7 @@ import jakarta.persistence.Table;
 
 /**
  * JPA twin of the Quarkus order-service's Panache {@code Order} entity
- * (DRQ-006) -- same table name, same columns/types/constraints, so the
+ * -- same table name, same columns/types/constraints, so the
  * two services are a fair side-by-side comparison. Spring Data JPA has no
  * active-record equivalent to Panache, so persistence operations go
  * through {@link OrderRepository} instead of instance methods here.

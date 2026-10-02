@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 #
-# demos/demo-orchestration-styles.sh — Phase D step 10 showcase demo
-# (DRQ-015): "three engines, different orchestration styles" over the SAME
-# shipping/order domain.
+# demos/demo-orchestration-styles.sh — showcase demo: three engines,
+# different orchestration styles, over the same shipping/order domain.
 #
 # This is the teaching demo for choreography vs orchestration. It runs THREE
 # coordination mechanisms back to back and narrates the distinction:
@@ -43,7 +42,7 @@
 # baseline for its run (no other demo may run concurrently against compose)
 # and tears it down on exit regardless of outcome.
 #
-# ── Avro SERIALIZABLE_PACKAGES -- producer AND consumer, per hop (DEF-002) ──
+# ── Avro SERIALIZABLE_PACKAGES -- producer AND consumer, per hop ───────────
 # Avro 1.12.x's ClassSecurityValidator refuses to (de)serialize a generated
 # SpecificRecord class via reflection unless its package is explicitly
 # trusted via -Dorg.apache.avro.SERIALIZABLE_PACKAGES on a plain `java -jar`
@@ -81,7 +80,7 @@
 #
 # ── inventory-service gRPC port (canonical 9000, same as demo-order.sh) ─────
 # order-service's gRPC client port and inventory-service's gRPC server port
-# both default to 9000 (F2), both overridable via the same INVENTORY_GRPC_PORT
+# both default to 9000, both overridable via the same INVENTORY_GRPC_PORT
 # env var -- started here with `-Dquarkus.grpc.server.port=9000` purely to
 # keep the two sides programmatically in agreement. order-service cannot
 # place an order at all without inventory-service reachable
@@ -150,9 +149,9 @@ TOPIC_ORDER="order.placed.orch.demo.$$"
 TOPIC_PAYMENT="payment.captured.orch.demo.$$"
 TOPIC_SHIPMENT="shipment.dispatched.orch.demo.$$"
 
-narrate "DRQ-015: three engines, different orchestration styles, same"
+narrate "Three engines, different orchestration styles, over the same"
 narrate "shipping/order domain. Kafka choreography (order -> payment ->"
-narrate "shipping, no coordinator) vs two ORCHESTRATION engines doing the"
+narrate "shipping, no coordinator) vs two orchestration engines doing the"
 narrate "identical classify-then-decide triage: a Camel route, and a"
 narrate "declarative Quarkus Flow (Serverless Workflow) document."
 
@@ -385,8 +384,8 @@ ORDER_ID="$(jq -r '.orderId' <<<"$CREATE_BODY")"
 narrate "placed order id=${ORDER_ID} -- polling the choreography chain next"
 
 # ─── Hop 1: payment-service reacted to order.placed and emitted
-# payment.captured (raw bytes, no Avro decoder -- same DEF-002 proof as
-# demo-kafka.sh) ─────────────────────────────────────────────────────────
+# payment.captured (raw bytes, no Avro decoder -- same Avro wire-format
+# check as demo-kafka.sh) ─────────────────────────────────────────────────
 step "kcat -- hop 1: payment.captured (topic ${TOPIC_PAYMENT})"
 PAY_RAW="$(mktemp -t demo-orch-pay-raw-XXXXXX.bin)"
 PAY_KCAT_LOG="$(mktemp -t demo-orch-pay-kcat-log-XXXXXX)"
@@ -434,7 +433,7 @@ info "shipment.dispatched raw record: ${SHIP_LEN} bytes, first byte = 0x${SHIP_F
     || fail "expected Apicurio/Confluent Avro wire-format magic byte 0x00 on shipment.dispatched, got 0x${SHIP_FIRST_BYTE}"
 narrate "confirmed: shipping-service reacted to payment.captured on its own and"
 narrate "emitted a real Avro shipment.dispatched event -- payment-service never"
-narrate "told it to, and neither service knows the OTHER exists"
+narrate "told it to, and neither service knows the other exists"
 
 # ─── Corroborate: shipping-service's own data product has the row ─────────
 # Column names: Shipment (shipping-service's entity) now carries explicit
@@ -465,8 +464,8 @@ for (( i = 0; i < 30; i++ )); do
 done
 jq -e --arg id "$ORDER_ID" 'any(.[]?; .orderId == $id)' <<<"$NOTIF_LIST" >/dev/null \
     || { tail -n 60 "$NOTIF_LOGFILE" >&2; fail "GET /notifications never showed order ${ORDER_ID} -- notification-service did not react to order.placed: $NOTIF_LIST"; }
-narrate "confirmed: notification-service ALSO reacted to the same order.placed event on"
-narrate "its own -- three independent reactions (payment, shipping, notification) to ONE"
+narrate "confirmed: notification-service also reacted to the same order.placed event on"
+narrate "its own -- three independent reactions (payment, shipping, notification) to one"
 narrate "event, with no service orchestrating the others. This is choreography."
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -506,7 +505,7 @@ narrate "coordinated every step of this request itself"
 # orchestration engine coordinating the identical steps
 # ═══════════════════════════════════════════════════════════════════════════
 step "ACT 3/3 — Quarkus Flow orchestration: POST /api/orders/triage-flow"
-narrate "the SAME classify -> Drools -> decision sequence, this time declared"
+narrate "the same classify -> Drools -> decision sequence, this time declared"
 narrate "as a CNCF Serverless Workflow document and run by the Quarkus Flow"
 narrate "engine instead of imperative Camel route code."
 FLOW_JSON="$(curl -sS --max-time 60 -X POST "${AI_RULES_BASE}/api/orders/triage-flow" \
@@ -525,11 +524,11 @@ narrate "workflow document instead of a route"
 step "recap: choreography vs orchestration, side by side"
 narrate "CHOREOGRAPHY (Kafka)   -- order.placed -> payment.captured ->"
 narrate "                          shipment.dispatched: 3 services, each"
-narrate "                          reacting independently, NO coordinator."
-narrate "ORCHESTRATION (Camel)  -- /api/orders/triage: ONE route centrally"
+narrate "                          reacting independently, no coordinator."
+narrate "ORCHESTRATION (Camel)  -- /api/orders/triage: one route centrally"
 narrate "                          sequences classify -> rules -> decision."
-narrate "ORCHESTRATION (Flow)   -- /api/orders/triage-flow: the SAME steps,"
-narrate "                          coordinated by a SECOND, different engine"
+narrate "ORCHESTRATION (Flow)   -- /api/orders/triage-flow: the same steps,"
+narrate "                          coordinated by a second, different engine"
 narrate "                          -- a declarative workflow document, not"
 narrate "                          imperative route code."
 narrate "Same domain, same kind of decision -- three different coordination"

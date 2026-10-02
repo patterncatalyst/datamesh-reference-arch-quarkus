@@ -11,7 +11,7 @@ This is the reading guide for the data-mesh-on-Quarkus reference — the map of 
 tutorial covers and the order to read it in. It builds one working system end to end: a
 data mesh of Quarkus services that own their data as products, talk over a deliberate
 mix of protocols, evolve their contracts safely, scale to demand, and stay observable
-throughout — plus a dedicated part on what Quarkus itself brings to that build, including
+throughout. A dedicated part covers what Quarkus itself brings to that build, including
 a runnable Spring Boot twin service for a direct side-by-side comparison.
 
 The tutorial is written to be read straight through the first time — each chapter picks
@@ -21,22 +21,10 @@ at the right chapter.
 
 ## How the tutorial is organized
 
-The twenty-one chapters fall into six parts. **Part 0, Foundations** (this part) grounds
-the landscape of data architectures, what a data mesh is, and why Kubernetes is a
-natural substrate for one. **Part 1, Building data products** builds the services and
-their data products: the contracts and catalog that make them discoverable, and the data
-planes they communicate over. **Part 2, Operating the mesh** covers progressive delivery
-with mutual TLS, elastic scaling and recovery, and the observability to see it all.
-**Part 3, Lessons & close** steps back to the anti-patterns that derail data-mesh efforts
-even when the technology is sound, then closes by reorganizing the same material by
-principle. **Part 4, The Quarkus deep-dive** is specific to this rebuild: a tour of the
-Quarkus capabilities the services exercise, a side-by-side comparison against the Spring
-Boot twin service, and a look at the three different coordination styles the domain
-services demonstrate side by side. **Part 5, Appendices** collects six optional
-deep-dives that go further than the main narrative on single topics: scaling the
-WebSocket push with Kafka, the gotchas hit along the way, agentic-development
-recommendations, testing in detail, in-memory versus Kafka messaging, and the three
-coordination engines compared head to head.
+The twenty-one chapters fall into six parts, each described in its own section below:
+**Part 0, Foundations**; **Part 1, Building data products**; **Part 2, Operating the
+mesh**; **Part 3, Lessons & close**; **Part 4, The Quarkus deep-dive**; and **Part 5,
+Appendices**.
 
 ## Part 0 — Foundations
 
@@ -66,7 +54,7 @@ coordination engines compared head to head.
 ## Part 2 — Operating the mesh
 
 - [**07 · Progressive delivery & mTLS**]({{ '/docs/06-progressive-delivery-mtls/' | relative_url }}) —
-  Evolving a contract in the open with a canary, mTLS for free from the service mesh, and
+  Evolving a contract in the open with a canary, mTLS provided by the service mesh, and
   the decision to mesh selectively rather than namespace-wide.
 - [**08 · Elastic & resilient**]({{ '/docs/07-elastic-and-resilient/' | relative_url }}) —
   Scaling to demand and to zero with KEDA, and the cloud-native recoverability the
@@ -110,7 +98,7 @@ on a single topic than the main narrative does, and each stands on its own.
   What the single-instance push does today, why it breaks across replicas, and the
   Kafka fan-out pattern a multi-replica deployment would need.
 - [**17 · Gotchas**]({{ '/docs/17-gotchas/' | relative_url }}) —
-  The real pitfalls hit building this reactor — timezone, Avro, gRPC ports,
+  The real pitfalls hit building this system — timezone, Avro, gRPC ports,
   integration-test wiring — each with its symptom and the fix that landed.
 - [**18 · Agentic recommendations**]({{ '/docs/18-agentic-recommendations/' | relative_url }}) —
   Practical, non-hype guidance for AI-agent-assisted development on a
@@ -141,7 +129,7 @@ imperative surface area at once rather than ten disconnected quickstarts.
 If you're coming from the sibling `datamesh-reference-arch-python` repository,
 the domain, the four principles, and the chapter structure are intentionally
 familiar — this build is the same reference architecture re-expressed on
-Quarkus, not a different design. `_plans/reconciliation.md` tracks where the two
+Quarkus, not a different design. A reconciliation document tracks where the two
 repos deliberately diverge (and where a divergence is a bug to fix rather than a
 choice).
 
@@ -202,20 +190,20 @@ each chapter assumes the vocabulary and the running example built up by the ones
 before it. Budget roughly four to five hours for Parts 0 through 3 if you read
 without running code, longer if you run the demos alongside each chapter.
 
-**Evaluating data mesh as a pattern, not as a Quarkus build?** Read Part 0 in
+**Evaluating data mesh as a pattern, not as a Quarkus build.** Read Part 0 in
 full, then [anti-patterns]({{ '/docs/09-anti-patterns/' | relative_url }}) and
 [the summary]({{ '/docs/10-summary/' | relative_url }}), and treat Parts 1
 through 4 as a reference to dip into for the specific mechanism you need to see
 made concrete (contracts, mTLS, autoscaling).
 
-**Here for Quarkus, already know data mesh?** Skim Part 0 for the vocabulary
+**Here for Quarkus, already know data mesh.** Skim Part 0 for the vocabulary
 this build's comments and prose assume, then jump straight to
 [Part 4]({{ '/docs/11-quarkus-capability-tour/' | relative_url }}) — the
 capability tour, the Spring Boot comparison, and the orchestration-styles and
 AI-rules chapters stand on their own and don't require having run the Part 1–2
 services first, though the cross-references will make more sense if you have.
 
-**Building something similar yourself?** Part 1 (data products, contracts,
+**Building something similar yourself.** Part 1 (data products, contracts,
 planes) and Part 2 (delivery, scaling, observability) are the operational core —
 read those closely, run the demos as you go, and treat Part 0 and Part 3 as the
 framing that explains *why* the Part 1–2 decisions were made the way they were.

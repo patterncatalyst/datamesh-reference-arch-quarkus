@@ -12,12 +12,11 @@ import org.jboss.logging.Logger;
 import capstone.payment.v1.PaymentCaptured;
 import capstone.shipping.v1.ShipmentDispatched;
 import com.patterncatalyst.datamesh.domain.Topics;
-import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 /**
- * Real event-choreography saga participant (DRQ-009 / DRQ-010): continues the
+ * Real event-choreography saga participant: continues the
  * order.placed -&gt; payment.captured -&gt; shipment.dispatched saga.
  *
  * <p>Consumes {@link PaymentCaptured} (Avro, {@code capstone.payment.v1}) from
@@ -50,9 +49,12 @@ public class ShipmentProcessor {
     private static final List<String> SKUS = List.of("SKU-WIDGET", "SKU-GADGET", "SKU-GIZMO", "SKU-DOOHICKEY");
     private static final String DISPATCHED_STATUS = "dispatched";
 
+    // @Transactional alone makes this method blocking automatically (per
+    // SmallRye Reactive Messaging / Quarkus's mediator configuration), so no
+    // separate @Blocking annotation is needed -- mirrors notification-service's
+    // OrderPlacedConsumer#consume.
     @Incoming(Topics.PAYMENT_CAPTURED_CHANNEL)
     @Outgoing(Topics.SHIPMENT_DISPATCHED_CHANNEL)
-    @Blocking
     @Transactional
     public ShipmentDispatched process(PaymentCaptured paymentCaptured) {
         String orderId = paymentCaptured.getOrderId();

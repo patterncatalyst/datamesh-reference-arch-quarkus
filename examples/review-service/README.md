@@ -20,7 +20,7 @@ module in the reactor writes to it.
 - `DELETE /reviews/{id}` -- admin-only moderation; `204` on success, `404`
   if not found. Protected by OIDC bearer-token RBAC (`@RolesAllowed("admin")`):
   no token -> `401`, a token without the `admin` role -> `403`. This is the
-  reactor's live OIDC + Keycloak Dev Service demo (DRQ-005; see
+  reactor's live OIDC + Keycloak Dev Service demo (see
   `demos/demo-oidc.sh`) -- see "Security (OIDC)" below.
 - `GET /q/health`, `/q/health/live`, `/q/health/ready` -- SmallRye Health
   probes (liveness/readiness; readiness includes the Postgres datasource

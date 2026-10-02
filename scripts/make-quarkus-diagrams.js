@@ -129,7 +129,7 @@ const wrap = (t, n) => {
   save("12-quarkus-vs-spring-boot", s);
 })();
 
-/* ========== 13. ORCHESTRATION STYLES (DRQ-015 headline) ========== */
+/* ========== 13. ORCHESTRATION STYLES ========== */
 (() => {
   const s = new SVG(1180, 760);
   s.title(

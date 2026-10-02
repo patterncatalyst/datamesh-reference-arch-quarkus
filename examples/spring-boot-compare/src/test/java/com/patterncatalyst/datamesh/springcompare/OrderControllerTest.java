@@ -58,7 +58,7 @@ class OrderControllerTest {
 
     @DynamicPropertySource
     static void overrideTimezone(DynamicPropertyRegistry registry) {
-        // Same DRQ-011 crux as the Quarkus side: force UTC so the
+        // Same crux as the Quarkus side: force UTC so the
         // Testcontainers Postgres instance doesn't reject the host's
         // default (possibly non-UTC) zone id.
         registry.add("spring.jpa.properties.hibernate.jdbc.time_zone", () -> "UTC");

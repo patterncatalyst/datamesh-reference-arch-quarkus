@@ -42,7 +42,7 @@ interoperable, valuable on its own, and secure.
 
 {% include excalidraw.html file="03-data-product-anatomy" alt="Diagram of a data product's architectural quantum: input and output ports, the code, data and infrastructure components inside, and a governance control port on top" caption="Figure 3.1 — The data product architectural quantum" %}
 
-In this reactor, that abstraction is concrete: **each domain service *is* a
+In this project, that abstraction is concrete: **each domain service *is* a
 data product.** It owns a slice of Postgres (its internal state), serves
 data through its REST/gRPC endpoints (output ports), optionally accepts
 synchronous calls or Kafka events as input, and — from the next chapter on —
@@ -67,15 +67,13 @@ not to be called; `review-service` is REST-only because it has no
 cross-service synchronous dependency; `order-service` needs both REST (for
 clients) and a gRPC client (to validate stock before committing). The
 reasoning behind *which* protocol fits which job is the subject of the next
-two chapters — contracts, then the data planes themselves. Here the point is
-narrower: the surface follows the role, and that's a choice made per
-service, not imposed uniformly.
+two chapters — contracts, then the data planes themselves.
 
 Each service owns its own Postgres schema/database in the shared compose
 stack (`orderdb`, `inventorydb`, and so on — see `infra/db/init` and each
 service's `application.properties`). One cluster, one database per service
 is what makes "per-service data ownership" real without running a fleet of
-database instances for a learning reactor.
+database instances for a learning project.
 
 ## order-service: the template, built end to end
 
@@ -242,8 +240,7 @@ the order of its three steps is load-bearing, not incidental:
    committed but the event never arrives — is the **dual-write gap**, and
    the comment in `OrderEventProducer` names its production answer plainly:
    the outbox pattern, which this template does not implement. That's a
-   fragile edge worth seeing clearly rather than one this reactor pretends
-   away.
+   fragile edge worth seeing clearly.
 
 `listOrders` and `getOrder` are the read side: `listAll(Sort.by(...))` is
 Panache's query builder returning rows newest-first, and `findById` returns
@@ -330,7 +327,7 @@ returns the `CompletionStage<Void>` that `OrderResource` treats as
 best-effort, closing the loop back to the publish-after-commit ordering
 above.
 
-## Further products: the surface follows the role
+## Further products: inventory-service and review-service
 
 `inventory-service` and `review-service` repeat the exact same shape —
 Panache entity, REST (and here, gRPC) resource — while exposing a different
@@ -400,13 +397,13 @@ direction.
 its own Javadoc is explicit that this is **not part of the cross-service
 contract**; it's a demo/test convenience, and the real inter-service
 dependency is the gRPC call above. That distinction — a demo-facing REST
-endpoint existing beside the real production surface — is worth noticing
-precisely because it would be easy to mistake a convenience endpoint for
+endpoint existing beside the real production surface — matters precisely
+because it would be easy to mistake a convenience endpoint for
 the contract.
 
 `review-service` goes the other direction: REST-only, because it has no
 synchronous cross-service dependency to satisfy, plus one endpoint that
-doubles as this reactor's OIDC demo:
+doubles as this project's OIDC demo:
 
 ```java
 @DELETE
@@ -429,10 +426,10 @@ claim, so a request with no token gets `401`, and one with a token lacking
 the `admin` role gets `403` — all before this method body ever runs. It's
 the smallest possible illustration that a data product's surface can carry
 its own authorization policy, scoped to exactly the operation that needs it
-(creating and reading reviews stays open; moderating them doesn't). Zoom back
-out to Figure 3.1 and this is the control port made literal: the governance
-layer the diagram draws wrapping the product isn't a separate component
-bolted on here, it's a single annotation on the one method that needs it.
+(creating and reading reviews stays open; moderating them doesn't). This is
+Figure 3.1's control port made literal: the governance layer the diagram
+draws wrapping the product isn't a separate component bolted on here — it's
+a single annotation on the one method that needs it.
 
 ## Build, run, observe
 
@@ -440,28 +437,33 @@ bolted on here, it's a single annotation on the one method that needs it.
 cd demos && ./demo-order.sh
 ```
 
-The script brings up the compose baseline (Postgres, Kafka, Apicurio),
-packages and starts `inventory-service` and `order-service` as packaged
-JVM processes against that real infrastructure (deliberately not
+The script brings up the compose baseline (Postgres, Kafka, Apicurio) and
+packages and starts `inventory-service` and `order-service` as packaged JVM
+processes against that real infrastructure — deliberately not
 `quarkus:dev`, so the `%prod`-profiled config pointing at the compose stack
-is what actually runs), seeds a SKU via `POST /stock`, then places a real
-order: `POST /orders` for two `WIDGET-1` units, confirms `201 Created` with
-`status: PLACED`, `GET`s the same order back by id, confirms `GET /orders`
-lists it, and finally queries the `orders` table directly with `psql` to
-confirm the row exists independent of the REST layer. The template handles
-two real production-readiness edges that only surface in a packaged
-(non-dev) deployment, both now wired in by default: the
+is what actually runs. It then drives a real order through the stack:
+
+1. Seed a SKU via `POST /stock`.
+2. Place an order: `POST /orders` for two `WIDGET-1` units, and confirm
+   `201 Created` with `status: PLACED`.
+3. `GET` the same order back by id.
+4. Confirm `GET /orders` lists it.
+5. Query the `orders` table directly with `psql` to confirm the row exists
+   independent of the REST layer.
+
+The template also handles two real production-readiness edges that only
+surface in a packaged (non-dev) deployment, both wired in by default: the
 order-service→inventory-service gRPC call targets a single canonical port
 (`9000`, env-overridable on both sides via `INVENTORY_GRPC_HOST` /
 `INVENTORY_GRPC_PORT`), and the packaged JVM trusts the Avro event package
 via `org.apache.avro.SERIALIZABLE_PACKAGES` set in the container image's
 `JAVA_TOOL_OPTIONS` — without which Avro's `ClassSecurityValidator` would
-silently drop every `order.placed` publish from a non-dev JVM. Both are
-edges worth carrying into any real deployment of this template.
+silently drop every `order.placed` publish from a non-dev JVM. Both matter
+for any real deployment of this template.
 
 ## What you learned
 
-- A data product in this reactor is a service: its own Postgres schema, its
+- A data product in this project is a service: its own Postgres schema, its
   own REST/gRPC surface, its own Kafka publish — the service boundary *is*
   the data-product boundary.
 - `order-service`'s `placeOrder` shows the load-bearing ordering a data
@@ -469,10 +471,11 @@ edges worth carrying into any real deployment of this template.
   (fail closed), persist only after that succeeds, and publish only after
   persistence — with a publish failure never undoing or failing the
   already-committed write.
-- The protocol surface follows the service's role, not a house-wide
-  template: `inventory-service` is gRPC-first because that's what its one
-  real consumer needs; `review-service` is REST-only with endpoint-scoped
-  OIDC authorization because it has no synchronous dependency to satisfy.
+- Each service's protocol surface matches its role rather than a
+  house-wide template: `inventory-service` is gRPC-first because that's
+  what its one real consumer needs; `review-service` is REST-only with
+  endpoint-scoped OIDC authorization because it has no synchronous
+  dependency to satisfy.
 
 With real services shipping real data, the next question is how other
 domains find them, trust their shape, and know it won't change without

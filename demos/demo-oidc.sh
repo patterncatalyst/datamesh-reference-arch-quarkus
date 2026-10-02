@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 #
-# demos/demo-oidc.sh — Phase D step 10.7: Quarkus OIDC bearer-token security,
-# via the Keycloak Dev Service (DRQ-005 — "attempt live; defer only if the
-# laptop budget is too tight"). It wasn't: review-service is the smallest
-# module in the reactor (three plain REST endpoints, Postgres as its only
-# other Dev Services dependency, no cross-service calls), so this demo adds
-# ONE real protected endpoint there instead of deferring. GO, not DEFER.
+# demos/demo-oidc.sh — Quarkus OIDC bearer-token security, via the Keycloak
+# Dev Service. review-service is the smallest module in the reactor (three
+# plain REST endpoints, Postgres as its only other Dev Services dependency,
+# no cross-service calls), which made it the right place to add ONE real
+# protected endpoint rather than faking the capability.
 #
 # ── What review-service got, and why it's genuinely minimal ─────────────────
 # `quarkus-oidc` was added to review-service's pom.xml with ZERO
@@ -58,8 +57,8 @@ HTTP_PORT=8098
 BASE_URL="http://localhost:${HTTP_PORT}"
 
 narrate "review-service's DELETE /reviews/{id} is the reactor's one live OIDC"
-narrate "capability demo (DRQ-005): a Keycloak Dev Service-backed bearer-token"
-narrate "+ @RolesAllowed(\"admin\") check, proven with REAL tokens end to end."
+narrate "capability demo: a Keycloak Dev Service-backed bearer-token"
+narrate "+ @RolesAllowed(\"admin\") check, proven with real tokens end to end."
 
 step "preflight: docker daemon reachable (Dev Services needs it for Postgres + Keycloak)"
 docker info >/dev/null 2>&1 \
@@ -163,20 +162,20 @@ REVIEW_ID="$(jq -r '.id // empty' <<<"$CREATE_RESP")"
 assert_json_field "$CREATE_RESP" '.sku' 'SKU-OIDC-DEMO'
 info "seeded review id=$REVIEW_ID"
 
-step "1/3 -- DELETE with NO bearer token: expect 401 (unauthenticated)"
+step "1/3 -- DELETE with no bearer token: expect 401 (unauthenticated)"
 CODE_NOAUTH="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X DELETE "${BASE_URL}/reviews/${REVIEW_ID}")"
 info "DELETE /reviews/${REVIEW_ID} (no token) -> HTTP $CODE_NOAUTH"
 [[ "$CODE_NOAUTH" == "401" ]] \
     || fail "expected 401 for DELETE with no bearer token, got $CODE_NOAUTH"
 narrate "confirmed: no token -> 401, the endpoint genuinely requires authentication"
 
-step "2/3 -- DELETE with bob's token (user role, NOT admin): expect 403 (unauthorized)"
+step "2/3 -- DELETE with bob's token (user role, not admin): expect 403 (unauthorized)"
 CODE_FORBIDDEN="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X DELETE "${BASE_URL}/reviews/${REVIEW_ID}" \
     -H "Authorization: Bearer ${BOB_TOKEN}")"
 info "DELETE /reviews/${REVIEW_ID} (bob token) -> HTTP $CODE_FORBIDDEN"
 [[ "$CODE_FORBIDDEN" == "403" ]] \
     || fail "expected 403 for DELETE with a valid-but-insufficient-role token, got $CODE_FORBIDDEN"
-narrate "confirmed: a VALID token without the admin role -> 403, this is real RBAC, not just token-presence checking"
+narrate "confirmed: a valid token without the admin role -> 403, this is real RBAC, not just token-presence checking"
 
 step "3/3 -- DELETE with alice's token (admin role): expect 204, then confirm the review is actually gone"
 CODE_AUTHORIZED="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X DELETE "${BASE_URL}/reviews/${REVIEW_ID}" \
@@ -184,7 +183,7 @@ CODE_AUTHORIZED="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X DELET
 info "DELETE /reviews/${REVIEW_ID} (alice token) -> HTTP $CODE_AUTHORIZED"
 [[ "$CODE_AUTHORIZED" == "204" ]] \
     || fail "expected 204 for DELETE with a valid admin-role token, got $CODE_AUTHORIZED"
-narrate "confirmed: a token WITH the admin role -> 204, the DELETE was accepted"
+narrate "confirmed: a token with the admin role -> 204, the DELETE was accepted"
 
 CODE_GONE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "${BASE_URL}/reviews/${REVIEW_ID}")"
 info "GET /reviews/${REVIEW_ID} after delete -> HTTP $CODE_GONE"
@@ -197,6 +196,6 @@ narrate "Three real password-grant tokens from a disposable Keycloak Dev Service
 narrate "container (random host port, discovered via docker port) drove one"
 narrate "@RolesAllowed(\"admin\") endpoint through all three outcomes: 401 (no"
 narrate "token), 403 (wrong role), 204+404-after (right role, real effect)."
-narrate "This is DRQ-005's GO path, not the DEFER fallback."
+narrate "This is the live OIDC path, proven end to end rather than deferred."
 
 demo_ok

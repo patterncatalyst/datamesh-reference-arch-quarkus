@@ -18,8 +18,8 @@
   <description>
     Single source of the wire contracts shared by producer and consumer
     services: the gRPC .proto (packaged so consumer Quarkus apps can scan
-    this dependency jar for it) and every Kafka Avro schema (DRQ-009 --
-    Avro + Apicurio Schema Registry from the start, not JSON). The generated
+    this dependency jar for it) and every Kafka Avro schema (Avro +
+    Apicurio Schema Registry from the start, not JSON). The generated
     Avro record classes are compiled into this jar; gRPC stubs are NOT
     generated here -- see README.md for the consumer-side scan-for-proto
     property.

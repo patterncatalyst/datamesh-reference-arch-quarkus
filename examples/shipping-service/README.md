@@ -1,7 +1,7 @@
 # shipping-service
 
 Real event-choreography saga participant for the order → payment → shipment
-flow (DRQ-009, DRQ-010). Upgrades the Python reference architecture's
+flow (Avro events, choreography-based runtime contract). Upgrades the Python reference architecture's
 shipping-service stub to a running Quarkus service.
 
 ## What it does
@@ -40,7 +40,7 @@ generated `SpecificRecord` classes:
 Channel/topic names come from `domain-model`'s `Topics` constants class —
 never hardcoded string literals in `ShipmentProcessor`.
 
-## Serialization: Apicurio Avro (DRQ-009)
+## Serialization: Apicurio Avro
 
 Both channels serialize through `io.apicurio.registry.serde.avro.*` (via the
 `quarkus-apicurio-registry-avro` extension), not JSON. `value.serializer` /
@@ -53,7 +53,7 @@ share the `io.apicurio.registry.serde.avro` package (flagged by the build's
 own `SplitPackageProcessor` warning), which breaks Quarkus's serde
 autodetection (`kafka-schema-registry-avro.adoc`,
 "serialization-autodetection"). Explicit keys are required here to keep
-events Avro on the wire (DRQ-009). `apicurio.registry.auto-register=true` is
+events Avro on the wire. `apicurio.registry.auto-register=true` is
 also set on the outgoing channel, so the `ShipmentDispatched` schema
 registers itself with Apicurio on first publish.
 

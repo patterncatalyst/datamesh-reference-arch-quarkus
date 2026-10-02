@@ -2,7 +2,7 @@ package rules
 
 import com.patterncatalyst.datamesh.airules.OrderTriageFact
 
-// DRQ-012: Drools -- not the LLM -- makes the business decision. The LLM
+// Drools -- not the LLM -- makes the business decision. The LLM
 // (OrderTriageRoute's langchain4j-chat call) only classifies/extracts
 // category, priority, and riskSignal onto the OrderTriageFact before it is
 // inserted; everything below is deterministic rule logic.

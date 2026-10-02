@@ -6,8 +6,8 @@
 -- directory is empty).
 --
 -- One Postgres instance, one database PER service (mirrors what each
--- service's %prod JDBC_URL will point at in step 8b -- DRQ-011's single
--- %prod env-driven profile). All owned by the bootstrap superuser created
+-- service's %prod JDBC_URL will point at, once each service's single
+-- %prod env-driven profile is wired up). All owned by the bootstrap superuser created
 -- by POSTGRES_USER/POSTGRES_PASSWORD (see .env), so every service uses the
 -- same credentials and only the database name differs between
 -- ${JDBC_URL}s. This keeps the matrix simple (one login role) while still

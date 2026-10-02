@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 #
 # demos/lib/_demo.sh — shared helper library for datamesh-reference-arch-quarkus
-# demo scripts (Phase D, step 10.0). NOT executable on its own — it is meant
-# to be SOURCED from a demo-*.sh script, never run directly.
+# demo scripts. Not executable on its own — it is meant
+# to be sourced from a demo-*.sh script, never run directly.
 #
 # Ported from the idiom in the Python sibling repo
 # (datamesh-reference-arch-python/examples/lgtm-datamesh/demos/
 # {walkthrough.sh,demo-order.sh,lib/tunnels.sh}):
-#   - `set -uo pipefail` (NOT `-e`) so a demo manages failures explicitly —
+#   - `set -uo pipefail` (not `-e`) so a demo manages failures explicitly —
 #     via `fail` — and can dump diagnostics instead of aborting mid-assertion
 #     on some unrelated command's non-zero exit.
 #   - a success-flag + EXIT trap (`demo_begin`/`demo_ok`) so a script that
 #     short-circuits (returns/exits 0 without ever reaching its last
 #     assertion) can never be mistaken for a passing demo.
-#   - every assertion checks POSITIVE CONTENT (a parsed field, an exact
+#   - every assertion checks positive content (a parsed field, an exact
 #     status code, a specific byte) — never just "exit code was zero".
 #
-# Every demo-*.sh MUST start like this:
+# Every demo-*.sh must start like this:
 #
 #   #!/usr/bin/env bash
 #   set -uo pipefail
@@ -27,7 +27,7 @@
 #   demo_ok
 #
 # `demo_begin` installs the EXIT trap; `demo_ok` raises the success flag. Any
-# `fail` call, or any early `exit`/falling off the end WITHOUT calling
+# `fail` call, or any early `exit`/falling off the end without calling
 # `demo_ok`, is caught by the trap and reported as a failure — even if the
 # last command run happened to exit 0.
 
@@ -43,7 +43,7 @@ _DEMO_LIB_SOURCED=1
 set -uo pipefail
 
 # ─── Path resolution (works regardless of caller's CWD) ─────────────────────
-# Resolved relative to THIS file's own location (demos/lib/_demo.sh), not the
+# Resolved relative to this file's own location (demos/lib/_demo.sh), not the
 # sourcing script's path or the shell's CWD.
 _DEMO_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${_DEMO_LIB_DIR}/../.." && pwd)"
@@ -158,7 +158,7 @@ demo_begin() {
     step "${DEMO_NAME}"
 }
 
-# demo_ok — call once, as the LAST thing a successful demo does.
+# demo_ok — call once, as the last thing a successful demo does.
 demo_ok() {
     DEMO_SUCCESS=1
     printf '\n%s✓ SUCCESS%s — %s\n' "$GRN" "$RST" "${DEMO_NAME:-demo}"
@@ -181,7 +181,7 @@ require() {
 # ─── HTTP waiters and assertions ─────────────────────────────────────────────
 
 # wait_http <url> [timeout_s] — poll (1s interval) until the endpoint answers
-# ANY HTTP response (connection + response, not a specific status). Returns
+# any HTTP response (connection + response, not a specific status). Returns
 # non-zero on timeout; callers that need a specific status should follow up
 # with assert_http_200 (or assert_json_field against the body).
 wait_http() {
@@ -227,7 +227,7 @@ compose_up() {
     docker compose "${args[@]}" || fail "docker compose up failed (profiles: ${*:-none})"
 }
 
-# compose_down [profile...] [-flag...] — mirror compose_up: pass the SAME
+# compose_down [profile...] [-flag...] — mirror compose_up: pass the same
 # profile names you passed to compose_up, or `docker compose down` silently
 # leaves profile-gated services (e.g. `ollama`) running. Args starting with "-"
 # are forwarded to `down` as flags (e.g. `-v` to also wipe named volumes).

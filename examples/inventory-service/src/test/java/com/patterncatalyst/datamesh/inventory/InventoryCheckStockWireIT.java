@@ -34,7 +34,7 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
  * {@link InventoryServiceGrpc} blocking stub rather than a CDI-injected one.
  *
  * <p>IMPORTANT: this IT boots the packaged app under the {@code prod} profile,
- * where {@code import.sql} is NOT loaded (DRQ-011 / finding F3 — seed scripts
+ * where {@code import.sql} is NOT loaded (seed scripts
  * run only in dev/test schema generation). So this test SEEDS its own stock
  * over the REST surface ({@code POST /stock}) in {@code @BeforeAll} rather than
  * relying on the demo SKUs — a self-provisioning IT, consistent with how the

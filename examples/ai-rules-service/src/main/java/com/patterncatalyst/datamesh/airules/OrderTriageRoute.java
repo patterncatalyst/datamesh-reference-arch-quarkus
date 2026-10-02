@@ -8,7 +8,7 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
 
 /**
- * DRQ-012/DRQ-014 showcase: two REST endpoints orchestrate the exact same
+ * Showcase: two REST endpoints orchestrate the exact same
  * classify-then-decide logic ({@link TriageService}) two different ways, as
  * an A/B contrast:
  *
@@ -27,8 +27,8 @@ import org.apache.camel.model.dataformat.JsonLibrary;
  *
  * <p>Because both paths delegate to the same {@link TriageService} bean --
  * and Drools (not the LLM, and not a langchain4j tool-calling round trip)
- * makes the decision in both -- neither path can regress into DEF-001; see
- * this module's README and {@code _plans/decisions.md}.
+ * makes the decision in both -- neither path can regress into the tool-calling
+ * limitation; see this module's README.
  */
 @ApplicationScoped
 public class OrderTriageRoute extends RouteBuilder {
@@ -68,6 +68,17 @@ public class OrderTriageRoute extends RouteBuilder {
             .routeId("triage-flow-order")
             .log("Triaging order (Flow): ${body}")
             .unmarshal().json(JsonLibrary.Jackson, OrderCreate.class)
+            // platform-http (camel-quarkus-platform-http/Vert.x) dispatches this
+            // route on the Vert.x event loop. triageFlowRunner.run() does a
+            // blocking LLM call plus a Drools fire and then
+            // .await().atMost(Duration.ofSeconds(120)) -- up to two minutes of
+            // blocking -- which would starve the event loop if left on it. The
+            // threads() EIP hands the exchange off to Camel's own worker thread
+            // pool before that call, so the blocking work (and the .await())
+            // runs off the event loop; platform-http's async consumer resumes
+            // the HTTP response when that worker thread completes, so the
+            // external response contract (status/body) is unchanged.
+            .threads()
             .bean(triageFlowRunner, "run")
             .marshal().json(JsonLibrary.Jackson);
     }

@@ -46,9 +46,9 @@ with its own schedule, its own transformation logic, and its own failure modes.
 
 This is **pipeline sprawl**, and it's the defining limitation of the pattern. Nobody
 "owns" the data flowing through a pipeline — the pipeline is plumbing, not a product.
-When something breaks in the middle of a pipeline at 2 a.m., the question "whose problem
-is this?" rarely has a clear answer. The data team owns the pipeline, but the domain team
-owns the semantics, and neither has full context. It was exactly this sprawl — and the
+When a pipeline breaks, there is rarely a clear answer to whose problem it is: the data
+team owns the pipeline, but the domain team owns the semantics, and neither has full
+context. It was exactly this sprawl — and the
 operational fragility that comes with it — that the data warehouse was designed to tame.
 
 ## Data warehouses
@@ -83,11 +83,8 @@ domains that produced it. When the logistics domain needs a new dimension added 
 warehouse, the request goes to the central team, who must learn enough about logistics
 to model it correctly, prioritize it against requests from every other domain, and
 coordinate the schema change without breaking downstream consumers. The analytical view
-is always hours or days behind the operational truth, because the ingestion pipelines
-run on a schedule, and the central team's capacity to model new data is the constraint on
-how fast the warehouse can grow. As the organization adds domains and use cases, the
-central team processes more requests than it can understand, and the queue becomes the
-bottleneck.
+is also typically hours or days behind the operational truth, since the ingestion
+pipelines run on a schedule.
 
 ## Data lakes
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# demos/demo-websocket.sh — Phase D step 10.6 "compose (infra baseline)"
+# demos/demo-websocket.sh — "compose (infra baseline)"
 # demo: WebSockets.Next, pushing a real event to a live WebSocket client.
 #
 # ── NEW endpoint added for this demo (flagged, per this step's plan) ───────
@@ -68,8 +68,8 @@
 # service's log), so no Notification is ever persisted and nothing is ever
 # pushed over the WebSocket, even though order-service's publish itself
 # succeeds. This is a second, previously-undetected instance of the same
-# production-readiness gap DEF-002 already named for the producer side —
-# worth flagging upstream for every %prod Avro consumer in this reactor, not
+# production-readiness gap already named for the producer side — worth
+# flagging upstream for every %prod Avro consumer in this reactor, not
 # just the ones already covered by an existing demo/IT.
 #
 # ── Port plan ────────────────────────────────────────────────────────────
@@ -106,11 +106,11 @@ AVRO_SERIALIZABLE_PACKAGES="capstone.order.v1"
 TOPIC="order.placed.ws.demo.$$"
 
 narrate "WebSockets.Next: a live client connects to notification-service's"
-narrate "NEW /ws/notifications endpoint; placing a real order propagates"
+narrate "new /ws/notifications endpoint; placing a real order propagates"
 narrate "order-service -> gRPC CheckStock -> inventory-service -> Postgres,"
 narrate "then order-service -> Kafka (Avro/Apicurio) -> notification-service,"
-narrate "which persists a Notification row AND pushes it over the live socket."
-narrate "This demo asserts the PARSED content of that pushed message."
+narrate "which persists a Notification row and pushes it over the live socket."
+narrate "This demo asserts the parsed content of that pushed message."
 
 # ─── .env prereq (compose var resolution) ───────────────────────────────────
 if [[ ! -f "${REPO_ROOT}/.env" ]]; then

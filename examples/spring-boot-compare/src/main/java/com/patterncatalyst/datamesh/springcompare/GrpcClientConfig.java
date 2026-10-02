@@ -15,7 +15,7 @@ import capstone.inventory.v1.InventoryServiceGrpc;
  * Quarkus order-service's {@code @GrpcClient("inventory")} config
  * ({@code quarkus.grpc.clients.inventory.host}/{@code .port} in
  * {@code application.properties}). Host/port are env-overridable with the
- * SAME names and defaults (F2: canonical inventory gRPC port is 9000) so
+ * SAME names and defaults (canonical inventory gRPC port is 9000) so
  * compose/K8s manifests can point both twins at the same target without a
  * code change.
  */

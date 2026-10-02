@@ -30,7 +30,7 @@ It serves two purposes at once:
 into one composed query surface.
 
 **Three coordination engines over the same domain** (see
-[`_docs/13-orchestration-styles.md`](_docs/13-orchestration-styles.md), DRQ-015):
+[`_docs/13-orchestration-styles.md`](_docs/13-orchestration-styles.md)):
 
 | Engine | Style | Where |
 |---|---|---|

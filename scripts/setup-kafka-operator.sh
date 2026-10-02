@@ -2,7 +2,7 @@
 #
 # setup-kafka-operator.sh — install the Strimzi Kafka operator (Helm) into the
 # datamesh namespace, then apply a single-node KRaft Kafka cluster CR (raw
-# manifest — per DRQ-011, Helm is reserved for operators; app/cluster-shaped
+# manifest — Helm is reserved for operators; app/cluster-shaped
 # resources are plain manifests, not charts).
 #
 # Strimzi runs in KRaft mode (no ZooKeeper). Single node / replication factor

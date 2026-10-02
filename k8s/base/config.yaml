@@ -1,8 +1,8 @@
-# config.yaml — shared env contract for the app Deployments (step 9b).
+# config.yaml — shared env contract for the app Deployments.
 #
-# DRQ-011: one %prod env-driven config feeds the same images across docker
-# compose (step 8) and minikube (step 9). The in-cluster DNS names below are
-# pulled directly from the operator/CR scripts written in step 9a — do not
+# One %prod env-driven config feeds the same images across docker
+# compose and minikube. The in-cluster DNS names below are
+# pulled directly from the operator/CR scripts — do not
 # hand-edit them without checking those scripts again:
 #
 #   - Kafka bootstrap : scripts/setup-kafka-operator.sh
@@ -18,7 +18,7 @@
 #
 # Namespace: "datamesh" (NS in bootstrap.sh and all three setup-*.sh scripts).
 #
-# DB credentials are deliberately NOT redefined as a Secret in this file.
+# DB credentials are deliberately not redefined as a Secret in this file.
 # scripts/setup-postgres-operator.sh's Cluster CR (bootstrap.initdb) causes
 # CloudNativePG to auto-generate a Secret named "<cluster-name>-app" =
 # "datamesh-postgres-app" in the datamesh namespace, with keys "username",
@@ -45,12 +45,12 @@ data:
   KAFKA_BOOTSTRAP_SERVERS: "datamesh-kafka-bootstrap.datamesh.svc.cluster.local:9092"
   APICURIO_REGISTRY_URL: "http://apicurio.datamesh.svc.cluster.local:8080/apis/registry/v3"
 
-  # JDBC_URL is the name decisions.md (DRQ-011) specifies for the env
-  # contract; it is NOT (yet) the Quarkus-standard env var name, so it only
+  # JDBC_URL is the name decisions.md specifies for the env
+  # contract; it is not (yet) the Quarkus-standard env var name, so it only
   # takes effect once application.properties gains a line such as
-  # "%prod.quarkus.datasource.jdbc.url=${JDBC_URL}" (not present as of step
-  # 8/9a — flagged in the handback report as an app-config gap outside this
-  # step's scope). QUARKUS_DATASOURCE_JDBC_URL is also set below so the
+  # "%prod.quarkus.datasource.jdbc.url=${JDBC_URL}" (not present yet
+  # — flagged in the handback report as an app-config gap outside this
+  # scope). QUARKUS_DATASOURCE_JDBC_URL is also set below so the
   # datasource works out of the box today via Quarkus's own env mapping,
   # with no properties-file change required.
   JDBC_URL: "jdbc:postgresql://datamesh-postgres-rw.datamesh.svc.cluster.local:5432/datamesh"
@@ -59,10 +59,10 @@ data:
   JAVA_OPTS_APPEND: "-Duser.timezone=UTC"
   QUARKUS_PROFILE: "prod"
 
-  # F2: order-service's @GrpcClient("inventory") target. Consumed via Quarkus
+  # order-service's @GrpcClient("inventory") target. Consumed via Quarkus
   # relaxed env binding (INVENTORY_GRPC_HOST/PORT -> ${INVENTORY_GRPC_HOST}/
   # ${INVENTORY_GRPC_PORT} in order-service's application.properties). Host is
-  # the inventory-service Service DNS name (same namespace); port is the F2
+  # the inventory-service Service DNS name (same namespace); port is the
   # canonical 9000. Harmless to the other Deployments that read this ConfigMap
   # but have no inventory client.
   INVENTORY_GRPC_HOST: "inventory-service.datamesh.svc.cluster.local"

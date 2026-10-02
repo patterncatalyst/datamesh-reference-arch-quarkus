@@ -1,7 +1,8 @@
-# kustomization.yaml — groups the two step-9c KEDA scalers for a single
+# kustomization.yaml — groups the two KEDA scalers for a single
 # `kubectl apply -k k8s/keda` (or `--dry-run=client -k k8s/keda`). Namespace
-# is NOT set here (unlike k8s/base's transformer) because both manifests
-# already carry explicit metadata.namespace: datamesh, matching 9a/9b.
+# is not set here (unlike k8s/base's transformer) because both manifests
+# already carry explicit metadata.namespace: datamesh, matching the other
+# manifests.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

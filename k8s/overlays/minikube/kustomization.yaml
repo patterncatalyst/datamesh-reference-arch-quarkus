@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - ../../base
 
-# DRQ-011: images are built directly into minikube's own Docker daemon
+# Images are built directly into minikube's own Docker daemon
 # (`eval $(minikube docker-env)` then `docker build -t datamesh/<svc> .`) —
 # no external registry. `newTag` pins the tag; the image name itself stays
 # registry-free ("datamesh/<svc>", not "some.registry/datamesh/<svc>") so

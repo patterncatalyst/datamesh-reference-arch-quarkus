@@ -1,4 +1,4 @@
-# Containerfile.multistage, spring-boot-compare (DRQ-006)
+# Containerfile.multistage, spring-boot-compare
 #
 # Build (context = repo root, run from the repo root directory):
 #   docker build -f examples/spring-boot-compare/src/main/docker/Containerfile.multistage -t datamesh/spring-boot-compare .
@@ -58,12 +58,12 @@ COPY --from=build --chown=185 /build/examples/spring-boot-compare/target/spring-
 
 EXPOSE 8080
 
-# DRQ-011: pin UTC (Postgres rejects legacy Olson zone ids forwarded from the
+# Pin UTC (Postgres rejects legacy Olson zone ids forwarded from the
 # host default -- same crux this module's own pom.xml documents for its test
 # JVM) + run with the `prod` Spring profile so compose/K8s deployments use
 # the same env-driven config (JDBC_URL / KAFKA_BOOTSTRAP_SERVERS /
 # APICURIO_REGISTRY_URL / INVENTORY_GRPC_HOST / INVENTORY_GRPC_PORT) as the
-# rest of the reactor, per DRQ-011.
+# rest of the project.
 #
 # org.apache.avro.SERIALIZABLE_PACKAGES: Avro 1.12's ClassSecurityValidator
 # refuses to (de)serialize generated SpecificRecords from a packaged

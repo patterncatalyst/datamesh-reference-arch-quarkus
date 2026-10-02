@@ -4,7 +4,7 @@
 # from a fresh node, in the correct order, with a health gate between each tier.
 #
 # HOST RESOURCE REQUIREMENTS (heavy profile — Istio + Kiali + KEDA + LGTM +
-# Strimzi + CNPG + Apicurio are ALL ON by default per DRQ-011):
+# Strimzi + CNPG + Apicurio are ALL ON by default):
 #   - Host RAM:  >= 32 GB recommended (64 GB verified-comfortable). The
 #     minikube profile itself is sized at 24 GB / 16 vCPUs / 80 GB disk
 #     (see setup-profile.sh); leave that much headroom over the profile's
@@ -30,7 +30,7 @@
 #   6. LGTM observability stack                      (ENABLE_LGTM, default true)
 #      (Loki + Grafana + Tempo + Mimir + OTel Collector)
 #   7. Kiali mesh-topology UI                         (ENABLE_KIALI, default = ENABLE_ISTIO)
-#   8. Apicurio schema registry (3.x, v3 API)         (ENABLE_APICURIO, default true — DRQ-011)
+#   8. Apicurio schema registry (3.x, v3 API)         (ENABLE_APICURIO, default true)
 #
 # Idempotent: helm upgrade --install, kubectl apply, kubectl wait — re-running
 # resumes safely after an interrupted run.
@@ -48,9 +48,9 @@ PROFILE="datamesh"
 NS="datamesh"
 OBS_NS="${OBS_NAMESPACE:-observability}"
 
-# Feature flags. Defaults reflect DRQ-011 (Phase C infra choices): Istio+Kiali
+# Feature flags. Defaults: Istio+Kiali
 # ON (mesh kept), KEDA on (notification-service Kafka-lag scaler + gateway
-# HTTP scaler land later, Phase D demos), Apicurio needed for Avro schemas.
+# HTTP scaler land later via separate demos), Apicurio needed for Avro schemas.
 ENABLE_ISTIO="${ENABLE_ISTIO:-true}"
 ENABLE_POSTGRES="${ENABLE_POSTGRES:-true}"
 ENABLE_KAFKA="${ENABLE_KAFKA:-true}"

@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 #
-# demos/demo-ai-classify.sh — Phase D step 10.4 (first half): langchain4j
-# single-shot chat classification (DRQ-unrelated capability row in the demo
-# matrix: "langchain4j (single-shot chat classify)").
+# demos/demo-ai-classify.sh — langchain4j single-shot chat classification.
 #
 # ai-mcp-service's OrderClassifierRoute exposes POST /api/orders/classify ->
 # direct:classify-order -> langchain4j-chat:classifier. This is a single-shot
 # chat call (CHAT_SINGLE_MESSAGE_WITH_PROMPT) -- NOT an agent, NOT tool
-# calling -- so it is structurally immune to DEF-001 (the embedded MCP server
-# / tool-calling deferral lives entirely in OrderLookupToolRoute /
-# OrderAssistantRoute, neither of which this demo touches).
+# calling -- so it structurally avoids the tool-calling defect (the embedded
+# MCP server / tool-calling limitation lives entirely in OrderLookupToolRoute
+# / OrderAssistantRoute, neither of which this demo touches).
 #
 # BUG FOUND + FIXED (uncommitted) while wiring this demo:
 # OrderClassifierRoute.java set a header literally named
@@ -54,7 +52,7 @@ MODEL="qwen2.5:3b"
 
 narrate "langchain4j-chat single-shot classification: POST /api/orders/classify"
 narrate "runs CHAT_SINGLE_MESSAGE_WITH_PROMPT against Ollama (${MODEL}) -- no"
-narrate "agent, no tool calling, structurally DEF-001-proof."
+narrate "agent, no tool calling -- structurally avoids the tool-calling defect."
 
 # ─── Compose lifecycle: this script owns it ──────────────────────────────────
 step "bring up compose (baseline + ollama profile)"
@@ -159,6 +157,6 @@ run_classify_case "fragile order (antique crystal wine glasses)" \
 step "classification confirmed"
 narrate "All 3 orders were classified into the correct category label by a"
 narrate "single-shot langchain4j-chat call against Ollama (${MODEL}) -- no"
-narrate "agent, no tool calling, no DEF-001 exposure."
+narrate "agent, no tool calling, no exposure to the tool-calling defect."
 
 demo_ok

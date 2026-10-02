@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# demos/demo-grpc.sh — Phase D step 10.6 "compose (infra baseline)" demo:
-# Quarkus gRPC (quarkus-grpc).
+# demos/demo-grpc.sh — "compose (infra baseline)" demo: Quarkus gRPC
+# (quarkus-grpc).
 #
 # inventory-service exposes capstone.inventory.v1.InventoryService/CheckStock
 # (see contracts/src/main/proto/capstone/inventory/v1/inventory.proto and
@@ -21,8 +21,8 @@
 # `grpcurl ... CheckStock` unary call would both fail outright.
 #
 # ── Port plan (avoiding compose's host-published ports — see .env.example) ──
-#   inventory-service  HTTP 8093, gRPC 9000 (module default, canonical since
-#                       F2 -- see demo-order.sh's header comment; no override
+#   inventory-service  HTTP 8093, gRPC 9000 (module default, canonical --
+#                       see demo-order.sh's header comment; no override
 #                       needed, and this demo doesn't need order-service at
 #                       all).
 #

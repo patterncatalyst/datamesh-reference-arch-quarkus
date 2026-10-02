@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# demos/demo-native.sh — Phase D step 10.8 "bare" toolchain demo.
+# demos/demo-native.sh — "bare" toolchain demo.
 #
 # *** LONG-RUNNING / OPT-IN. *** A real GraalVM/Mandrel native compile of
 # order-service. This is NOT part of any default/fast demo run (and is not

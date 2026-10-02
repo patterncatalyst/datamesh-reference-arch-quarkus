@@ -15,7 +15,7 @@ import capstone.order.v1.OrderPlaced;
 import capstone.payment.v1.PaymentCaptured;
 
 /**
- * Real event-driven choreography processor (DRQ-009, DRQ-010).
+ * Real event-driven choreography processor.
  *
  * <p>Consumes {@link OrderPlaced} Avro events from the {@code order.placed}
  * Kafka topic (wired via the {@link Topics#ORDER_PLACED_CHANNEL} Reactive

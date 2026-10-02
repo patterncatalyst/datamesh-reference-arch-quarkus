@@ -9,14 +9,10 @@ marker: "02"
 
 The [previous chapter]({{ '/docs/01-data-architectures/' | relative_url }}) covered the
 landscape of data architectures — pipelines, warehouses, and lakes — and where the mesh
-sits in relation to all of them. This chapter goes deeper into what a data mesh actually
-is and the four principles it rests on.
-
-Before any commands, it's worth being precise about what a data mesh actually is —
-because the term gets attached to a lot of things it isn't. This chapter is a working
-grounding in the idea and its four principles, enough to make the rest of the tutorial
-make sense. It's deliberately brief: the point here is just enough vocabulary to build
-on, not the full history of the pattern.
+sits in relation to all of them. This chapter defines what a data mesh actually is,
+precisely, since the term gets attached to a lot of things it isn't, and works through
+the four principles it rests on. It's deliberately brief: enough vocabulary to build on
+for the rest of the tutorial, not the full history of the pattern.
 
 ## What a data mesh is
 
@@ -31,7 +27,7 @@ none of the domains it came from.
 The shift a data mesh proposes is from "centralize the data, then carve out access" to
 **decentralize ownership: let each domain own its data as a product**, with a shared
 platform providing the substrate those products use to publish, discover, and govern
-themselves. The analogy that lands hardest is microservices. Just as a monolithic
+themselves. The closest analogy is microservices. Just as a monolithic
 application gets refactored into bounded contexts owned by domain teams, a monolithic
 data platform gets refactored into bounded *data products* owned by domain teams. The
 mesh is the network of those products plus the platform and standards that let them
@@ -41,8 +37,7 @@ of application code.
 
 {% include excalidraw.html file="01-monolith-to-mesh" alt="A monolithic application and its monolithic data platform both decomposing into domain-owned services and domain-owned data products" caption="Figure 1.6 — From monolith to mesh" %}
 
-The parallel is worth taking seriously rather than treating as a slogan. When a
-monolithic application is decomposed into microservices, the hard part was never
+When a monolithic application is decomposed into microservices, the hard part was never
 drawing boxes on a diagram — it was deciding where one bounded context ends and the
 next begins, and then living with the API contract at that boundary. Decomposing a
 monolithic data platform into domain-owned data products is the same exercise one
@@ -56,8 +51,8 @@ boundary the microservice decomposition already drew are the same boundary.
 
 ## Operational vs. analytical data
 
-One distinction underlies everything and is worth stating plainly, because blurring it
-is itself a common mistake. **Operational data** is the current-state data behind a
+One distinction underlies everything, and blurring it is a common mistake.
+**Operational data** is the current-state data behind a
 domain's running services — the rows a microservice reads and writes to do its job,
 transactional and live. **Analytical data** is the historical, aggregated view used to
 make decisions, train models, and understand the business over time. Traditionally these

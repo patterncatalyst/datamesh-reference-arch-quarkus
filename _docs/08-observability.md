@@ -17,13 +17,13 @@ cross-service trace; and Kiali as the live view of traffic moving through the me
 
 {% include excalidraw.html file="08-reference-architecture" alt="Reference architecture diagram showing the full datamesh stack: data products behind the Istio mesh, KEDA-driven autoscaling, and every signal flowing through the OpenTelemetry Collector into the Grafana LGTM stack and Kiali" caption="Figure 8.1 — the full reference architecture: mesh, scaling, and observability together" %}
 
-Figure 8.1 is the shape of everything the last three chapters have been building
-toward, drawn as one picture: the data products from earlier chapters sit behind the
-selectively-meshed Istio data plane from [Chapter 6](/docs/06-progressive-delivery-mtls/),
-KEDA watches and scales two of them from [Chapter 7](/docs/07-elastic-and-resilient/),
-and every one of those moving parts — the mesh's sidecars, the scalers' activations,
-the services' own request handling — is a source of telemetry that lands in the same
-place: the Collector and LGTM stack this chapter describes. None of the earlier
+Figure 8.1 draws together everything the last three chapters have been building
+toward. The data products from earlier chapters sit behind the selectively-meshed
+Istio data plane from [Chapter 6](/docs/06-progressive-delivery-mtls/), and KEDA
+watches and scales two of them from [Chapter 7](/docs/07-elastic-and-resilient/).
+Every one of those moving parts — the mesh's sidecars, the scalers' activations, the
+services' own request handling — is a source of telemetry, and all of it lands in the
+same place: the Collector and LGTM stack this chapter describes. None of the earlier
 chapters' mechanisms are observable in isolation; this chapter is what makes the whole
 picture legible at once.
 
@@ -111,22 +111,23 @@ service:
       exporters: [otlphttp/loki]
 ```
 
-Three pipelines, one shared `otlp` receiver (gRPC on `4317`, HTTP on `4318`), and each
-pipeline runs the batch through the same two processors before exporting:
+Three pipelines share one `otlp` receiver (gRPC on `4317`, HTTP on `4318`), and each
+pipeline runs its batch through the same two processors before exporting.
 `memory_limiter` is back-pressure sized against the Collector pod's own memory limit
-(not host memory) so a signal spike degrades gracefully instead of OOM-killing the
-pod, and `resource` stamps every signal with a `cluster: minikube` attribute — useful
-the moment more than one cluster reports into the same Grafana. The payoff of routing
-everything through one Collector rather than wiring each service to each backend
-directly: adding tail sampling, label redaction, or cardinality control later is a
-change to this one file, not to every service that emits telemetry. It also means the
-three application services never need to know Mimir uses a remote-write push model
-while Tempo and Loki take OTLP-native exports directly — each pipeline's `exporters`
-list hides that backend-specific detail behind the one `otlp` receiver every service
-actually talks to, so a backend swap (Tempo for a different tracing store, say) is a
-change to one exporter block, not to any service's configuration.
+(not host memory), so a signal spike degrades gracefully instead of OOM-killing the
+pod. `resource` stamps every signal with a `cluster: minikube` attribute, useful the
+moment more than one cluster reports into the same Grafana. Routing everything
+through one Collector, rather than wiring each service to each backend directly,
+concentrates future changes in one place: adding tail sampling, label redaction, or
+cardinality control later is a change to this one file, not to every service that
+emits telemetry. It also means the three application services never need to know that
+Mimir uses a remote-write push model while Tempo and Loki take OTLP-native exports
+directly. Each pipeline's `exporters` list hides that backend-specific detail behind
+the one `otlp` receiver every service actually talks to, so a backend swap — Tempo for
+a different tracing store, say — is a change to one exporter block, not to any
+service's configuration.
 
-### Mimir plays double duty as "Prometheus"
+### Mimir registered as both itself and Prometheus
 
 `scripts/grafana-datasources.yaml` registers Mimir **twice** — once as itself, once
 aliased as `Prometheus` — both pointing at the same URL
@@ -144,8 +145,8 @@ datasources:
     isDefault: false
 ```
 
-The comment in the file names this plainly: "Mimir replaces Prometheus and pretends to
-be it." Mimir exposes a Prometheus-compatible query API, so anything written to expect
+The file's own comment states the intent directly: Mimir replaces Prometheus here.
+Mimir exposes a Prometheus-compatible query API, so anything written to expect
 a datasource literally named `prometheus` — a dashboard JSON exported from elsewhere, a
 PromQL query pasted from documentation — works unmodified, while Mimir is the only
 metrics backend actually running. The same Prometheus-compatible endpoint is exactly
@@ -181,8 +182,8 @@ application problem.
 
 Unlike most of this part, `demos/demo-tracing.sh` was actually run against a real
 backend (the docker-compose LGTM baseline, not minikube) and produced the effect it
-claims — this is the one place in this part where "verified" means something beyond
-"the code should work."
+claims. It is the one place in this part where verification means the demo was
+actually executed and observed, not just reviewed as code.
 
 The trace it produces follows a single `POST /orders` across two services:
 `order-service` handles the REST request and calls `inventory-service`'s
@@ -229,9 +230,9 @@ services, at minimum), a span whose `service.name` resource attribute is
 trace-context actually propagated across the real gRPC call rather than producing two
 disconnected, same-looking traces. It goes one step further and asserts the specific
 `CheckStock` gRPC span is present by name, not just that *some* gRPC span exists. That
-specificity is what makes this a verification rather than a smoke test: the claim isn't
-"tracing is configured," it's "this exact cross-service call produced this exact
-connected trace, and here's the query that proves it."
+specificity is what makes this a verification rather than a smoke test: the claim is
+not that tracing is configured, but that this exact cross-service call produced this
+exact connected trace, confirmed by the query shown above.
 
 One API-shape detail the demo had to discover empirically rather than assume from
 documentation: this Tempo build answers `GET /api/traces/<id>` with the older
@@ -241,8 +242,8 @@ betting on one.
 
 ## The live mesh view
 
-Metrics and traces are recorded and queried after the fact. The other thing worth
-having alongside them is a *live* picture of the mesh topology — which products are
+Metrics and traces are recorded and queried after the fact. Alongside them, this stack
+also provides a *live* picture of the mesh topology — which products are
 talking to which, right now, with health and traffic rate on each edge. That's Kiali's
 job, and `scripts/setup-kiali.sh` installs it wired to the **existing** LGTM stack
 rather than standing up a separate Prometheus of its own:
@@ -287,42 +288,34 @@ tunnel 3200 30320 "Tempo:   http://localhost:3200"
 tunnel 9009 30009 "Mimir:   http://localhost:9009"
 ```
 
-`tunnel()` opens a backgrounded SSH forward through the minikube node's own SSH server
-rather than relying on `kubectl port-forward`'s kept-alive HTTP/2 stream, which this
-repo's other scripts note drops under load or after an idle timeout. Getting that SSH
-connection parameterized correctly is its own small piece of plumbing worth
-understanding: the script resolves the private key with `minikube ssh-key -p datamesh`
-and the forwarded port with `docker port datamesh 22/tcp` — because on the `docker`
-driver, the "minikube node" is itself a Docker container, so its SSH daemon is reached
+`tunnel()` opens a backgrounded SSH forward through the minikube node's own SSH
+server, rather than relying on `kubectl port-forward`'s kept-alive HTTP/2 stream —
+this repo's other scripts note that stream drops under load or after an idle timeout.
+Parameterizing that SSH connection correctly takes two lookups: the script resolves
+the private key with `minikube ssh-key -p datamesh` and the forwarded port with
+`docker port datamesh 22/tcp`. That second lookup matters because on the `docker`
+driver, the minikube node is itself a Docker container, so its SSH daemon is reached
 through whatever host port Docker happens to have mapped to that container's `22/tcp`,
-not a fixed port. Each `tunnel` call is one `ssh -L <local>:localhost:<node_port> -N -f`
-invocation against that resolved key and port, backgrounded with `-f` and kept alive
-with `ServerAliveInterval=30`/`ServerAliveCountMax=3` so a momentarily quiet tunnel
-isn't mistaken for a dead one and dropped. Re-running the script kills any previous
-tunnels first (`pkill -f 'ssh.*docker@127.0.0.1'`) before opening fresh ones, which is
-what makes it safe to re-run after a minikube restart changes the underlying SSH port.
-The same NodePort convention is what every `--set service.type=NodePort` in
-`setup-lgtm.sh` and `setup-kiali.sh` exists to set up — this script is simply the one
-place all of those fixed ports get turned into stable `localhost` URLs in one command.
+not a fixed port. Each `tunnel` call is then one
+`ssh -L <local>:localhost:<node_port> -N -f` invocation against that resolved key and
+port, backgrounded with `-f` and kept alive with `ServerAliveInterval=30`/
+`ServerAliveCountMax=3`, so a momentarily quiet tunnel isn't mistaken for a dead one
+and dropped. Re-running the script kills any previous tunnels first
+(`pkill -f 'ssh.*docker@127.0.0.1'`) before opening fresh ones, which is what makes it
+safe to re-run after a minikube restart changes the underlying SSH port. The same
+NodePort convention is what every `--set service.type=NodePort` in `setup-lgtm.sh` and
+`setup-kiali.sh` exists to set up; this script is simply the one place all of those
+fixed ports get turned into stable `localhost` URLs in one command.
 
 ## What it all adds up to
 
-Put the pieces together and the mesh becomes legible end to end, with the one piece
-actually proven end to end being the cross-service trace: a single `POST /orders`
-produces a parsed, multi-span trace spanning `order-service` and `inventory-service`,
-queryable from Tempo's own API. The metrics side shows the Collector's `resource`
-processor stamping every signal, Mimir answering as both itself and "Prometheus," and a
-dashboard that watches the three backends' own ingest rates before you ever look at an
-application metric. The live mesh view is Kiali, wired to that same Mimir and Tempo
-rather than a second pipeline, quiet until a product opts into the mesh and starts
-producing traffic worth drawing. None of this is the system — these are the instruments
-through which a mesh too distributed for any single vantage point becomes something you
-can actually watch run.
-
-That completes this part. This build has the substrate for a running data mesh:
-services that own their data, a service mesh that can route and secure traffic between
-product versions, elastic and self-healing scaling, and the observability to see all of
-it working.
+Put together, the mesh becomes legible end to end: a single `POST /orders` produces a
+parsed, multi-span trace spanning `order-service` and `inventory-service`, queryable
+from Tempo's own API, while the Collector, Mimir, and Kiali provide the metrics and
+live-topology views described above. This build now has the substrate for a running
+data mesh — services that own their data, a mesh that can route and secure traffic
+between product versions, elastic and self-healing scaling, and the observability to
+see all of it working.
 
 ---
 
