@@ -142,7 +142,7 @@ class OrderPlacedAvroWireIT {
         assertEquals((byte) 0x0, rawValue[0],
                 "expected Apicurio/Confluent Avro wire-format magic byte 0x0 as the first byte");
         assertTrue(rawValue[0] != 0x7B,
-                "record value starts with '{' (0x7B) -- serde has regressed to JSON, violating DRQ-009");
+                "record value starts with '{' (0x7B) -- serde has regressed to JSON (Avro wire format expected)");
 
         // --- Optional round-trip: deserialize with AvroKafkaDeserializer and
         //     confirm the fields survive the real Avro wire encoding. ---

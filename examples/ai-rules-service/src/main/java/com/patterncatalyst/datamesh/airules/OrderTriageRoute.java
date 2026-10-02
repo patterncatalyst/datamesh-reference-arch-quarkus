@@ -68,6 +68,17 @@ public class OrderTriageRoute extends RouteBuilder {
             .routeId("triage-flow-order")
             .log("Triaging order (Flow): ${body}")
             .unmarshal().json(JsonLibrary.Jackson, OrderCreate.class)
+            // platform-http (camel-quarkus-platform-http/Vert.x) dispatches this
+            // route on the Vert.x event loop. triageFlowRunner.run() does a
+            // blocking LLM call plus a Drools fire and then
+            // .await().atMost(Duration.ofSeconds(120)) -- up to two minutes of
+            // blocking -- which would starve the event loop if left on it. The
+            // threads() EIP hands the exchange off to Camel's own worker thread
+            // pool before that call, so the blocking work (and the .await())
+            // runs off the event loop; platform-http's async consumer resumes
+            // the HTTP response when that worker thread completes, so the
+            // external response contract (status/body) is unchanged.
+            .threads()
             .bean(triageFlowRunner, "run")
             .marshal().json(JsonLibrary.Jackson);
     }
