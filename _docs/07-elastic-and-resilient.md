@@ -322,14 +322,4 @@ products.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. No
-live minikube cluster was available while writing this chapter, so neither KEDA demo
-has been run end to end here. Confirm on a real run: that
-`notification-service`'s runtime consumer-group id is actually
-`notification-service` (documented Quarkus default, not confirmed against a live
-broker); that with the now-correct gRPC wiring (canonical port 9000 +
-`inventory-service` Deployment) `POST /orders` succeeds in-cluster and
-`demo-keda-kafka.sh` drives real `order.placed` traffic, so the lag-based
-scale-up and scale-down actually land within the scripts' timing budgets (180s/300s);
-and that `demo-keda-http.sh`'s burst through the
-interceptor proxy actually wakes `graphql-gateway` from zero within its 240s budget.*
+*Verification status: <span class="status status--unverified">unverified</span>. The two KEDA demos require a live minikube cluster, which was not bootstrapped; both were skipped in this pass.*

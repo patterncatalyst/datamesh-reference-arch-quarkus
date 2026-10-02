@@ -240,12 +240,4 @@ order-service template the others follow, and how each one is packaged and shipp
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. The
-tier-by-tier walkthrough above is read directly from `scripts/bootstrap.sh` and
-`k8s/README.md` as they exist in the repo today, but the sequence has not been driven end
-to end on a clean minikube profile in this authoring pass. The highest-risk things to
-confirm on a real run: that all eight tiers actually reach their health gates within the
-documented resource budget, that the `IfNotPresent` / no-registry image flow behaves as
-described the first time (not just on a warm daemon), and that the `ENABLE_*` flag
-combinations used as an example here don't hit an undocumented dependency the script's
-own sanity checks (e.g. `ENABLE_KIALI` requiring `ENABLE_ISTIO`) don't already catch.*
+*Verification status: <span class="status status--unverified">unverified</span>. The reactor's unit/integration suite passes under `mvn verify`, but the minikube substrate (`scripts/bootstrap.sh`) was not bootstrapped in this environment, so the tier-by-tier cluster sequence has still not been driven end to end.*

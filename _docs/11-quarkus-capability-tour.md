@@ -403,11 +403,4 @@ for a side-by-side comparison.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-The highest-risk things to confirm on a real run: `demo-reactive-vertx.sh`'s
-concurrent-call assertions (3 reactive + 3 imperative calls returning
-uncorrelated correct results) under real scheduling; `demo-continuous-testing.sh`'s
-exact pass-banner wording against the pinned Quarkus 3.39.5; `demo-native.sh`'s
-native build succeeding with the available local or container-based toolchain
-within budget; and `demo-oidc.sh`'s Keycloak Dev Service container port
-discovery (`docker port` against a container id grepped from the dev-mode log).*
+*Verification status: <span class="status status--verified">verified</span>. `demo-reactive-vertx.sh` (concurrent reactive + imperative calls), `demo-continuous-testing.sh` (6/6), `demo-jbang-prototype.sh`, `demo-oidc.sh` (live Keycloak Dev Service), and the gRPC/GraphQL/REST demos all passed. Native compilation is the one capability not exercised here (no GraalVM/Mandrel in this environment).*

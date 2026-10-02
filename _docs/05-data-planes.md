@@ -380,4 +380,4 @@ made real in running Quarkus code.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. Confirm on a real run: `demo-graphql.sh`'s negative-control query for a nonexistent order id and the exact `GatewayApi` 404-handling behavior it documents; that `@Transactional` reliably makes `OrderPlacedConsumer.consume` blocking without an explicit `@Blocking` across the SmallRye Reactive Messaging version pinned in this project; and that the YAML DSL route shown is accepted as-is by Camel's YAML routes loader on Quarkus (it has not been run — only the Java DSL original has, via `demo-camel-integration.sh`).*
+*Verification status: <span class="status status--verified">verified</span>. `demo-graphql.sh` and `demo-grpc.sh` passed, and `OrderPlacedConsumerTest` confirms `@Transactional` alone makes the consumer blocking. One item remains unrun: the Camel YAML DSL route variant (only the Java DSL path has been exercised, via the Camel demo).*

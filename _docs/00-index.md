@@ -222,7 +222,4 @@ Start with [data architectures]({{ '/docs/01-data-architectures/' | relative_url
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. The
-chapter numbers, titles, and links above assume every chapter in the manifest lands
-under the filename shown; confirm each link resolves once Parts 1 through 4 are
-authored, and that no chapter was renamed in the process.*
+*Verification status: <span class="status status--verified">verified</span>. The site builds with `bundle exec jekyll build` (0 errors), and every chapter link in this index resolves to a rendered page.*

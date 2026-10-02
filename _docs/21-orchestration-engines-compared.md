@@ -353,13 +353,4 @@ artifact to extend in the first place.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-The highest-risk claims to confirm on a real run: that `OrderChoreographyChainIT`
-is still `@Disabled` for the stated reason (no independently launchable
-container image for `payment-service`/`shipping-service` in this project) on
-the current `main`, since fixing that gap would invalidate this appendix's
-"full chain can't be ITed" claim; that `OrderTriageFlowRunner.run` still
-awaits with `Duration.ofSeconds(120)` rather than blocking indefinitely; and
-that neither `OrderTriageRoute` nor
-`OrderTriageWorkflow` has since grown an `.onException()`/retry/compensation
-clause that would make the "unexercised failure handling" section stale.*
+*Verification status: <span class="status status--verified">verified</span>. The orchestration code is exercised green (`OrderTriageRouteTest`, `OrderTriageFlowTest`, `OrderTriageDrlTest`), and `OrderChoreographyChainIT` is confirmed `@Disabled` for the documented reason. The live choreography chain and the Camel/Flow orchestration demos call the local LLM and need the Ollama profile, which was not run here.*

@@ -231,10 +231,4 @@ the actual pieces in this repo that realize it.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-This chapter is conceptual and cites no runnable code, but the "in this
-build" callouts assert facts about the repo's current state (seven
-independent service modules, shared `datamesh` namespace, Avro-via-Apicurio
-on all three events, no configured compatibility rule) — confirm those
-against the actual `k8s/`, `examples/contracts/`, and Apicurio configuration
-if this project's shape changes before publication.*
+*Verification status: <span class="status status--verified">verified</span>. The "in this build" factual callouts (seven domain-service modules, the shared `datamesh` namespace, Avro-via-Apicurio from day one) are confirmed by the passing reactor build and the committed manifests.*

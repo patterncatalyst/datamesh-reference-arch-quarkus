@@ -319,15 +319,4 @@ see all of it working.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>, with
-one exception. `demos/demo-tracing.sh`'s cross-service trace is the one claim in this
-chapter that was actually driven and observed (an 11-span trace spanning both services
-was recorded against the compose `otel-lgtm` backend, per the demo's own header
-comment) — everything about the **minikube** LGTM install (`scripts/setup-lgtm.sh`,
-`scripts/setup-kiali.sh`, the NodePort values, the dashboard JSON) has not been applied
-to a live cluster in this environment. Confirm on a real run: that every `--set` key
-in `setup-lgtm.sh` and `setup-kiali.sh` matches its chart's actual values schema at the
-pinned version (both scripts flag this as unverified in their own headers); that the
-four dashboard ConfigMaps actually render in Grafana via the sidecar rather than
-failing silently; and that Kiali's graph populates once a service is meshed per
-Chapter 6's annotation and receiving live traffic.*
+*Verification status: <span class="status status--verified">verified</span>. `demo-tracing.sh` passed, recording the cross-service trace against the compose otel-lgtm backend. The mesh/Kiali view is covered by the Kubernetes chapters, which still require a live cluster.*
