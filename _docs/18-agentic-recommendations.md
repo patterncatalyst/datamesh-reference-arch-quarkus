@@ -264,7 +264,7 @@ the same confidence as its true ones.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
+*Status: <span class="status status--conceptual">conceptual</span>.
 This chapter is a distillation of recommendations rather than a runnable
 example, so there is no build or demo to execute against it. The claims
 most worth re-checking independently: that the known upstream defect in

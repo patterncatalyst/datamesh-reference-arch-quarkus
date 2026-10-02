@@ -227,7 +227,7 @@ others produces a distributed mess rather than a mesh.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. This
+*Status: <span class="status status--conceptual">conceptual</span>. This
 chapter is stack-agnostic conceptual framing with no code or commands to run; the
 highest-risk thing to confirm is that the terminology here (pipeline sprawl, schema-on-write
 vs. schema-on-read, data swamp) stays consistent with how later, hands-on chapters use the

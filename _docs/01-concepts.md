@@ -191,7 +191,8 @@ Kubernetes primitives.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. The
+*Status: <span class="status status--conceptual">conceptual</span>. This chapter is
+conceptual framing with no code or commands to run. The
 mapping of each principle to a specific piece of this build (Apicurio for the registry,
 Istio for mTLS, KEDA for autoscaling) describes the intended architecture; confirm each
 claim against the chapter that actually implements it (04, 06, 07) once those land, since
