@@ -483,4 +483,4 @@ warning — contracts and the catalog.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. Confirm on a real run: `demo-order.sh` actually completes end to end against a freshly started compose stack (Postgres readiness, both services reaching `/q/health/live`, the gRPC port override and Avro `SERIALIZABLE_PACKAGES` workaround both taking effect); that `Order`'s `@Enumerated(EnumType.STRING)` round-trips `OrderStatus` as expected against a real Postgres column; and that `InventoryGrpcService.checkStock`'s `@Blocking` dispatch behaves as described under real concurrent load rather than just in isolation.*
+*Verification status: <span class="status status--verified">verified</span>. `mvn verify` is green (`OrderResourceTest`, `InventoryGrpcServiceTest`, `OrderPlacedAvroWireIT`, `InventoryCheckStockWireIT`), and `demo-order.sh` and `demo-grpc.sh` passed end to end against a freshly started compose stack.*

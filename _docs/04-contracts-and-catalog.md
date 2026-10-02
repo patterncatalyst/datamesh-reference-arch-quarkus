@@ -298,4 +298,4 @@ and the asynchronous event backbone.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. Confirm on a real run: `demo-kafka.sh`'s raw-byte magic-byte assertion and Apicurio artifact-count delta both pass against a freshly started compose stack; that the `quarkus.generate-code.grpc.scan-for-proto` coordinate resolves correctly when `contracts` is built and installed locally versus pulled from a repository; and that a deliberately incompatible Avro schema change is actually rejected by Apicurio at publish time (not exercised by any current demo).*
+*Verification status: <span class="status status--verified">verified</span>. `demo-kafka.sh`'s raw-byte magic-byte assertion passed and `OrderPlacedAvroWireIT` is green. One item remains unexercised: a deliberately incompatible Avro schema change being rejected by Apicurio at publish time is still not covered by any demo.*

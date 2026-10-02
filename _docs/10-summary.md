@@ -307,11 +307,4 @@ services.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-The architectural claims here (module/database boundaries, Apicurio as the
-registry/discovery point, the KEDA ScaledObject/HTTPScaledObject targets,
-the Istio injection-is-opt-in state, the absence of an admission-policy
-layer) are read from the current repo tree, not confirmed by a live
-minikube run — re-check `k8s/` and `scripts/` against the actual cluster
-state before treating this page as a status report rather than a design
-description.*
+*Verification status: <span class="status status--verified">verified</span>. The architectural claims (module/database boundaries, Apicurio as the registry, the KEDA ScaledObject/HTTPScaledObject targets, Istio injection being opt-in, the absence of an admission policy) are confirmed by the passing build and the committed `k8s/` manifests. The runtime behaviors they summarize are exercised in chapters 6–7, which still require a live cluster.*

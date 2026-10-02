@@ -320,16 +320,4 @@ capacity to demand — including scaling all the way down to zero — with KEDA.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. No
-live minikube cluster was available while writing this chapter, so none of this was
-run: `scripts/setup-istio.sh` has not been executed against a real cluster in this
-environment, the native-sidecar (`initContainer`) membership behavior described above
-is documented Istio 1.29+ behavior rather than something observed here, and the
-`DestinationRule`/`VirtualService` pair is illustrative YAML, not a manifest that has
-been applied or rendered. Confirm on a real run: that `helm upgrade --install istiod`
-actually succeeds at the pinned `1.29.0` against this minikube setup, that a pod
-annotated with `sidecar.istio.io/inject: "true"` actually comes up `2/2` with the
-proxy as an `initContainer`, that the PERMISSIVE mTLS default is actually what this
-install ships (rather than a chart-level override changing it), and — once a `v2`
-order-service build and the Istio manifests above exist — that a weighted
-`VirtualService` split actually lands traffic in the stated proportions.*
+*Verification status: <span class="status status--unverified">unverified</span>. No live minikube cluster was bootstrapped in this pass, so Istio installation and the mTLS/native-sidecar behavior were not run.*

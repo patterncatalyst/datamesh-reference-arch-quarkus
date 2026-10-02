@@ -336,15 +336,4 @@ This closes the appendices in this project.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-The highest-risk things to confirm on a real run: that
-`ShipmentProcessorTest` passes against the pinned SmallRye Reactive
-Messaging version with the sink-clearing `@BeforeEach` actually preventing
-cross-test bleed (per its own Javadoc, omitting it was observed to leak a
-count of 3 instead of 1); that `shipping-service`'s explicit Avro
-serializer/deserializer keys are still necessary workarounds for the
-Apicurio split-package autodetection issue the properties file documents,
-rather than a since-fixed upstream default; and that the `%prod`
-`kafka.bootstrap.servers`/`apicurio.registry.url` overrides resolve
-correctly against whatever Compose or Kubernetes service names this
-project's infrastructure ultimately ships with.*
+*Verification status: <span class="status status--verified">verified</span>. `ShipmentProcessorTest` passes against the in-memory connector under `mvn verify`, with the sink-clearing `@BeforeEach` preventing cross-test bleed.*

@@ -303,13 +303,4 @@ genuinely does and doesn't work.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-The highest-risk things to confirm on a real run: that `payment-service` and
-`shipping-service` actually react to their respective upstream events within
-the demo's 45-second polling budget (`demo-orchestration-styles.sh`'s Act 1);
-that the Ollama-backed classification of the pre-validated `TRIAGE_ORDER`
-input still yields a deterministic `ROUTE_TO_WAREHOUSE` for both `/triage`
-and `/triage-flow` (LLM classification drift is the single biggest risk to
-the "same decision, two engines" claim); and that every hop's
-`org.apache.avro.SERIALIZABLE_PACKAGES` system property is set correctly, since
-a missing one on any single downstream service fails only that hop silently.*
+*Verification status: <span class="status status--unverified">unverified</span>. The Flow/Drools/route unit tests pass under `mvn verify`, but the end-to-end `demo-orchestration-styles.sh` (the live choreography chain plus the two orchestration engines) is gated behind the Ollama profile and was not run in this pass.*

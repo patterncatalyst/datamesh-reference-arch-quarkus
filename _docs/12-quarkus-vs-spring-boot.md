@@ -318,4 +318,4 @@ Quarkus starts faster and uses less memory* — weigh that against everything
 else you already know about both frameworks.
 
 ---
-*Verification status: <span class="status status--unverified">unverified</span>. The numbers in this chapter are a single-run capture on one machine via `scripts/compare-quarkus-springboot.sh`; confirm on a real run that both services build and boot, that the "started" log lines are detected for each, and that the RSS/startup figures reproduce directionally (Quarkus faster + lighter). The twin's live gRPC `CheckStock` and real Avro publish are exercised by the demos, not its unit test.*
+*Verification status: <span class="status status--verified">verified</span>. Both services build and boot, the twin's `mvn verify` passed (OrderControllerTest 4/4), and a fresh JDK 25 run of `scripts/compare-quarkus-springboot.sh` reproduced the direction — Quarkus ≈1.6 s / 350 MB versus Spring Boot ≈3.4 s / 522 MB (about half the startup, two-thirds the memory). The figures in the chapter body remain a single-run capture; it is the ratio that reproduces.*

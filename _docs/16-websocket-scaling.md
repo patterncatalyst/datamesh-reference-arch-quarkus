@@ -274,20 +274,4 @@ scaled, socket-holding variant of this service.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-What's actually been run is the single-instance path: `demos/demo-websocket.sh`
-passes against one `notification-service` JVM, proving the connect → persist
-→ push chain described in the first section. Nothing past that point — the
-per-replica unique consumer group, the split persistence/broadcast channels,
-the per-connection backpressure bound, or any KEDA trigger beyond consumer
-lag — is implemented or deployed anywhere in this repo; it's a recommended
-pattern reasoned from the real code and the real `consumer-scaledobject.yaml`,
-not a measured result. The highest-risk things to confirm if this is ever
-built: that a per-replica unique `group.id` genuinely delivers every record
-to every replica rather than silently reverting to shared behavior under a
-Kafka client default; that the split-channel persistence path still dedups
-correctly under genuinely concurrent multi-replica delivery (not just the
-single-process redelivery this repo's tests cover); and that a
-connection-count-aware KEDA trigger (or a `minReplicaCount: 1` posture)
-actually prevents a socket-holding replica from being scaled to zero out
-from under a connected client.*
+*Verification status: <span class="status status--unverified">unverified</span>. The single-instance path is now confirmed — `demo-websocket.sh` passed, exercising the connect → persist → push chain. Everything past it (the multi-replica Kafka fan-out) remains a recommended pattern, not deployed or measured.*

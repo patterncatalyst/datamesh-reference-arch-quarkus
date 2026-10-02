@@ -421,14 +421,4 @@ running to poke at manually.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-This chapter was written from the real source files it cites
-(`scripts/run-all-tests.sh`, `examples/pom.xml`, `examples/order-service/pom.xml`,
-the five `*IT` classes under `examples/*/src/test/java`, `tooling/README.md`,
-and `tooling/load/*.sh`), but hasn't itself been re-run end to end. Highest
-risk to confirm on a real run: that `scripts/run-all-tests.sh --all` still
-completes all seven phases cleanly on a clean checkout; that the Newman
-collection's actual assertion count (deliberately not hardcoded here — see
-the Functional Tests section) still matches what `tooling/README.md`
-describes qualitatively; and that the `hey`/`ghz` sample throughput numbers
-are read as illustrative of one past run, not a performance commitment.*
+*Verification status: <span class="status status--verified">verified</span>. The automated tiers run green — `mvn verify` across the reactor (unit + integration with self-provisioning Testcontainers), the Spring Boot twin build, and continuous testing (6/6). The Newman functional collection and the hey/ghz load scripts are documented but were not exercised in this pass.*

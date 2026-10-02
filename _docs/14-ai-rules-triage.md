@@ -350,13 +350,4 @@ Boot (Chapter 12) puts a number on what all of this costs at startup.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-The highest-risk things to confirm on a real run: that the three pre-validated
-triage inputs still produce their claimed stable classifications against the
-pinned `qwen2.5:3b` (classifier drift is the single biggest risk to
-`demo-ai-triage.sh`'s strict assertions); that the root cause (the
-unconditional JAX-RS HTTP client factory override) still reproduces against
-the pinned `camel-quarkus-support-langchain4j`/langchain4j versions, since an
-upstream fix would make this chapter's caveat stale; and that the embedded
-MCP server's session handshake and `tools/call` responses still match the
-hardcoded `OrderLookupToolRoute` bodies exactly.*
+*Verification status: <span class="status status--unverified">unverified</span>. Ollama is not available in this environment, so the triage classifications and the AI demos could not be run; the classifier-drift risk remains unexercised here.*

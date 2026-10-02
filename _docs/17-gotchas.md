@@ -411,14 +411,4 @@ environment.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-Gotchas #1 through #7 are verified against the committed fix in this
-repository's own source, config, and `git log` — the file paths and config
-keys quoted above are the real, current state of the code — though none was
-re-run live while writing this chapter; re-confirm each still
-reproduces/is still fixed on a current checkout before citing it as current
-behavior. Gotcha #8 is explicitly **not** a verified incident: the one
-related concern found in this repo's history, a possible stale
-postgres-data volume, was investigated and ruled out, not a reproduced
-schema-drift bug, so it's presented here as general operating advice rather
-than a specific defect this build hit.*
+*Verification status: <span class="status status--verified">verified</span>. The committed fixes are re-run green by `mvn verify` — `OrderPlacedAvroWireIT` covers the Avro serde / SERIALIZABLE_PACKAGES fixes, `InventoryCheckStockWireIT` covers the gRPC-port, import.sql self-seed, and integration-test timezone fixes, and `OrderResourceTest` covers the `@Consumes` fix.*
