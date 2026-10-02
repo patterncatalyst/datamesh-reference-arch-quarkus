@@ -13,14 +13,20 @@ import io.quarkus.websockets.next.WebSocket;
  *
  * <p>Intentionally minimal: this endpoint itself only acknowledges the
  * connection ({@code @OnOpen}); the actual push happens from
- * {@link OrderPlacedConsumer#onNotificationPersisted}, a transactional CDI
- * observer that {@link OrderPlacedConsumer#consume} fires an event into
- * right after persisting — the observer only runs once that transaction has
- * actually committed, and only then broadcasts the persisted
- * {@link Notification} to every open connection via the injected
- * {@code io.quarkus.websockets.next.OpenConnections} bean. That is what
- * makes this socket's claim true: it reports a real, already-committed
- * domain event, not just "a request arrived" or "a write was attempted".
+ * {@link OrderPlacedPushConsumer}, a second, independent Kafka consumer of
+ * the same {@code order.placed} topic (channel {@code order-placed-push},
+ * per-replica unique consumer group) that pushes a freshly built
+ * {@link Notification} to every connection open in this JVM via the
+ * injected {@code io.quarkus.websockets.next.OpenConnections} bean, for
+ * every {@code OrderPlaced} event this replica consumes -- which, thanks to
+ * its unique group id, is every event on the topic, regardless of which
+ * replica (possibly a different one) is the partition owner that persists
+ * it via {@link OrderPlacedConsumer}. Persistence and push are deliberately
+ * two independent consumers of the same topic (see
+ * {@code _docs/16-websocket-scaling.md}) rather than one method doing both:
+ * a shared, partition-balanced consumer group is correct for "persist each
+ * order exactly once" but wrong for a push that needs every replica to see
+ * every event, so the push channel instead uses a per-replica unique group.
  */
 @WebSocket(path = "/ws/notifications")
 public class OrderNotificationSocket {
