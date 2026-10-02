@@ -7,7 +7,7 @@ description: "A closing summary — for each of the four data-mesh principles, t
 duration: 12 minutes
 ---
 
-The reading set so far has worked through this reactor by *concern* —
+The reading set so far has worked through this project by *concern* —
 substrate, services, contracts, planes, progressive delivery, scaling,
 observability, failure modes. This closing page reorganizes the same
 material by *principle*. For each of Dehghani's four principles, you'll see
@@ -16,11 +16,11 @@ pieces in `examples/`, `k8s/`, and `scripts/` that realize it in this repo,
 and the failure mode the [previous chapter]({{ '/docs/09-anti-patterns/' | relative_url }})
 names for when it's missing.
 
-Everything below describes *this* reactor specifically — a Quarkus rebuild
+Everything below describes *this* project specifically — a Quarkus rebuild
 of `datamesh-reference-arch-python` running order, inventory, payment,
 shipping, notification, and review services plus a GraphQL gateway, all in
 one `datamesh` namespace for demo simplicity. Where this build only
-partially realizes a principle, that's named plainly rather than smoothed
+partially realizes a principle, it is stated rather than smoothed
 over — see the [anti-patterns chapter]({{ '/docs/09-anti-patterns/' | relative_url }})
 for why half-measures are worth naming.
 
@@ -44,7 +44,7 @@ guess who to ask when the shape changes — the owner is the module.
 The implementation pieces: `examples/` is a Maven reactor of independently
 buildable modules — `order-service`, `inventory-service`, `payment-service`,
 `shipping-service`, `notification-service`, `review-service`, and
-`graphql-gateway` — each its own Quarkus application with its own Panache
+`graphql-gateway`. Each is its own Quarkus application with its own Panache
 entities and its own logical database (`orderdb`, `inventorydb`, and so on,
 per `%prod.quarkus.datasource.jdbc.url` in each service's
 `application.properties`). The entities themselves are concrete, not
@@ -52,34 +52,35 @@ abstractions reused across services: `order-service` owns `Order.java`
 (`com.patterncatalyst.datamesh.order`), `inventory-service` owns
 `Stock.java` (`com.patterncatalyst.datamesh.inventory`), and neither module
 imports the other's entity class. `order-service` never reaches into
-inventory's schema directly; it calls `inventory-service` over gRPC
+inventory's schema directly. It calls `inventory-service` over gRPC
 (`CheckStock`, defined in `examples/contracts`'s `inventory.proto`, under
 the `capstone.inventory.v1` package) the same way any other consumer would.
 What crosses a domain boundary, by contrast, is a deliberately narrow
 *contract* — never another domain's entity. `examples/domain-model` holds
 the shared, framework-agnostic edge types every service depends on
 (`OrderDto`, `OrderCreate`, `OrderStatus`, `StockDto`, `ReviewDto`,
-`NotificationDto`, and the `Topics` constants), and `examples/contracts`
+`NotificationDto`, and the `Topics` constants). `examples/contracts`
 holds the versioned Avro schemas and the gRPC `.proto`. The discipline is in
 *what* is shared: DTOs and events that are explicitly part of a service's
 published interface, not its internal persistence model. A service's Panache
-entity (`Order`, `Stock`) stays private to that service; only its DTO and its
+entity (`Order`, `Stock`) stays private to that service. Only its DTO and its
 event schema are shared. That is the line domain ownership actually draws
 here — a shared contract module is fine, a shared *entity* module would be
 the coupling to avoid.
 
-Worth naming plainly: this build runs all seven modules in a single shared
-`datamesh` Kubernetes namespace (`k8s/base/`), not one namespace per domain,
-and there's no namespace-scoped RBAC or `ResourceQuota` enforcing the
+Worth noting: this build runs all seven modules in a single shared
+`datamesh` Kubernetes namespace (`k8s/base/`), not one namespace per domain.
+There's no namespace-scoped RBAC or `ResourceQuota` enforcing the
 boundary at the cluster level — ownership here is structural (module and
-database boundaries) rather than platform-enforced. Worth naming more
-plainly still: only four of the seven services — `order-service`,
+database boundaries) rather than platform-enforced.
+
+A further gap: only four of the seven services — `order-service`,
 `inventory-service`, `notification-service`, and `graphql-gateway` — have
 Kubernetes manifests in `k8s/base/` today (see `k8s/base/kustomization.yaml`'s
-resource list); `payment-service`, `shipping-service`, and `review-service`
+resource list). `payment-service`, `shipping-service`, and `review-service`
 run in the local Maven dev loop against the Compose infra baseline but
 haven't been given Deployment/Service manifests yet. That's a build-sequencing
-gap, not a design statement — domain ownership doesn't require every
+gap, not a design statement: domain ownership doesn't require every
 domain to be deployed the same way on day one, but a reference that claims
 seven independent services should eventually show seven independent
 Deployments, and right now it shows four. Both of these are deliberate
@@ -106,9 +107,8 @@ The value of getting this right is that consumption decouples from
 production. A consumer doesn't need to know which team owns a data product;
 they need to know what it is, what it guarantees, and how to address it.
 That decoupling is what lets a mesh scale past the point where everyone can
-just ask around — at five services, tribal knowledge works; past a dozen,
-it doesn't, and the contract has to carry the weight tribal knowledge used
-to.
+just ask around. At five services, tribal knowledge works. Past a dozen, it
+doesn't — and the contract has to carry the weight tribal knowledge used to.
 
 {% include excalidraw.html file="10-value-data-product" alt="Diagram showing a data product as discoverable, addressable, trustworthy, and self-describing, backed by a versioned contract and a schema registry" caption="Figure 10.2 — Data as a product: value, pieces, and what's missing without it" %}
 
@@ -123,8 +123,8 @@ infra underneath — Postgres, Kafka, and Apicurio — not the app services
 themselves. The shared `examples/contracts` module holds the *versioned
 contracts*: three Avro schemas (`order-placed.avsc`, `payment-captured.avsc`,
 `shipment-dispatched.avsc`, each in its own `capstone.*.v1` namespace —
-`capstone.order.v1`, `capstone.payment.v1`, `capstone.shipping.v1` — per
-DRQ-009) for the three Kafka events, plus the `inventory.proto` gRPC
+`capstone.order.v1`, `capstone.payment.v1`, `capstone.shipping.v1`) for the
+three Kafka events, plus the `inventory.proto` gRPC
 contract — a plain, framework-free JAR that any JVM consumer can depend on
 without pulling in Quarkus itself. The Apicurio Schema Registry
 (`scripts/setup-apicurio.sh`, the v3 API at `/apis/registry/v3`) is where
@@ -142,7 +142,7 @@ serializer and then reading the raw bytes back with a plain
 asserting the Avro magic byte (`0x00`) is present and the JSON tell
 (`0x7B`, an opening brace) is not.
 
-Worth naming plainly: this build does not run a dedicated catalog product
+This build does not run a dedicated catalog product
 (the kind of discoverability/lineage tool the Python sibling reference
 pairs with OpenMetadata) alongside Apicurio — the registry is the one
 discovery surface here, and it covers schemas, not lineage or ownership
@@ -150,9 +150,9 @@ metadata. There's no page anywhere in this build that answers "which
 products exist, who owns them, and what feeds into what" the way a catalog
 would; you'd have to read `k8s/base/`, `examples/contracts`, and this
 chapter together to reconstruct it by hand. That gap is tracked, not
-hidden, in `_plans/reconciliation.md`.
+hidden, in the project's reconciliation notes.
 
-Without this principle: "dumb" data products — a renamed table with no
+Without this principle: "inert" data products — a renamed table with no
 contract that can't serve itself, govern itself, or describe itself to
 consumers. Discovery becomes a Slack channel; trust becomes word-of-mouth;
 and the first time a schema changes without warning, every downstream
@@ -230,7 +230,7 @@ The implementation pieces this build actually has, and what they cover:
 Avro-against-Apicurio is a wire-level governance rule every producer and
 consumer opts into just by using the shared `contracts` module — and it's
 enforced hard enough to have its own regression test. `OrderPlacedAvroWireIT`
-(order-service, tracked as DEF-002) spins up its own pinned Kafka and
+(order-service) spins up its own pinned Kafka and
 Apicurio Testcontainers, produces a real `order.placed` record through the
 application's own `AvroKafkaSerializer`, and asserts the Avro magic byte on
 the wire, byte `0x00`, and asserts it's *not* `0x7B` (the start of a JSON
@@ -252,7 +252,7 @@ if manually repeated, governance rule: every service in this mesh runs
 unprivileged and resource-bounded, whether or not an admission controller
 is there to check.
 
-Worth naming plainly, in the same spirit as the previous chapter: Istio's
+In the same spirit as the previous chapter: Istio's
 sidecar injection in this build is per-Deployment opt-in, and no application
 Deployment currently carries the injection annotation (see the comment in
 `k8s/base/order-service.yaml`), so mTLS and canary traffic-shifting are
@@ -274,7 +274,7 @@ mesh's own anti-pattern of "federated governance" implemented as a review
 board. The [previous chapter]({{ '/docs/09-anti-patterns/' | relative_url }})
 walks through that failure mode directly.
 
-## Where this leaves the mesh, plainly stated
+## Where this leaves the mesh
 
 Three of the four principles have real, running pieces behind them in this
 repo: domain ownership through independent service modules (even if only
@@ -291,13 +291,11 @@ literature names as hardest to get right in general, and this reference
 doesn't pretend otherwise.
 
 What ties all four together, even in their partial state, is a single
-thread running from contract to runtime: a schema is defined once in
-`examples/contracts`, registered once in Apicurio, checked on the wire by a
-real test, and then observed in production by the same LGTM stack every
-service reports to by default. That thread is this build's trusted supply
-chain for data — not a separate security product bolted on afterward, but
-the same four principles followed through from a `.avsc` file to a Grafana
-dashboard.
+thread from contract to runtime: the same schema, registry, and
+observability stack carry every event from a `.avsc` file in
+`examples/contracts` to a Grafana dashboard. That thread is this build's
+trusted supply chain for data — not a separate security product bolted on
+afterward, but the same four principles followed through end to end.
 
 {% include excalidraw.html file="10-trusted-supply-chain" alt="Diagram showing the trust path from a contract defined once, through registration and wire-format verification, to runtime observability" caption="Figure 10.5 — The trusted supply chain: from contract to runtime, in one thread" %}
 
@@ -314,6 +312,6 @@ The architectural claims here (module/database boundaries, Apicurio as the
 registry/discovery point, the KEDA ScaledObject/HTTPScaledObject targets,
 the Istio injection-is-opt-in state, the absence of an admission-policy
 layer) are read from the current repo tree, not confirmed by a live
-minikube run — re-check `k8s/`, `scripts/`, and `_plans/decisions.md`
-(DRQ-009, DRQ-011) against the actual cluster state before treating this
-page as a status report rather than a design description.*
+minikube run — re-check `k8s/` and `scripts/` against the actual cluster
+state before treating this page as a status report rather than a design
+description.*

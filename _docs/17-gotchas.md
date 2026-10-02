@@ -8,16 +8,15 @@ marker: "17"
 ---
 
 Every other chapter in this tutorial describes a pattern working. This
-appendix describes the opposite: eight concrete failures this reactor
-actually hit during Phase D/E — timezone rejections, a security validator
-throwing from a packaged JVM, a port that silently didn't match between two
-services, a test framework lying about what it sent on the wire — along
-with the fix that is sitting in the code today, not a sketch of one. Each
-entry follows the same shape: **Symptom** (what you'd actually see),
-**Root cause** (why), and **Fix** (the exact change, with the real file
-and config key). Nothing here is invented; every claim below is backed by
-a file path, a `git log` entry, or a code comment in this repository, and
-the verification footer says plainly which is which.
+appendix describes the opposite: eight concrete failures this project
+actually hit — timezone rejections, a security validator throwing from a
+packaged JVM, a port that silently didn't match between two services, a
+test framework lying about what it sent on the wire — along with the fix
+sitting in the code today, not a sketch of one. Each entry follows the same
+shape: **Symptom** (what you'd actually see), **Root cause** (why), and
+**Fix** (the exact change, with the real file and config key). Every claim
+below is backed by a file path, a `git log` entry, or a code comment in this
+repository, and the verification footer says which is which.
 
 {% include excalidraw.html file="17-gotchas" alt="A grid of eight gotcha cards, each showing a symptom on top (an error message or a silent false pass) and a fix below it (a one-line config key or code change): postgres:18 rejecting a legacy Olson timezone id fixed by -Duser.timezone=UTC and TZ=UTC/PGTZ=UTC; Avro 1.12's ClassSecurityValidator throwing SecurityException fixed by org.apache.avro.SERIALIZABLE_PACKAGES on both producer and consumer JVMs; a gRPC port mismatch (9001 vs 9000) between order-service and inventory-service fixed by converging on canonical port 9000; a @QuarkusIntegrationTest's separate process not inheriting the test JVM's timezone fixed by quarkus.test.arg-line; import.sql silently not loading under %prod fixed by self-seeding over REST; a class-level @Consumes(APPLICATION_JSON) 415ing a bodyless GET fixed by an explicit @Consumes(WILDCARD), paired with RestAssured silently dropping a Content-Type header on a bodyless GET and masking the bug, fixed by switching the regression test to java.net.http.HttpClient; Avro serde autodetection falling back to silent JSON because two Apicurio artifacts share a package, fixed by pinning value.serializer explicitly; and a general caution card about a persisted postgres named volume surviving a Hibernate DDL change, fixed by docker compose down -v" caption="Figure A2.1 — Gotchas, their symptoms, and their fixes" %}
 
@@ -30,27 +29,27 @@ refusing to start the connection:
 FATAL: invalid value for parameter "TimeZone": "US/Eastern"
 ```
 
-**Root cause.** pgjdbc forwards the JVM's `user.timezone` to the server as
-a session parameter at connection time. On a host whose default timezone
-is a legacy Olson zone id (`US/Eastern` rather than `America/New_York`),
+**Root cause.** pgjdbc forwards the JVM's `user.timezone` to the server as a
+session parameter at connection time. On a host whose default timezone is a
+legacy Olson zone id (`US/Eastern` rather than `America/New_York`),
 `postgres:18`'s stricter timezone-name validation rejects it outright,
-where older Postgres versions tolerated it. This is documented inline in
-`compose.yaml` as the reason `TZ=UTC`/`PGTZ=UTC` are set on the container:
+where older Postgres versions tolerated it — the reason `compose.yaml` sets
+`TZ=UTC`/`PGTZ=UTC` on the container:
 
 ```yaml
-# TZ=UTC / PGTZ=UTC avoid the US/Eastern boot failure documented in
-# _plans/decisions.md ("Test/build notes" — postgres:18 rejects legacy
-# Olson zone ids like US/Eastern forwarded by pgjdbc from a non-UTC host).
+# TZ=UTC / PGTZ=UTC avoid the US/Eastern boot failure: postgres:18 rejects
+# legacy Olson zone ids like US/Eastern forwarded by pgjdbc from a non-UTC
+# host.
 postgres:
   environment:
     - TZ=UTC
     - PGTZ=UTC
 ```
 
-Fixing the container side alone isn't enough, because `mvn verify` talks
-to a Postgres Dev Services/Testcontainers instance from the *test JVM*,
-which forwards whatever timezone the JVM itself resolved to from the host
-— the container's own `TZ` env var doesn't change what the client sends.
+Fixing the container side alone isn't enough: `mvn verify` talks to a
+Postgres Dev Services/Testcontainers instance from the *test JVM*, which
+forwards whatever timezone it resolved from the host — the container's own
+`TZ` env var doesn't change what the client sends.
 
 **Fix.** The parent reactor POM (`examples/pom.xml`) pins `user.timezone`
 on both `maven-surefire-plugin` and `maven-failsafe-plugin` so every test
@@ -74,9 +73,8 @@ JVM in the reactor connects as UTC regardless of host locale:
 The same block is repeated for `maven-failsafe-plugin`. Belt-and-suspenders:
 the container is forced to UTC (`compose.yaml`), the test JVM is forced to
 UTC (`examples/pom.xml`), and the server itself is told `timezone=UTC` via
-its own `-c` flag — three independent layers because any one of them being
-wrong reproduces the failure on a host whose locale differs from the
-author's.
+its own `-c` flag — three independent layers, since any one being wrong
+reproduces the failure on a host whose locale differs from the author's.
 
 ## 2. Avro 1.12's `ClassSecurityValidator` blocks a packaged JVM — on both ends
 
@@ -89,22 +87,19 @@ you read logs, where you'd find:
 SecurityException: Forbidden capstone.order.v1.OrderPlaced!
 ```
 
-**Root cause.** Avro 1.12 added a `ClassSecurityValidator` that only
-trusts a short, hardcoded allowlist of packages for
-(de)serializing `SpecificRecord` classes unless told otherwise. A
-Quarkus-bootstrapped dev/test JVM happens to trust the application's own
-packages implicitly; a `java -jar quarkus-run.jar` packaged/`%prod` JVM
-does not. `OrderEventProducer.publish` (in
-`examples/order-service/.../OrderEventProducer.java`) swallows publish
-failures by design — "a publish failure must never fail the
-already-committed order" — which is exactly why this defect was invisible
-at the HTTP layer: the order succeeds, the event silently never leaves the
-JVM. This was tracked as finding **F1** in `_plans/phase-d-step10-plan.md`,
-and a second, independently-discovered instance, **F1b**, hit the
-*consumer* side: `notification-service` is the only service that
-deserializes `OrderPlaced` back into a `capstone.order.v1` `SpecificRecord`,
-and its packaged JVM throws the identical `SecurityException` without the
-same property set on its own process.
+**Root cause.** Avro 1.12 added a `ClassSecurityValidator` that only trusts
+a short, hardcoded allowlist of packages for (de)serializing
+`SpecificRecord` classes unless told otherwise. A Quarkus-bootstrapped
+dev/test JVM trusts the application's own packages implicitly; a
+`java -jar quarkus-run.jar` packaged/`%prod` JVM does not.
+`OrderEventProducer.publish` swallows publish failures by design — "a
+publish failure must never fail the already-committed order" — which is
+why this defect was invisible at the HTTP layer: the order succeeds, the
+event silently never leaves the JVM. This affected the producer side. A
+second instance hit the consumer side: `notification-service` is the only
+service that deserializes `OrderPlaced` back into a `capstone.order.v1`
+`SpecificRecord`, and its packaged JVM throws the identical
+`SecurityException` without the same property set on its own process.
 
 **Fix.** `-Dorg.apache.avro.SERIALIZABLE_PACKAGES=<package>` has to be set
 on every JVM that encodes or decodes that Avro type outside a
@@ -121,14 +116,12 @@ ENV JAVA_TOOL_OPTIONS="-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1
 `payment-service`'s image trusts two packages
 (`capstone.order.v1,capstone.payment.v1`) and `shipping-service`'s trusts
 `capstone.payment.v1,capstone.shipping.v1` — each service lists exactly the
-Avro types it actually touches, producer or consumer side, not a blanket
-wildcard. `OrderPlacedAvroWireIT`
-(`examples/order-service/src/test/java/.../OrderPlacedAvroWireIT.java`),
-the byte-level regression test for this (DEF-002), needs the identical
-system property on its own failsafe execution
-(`examples/order-service/pom.xml`) for the same reason: it's a plain
-JUnit/Testcontainers test with no Quarkus bootstrap to auto-trust the
-package either.
+Avro types it touches, not a blanket wildcard. `OrderPlacedAvroWireIT`
+(`examples/order-service/src/test/java/.../OrderPlacedAvroWireIT.java`), the
+byte-level regression test for this, needs the identical system property on
+its own failsafe execution (`examples/order-service/pom.xml`) for the same
+reason: it's a plain JUnit/Testcontainers test with no Quarkus bootstrap to
+auto-trust the package either.
 
 ## 3. A gRPC port that quietly didn't match between two services
 
@@ -143,8 +136,7 @@ isolation — health checks pass, nothing logs an error — but
 **Root cause.** This was a genuine wiring mismatch, not a hypothetical
 one: `order-service` pinned `quarkus.grpc.clients.inventory.port=9001`
 while `inventory-service`'s gRPC server defaulted to port `9000`, and
-`k8s/base/*` set no explicit inventory `Service`/env to reconcile the two
-— documented as finding **F2** (HIGH) in `_plans/phase-d-step10-plan.md`.
+`k8s/base/*` set no explicit inventory `Service`/env to reconcile the two.
 Two Quarkus apps starting without error tells you nothing about whether
 their *cross-service* wiring agrees; each one only validates its own
 config in isolation.
@@ -163,13 +155,12 @@ quarkus.grpc.clients.inventory.port=${INVENTORY_GRPC_PORT:9000}
 `k8s/base/config.yaml` sets `INVENTORY_GRPC_PORT: "9000"` once, and
 `k8s/base/inventory-service.yaml` exposes `containerPort: 9000` under the
 same name — a single source of truth both sides read, rather than two
-numbers that have to be kept in sync by hand. The lesson generalizes past
-gRPC: any value repeated across file-disjoint config (a port, a topic
-name, a package) needs one authoritative place it's defined, because
-file-disjointness alone doesn't guarantee the copies stay consistent —
-this exact drift also happened at the demo-script level (a `9001` port
-override lingering in a demo after the service-level default moved to
-`9000`), caught and corrected separately.
+numbers kept in sync by hand. The lesson generalizes past gRPC: any value
+repeated across file-disjoint config (a port, a topic name, a package)
+needs one authoritative source, since file-disjointness alone doesn't
+guarantee the copies stay consistent — this exact drift also happened at
+the demo-script level (a stale `9001` override lingering after the
+service-level default moved to `9000`), caught and corrected separately.
 
 ## 4. `@QuarkusIntegrationTest` doesn't inherit the test JVM's `-D` flags
 
@@ -181,12 +172,12 @@ error as gotcha #1 — even though the parent POM already sets
 **Root cause.** `@QuarkusIntegrationTest` doesn't run the test inside the
 Maven/Surefire test JVM at all — it packages the application and launches
 `quarkus-run.jar` as a **separate OS process**, which starts with its own
-JVM default timezone resolved from the host, completely independent of
-whatever `-D` flags the launching test JVM was given. Setting
-`user.timezone=UTC` on the failsafe execution only affects the process
-*running the test class*, not the process *being tested*. This is spelled
-out in `InventoryCheckStockWireIT`'s own Javadoc
-(`examples/inventory-service/src/test/java/.../InventoryCheckStockWireIT.java`).
+JVM default timezone resolved from the host, independent of whatever `-D`
+flags the launching test JVM was given. Setting `user.timezone=UTC` on the
+failsafe execution only affects the process *running the test class*, not
+the process *being tested*. `InventoryCheckStockWireIT`'s own Javadoc
+(`examples/inventory-service/src/test/java/.../InventoryCheckStockWireIT.java`)
+spells this out.
 
 **Fix.** `quarkus.test.arg-line` is the forwarding mechanism Quarkus
 provides specifically for this — it passes JVM arguments through to the
@@ -212,15 +203,13 @@ launched integration-test process:
 </plugin>
 ```
 
-Note the second half of that same config block, worth calling out as its
-own near-miss: `*IT` classes are compiled by the default `test-compile`
-lifecycle binding, but **failsafe itself never runs them** unless the
-`integration-test`/`verify` goals are explicitly bound in the module's own
-POM — the parent POM's `pluginManagement` only pins the plugin version and
-the timezone property, it binds no executions. Without that explicit
-`<executions>` block, `InventoryCheckStockWireIT` would silently compile
-and never run under `mvn verify`, which is a quieter and easier failure
-mode to miss than a thrown exception.
+A related near-miss: `*IT` classes are compiled by the default
+`test-compile` lifecycle binding, but **failsafe itself never runs them**
+unless `integration-test`/`verify` are explicitly bound in the module's own
+POM — the parent's `pluginManagement` only pins the plugin version and the
+timezone property, no executions. Without that explicit `<executions>`
+block above, `InventoryCheckStockWireIT` would silently compile and never
+run under `mvn verify`, a quieter failure mode than a thrown exception.
 
 ## 5. `import.sql` never loads in `%prod` — by design, not by accident
 
@@ -231,14 +220,12 @@ starts cleanly, but every stock lookup reports unavailable — the demo SKUs
 **Root cause.** `inventory-service`'s `%prod` profile sets
 `quarkus.hibernate-orm.database.generation=update` rather than
 `drop-and-create`, so Hibernate's schema-generation-triggered `import.sql`
-loading (which only fires alongside `create`/`drop-and-create`) never
-runs outside dev/test. This was investigated and tracked as finding **F3**
-in `_plans/phase-d-step10-plan.md`, with an explicit disposition:
-**won't-fix / documented, not a bug.** Auto-seeding `%prod` from a static
-SQL file would require schema-destructive generation modes, which is
-exactly the kind of default a secure-by-design, data-loss-averse
-deployment should refuse — an empty inventory on a fresh production
-deploy is the *correct* behavior, not a gap to patch over.
+loading (which only fires alongside `create`/`drop-and-create`) never runs
+outside dev/test. This is intended behavior, not a bug: auto-seeding `%prod`
+from a static SQL file would require schema-destructive generation modes,
+exactly the kind of default a secure-by-design, data-loss-averse deployment
+should refuse — an empty inventory on a fresh production deploy is the
+*correct* behavior, not a gap to patch over.
 
 **Fix.** Anything that needs data in a `%prod`-mode service — a demo
 script or an integration test — has to seed itself over the real REST
@@ -270,20 +257,18 @@ same `POST /stock` dance before relying on it.
 `415 Unsupported Media Type` instead of the order list — but the
 project's own `@QuarkusTest` suite is green and shows no such failure.
 
-**Root cause.** Two compounding issues, both documented in
-`git log` and in code comments. First: `OrderResource`'s `POST /orders`
-method declares `@Consumes(MediaType.APPLICATION_JSON)`; if a sibling
-bodyless `GET` method on the same resource doesn't declare its own
-`@Consumes`, RESTEasy Reactive can match the GET request against that
-`@Consumes(APPLICATION_JSON)` constraint and reject any client whose
-`Content-Type` isn't JSON — including clients like `hey`, which defaults
-to `text/html`, even though a GET has no request body to parse in the
-first place. Second, and worse: the *first* regression test written for
+**Root cause.** Two compounding issues. First: `OrderResource`'s
+`POST /orders` method declares `@Consumes(MediaType.APPLICATION_JSON)`; if a
+sibling bodyless `GET` method doesn't declare its own `@Consumes`, RESTEasy
+Reactive can match the GET against that `@Consumes(APPLICATION_JSON)`
+constraint and reject any client whose `Content-Type` isn't JSON — including
+clients like `hey`, which defaults to `text/html`, even though a GET has no
+body to parse. Second, and worse: the *first* regression test written for
 this used RestAssured, and it passed even with the bug present, because
 RestAssured's underlying Apache HttpClient **silently drops a
 `Content-Type` header on a bodyless request** — the header was never
-actually sent, so the test could never have caught the 415 it was written
-to catch. The commit message for the fix is blunt about this: *"Rewrote
+actually sent, so the test could never have caught the 415 it was written to
+catch. The commit message for the fix is blunt about it: *"Rewrote
 OrderResourceTest's regression case to use java.net.http.HttpClient (which
 actually sends the header on a bodyless GET; RestAssured strips it, making
 the prior test a false pass)."*
@@ -341,8 +326,8 @@ type, but it fails to here because two Apicurio artifacts share the same
 defeats the classpath scanning autodetection relies on. `OrderEventProducer`'s
 own class Javadoc documents exactly this:
 
-> Autodetection was proven to silently fall back to a Jackson/JSON
-> serializer here because two Apicurio artifacts share the
+> Autodetection silently falls back to a Jackson/JSON serializer here
+> because two Apicurio artifacts share the
 > `io.apicurio.registry.serde.avro` package (split-package), which defeats
 > it.
 
@@ -366,33 +351,26 @@ schema coincidentally matching a JSON fallback."
 ## 8. A persisted Postgres volume can outlive the schema you think it has
 
 Unlike the seven gotchas above, this one is presented as general operating
-advice rather than a specific incident, and it's worth being explicit
-about why. Searching this repo's history and notes for a concrete
-schema-drift incident — a case where a Hibernate DDL change actually broke
-against stale data in the named `postgres-data` volume — turned up one
-related, but weaker, data point: `_plans/RESUME.md`'s pre-publish sweep log
-records "`inventory stale-volume (documented, not a code bug — fresh %prod
-db POST /stock works)`" as a finding that was raised, investigated, and
-then **ruled out** — the conclusion was that a fresh `%prod` database
-worked correctly, not that a stale volume had actually caused drift. That
-is evidence of due diligence, not evidence of an incident, so it would be
-dishonest to present it here as "here's the schema-drift bug this reactor
-hit."
+advice rather than a specific incident. A review of this repo's history
+found one related concern — a possible stale postgres-data volume — which
+was investigated and ruled out: a fresh `%prod` database worked correctly,
+not that a stale volume had actually caused drift. That's evidence of due
+diligence, not evidence of an incident, so it isn't presented here as
+"here's the schema-drift bug this reactor hit."
 
 The general caution still stands, though, and it's grounded in how this
 compose stack is built. `compose.yaml` mounts a **named volume**
 (`postgres-data:/var/lib/postgresql`) for Postgres specifically so data
-survives a `docker compose down`/`up` cycle — that's the entire point of a
-named volume over an anonymous one. But durability cuts both ways: if an
-entity's mapped schema changes (a new `@Column`, a changed
-`GenerationType`, a renamed table) and `quarkus.hibernate-orm.database.generation`
-is anything short of `drop-and-create`, the running container keeps the
-*old* on-disk schema underneath the *new* application code, and you get
-drift — missing columns, default-value surprises, or constraint
-violations — that a from-scratch environment would never reproduce,
-because a from-scratch environment has no old schema to collide with.
-`compose.yaml`'s own comment on `docker compose down -v` exists for
-exactly this reason:
+survives a `docker compose down`/`up` cycle — the entire point of a named
+volume over an anonymous one. But durability cuts both ways: if an entity's
+mapped schema changes (a new `@Column`, a changed `GenerationType`, a
+renamed table) and `quarkus.hibernate-orm.database.generation` is anything
+short of `drop-and-create`, the running container keeps the *old* on-disk
+schema underneath the *new* application code, and you get drift — missing
+columns, default-value surprises, or constraint violations — that a
+from-scratch environment would never reproduce, because it has no old
+schema to collide with. `compose.yaml`'s own comment on
+`docker compose down -v` exists for exactly this reason:
 
 ```text
 docker compose down -v    # stop AND wipe volumes (Kafka KRaft
@@ -410,40 +388,37 @@ environment.
 
 ## What you learned
 
-- Timezone handling around `postgres:18` needs three independent fixes,
-  not one: the container (`TZ`/`PGTZ`), the test JVM (surefire/failsafe
-  `user.timezone`), and — separately — the packaged process a
-  `@QuarkusIntegrationTest` launches (`quarkus.test.arg-line`), because
-  that process is a different JVM that inherits none of the other two.
+- Timezone handling around `postgres:18` needs three independent fixes: the
+  container (`TZ`/`PGTZ`), the test JVM (surefire/failsafe `user.timezone`),
+  and the packaged process a `@QuarkusIntegrationTest` launches
+  (`quarkus.test.arg-line`) — a different JVM that inherits none of the
+  other two.
 - A security validator or a serializer silently falling back can leave an
   endpoint returning `201`/`200` while the actual side effect (an event
-  publish, an Avro-encoded record) quietly fails or degrades — "the HTTP
-  response was fine" is not evidence the whole request succeeded.
-- A port, a topic name, or any other value repeated across file-disjoint
-  config needs one authoritative source, not N copies kept in sync by
-  hand — file-disjointness doesn't guarantee consistency, and this repo's
-  own `git log` has a real instance of exactly that drift (gRPC 9001 vs
+  publish, an Avro-encoded record) quietly fails or degrades — a fine HTTP
+  response is not evidence the whole request succeeded.
+- A port, topic name, or any value repeated across file-disjoint config
+  needs one authoritative source, not N copies kept in sync by hand — this
+  repo's own `git log` has a real instance of that drift (gRPC 9001 vs
   9000).
-- A regression test is only as good as the client it uses to exercise the
-  bug: RestAssured silently dropping a `Content-Type` header on a
-  bodyless GET turned a real regression test into a false pass until it
-  was rewritten against `java.net.http.HttpClient`.
+- A regression test is only as good as the client it uses: RestAssured
+  silently dropping a `Content-Type` header on a bodyless GET turned a real
+  regression test into a false pass until it was rewritten against
+  `java.net.http.HttpClient`.
 - Not every surprising behavior is a bug — `import.sql` not loading in
   `%prod` and a stale-volume concern that turned out not to reproduce were
-  both investigated and resolved as working-as-intended, which is a
-  different and equally important outcome to document honestly.
+  both investigated and resolved as working-as-intended.
 
 ---
 
 *Verification status: <span class="status status--unverified">unverified</span>.
-Gotchas #1, #2, #3, #4, #5, #6, and #7 are verified against the committed
-fix in this repository's own source, config, and `git log` (the exact
-file paths and config keys quoted above are the real, current state of
-the code, not a reconstruction), though none of them was re-run live as
-part of writing this chapter — re-confirm each still reproduces/is still
-fixed on a current checkout before citing it as current behavior. Gotcha
-#8 is explicitly **not** a verified incident: the one related repo note
-found (`_plans/RESUME.md`'s "inventory stale-volume" entry) documents a
-concern that was investigated and ruled out, not a reproduced schema-drift
-bug, so it is presented here as general Postgres/volume operating advice
-rather than a specific defect this build hit.*
+Gotchas #1 through #7 are verified against the committed fix in this
+repository's own source, config, and `git log` — the file paths and config
+keys quoted above are the real, current state of the code — though none was
+re-run live while writing this chapter; re-confirm each still
+reproduces/is still fixed on a current checkout before citing it as current
+behavior. Gotcha #8 is explicitly **not** a verified incident: the one
+related concern found in this repo's history, a possible stale
+postgres-data volume, was investigated and ruled out, not a reproduced
+schema-drift bug, so it's presented here as general operating advice rather
+than a specific defect this build hit.*

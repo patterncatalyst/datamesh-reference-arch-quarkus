@@ -2,7 +2,7 @@
 part_name: The Quarkus deep-dive
 order: 4
 title: The Quarkus deep-dive
-blurb: A tour of what Quarkus itself brings to the table — the extensions, the dev loop, and the two orchestration engines this reactor runs side by side with Kafka choreography.
+blurb: A tour of what Quarkus itself brings to the table — the extensions, the dev loop, and the two orchestration engines this project runs side by side with Kafka choreography.
 ---
 
 This part turns from the data-mesh patterns to the runtime underneath them.
@@ -18,5 +18,5 @@ Four chapters:
    orchestration engines (a Camel route and a Quarkus Flow workflow)
    coordinating the same kind of decision.
 4. **AI-assisted rules triage** — an Ollama-classified order handed to an
-   embedded Drools rule set, orchestrated two ways, with an honest accounting
+   embedded Drools rule set, orchestrated two ways, with a clear account
    of where in-process LLM tool-calling does and doesn't work on this stack.

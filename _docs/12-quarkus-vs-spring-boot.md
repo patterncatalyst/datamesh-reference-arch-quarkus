@@ -2,7 +2,7 @@
 title: "Quarkus vs. Spring Boot"
 order: 13
 part: The Quarkus deep-dive
-description: "The same order-service data product, rebuilt as a Spring Boot twin, measured side by side on the JVM — startup time and resident memory, with an honest account of what is and isn't being compared."
+description: "The same order-service data product, rebuilt as a Spring Boot twin, measured side by side on the JVM — startup time and resident memory, with a clear account of what is and isn't being compared."
 duration: 40 minutes
 marker: "13"
 ---
@@ -18,9 +18,9 @@ a second mesh: it is one service, built to be a fair mirror of one Quarkus
 service, so the numbers reflect the framework and not a difference in scope.
 This chapter is the only place in the deep-dive that steps outside Quarkus
 entirely — every other chapter in Part 4 takes Quarkus as a given and shows
-what it can do; this one exists purely to answer the question a reader who's
-spent eleven chapters inside one framework will eventually ask anyway: *what
-would this have cost in the framework most teams already know?*
+what it can do; this one exists to answer a question any reader who's spent
+eleven chapters inside one framework will eventually have: what the same
+service would have cost to build in the framework most teams already know.
 
 ## What the twin is
 
@@ -32,29 +32,31 @@ Spring Boot wants its own `spring-boot-starter-parent`, so mixing the two
 parents in one module would only create dependency-management friction, and
 more importantly would mean the comparison measures a Spring Boot project
 bent to fit Quarkus's BOM and plugin wiring rather than an idiomatic,
-unmodified Spring Boot build. The project's own `pom.xml` says exactly that
-in a comment at the top of the file, tagged against this repo's decision log
-as **DRQ-006** — the decision to ship one runnable twin for a real, not
-hand-waved, side-by-side number.
+unmodified Spring Boot build. The project's own `pom.xml` says as much in a
+comment at the top of the file: the project ships one runnable twin for a
+real, not synthetic, side-by-side number.
 
 Despite living outside the reactor, the twin is not a clean-room
 reimplementation. It reuses the project's framework-agnostic jars rather than
 copying anything: the shared `domain-model` DTOs (`OrderDto`, `OrderStatus`,
 `Topics`) and the `contracts` module's generated Avro
 `capstone.order.v1.OrderPlaced` are the *identical* classes both services
-use, so there is zero schema or DTO drift between the two. Concretely, that
-means `spring-boot-compare`'s `pom.xml` declares `domain-model` and
-`contracts` as plain `<dependency>` jars at
-`${datamesh.domain-contracts.version}`, which have to be `mvn install`-ed to
-the local repository before the twin can build — `spring-boot-compare` being
-a standalone Maven project means it cannot `-am` build its siblings the way
-a reactor module can, so both the README and
+use. There is zero schema or DTO drift between the two.
+
+Concretely, that means `spring-boot-compare`'s `pom.xml` declares
+`domain-model` and `contracts` as plain `<dependency>` jars at
+`${datamesh.domain-contracts.version}`. Those jars have to be `mvn
+install`-ed to the local repository before the twin can build, because
+`spring-boot-compare` is a standalone Maven project and cannot `-am` build
+its siblings the way a reactor module can. Both the README and
 `scripts/compare-quarkus-springboot.sh` run that install step explicitly
-before touching the twin at all. The payoff for that extra step is real: the
-`OrderPlaced` Avro record the twin's Kafka producer serializes is the exact
-same generated class `order-service` serializes, compiled from the exact
-same `.proto`/Avro schema source in `contracts`, so there is no hand-copied
-field list to drift out of sync as the schema evolves.
+before touching the twin at all.
+
+The payoff for that extra step is real: the `OrderPlaced` Avro record the
+twin's Kafka producer serializes is the exact same generated class
+`order-service` serializes, compiled from the exact same `.proto`/Avro
+schema source in `contracts`. There is no hand-copied field list to drift
+out of sync as the schema evolves.
 
 Feature parity is the whole point, so the twin carries the **same dependency
 surface** as the Quarkus order-service:
@@ -73,28 +75,31 @@ unreachable — because both map to the same `OrderDto` and implement the same
 pre-persist `CheckStock` guard. `OrderController`
 (`examples/spring-boot-compare/src/main/java/com/patterncatalyst/datamesh/springcompare/OrderController.java`)
 makes that guard explicit: `placeOrder` calls `stockChecker.check(sku, qty)`
-before anything is persisted, catches
+before anything is persisted. It catches
 `StockChecker.StockCheckUnavailableException` to return `503` rather than
-letting an order through it couldn't validate, returns `409` when stock
-genuinely isn't available, and only then saves the `OrderEntity` and
-publishes — in that order, so a client never sees an order acknowledged
+letting an order through it couldn't validate, and returns `409` when stock
+genuinely isn't available. Only then does it save the `OrderEntity` and
+publish — in that order, so a client never sees an order acknowledged
 before it's durable, the same discipline the Quarkus side follows. The gRPC
-client is included on purpose: the synchronous internal call to
+client is included deliberately: the synchronous internal call to
 `inventory-service` is central to how this architecture works, so leaving it
 out of the twin would understate Spring's real dependency surface and
-flatter its numbers unfairly. `GrpcClientConfig`
+flatter its numbers unfairly.
+
+`GrpcClientConfig`
 (`examples/spring-boot-compare/src/main/java/com/patterncatalyst/datamesh/springcompare/GrpcClientConfig.java`)
 wires a plain `io.grpc` `ManagedChannel` — plaintext, `@Value`-overridable
 host/port with the identical `INVENTORY_GRPC_HOST`/`INVENTORY_GRPC_PORT`
 env var names and the same port-9000 default the Quarkus side's
-`quarkus.grpc.clients.inventory.*` properties use — against stub classes
-generated by the `protobuf-maven-plugin` from the *same* `contracts` proto,
-not a hand-rolled client. The twin's own `StockChecker` interface is seamed
-behind a Spring `@Profile`: `GrpcStockChecker` (the real implementation,
-active everywhere except `dev-no-inventory`/`test`) fails closed on any
-`StatusRuntimeException` — `StockCheckUnavailableException`, mapped to `503`
-— mirroring the Quarkus order-service's handling of the identical exception
-type, since both clients sit on the same underlying gRPC library.
+`quarkus.grpc.clients.inventory.*` properties use. The channel talks to stub
+classes generated by the `protobuf-maven-plugin` from the *same* `contracts`
+proto, not a hand-rolled client. The twin's own `StockChecker` interface is
+seamed behind a Spring `@Profile`: `GrpcStockChecker` (the real
+implementation, active everywhere except `dev-no-inventory`/`test`) fails
+closed on any `StatusRuntimeException`, mapping it to
+`StockCheckUnavailableException` (`503`). This mirrors the Quarkus
+order-service's handling of the identical exception type, since both
+clients sit on the same underlying gRPC library.
 
 Health is the one row where the two frameworks genuinely answer differently
 rather than just using different package names: Quarkus's
@@ -151,28 +156,29 @@ orderRepository.findById(id);
 ```
 
 Neither idiom is "more correct" — they're two answers to the same design
-question (where does query logic live?) that each framework's ecosystem has
+question (where query logic should live) that each framework's ecosystem has
 converged on by default. Panache's active record collapses `OrderRepository`
 out of existence entirely: `Order.listAll(...)` and `Order.findById(id)` are
 static methods on the entity itself, so `OrderResource` talks directly to
 `Order`, with nothing in between. Spring Data JPA keeps the repository as a
 named interface — `OrderRepository extends JpaRepository<OrderEntity,
 String>` — and derives `findAllByOrderByCreatedAtDesc()` from the method
-name alone, no query body written by hand; `OrderController` is constructed
+name alone, no query body written by hand. `OrderController` is constructed
 with an `OrderRepository` injected through its constructor rather than
-reaching for a static method on `OrderEntity`. The practical consequence
-shows up in the entities themselves: `Order` extends `PanacheEntityBase` and
-exposes plain public fields, while `OrderEntity` is a conventional
-getter/setter-bearing JPA entity with no framework base class at all —
-Spring Data doesn't require (or offer) an active-record option, so the
-comparison isn't "Quarkus chose active record, Spring chose repository";
-it's closer to "active record is what Panache *is*, and a derived repository
-is what Spring Data *is*," and a team adopting either framework inherits
-that idiom as a near-default rather than picking it independently. Both
-map to the identical `orders` table with the identical column names and
-constraints, so this is purely a code-organization difference, not a schema
-one — the twin's Postgres rows are byte-for-byte interchangeable with
-order-service's.
+reaching for a static method on `OrderEntity`.
+
+The practical consequence shows up in the entities themselves: `Order`
+extends `PanacheEntityBase` and exposes plain public fields, while
+`OrderEntity` is a conventional getter/setter-bearing JPA entity with no
+framework base class at all. Spring Data doesn't require (or offer) an
+active-record option, so the comparison isn't "Quarkus chose active record,
+Spring chose repository." It's closer to "active record is what Panache
+*is*, and a derived repository is what Spring Data *is*" — a team adopting
+either framework inherits that idiom as a near-default rather than picking
+it independently. Both map to the identical `orders` table with the
+identical column names and constraints. This is purely a code-organization
+difference, not a schema one — the twin's Postgres rows are indistinguishable
+from order-service's.
 
 ## A Spring Boot 4.0 gotcha the twin had to work around
 
@@ -199,14 +205,13 @@ public KafkaTemplate<String, OrderPlaced> orderPlacedKafkaTemplate(ProducerFacto
 }
 ```
 
-Behavior is identical to what auto-configuration would have produced on its
-own; the bean is merely correctly typed. This is a small, five-line fix, but
-it's worth calling out for what it represents: even a twin built to be as
-idiomatic as possible still needed one explicit `@Configuration` class to
-bridge Spring Boot's generic auto-configuration to a schema-aware Avro
-producer — the kind of friction that doesn't show up in a framework's
-marketing copy but does show up the first time a real, strongly-typed event
-contract meets a generic-erasure-based DI container. `application.properties`
+Behavior is identical to what auto-configuration would have produced; only
+the type is fixed. It's a small, five-line change, but it illustrates a
+sharp edge that doesn't show up in a framework's marketing copy: even a twin
+built to be as idiomatic as possible still needed one explicit
+`@Configuration` class to bridge Spring Boot's generic auto-configuration to
+a schema-aware Avro producer, surfacing the first time a real, strongly-typed
+event contract meets a generic-erasure-based DI container. `application.properties`
 carries a parallel note about the producer's `value-serializer`: on the
 Spring side it's set explicitly for parity and documentation with the
 Quarkus side, which has to set the equivalent property explicitly to dodge
@@ -231,7 +236,7 @@ flags the other lacks.
 The deliberately unusual part is what it measures startup *against*. The
 obvious choice — poll `/q/health` or `/actuator/health` until it returns
 `200` — doesn't work here, because the script points
-`KAFKA_BOOTSTRAP_SERVERS` at a dead port *on purpose* for both services. Both
+`KAFKA_BOOTSTRAP_SERVERS` at a dead port *deliberately* for both services. Both
 frameworks' Kafka reactive-messaging health indicators report `DOWN` for as
 long as the broker is unreachable, so the *aggregate* health endpoint would
 never turn green regardless of whether the application itself had finished
@@ -258,7 +263,7 @@ With the methodology out of the way, here is what one real run produced.
 
 ## The numbers
 
-One real run, both services built under their packaged/`prod` profile:
+Both services were built under their packaged/`prod` profile:
 
 | Service | Startup (self-reported) | Startup (wall-clock) | Resident memory (RSS) |
 |---|---|---|---|
@@ -274,7 +279,7 @@ build time.
 
 ## What this comparison is *not*
 
-Being precise about the boundaries is what keeps the numbers honest:
+Being precise about the boundaries is what keeps the numbers meaningful:
 
 - **JVM only.** This is a JVM-to-JVM comparison — no native image on either
   side, and **no native build was run for this project**. Quarkus's native
@@ -307,7 +312,7 @@ and smaller footprint matter most where you pay for them repeatedly — scale-to
 and autoscaling (see [chapter 7]({{ '/docs/07-elastic-and-resilient/' | relative_url }}),
 where KEDA scales on demand), dense multi-tenant deployments, and short-lived
 or serverless workloads. Spring Boot's enormous ecosystem and the team
-familiarity behind it are real, countervailing advantages. The honest reading
+familiarity behind it are real, countervailing advantages. The accurate reading
 of this table is narrow and useful: *for the same data product, on the JVM,
 Quarkus starts faster and uses less memory* — weigh that against everything
 else you already know about both frameworks.

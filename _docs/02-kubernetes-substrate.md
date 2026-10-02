@@ -7,20 +7,16 @@ duration: "25 min"
 marker: "03"
 ---
 
-The [previous chapter]({{ '/docs/01-concepts/' | relative_url }}) ended on a claim worth
-taking seriously: a data mesh is a pattern, not a tool, and the tools are expressions of
-it. So why build this reference on Kubernetes at all? Because the four principles map
-onto Kubernetes primitives unusually cleanly — cleanly enough that "implement a data mesh
-on Kubernetes" stops feeling like a translation exercise and starts feeling like the
-primitives were waiting for it. This chapter makes that mapping explicit, then walks the
-actual substrate this build stands up on minikube. Figure 2.1, the capstone diagram for
-this part, shows where this chapter is headed — the full data mesh this build runs,
-domain services and platform tier together, on top of the single minikube profile
-`scripts/bootstrap.sh` stands up.
+The four data-mesh principles map onto Kubernetes primitives cleanly — cleanly enough
+that "implement a data mesh on Kubernetes" is less a translation exercise than a direct
+fit. This chapter makes that mapping explicit, then walks the actual substrate this build
+stands up on minikube. Figure 2.1, the capstone diagram for this part, shows where this
+chapter is headed — the full data mesh this build runs, domain services and platform tier
+together, on top of the single minikube profile `scripts/bootstrap.sh` stands up.
 
 {% include excalidraw.html file="02-capstone-data-mesh" alt="The complete data mesh reference architecture running on minikube — domain services, the service mesh, and the self-serve platform tier underneath them" caption="Figure 2.1 — The capstone: a data mesh on minikube" %}
 
-## Why the alignment is so good
+## Why Kubernetes and the mesh align
 
 Kubernetes was designed around multi-tenancy, declarative resources, an extensible type
 system, and operators that turn operational knowledge into software. Those are exactly
@@ -57,7 +53,7 @@ domain declares the same way it declares a Deployment. The data product becomes 
 first-class, declarable thing rather than an informal collection of scripts.
 
 **Self-serve data platform → operators and shared cluster infrastructure.** This is
-where Kubernetes earns its place most clearly. An *operator* packages the knowledge of
+the clearest mapping of the four. An *operator* packages the knowledge of
 how to run a complex stateful system — Kafka, Postgres, autoscaling, a service mesh —
 into a controller that reconciles a simple declarative request into a running system. A
 domain team that needs Kafka doesn't learn to operate Kafka; it asks the platform's Kafka
@@ -152,8 +148,8 @@ k8s/keda/
 ```
 
 The `base` layer declares the resources; the `minikube` overlay is where the
-environment-specific decision lives. That decision is worth spelling out because it's
-easy to get wrong on a teaching cluster: there is **no image registry** in this stack.
+environment-specific decision lives, and it's easy to get wrong on a teaching cluster:
+there is **no image registry** in this stack.
 Images are built directly into minikube's own Docker daemon —
 
 ```bash
@@ -203,8 +199,8 @@ rather than that secret being duplicated into a ConfigMap a human might forget t
 ## The shape of the system
 
 With the mapping and the substrate both in hand, here's the system this build runs.
-Figure 2.3 draws it as three horizontal planes, which is the layout worth holding in
-mind for every chapter that follows.
+Figure 2.3 draws it as three horizontal planes — the layout to keep in mind for every
+chapter that follows.
 
 {% include excalidraw.html file="02-platform-planes" alt="Three horizontal planes — external clients, the service-mesh plane running the domain services, and the self-serve platform plane underneath — with protocols labeled on the flows between them" caption="Figure 2.3 — The three planes: clients, mesh, platform" %}
 

@@ -2,7 +2,7 @@
 title: "AI-assisted rules triage: Ollama classifies, Drools decides"
 order: 15
 part: The Quarkus deep-dive
-description: "An LLM extracts structured fields from an order; a deterministic Drools rule set makes the actual business decision — plus an honest accounting of where in-process langchain4j tool-calling does and doesn't work on this stack."
+description: "An LLM extracts structured fields from an order; a deterministic Drools rule set makes the actual business decision — plus a clear account of where in-process langchain4j tool-calling does and doesn't work on this stack."
 duration: 45 minutes
 marker: "15"
 ---
@@ -12,11 +12,11 @@ example for orchestration *shape*. This chapter opens up what they actually
 do: an LLM is good at reading a loosely-structured description and pulling
 out a few categorical fields, but it is a poor choice to make a business
 decision you need to audit, replay deterministically, or explain to a
-compliance reviewer. This reactor's answer is a strict division of labor —
+compliance reviewer. This project's answer is a strict division of labor —
 **the LLM classifies, Drools decides** — demonstrated two ways, plus a
 second, separate service (`ai-mcp-service`) showing where a related but
 different capability, in-process LLM tool-calling, currently does not work
-on this stack, and why that's worth knowing rather than hiding.
+on this stack.
 
 The code is in `examples/ai-rules-service/` (`TriageService`,
 `rules/order-triage.drl`, `OrderTriageRoute`, `OrderTriageWorkflow`,
@@ -25,7 +25,7 @@ The code is in `examples/ai-rules-service/` (`TriageService`,
 `AgentProducers`, `OrderAssistantRoute`); the demo scripts named in each
 section build/set up and run the pieces they cover.
 
-{% include excalidraw.html file="14-ai-rules-triage" alt="The classify-then-decide pipeline: an order flows into TriageService.classify, which calls Ollama's qwen2.5:3b model to produce category, priority, and riskSignal; those fields become an OrderTriageFact handed to a Drools KieSession, which fires order-triage.drl and returns one of FRAUD_HOLD, EXPEDITE, or ROUTE_TO_WAREHOUSE; a separate DEF-001 branch shows ai-mcp-service's in-process langchain4j agent failing to reach the order-status tool while the embedded MCP server reaches the same tool successfully" caption="Figure 14.1 — Ollama classifies, Drools decides, and where DEF-001 breaks the in-process agent path" %}
+{% include excalidraw.html file="14-ai-rules-triage" alt="The classify-then-decide pipeline: an order flows into TriageService.classify, which calls Ollama's qwen2.5:3b model to produce category, priority, and riskSignal; those fields become an OrderTriageFact handed to a Drools KieSession, which fires order-triage.drl and returns one of FRAUD_HOLD, EXPEDITE, or ROUTE_TO_WAREHOUSE; a separate branch shows ai-mcp-service's in-process langchain4j agent failing to reach the order-status tool while the embedded MCP server reaches the same tool successfully" caption="Figure 14.1 — Ollama classifies, Drools decides, and where the in-process agent path breaks" %}
 
 Read the diagram as two halves. The top half is the pipeline this chapter
 spends most of its words on: one LLM call feeding one deterministic rule
@@ -37,7 +37,7 @@ single-shot classification — in a *different* service (`ai-mcp-service`),
 where one specific path is broken for a documented, upstream reason while a
 second path that looks superficially similar works perfectly. Keeping those
 two halves visually separate is deliberate: the fact that an LLM call
-succeeds in one part of this reactor is not evidence that a structurally
+succeeds in one part of this project is not evidence that a structurally
 different LLM call succeeds somewhere else, and this chapter's second half
 exists specifically to stop that generalization before a reader makes it.
 
@@ -190,14 +190,14 @@ asserts both `/triage` and `/triage-flow` return the identical decision for
 the identical input — proof the two orchestration shapes drive the same
 underlying logic, not two independently-tuned copies of it.
 
-## The DEF-001 caveat: in-process tool-calling does not fire here
+## The tool-calling caveat: in-process tool-calling does not fire here
 
 `ai-mcp-service` is a *different* module built around a related but
 genuinely separate capability: letting an LLM call a tool mid-conversation
 (langchain4j "agent" tool-calling), rather than classifying in one shot.
-It's worth walking through exactly what works and what doesn't, because the
-honest answer is more useful than a demo that quietly avoids the broken
-path.
+It's worth walking through exactly what works and what doesn't, because
+documenting the broken path is more useful than a demo that quietly avoids
+it.
 
 **What is registered correctly.** `OrderLookupToolRoute`
 (`examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderLookupToolRoute.java`)
@@ -227,7 +227,7 @@ wired to do exactly that: `OrderAssistantRoute`'s in-process
 langchain4j-agent, and the embedded MCP server. Only one of them actually
 works.
 
-**What does NOT work: the in-process agent.** `OrderAssistantRoute`
+**What doesn't work: the in-process agent.** `OrderAssistantRoute`
 (`examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderAssistantRoute.java`)
 wires a `langchain4j-agent:` endpoint to the `order-status` tool via the
 `shipping` tag, backed by an `Agent` bean `AgentProducers` builds from a
@@ -247,7 +247,7 @@ either. This was ruled out as a model-capability problem (a direct Ollama
 `qwen2.5:3b` and `qwen2.5:7b-instruct`) and as a tool-registration or
 tag-matching problem (the tags line up correctly) — it is specifically a
 transport-wiring defect in `camel-quarkus-support-langchain4j`. This is
-tracked in this repo as **DEF-001**, an open upstream deferral, not a
+a known open upstream issue, not a
 regression to fix locally.
 
 The practical consequence: `demos/demo-ai-mcp.sh` **never calls**
@@ -257,7 +257,7 @@ green-washed result this tutorial's verification discipline exists to rule
 out. The script prints an explicit banner to this effect before it runs
 anything.
 
-**What DOES work: the embedded MCP server.** Instead, `demo-ai-mcp.sh`
+**What does work: the embedded MCP server.** Instead, `demo-ai-mcp.sh`
 demonstrates the one tool-calling-adjacent path that genuinely works
 end to end: `camel-quarkus-mcp-server` (wrapping the Quarkiverse
 `quarkus-mcp-server-http` extension) publishes the same `order-status`
@@ -278,14 +278,14 @@ Separately, `demos/demo-camel-integration.sh` reaches the *same* route
 through the *same* MCP server surface and asserts all four branches of its
 Content-Based Router (`.choice()`/`.when()`/`.otherwise()`) — including the
 `.otherwise()` fallback for an unrecognized order id — proving the EIP logic
-itself routes correctly, independent of the DEF-001 question entirely.
+itself routes correctly, independent of the tool-calling defect entirely.
 
 And one level below either of those: `demos/demo-ai-classify.sh` exercises
 `OrderClassifierRoute`
 (`examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderClassifierRoute.java`),
 a `langchain4j-chat:` single-shot classification endpoint — structurally the
 same shape as `TriageService.classify` above, no agent, no tool calling —
-which is why it is **not** affected by DEF-001 at all; it was its own
+which is why it is **not** affected by the agent tool-calling defect at all; it was its own
 separate bug (a misnamed prompt-template header, `CamelLangChain4jChatPrompt`
 instead of the real `CamelLangChain4jChatPromptTemplate`, combined with the
 endpoint never being switched off its default single-message operation)
@@ -305,32 +305,24 @@ diagnosed upstream cause — not a vague "AI is flaky" shrug. Knowing exactly
 which of the three you're relying on, in any given endpoint, is the
 difference between a system you can reason about and one you can't.
 
-It's worth being explicit about why the fix belongs upstream rather than in
-this repo. `AgentProducers` already tried the two levers a caller actually
-has: constructing its own `OllamaChatModel` with an explicit `base-url`
-rather than trusting auto-configuration, and passing an explicit
-`httpClientBuilder(new JdkHttpClientBuilder())` to bypass whatever transport
-`camel-quarkus-support-langchain4j` would otherwise pick. Neither changed
-the outcome, because the extension sets `langchain4j.http.clientBuilderFactory`
-as a JVM-wide system property before either bean is constructed, and a
-system property set at that layer wins over a per-model builder argument
-regardless of what the calling code requests — there is no caller-side
-override available, because the extension's global property is set before
-any per-instance configuration has a chance to take effect. That is also why this is logged as a defect
-against the extension (DEF-001) rather than worked around with a classpath
-exclusion or a shaded client: the fix has to come from
-`camel-quarkus-support-langchain4j` making that property conditional, or
-honoring a per-agent client override, not from anything `ai-mcp-service`
-can reasonably do to its own wiring. Re-testing DEF-001 after any
-`camel-quarkus-support-langchain4j` version bump is accordingly listed in
-this chapter's verification footer, not treated as a one-time finding.
+`AgentProducers` already tried the two levers a caller actually has — a
+hand-built `OllamaChatModel` with an explicit `base-url`, and an explicit
+`httpClientBuilder(new JdkHttpClientBuilder())` override — and neither
+changed the outcome, because `camel-quarkus-support-langchain4j` sets that
+system property JVM-wide before either bean is constructed. A property set
+at that layer wins over any per-model builder argument, so no caller-side
+override is available. That is why this is logged as a defect against the
+extension rather than worked around with a classpath exclusion or a shaded
+client: the fix has to come from `camel-quarkus-support-langchain4j` making
+that property conditional, or honoring a per-agent client override, not
+from anything `ai-mcp-service` can reasonably do to its own wiring.
 
 ## Build, run, observe
 
 ```bash
 cd demos && ./demo-ai-triage.sh        # classify -> Drools decide, both orchestration paths
-cd demos && ./demo-ai-classify.sh      # single-shot classification only (DEF-001-proof)
-cd demos && ./demo-ai-mcp.sh           # embedded MCP server surface (reads the DEF-001 banner first)
+cd demos && ./demo-ai-classify.sh      # single-shot classification only (unaffected by the tool-calling defect)
+cd demos && ./demo-ai-mcp.sh           # embedded MCP server surface (reads the limitation banner first)
 ```
 
 `demo-ai-triage.sh` expects a host Ollama already running with `qwen2.5:3b`
@@ -346,10 +338,10 @@ via the compose `ollama` profile.
   standard Drools integration pattern; the compiled `KieBase` is reused,
   the session is not.
 - `camel-quarkus-support-langchain4j`'s global HTTP client override breaks
-  in-process agent tool-calling (DEF-001) independent of model capability
+  in-process agent tool-calling independent of model capability
   or tool registration — the embedded MCP server is a structurally separate
   path that is unaffected and does work.
-- Demonstrating a known limitation honestly (an explicit banner, a demo that
+- Demonstrating a known limitation openly (an explicit banner, a demo that
   deliberately never calls the broken endpoint) is more useful to a reader
   than hiding it behind a demo that only exercises the working paths.
 
@@ -362,7 +354,7 @@ Boot (Chapter 12) puts a number on what all of this costs at startup.
 The highest-risk things to confirm on a real run: that the three pre-validated
 triage inputs still produce their claimed stable classifications against the
 pinned `qwen2.5:3b` (classifier drift is the single biggest risk to
-`demo-ai-triage.sh`'s strict assertions); that DEF-001's root cause (the
+`demo-ai-triage.sh`'s strict assertions); that the root cause (the
 unconditional JAX-RS HTTP client factory override) still reproduces against
 the pinned `camel-quarkus-support-langchain4j`/langchain4j versions, since an
 upstream fix would make this chapter's caveat stale; and that the embedded

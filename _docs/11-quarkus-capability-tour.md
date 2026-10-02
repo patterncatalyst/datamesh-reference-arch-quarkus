@@ -2,14 +2,14 @@
 title: "A Quarkus capability tour"
 order: 12
 part: The Quarkus deep-dive
-description: "Panache, gRPC, GraphQL, Reactive Messaging, WebSockets.Next, unified Vert.x reactive/imperative execution, continuous testing, native compilation, OIDC, and JBang — each anchored to a real endpoint or demo in this reactor."
+description: "Panache, gRPC, GraphQL, Reactive Messaging, WebSockets.Next, unified Vert.x reactive/imperative execution, continuous testing, native compilation, OIDC, and JBang — each anchored to a real endpoint or demo in this project."
 duration: 45 minutes
 marker: "12"
 ---
 
 Every chapter so far has used Quarkus as plumbing. This one stops and looks
 at the plumbing itself: nine capabilities, each demonstrated by a real
-endpoint or route already running somewhere in this reactor, not a toy
+endpoint or route already running somewhere in this project, not a toy
 snippet written just for this page. The point is breadth — what does Quarkus
 actually hand you, out of the box, across REST, RPC, messaging, testing, and
 packaging — so that later chapters (especially 13 and 14, which lean on two
@@ -112,7 +112,7 @@ worker thread rather than the event loop, even though its public signature
 caller sees. `demos/demo-grpc.sh` drives this directly with `grpcurl` against
 the real `.proto` (not server reflection as the primary path, though
 reflection is also demonstrated) — a genuine gRPC client issuing a unary RPC
-over HTTP/2, not a REST call in disguise.
+over HTTP/2, not merely a REST call over a different protocol.
 
 ## GraphQL: one query, two downstream protocols
 
@@ -267,7 +267,7 @@ public StockDto get(@PathParam("sku") String sku) {
 }
 ```
 
-They're not even computing the same thing: the gRPC path's `available` is
+The two paths compute different results: the gRPC path's `available` is
 request-dependent (`quantity > 0 && onHand >= quantity`), while the REST
 path's `available` is a static snapshot (`quantityOnHand > 0`) — asking for
 more stock than is on hand can report `available=false` over gRPC for a SKU
@@ -278,7 +278,7 @@ comes back correct and uncorrelated — the textbook Quarkus/Vert.x claim
 ("unified reactive and imperative, one reactor") exercised under genuine
 concurrent load, not just asserted in prose.
 
-This matters beyond the demo: most real services in this reactor are not
+This matters beyond the demo: most real services in this build are not
 purely one style or the other. `inventory-service` picked reactive for its
 gRPC surface because that's the idiomatic shape `quarkus-grpc` generates,
 and imperative for its REST surface because the handler is a two-line
@@ -343,12 +343,12 @@ random host port) and proves all three outcomes:
 2. Bob's token (valid, but no `admin` role) → `403` — a genuine RBAC check,
    not just "has *a* token".
 3. Alice's token (`admin` role) → `204`, and a follow-up `GET` on the same
-   id returns `404` — the delete actually took effect, not just answered
-   politely.
+   id returns `404` — the delete actually took effect, not just returned a
+   success code.
 
-This is deliberately the smallest viable OIDC demo in the reactor — one
+This is deliberately the smallest viable OIDC demo in the project — one
 module, one protected endpoint — chosen because the capability was judged
-worth demonstrating live rather than deferred (this reactor's convention is
+worth demonstrating live rather than deferred (this project's convention is
 to attempt a live demo and only defer if a laptop-scale budget can't support
 it; here it could).
 

@@ -8,7 +8,7 @@ duration: 15 minutes
 ---
 
 Everything else in this set is about what to build and how. This page is about
-what goes wrong — not the implementation potholes this reactor hit along the
+what goes wrong — not the implementation potholes this build hit along the
 way (a shared namespace instead of one per domain, no automated schema
 compatibility gate yet, an Istio control plane installed but not injected by
 default), but the *conceptual and organizational* failure modes that show up
@@ -43,7 +43,7 @@ of team boundaries, ownership, or incentives. If the only thing changing is
 the software, what you'll have at the end is the old centralized model with a
 new dashboard.
 
-*In this build:* every component this reactor runs — Apicurio, Strimzi
+*In this build:* every component this build runs — Apicurio, Strimzi
 (Kafka), CloudNativePG (Postgres), KEDA, Istio — is deliberately a
 *substrate* the services build on, not a turnkey mesh. None of them,
 installed alone, makes anything a data product; `order-service` still has
@@ -75,12 +75,12 @@ policy-driven* rather than approval-driven.
 review are seven independently buildable, independently deployable Quarkus
 modules under `examples/` — there is no shared "data" module or central team
 in the path between a service owning its schema and a consumer reading it.
-Worth naming plainly, though: all seven currently run in one shared
+All seven currently run in one shared
 `datamesh` Kubernetes namespace rather than one namespace per domain (see
 `k8s/base/`), a simplification this build made for demo clarity, not a claim
 that namespace-level isolation is unnecessary in a real mesh.
 
-## Data products that are "dumb"
+## Data products that are "inert"
 
 This is the failure mode that the principle's own author warns about most
 sharply. A *data product* is supposed to be an autonomous unit — it serves
@@ -96,7 +96,7 @@ with it.
 
 The recognizable symptom is a "data product" you can't deploy, version, or
 call — you can only query the table it points at. A real data product has
-ports, a contract, a version, and an owner; a dumb one has a name in a
+ports, a contract, a version, and an owner; an inert one has a name in a
 registry.
 
 *In this build:* each service *is* its data product — `order-service` owns
@@ -135,7 +135,7 @@ in production. That's real, but it's also partial: this build does not yet
 configure Apicurio's compatibility rules to reject a breaking schema change
 automatically, so the "federated *computational*" half of governance here
 is still, plainly, just "federated," with the "computational" enforcement
-piece open. Naming that gap plainly is the point of this page.
+piece open.
 
 ## No clear owner, or fuzzy domain boundaries
 
@@ -206,13 +206,13 @@ The practical move before committing is to weigh data size, organizational
 complexity, existing tooling, and culture, and to be willing to conclude that
 a full mesh isn't the right fit — or that only some of its principles are.
 
-*In this build:* this reactor is deliberately a *learning* implementation — a
+*In this build:* this project is deliberately a *learning* implementation — a
 small, runnable mesh across six services and a GraphQL gateway that makes the
-principles concrete. It's sized to teach the shape on a laptop, alongside a
-second lesson (the Quarkus-vs-Spring-Boot comparison in
-[The Quarkus deep-dive]({{ '/parts/quarkus-deep-dive/' | relative_url }})),
-not to argue that every reader should run a mesh — or Quarkus — in
-production on the strength of one reference alone.
+principles concrete. It's sized to teach the shape on a laptop. A second
+lesson, the Quarkus-vs-Spring-Boot comparison in
+[The Quarkus deep-dive]({{ '/parts/quarkus-deep-dive/' | relative_url }}),
+sits alongside it — not to argue that every reader should run a mesh — or
+Quarkus — in production on the strength of one reference alone.
 
 ## Recognizing them early
 
@@ -237,4 +237,4 @@ build" callouts assert facts about the repo's current state (seven
 independent service modules, shared `datamesh` namespace, Avro-via-Apicurio
 on all three events, no configured compatibility rule) — confirm those
 against the actual `k8s/`, `examples/contracts/`, and Apicurio configuration
-if this reactor's shape changes before publication.*
+if this project's shape changes before publication.*
