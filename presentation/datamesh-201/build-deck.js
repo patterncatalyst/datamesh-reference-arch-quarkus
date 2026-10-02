@@ -186,7 +186,7 @@ diagramSlide({ eyebrow: "Data as a product", title: "Where analytical sourcing w
   caption: "Ingestion, streaming, and CDC sourcing for analytical consumers — conceptual in this build, not built; shown so the picture of 'data as a product' stays complete.",
   notes: "This diagram is explicitly conceptual — this build doesn't ship a built analytical-sourcing layer or Debezium-style CDC. It's included because a complete 'data as a product' story has an analytical half as well as an operational one, and the shape is worth seeing even though we didn't build it here." });
 
-diagramSlide({ eyebrow: "Data as a product", title: "demo-kafka.sh — Avro on the wire, proven byte by byte",
+diagramSlide({ eyebrow: "Data as a product", title: "demo-kafka.sh — Avro on the wire, verified at the byte level",
   image: "04-contract-flow",
   caption: "The runtime path (serialize, publish, fetch schema, deserialize) vs. the discovery path (OpenAPI/Protobuf/SDL/Avro contracts for a catalog to ingest).",
   notes: "DEMO 8 of 18. What it does: every Kafka event in this build uses Avro against the Apicurio Schema Registry from the start — no JSON shortcut, ever. order-service pins AvroKafkaSerializer explicitly in application.properties, because Quarkus's connector-serializer autodetection was proven to silently fall back to a Jackson/JSON serializer here (two Avro serdes on the classpath creates ambiguity). What to show: place a real order, then read the raw bytes back off the real compose Kafka broker with a plain byte-level consumer and assert the Apicurio/Confluent wire-format magic byte (0x00) is the first byte — proof this is genuine Avro, not JSON (0x7B) masquerading as an event. Infra: compose. Fallback: recorded byte dump showing 0x00 + schema id." });
@@ -481,7 +481,7 @@ diagramSlide({ eyebrow: "The whole picture", title: "Domain ownership, realized"
 diagramSlide({ eyebrow: "The whole picture", title: "Data as a product, realized",
   image: "10-value-data-product",
   caption: "A data product as discoverable, addressable, trustworthy, and self-describing, backed by a versioned Avro contract and the Apicurio Schema Registry.",
-  notes: "Every event in this build is Avro against Apicurio from day one — not a retrofit. demo-kafka.sh proved the wire format byte by byte, not just by configuration review." });
+  notes: "Every event in this build is Avro against Apicurio from day one — not a retrofit. demo-kafka.sh verifies the wire format at the byte level, not just by configuration review." });
 
 diagramSlide({ eyebrow: "The whole picture", title: "Self-serve platform, realized",
   image: "10-value-self-serve",
