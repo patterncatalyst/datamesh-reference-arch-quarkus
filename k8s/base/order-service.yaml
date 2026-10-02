@@ -2,12 +2,19 @@
 # gRPC client to inventory-service, not a gRPC server, so only the
 # HTTP port (REST + health + metrics) is exposed.
 #
-# Mesh: not injected (no sidecar.istio.io/inject annotation). This keeps
-# Istio installed cluster-wide but per-Deployment opt-in (the datamesh
-# namespace was never labeled for it). The default is out of the mesh for
-# every app Deployment, to keep the substrate demo simple; the mesh demo
-# is a later phase. To opt in later, add:
-#   template.metadata.annotations: {sidecar.istio.io/inject: "true"}
+# Mesh: not injected here. Istio is installed cluster-wide
+# (scripts/setup-istio.sh) but the datamesh namespace is never labeled for
+# auto-injection, so mesh membership is per-Deployment opt-in, and this base
+# manifest stays unmeshed by default to keep the substrate demo simple.
+# Opt-in is a pod-template LABEL, not an annotation: Istio's injection
+# webhook (object.sidecar-injector.istio.io) matches pods via an
+# objectSelector, and a webhook objectSelector is evaluated against the
+# pod's LABELS, never its annotations — the annotation form
+# (template.metadata.annotations) silently injects nothing in this
+# unlabeled namespace. The k8s/istio/ overlay (inject-order-service.yaml)
+# adds that label here:
+#   template.metadata.labels: {sidecar.istio.io/inject: "true"}
+# without editing this file — applying that overlay is the opt-in.
 #
 # Health: order-service has quarkus-smallrye-health on its classpath
 # (confirmed via examples/order-service/pom.xml), so /q/health/ready,

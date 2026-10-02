@@ -1,0 +1,49 @@
+# inject-order-service.yaml — strategic-merge patch over
+# ../base/order-service.yaml (matched by apiVersion/kind/metadata.name/
+# namespace below; no explicit `target:` needed in kustomize v5+ when the
+# patch document fully identifies its target).
+#
+# Adds TWO pod-template LABELS (not annotations):
+#
+#   sidecar.istio.io/inject: "true"
+#     This is the mesh opt-in. Istio's sidecar-injection
+#     MutatingWebhookConfiguration carries an `objectSelector` on its
+#     `object.sidecar-injector.istio.io` webhook entry matching
+#     `sidecar.istio.io/inject In ["true"]`. A webhook objectSelector is
+#     evaluated against the admitted object's LABELS — never its
+#     annotations. The `datamesh` namespace is deliberately left unlabeled
+#     for namespace-wide injection (see scripts/setup-istio.sh), so in this
+#     namespace the ONLY way to satisfy that objectSelector is a pod-template
+#     LABEL matching it exactly, which is what this patch adds under
+#     `spec.template.metadata.labels`. The same key as a pod ANNOTATION
+#     (`spec.template.metadata.annotations`) is never evaluated by an
+#     objectSelector and silently injects nothing — that was the original,
+#     now-corrected mistake in this repo (see _docs/06-progressive-delivery-mtls.md).
+#     Verified live against the cluster: the label form injects the native
+#     `istio-init`/`istio-proxy` sidecar; the annotation form does not.
+#
+#   version: v1
+#     Lets Istio's order-service DestinationRule (destination-rule-order-
+#     service.yaml) select these existing pods as the "v1" subset, alongside
+#     the new order-service-v2 Deployment's "v2" subset, via the same
+#     order-service Kubernetes Service (whose own selector is unchanged —
+#     just app.kubernetes.io/name: order-service — so it continues to load-
+#     balance across both subsets; Istio's VirtualService does the actual
+#     weighted split by `version` at the Envoy layer, not the Service).
+#
+# Deliberately NOT touched: spec.selector (Deployment selectors are immutable
+# on an already-applied object, and this Deployment may already be running
+# in-cluster from k8s/overlays/minikube). See k8s/istio/README.md for the
+# known, accepted selector-overlap caveat this implies against
+# order-service-v2's own selector.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: datamesh
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"
+        version: v1

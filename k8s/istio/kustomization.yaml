@@ -1,0 +1,44 @@
+# kustomization.yaml — the mesh opt-in overlay. Unlike k8s/keda (which only
+# groups two standalone scaler manifests), this overlay builds on top of
+# ../base: it re-applies the base app manifests (Deployments/Services/
+# ConfigMap, all namespace: datamesh already, same as keda's resources) AND
+# layers three things on top of them:
+#
+#   1. Strategic-merge patches that add the pod-template LABEL
+#      `sidecar.istio.io/inject: "true"` to order-service, notification-service,
+#      and graphql-gateway only — NOT inventory-service, NOT any infra. This is
+#      the opt-in: applying this overlay is what meshes those three services.
+#      See the patch files themselves for why it's a LABEL, not an annotation
+#      (the webhook's objectSelector matches pod labels — an annotation here
+#      silently no-ops in the unlabeled `datamesh` namespace).
+#   2. A `version: v1` pod-template label on order-service (same patch file as
+#      its inject label), so Istio's DestinationRule can subset order-service's
+#      existing pods as `v1` once the canary is live.
+#   3. New resources: a second Deployment `order-service-v2` (v2 subset), a
+#      `PeerAuthentication` (namespace-wide STRICT mTLS), and the
+#      `DestinationRule`/`VirtualService` pair that splits traffic 90/10
+#      between the v1 and v2 subsets of the single `order-service` Service.
+#
+# Namespace is not set as a transformer here (same reasoning as k8s/keda):
+# every resource and patch below already carries explicit
+# metadata.namespace: datamesh.
+#
+# Apply order: this overlay includes ../base directly, so
+# `kubectl apply -k k8s/istio` is sufficient on its own (it does not require
+# k8s/overlays/minikube to have been applied first) — but applying
+# k8s/overlays/minikube first is still the documented path elsewhere in this
+# repo, and applying both is idempotent since both resolve the same base.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../base
+  - order-service-v2.yaml
+  - peer-authentication.yaml
+  - destination-rule-order-service.yaml
+  - virtual-service-order-service.yaml
+
+patches:
+  - path: inject-order-service.yaml
+  - path: inject-notification-service.yaml
+  - path: inject-graphql-gateway.yaml

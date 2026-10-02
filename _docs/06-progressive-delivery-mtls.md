@@ -18,28 +18,33 @@ to mesh **selectively**, not namespace-wide — and grounds it in exactly how
 
 ## What's real here, and what's conceptual
 
-Everything about *installing* the mesh and *opting a service into it* is real,
-runnable substrate already in this repo: `scripts/setup-istio.sh` installs Istio via
-Helm, and `k8s/base/order-service.yaml` is the Deployment a canary would target. What
-is **not** yet built, as of this chapter, is a second (`v2`) build of order-service and
-the `DestinationRule`/`VirtualService` pair that would split traffic between them —
-unlike `k8s/keda/`, there is no `k8s/istio/` directory with canary manifests in this
-tree yet. So this chapter walks the canary mechanism conceptually, against the real
-install this repo ships, rather than citing files that don't exist. Where a YAML
-snippet below is illustrative rather than a path in this repo, it's labeled as such.
+Installing the mesh, opting a service into it, enforcing mTLS, and routing a v1/v2
+canary split are now all real, runnable substrate in this repo: `scripts/setup-istio.sh`
+installs Istio via Helm, `k8s/base/order-service.yaml` is the Deployment the canary
+targets, and `k8s/istio/` — mirroring `k8s/keda/`'s shape as a sibling overlay directory
+with its own `kustomization.yaml` — holds the injection patches, the namespace-wide
+`PeerAuthentication`, the `order-service-v2` Deployment, and the `DestinationRule`/
+`VirtualService` pair that splits traffic between the two. Applying that overlay
+(`kubectl apply -k k8s/istio`) is the opt-in this chapter describes, start to finish.
+
+The one thing still conceptual: a genuinely different `v2` *build* of order-service —
+one that actually adds a `currency` field to `OrderDto` and serves it. `order-service-v2`
+runs the *same image* as `order-service`, distinguished only by a `version: v2` pod
+label, so the exercise stays focused on the traffic-management and mTLS mechanism
+rather than a second image pipeline. That simplification, and why it doesn't change the
+Istio mechanics, is covered later in this chapter.
 
 `k8s/README.md`'s own "Mesh (Istio) decision" section states the current ground truth
-plainly: "Istio + Kiali are installed
-cluster-wide by 9a but the `datamesh` namespace is **not** labeled for sidecar
-auto-injection... None of these three Deployments carry the
-`sidecar.istio.io/inject: "true"` pod annotation, so **none of them are in the mesh**
-by default." That's `order-service`, `notification-service`, and `graphql-gateway` —
-every application Deployment this repo ships, today, running outside the mesh by
-deliberate default. The architecture default keeps Istio and Kiali installed but makes
-mesh membership a per-service opt-in, rather than either ripping the mesh out or
-defaulting every workload into it. This chapter is
-about what changes, and what doesn't, the day a team decides a specific product is
-ready to opt in.
+plainly: Istio + Kiali are installed cluster-wide by 9a, but the `datamesh` namespace is
+**not** labeled for sidecar auto-injection, so mesh membership is per-Deployment opt-in
+rather than automatic for everything in the namespace. `k8s/base/order-service.yaml`,
+`notification-service.yaml`, and `graphql-gateway.yaml` all still ship unmeshed by
+default — the `k8s/istio/` overlay is what brings them in, and it does so without
+editing `k8s/base` itself. The architecture default keeps Istio and Kiali installed but
+makes mesh membership a per-service opt-in, rather than either ripping the mesh out or
+defaulting every workload into it. This chapter is about what changes, and what doesn't,
+the day a team decides a specific product is ready to opt in — and, as of this revision,
+what opting in actually required to work.
 
 ## Installing the mesh: `scripts/setup-istio.sh`
 
@@ -87,38 +92,55 @@ Two decisions in that script matter for everything that follows in this chapter:
 
 {% include excalidraw.html file="06-istio-mesh" alt="Diagram of the Istio control plane installed cluster-wide via Helm, with the datamesh namespace left unlabeled for auto-injection and sidecar membership opted in per Deployment" caption="Figure 6.1 — Istio control-plane install and selective sidecar injection" %}
 
-Opting a specific Deployment into the mesh is one annotation, added under
+Opting a specific Deployment into the mesh is one pod-template **label**, added under
 `spec.template.metadata`:
 
 ```yaml
 spec:
   template:
     metadata:
-      annotations:
+      labels:
         sidecar.istio.io/inject: "true"
 ```
 
-`k8s/base/order-service.yaml` as shipped does **not** carry that annotation — its own
-header comment says so explicitly, stating that the manifest is not injected and that
-every app Deployment starts outside the mesh by default to keep the substrate demo
-simple. Adding it to
-`order-service`'s Deployment is the first real step toward the canary this chapter
-describes.
+That has to be a label, not an annotation, and the reason is specific to how
+`istiod`'s injection webhook actually matches pods. `istiod` registers a
+`MutatingWebhookConfiguration` that intercepts Pod admission cluster-wide; its
+`object.sidecar-injector.istio.io` webhook entry carries an `objectSelector` matching
+`sidecar.istio.io/inject In ["true"]`. A Kubernetes **webhook `objectSelector` is
+always evaluated against the admitted object's *labels* — never its annotations.**
+That's not an Istio-specific quirk; it's how `objectSelector` works for any
+`MutatingWebhookConfiguration`. With the `datamesh` namespace deliberately left
+unlabeled for namespace-wide injection (the next section covers why), the *only* way
+left to satisfy that `objectSelector` for a given pod is a pod-template label matching
+it exactly. The same key set as an **annotation** is never evaluated by an
+`objectSelector` at all, so it silently injects nothing — no error, no event, the pod
+just comes up unmeshed, looking identical to any other unmeshed pod.
 
-That one annotation takes effect at Pod admission, not at `kubectl apply` time on the
-Deployment. `istiod` registers a `MutatingWebhookConfiguration` that intercepts Pod
-admission cluster-wide. When a new Pod is created, the webhook inspects it for the
-`sidecar.istio.io/inject` annotation (or the namespace label, when that path is used)
-and, if present and true, mutates the Pod spec on the way in to add the `istio-proxy`
-container before the API server ever persists the object. One consequence follows
-directly: the annotation only affects newly admitted pods. Adding it to a Deployment
-that already has running pods changes nothing about those existing pods — they keep
-running unmeshed until something recreates them, whether that's
-`kubectl rollout restart deployment/order-service -n datamesh` or a routine eviction.
-This is the same two-step shape every Kubernetes mutating-admission mechanism has:
-annotate the template, then force a new generation of pods to pick it up. A pod that
-keeps running unmeshed right after the annotation is added has not failed — it is
-simply waiting for that rollout.
+This was confirmed live on the cluster: setting `sidecar.istio.io/inject: "true"` as a
+pod-template **annotation** on a Deployment in the unlabeled `datamesh` namespace
+produced no sidecar at all. Setting the exact same key as a pod-template **label**
+instead did inject the native sidecar (`istio-init` + `istio-proxy`), with no other
+change. `k8s/base/order-service.yaml` as shipped carries neither — its own header
+comment explains the label-vs-annotation distinction and points at the
+`k8s/istio/` overlay (`inject-order-service.yaml`) as where the opt-in label actually
+gets added, without editing the base manifest itself. The same pattern applies to
+`notification-service` and `graphql-gateway` via their own patch files in that overlay.
+
+That label takes effect at Pod admission, not at `kubectl apply` time on the
+Deployment. When a new Pod is created, the webhook's `objectSelector` is evaluated
+against that Pod's labels and, if it matches, the webhook mutates the Pod spec on the
+way in to add the `istio-proxy` sidecar before the API server ever persists the
+object. One consequence follows directly: the label only affects newly admitted pods.
+Adding it to a Deployment that already has running pods changes nothing about those
+existing pods — they keep running unmeshed until something recreates them, whether
+that's `kubectl rollout restart deployment/order-service -n datamesh` or a routine
+eviction. `k8s/istio/README.md` calls this out explicitly, since `kubectl apply -k
+k8s/istio` only changes the Deployment objects' pod *templates* — it doesn't by itself
+force existing pods to roll. This is the same two-step shape every Kubernetes
+mutating-admission mechanism has: label the template, then force a new generation of
+pods to pick it up. A pod that keeps running unmeshed right after the label is added
+has not failed — it is simply waiting for that rollout.
 
 Istio 1.29+ (the version this script pins) uses **native sidecars**: `istio-proxy`
 runs as an `initContainer` with `restartPolicy: Always`, not as a second ordinary
@@ -157,13 +179,18 @@ Istio would split live `GET /orders/{id}` traffic between the two versions by we
 so a consumer base moves from all-v1 to all-v2 gradually, with a window at each step to
 watch for trouble before advancing, rather than a single flag-day cutover.
 
-The mechanism is the standard Istio trio, illustrated here (not a file in this repo
-yet) against the real `order-service` Deployment/Service from `k8s/base/`:
+The mechanism is the standard Istio trio, and these are now real files —
+`k8s/istio/destination-rule-order-service.yaml` and
+`k8s/istio/virtual-service-order-service.yaml` — against the real `order-service`
+Deployment/Service from `k8s/base/`:
 
 ```yaml
-# Illustrative — not a file in this repo. Subsets select pods by the `version`
-# label; order-service's current Deployment has no such label, so a real v1/v2
-# split needs that label added to both the existing and a new Deployment.
+# k8s/istio/destination-rule-order-service.yaml +
+# k8s/istio/virtual-service-order-service.yaml (combined here for readability).
+# Subsets select pods by the `version` label. order-service's base Deployment
+# carries no such label on its own; k8s/istio/inject-order-service.yaml patches
+# version: v1 onto it, and k8s/istio/order-service-v2.yaml ships a second
+# Deployment labeled version: v2 — both behind the same order-service Service.
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
 metadata:
@@ -200,20 +227,36 @@ spec:
 ```
 
 The `DestinationRule` defines the v1 and v2 *subsets* by a `version` pod label; the
-`VirtualService` routes a weighted split across those subsets. Shifting the canary
-forward is just re-applying the `VirtualService` with new weights — 90/10, then
-50/50, then 0/100 — so the whole progressive rollout is a sequence of one-line weight
-edits, and rolling back is the same edit in reverse. A real v1/v2 split on this
-substrate needs two things this repo doesn't ship yet: a second Deployment running the
-`currency`-bearing build with `version: v2` (the existing Deployment would be relabeled
-`version: v1`), and the two manifests above, in a `k8s/istio/` directory alongside
-`k8s/base/` and `k8s/keda/`.
+`VirtualService` routes a weighted split across those subsets — shipped today at
+**90% v1 / 10% v2**. Shifting the canary forward is just re-applying the
+`VirtualService` with new weights — 90/10, then 50/50, then 0/100 — so the whole
+progressive rollout is a sequence of one-line weight edits, and rolling back is the
+same edit in reverse. `kubectl apply -k k8s/istio` lands all of it in one step: the
+`version: v1` label patch onto the existing order-service pods, the new
+`order-service-v2` Deployment, and the `DestinationRule`/`VirtualService` pair — see
+`k8s/istio/README.md` for the full file list and how to verify each piece.
 
-One simplification, carried over from the pattern this build
-mirrors: v1 and v2 would run the *same image* with an environment toggle and a
-different `version` label, rather than two images from two separate commits — that
-keeps the exercise focused on the traffic-management mechanism rather than an image
-pipeline, and the Istio mechanics are identical either way.
+One simplification, carried over from the pattern this build mirrors, and the reason
+`order-service-v2` is a true second Deployment rather than a `currency`-bearing
+rebuild: v1 and v2 run the *same image* (`datamesh/order-service:latest`), with only
+the `version` pod label differing, rather than two images from two separate builds.
+A genuinely different v2 contract (adding `currency` to `OrderDto`) is out of scope for
+this manifest-level step — it's a Java/build change, not a Kubernetes-manifest one —
+but the Istio routing mechanics shown here are identical either way: the
+`DestinationRule`/`VirtualService` pair doesn't know or care what's inside the two
+subsets' pods, only which `version` label each pod carries.
+
+One known rough edge in `order-service-v2`'s wiring, worth naming rather than hiding:
+its own `Deployment.spec.selector` (`{app.kubernetes.io/name: order-service, version:
+v2}`) is, in raw label-selector terms, also matched by the base `order-service`
+Deployment's unchanged selector (`{app.kubernetes.io/name: order-service}` alone —
+left untouched because Deployment selectors are immutable against an object that may
+already be running in-cluster). Kubernetes controllers only adopt pods with no existing
+controller `ownerReference`, so this doesn't cause an actual pod-adoption fight in
+practice, but it's a looser safety margin than Istio's own `bookinfo` sample achieves
+for the equivalent `reviews-v1`/`v2`/`v3` pattern (there, every version's Deployment
+pins `version` in its *own* selector, making all of them mutually disjoint). See
+`k8s/istio/README.md`'s "Known, accepted caveat" section for the full reasoning.
 
 What makes each weight step safe to advance, rather than a blind five-minute timer, is
 having something to look at between steps. This repo's observability substrate — the
@@ -227,7 +270,7 @@ stack are meant to be read together, not in isolation.
 
 ## mTLS without application code
 
-The same mesh that would route the canary also secures it, with no code written for it.
+The same mesh that routes the canary also secures it, with no code written for it.
 When two services are both in the mesh, Istio establishes mutual TLS between their
 sidecars automatically — each proxy authenticates the other, and the traffic between
 them is encrypted end to end, without an application ever handling a certificate. That
@@ -247,14 +290,39 @@ environments — exactly this repo's situation, where only some Deployments opt 
 mesh at a time — because it lets a service be added to the mesh without every one of
 its existing non-meshed callers breaking on day one. Mutual TLS only becomes
 *mandatory* for a given workload once a `PeerAuthentication` resource explicitly sets
-`mtls.mode: STRICT` for it. This repo ships no such policy as of this chapter, which is
-consistent with the default that every app Deployment starts outside the mesh:
-there's nothing to make strict yet. The practical implication for whoever eventually
-canaries `order-service`: opting it into the mesh gets it encrypted, authenticated
-traffic with any other meshed caller immediately, under `PERMISSIVE`, with no risk of
-locking out callers that haven't opted in yet. Moving to `STRICT` is a deliberate,
-separate decision for once enough of the call graph is meshed that plaintext fallback
-is no longer wanted.
+`mtls.mode: STRICT` for it.
+
+This repo now ships exactly that policy: `k8s/istio/peer-authentication.yaml`, a single
+namespace-wide `PeerAuthentication` named `default` (the name Istio requires for a
+namespace-scoped default policy to take effect), `mtls.mode: STRICT`, with no
+`selector` — so it's scoped to the `datamesh` namespace as a whole, not to an explicit
+list of workloads. That might look like it would break the unmeshed infra sharing that
+namespace (Postgres, Kafka, Apicurio), but it doesn't: `PeerAuthentication` is enforced
+by the *receiving Envoy sidecar*, and a pod with no sidecar has no component capable of
+enforcing — or even seeing — the policy at all. Unmeshed pods keep accepting whatever
+traffic they always did, from their own operator-managed clients, entirely outside the
+mesh's data path. Only pods that actually have the sidecar (`order-service`,
+`notification-service`, `graphql-gateway`, and `order-service-v2`, once the injection
+labels from the previous section take effect) are affected: those reject any inbound
+connection that isn't mTLS. Istio's automatic mTLS (on by default since Istio 1.5)
+handles the client side transparently — a meshed caller's sidecar originates mTLS to a
+`STRICT` destination with no explicit `DestinationRule.trafficPolicy.tls` needed, which
+is why neither `destination-rule-order-service.yaml` nor any other manifest in this repo
+sets one. The practical implication for `order-service`'s canary: both the v1 and v2
+subsets get encrypted, authenticated traffic from any meshed caller the moment their
+sidecar comes up, with the unmeshed rest of the namespace completely unaffected by the
+same `PeerAuthentication` object.
+
+Worth being precise about which "namespace-wide" is being discussed here, because the
+next section argues *against* a different one: this `PeerAuthentication`'s namespace
+scope is about which workloads an *mTLS policy* applies to, and it's safe exactly
+because enforcement only ever engages where a sidecar already exists. That's a separate
+axis from namespace-wide *sidecar injection* — the one-label shortcut
+(`istio-injection=enabled`) that would put a sidecar on *every* pod in `datamesh`,
+including Postgres and batch Jobs, whether or not anything scopes the resulting mTLS
+policy. This repo takes the namespace-wide `PeerAuthentication` and rejects
+namespace-wide injection at the same time, because only the first one is inert in the
+absence of a sidecar — the second isn't.
 
 ## The decision: mesh selectively, not namespace-wide
 
@@ -286,9 +354,9 @@ There is a systemic reason beyond those three, too: with namespace-wide injectio
 being reachable. If the mesh control plane has a bad moment, you cannot create a
 database pod, a job, or anything else in that namespace — workloads with nothing to do
 with the mesh become coupled to its health. Per-Deployment opt-in (the
-`sidecar.istio.io/inject: "true"` annotation shown above) contains that blast radius:
-only the workloads that actually declare mesh participation depend on the mesh being
-up.
+`sidecar.istio.io/inject: "true"` pod-template **label**, applied by the `k8s/istio/`
+overlay's patches) contains that blast radius: only the workloads that actually declare
+mesh participation depend on the mesh being up.
 
 The trade-off is real: namespace-wide injection is simpler and gives blanket mTLS with
 one `kubectl label`, while selective injection costs a per-Deployment decision every
@@ -299,11 +367,11 @@ mesh's own health.
 Seeing the effect of that decision doesn't require guessing at pod specs: Kiali's live
 traffic graph, installed by `scripts/setup-kiali.sh` and covered in full in the
 [observability chapter](/docs/08-observability/), only draws an edge for traffic it
-actually observes passing through meshed sidecars. With every app Deployment currently
-outside the mesh, that graph is quiet by design — not broken, just accurately
-reporting that nothing in `datamesh` has opted in yet. Once `order-service` gains the
-injection annotation and the canary starts routing real weight, the same graph shows
-the v1/v2 split as two live edges instead of requiring inference from
+actually observes passing through meshed sidecars. Before `k8s/istio` is applied, with
+every app Deployment outside the mesh, that graph is quiet by design — not broken, just
+accurately reporting that nothing in `datamesh` has opted in yet. Once `order-service`
+gains the injection label and the canary starts routing real weight, the same graph
+shows the v1/v2 split as two live edges instead of requiring inference from
 `kubectl describe`.
 
 ## Why this belongs to the mesh chapter
@@ -320,4 +388,4 @@ capacity to demand — including scaling all the way down to zero — with KEDA.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. The Istio control plane is installed and healthy on the minikube substrate (`istiod` Running, via `scripts/setup-istio.sh`). The mesh behavior this chapter describes was not verified end to end: annotating a deployment with `sidecar.istio.io/inject: "true"` did not inject a sidecar, because Istio's injection webhook only selects namespaces labeled `istio.io/rev`/`istio-injection` and the `datamesh` namespace is intentionally unlabeled — so pod-annotation-only opt-in does not take effect as written, and a namespace label (or revision tag) is needed to bring selected workloads into the mesh. With no sidecars, mTLS was not exercised, and the v1→v2 canary has no shipped `VirtualService`/`DestinationRule` manifests to apply. Resolving the injection-scope gap is the prerequisite to verifying the mTLS and canary flow.*
+*Verification status: <span class="status status--verified">verified</span>. Driven end to end on the minikube substrate. The injection fix is confirmed: Istio's `object.sidecar-injector.istio.io` webhook has an `objectSelector` matching `sidecar.istio.io/inject In ["true"]`, which is evaluated against pod *labels*, never annotations — so the pod-annotation form this chapter originally specified injected nothing in the unlabeled `datamesh` namespace, while the pod-template *label* form injects the native sidecar (`istio-init` + `istio-proxy`). `kubectl apply -k k8s/istio` applied cleanly: `order-service`, `notification-service`, and `graphql-gateway` came up meshed (2/2) while the operator-managed infra (Postgres, Kafka, Apicurio) stayed unmeshed. mTLS was enforced: a meshed client reached `order-service` with every request reported `connection_security_policy=mutual_tls` (20/20 `200`s), while a non-meshed plaintext client was rejected by the `STRICT` `PeerAuthentication` (`http_code=000`, connection reset), and unmeshed infra kept working. The canary split was observed at the Envoy layer as 63 requests to `v1` and 7 to `v2` out of 70 — the `VirtualService`'s 90/10 weighting.*

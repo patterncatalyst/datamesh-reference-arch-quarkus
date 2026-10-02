@@ -11,8 +11,10 @@
 # lands). Once the ScaledObject exists, the HPA it creates takes over
 # replica count and this field is effectively advisory.
 #
-# Mesh: not injected — see order-service.yaml for the mesh-opt-out
-# rationale (applies identically here).
+# Mesh: not injected — see order-service.yaml for the full rationale
+# (applies identically here): opt-in is a pod-template LABEL
+# (sidecar.istio.io/inject: "true"), not an annotation, added by the
+# k8s/istio/ overlay (inject-notification-service.yaml), not this file.
 #
 # Health: notification-service has quarkus-smallrye-health on its classpath
 # (examples/notification-service/pom.xml), so /q/health/ready, /q/health/live,

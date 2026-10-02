@@ -13,13 +13,23 @@
 # for automatic sidecar injection. Namespace-wide injection breaks Job pods
 # (hang at 1/2 forever — the sidecar never exits) and CloudNativePG's
 # Postgres pods (mTLS collides with the operator's own TLS). Inject
-# per-Deployment instead, when a given service actually joins the mesh:
+# per-Deployment instead, when a given service actually joins the mesh —
+# and it must be a pod-template LABEL, not an annotation: Istio's
+# sidecar-injection webhook matches pods via an objectSelector
+# (sidecar.istio.io/inject In ["true"]), and a webhook objectSelector is
+# evaluated against the pod's labels, never its annotations, so the
+# annotation form silently injects nothing in this unlabeled namespace
+# (confirmed live on this cluster):
 #
 #   spec:
 #     template:
 #       metadata:
-#         annotations:
+#         labels:
 #           sidecar.istio.io/inject: "true"
+#
+# See k8s/istio/ for the overlay that applies this label to order-service,
+# notification-service, and graphql-gateway (plus the namespace-wide
+# PeerAuthentication and the order-service v1/v2 canary).
 #
 # Istio 1.29+ uses NATIVE sidecars: istio-proxy runs as an initContainer with
 # restartPolicy: Always, not a regular container. A meshed pod still reports
@@ -85,6 +95,7 @@ kubectl rollout status deployment/istiod -n "$ISTIO_SYSTEM" --timeout=5m
 
 step "Istio control plane is installed."
 printf '\nNamespace %s is NOT labeled for auto-injection (by design — see header).\n' "$NS"
-printf 'Opt a Deployment into the mesh with:\n'
-printf '  kubectl patch deployment <name> -n %s -p \x27{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"true"}}}}}\x27\n' "$NS"
+printf 'Opt a Deployment into the mesh with a pod-template LABEL (not an annotation):\n'
+printf '  kubectl patch deployment <name> -n %s -p \x27{"spec":{"template":{"metadata":{"labels":{"sidecar.istio.io/inject":"true"}}}}}\x27\n' "$NS"
+printf 'Or apply the k8s/istio/ overlay directly: kubectl apply -k k8s/istio\n'
 printf '\nNext: ./scripts/setup-kiali.sh   (mesh-topology UI wired to the LGTM stack)\n'

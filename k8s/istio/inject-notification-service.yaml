@@ -1,0 +1,15 @@
+# inject-notification-service.yaml — strategic-merge patch over
+# ../base/notification-service.yaml. See inject-order-service.yaml for the
+# full rationale (label vs. annotation, objectSelector semantics). No
+# `version` label here — notification-service has no canary in this repo,
+# only order-service does.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: datamesh
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"

@@ -1,0 +1,39 @@
+# peer-authentication.yaml — the chapter's mTLS claim, made real.
+#
+# Scope: namespace-wide STRICT, with NO `spec.selector` — per Istio's own
+# convention, a namespace-scoped default policy MUST be named exactly
+# `default` to take effect (mirrors the mesh-wide convention of a `default`
+# PeerAuthentication in istio-system). No selector means it applies to every
+# workload in `datamesh`, not just the three meshed Deployments.
+#
+# Why that's safe even though Postgres/Kafka/Apicurio are NOT meshed:
+# PeerAuthentication is enforced by the receiving Envoy sidecar, not by the
+# API server or kubelet. A pod with no sidecar has no component capable of
+# enforcing (or even seeing) this policy, so it keeps accepting whatever
+# traffic it always did — plaintext from its own operator-managed clients,
+# entirely outside the mesh's data path. STRICT here only changes behavior
+# for pods that actually have the istio-proxy native sidecar (order-service,
+# notification-service, graphql-gateway, once k8s/istio's inject labels take
+# effect): those pods will reject any inbound connection that isn't mTLS.
+# Unmeshed infra — CloudNativePG's Postgres, Strimzi's Kafka brokers,
+# Apicurio — is unaffected and continues using its own TLS/plaintext as
+# configured by its own operator.
+#
+# Client side needs no separate configuration: Istio's automatic mTLS
+# (enabled by default since Istio 1.5) has istiod configure every meshed
+# sidecar's outbound TLS origination based on the server side's detected
+# mode, so a meshed caller transparently originates mTLS to another meshed
+# STRICT destination with no explicit `DestinationRule.trafficPolicy.tls`
+# needed here.
+#
+# Verified correct for Istio 1.29 (the version scripts/setup-istio.sh pins):
+# `security.istio.io/v1` is the stable PeerAuthentication API version as of
+# 1.22+ and remains current in 1.29; `mtls.mode: STRICT` is unchanged.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: datamesh
+spec:
+  mtls:
+    mode: STRICT

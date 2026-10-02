@@ -21,8 +21,10 @@
 # until that Service is added; this does not block graphql-gateway's own
 # startup/readiness since it has no health dependency wired to that call.
 #
-# Mesh: not injected — see order-service.yaml for the mesh-opt-out
-# rationale (applies identically here).
+# Mesh: not injected — see order-service.yaml for the full rationale
+# (applies identically here): opt-in is a pod-template LABEL
+# (sidecar.istio.io/inject: "true"), not an annotation, added by the
+# k8s/istio/ overlay (inject-graphql-gateway.yaml), not this file.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

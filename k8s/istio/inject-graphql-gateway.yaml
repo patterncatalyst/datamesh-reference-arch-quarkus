@@ -1,0 +1,13 @@
+# inject-graphql-gateway.yaml — strategic-merge patch over
+# ../base/graphql-gateway.yaml. See inject-order-service.yaml for the full
+# rationale (label vs. annotation, objectSelector semantics).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphql-gateway
+  namespace: datamesh
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "true"
