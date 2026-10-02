@@ -202,7 +202,12 @@ step "generate load: burst POST /orders against order-service.${NS}.svc.cluster.
 
 LOADGEN_POD="demo-keda-kafka-loadgen-$$"
 ORDER_CREATE_BODY='{"customerId":"CUST-KEDA-DEMO","itemSku":"KEDA-DEMO-SKU","quantity":1,"amount":9.99}'
-LOADGEN_SCRIPT="i=0; while [ \$i -lt 60 ]; do curl -s -o /dev/null -w '%{http_code} ' -X POST -H 'Content-Type: application/json' -d '${ORDER_CREATE_BODY}' http://order-service.${NS}.svc.cluster.local:8080/orders; i=\$((i+1)); done; echo"
+STOCK_SEED_BODY='{"sku":"KEDA-DEMO-SKU","quantityOnHand":100000}'
+# order-service places an order (and emits order.placed) only when
+# inventory-service reports the SKU available; otherwise placeOrder returns 409
+# and no event is produced — so lag never builds and KEDA never scales. Seed
+# stock for the demo SKU first (StockResource POST /stock), then burst orders.
+LOADGEN_SCRIPT="curl -s -o /dev/null -X POST -H 'Content-Type: application/json' -d '${STOCK_SEED_BODY}' http://inventory-service.${NS}.svc.cluster.local:8080/stock; i=0; while [ \$i -lt 60 ]; do curl -s -o /dev/null -w '%{http_code} ' -X POST -H 'Content-Type: application/json' -d '${ORDER_CREATE_BODY}' http://order-service.${NS}.svc.cluster.local:8080/orders; i=\$((i+1)); done; echo"
 
 _cleanup_loadgen_pod() {
     local rc=$?
