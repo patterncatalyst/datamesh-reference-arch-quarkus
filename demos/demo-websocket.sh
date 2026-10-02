@@ -16,7 +16,7 @@
 #        A minimal `@WebSocket(path = "/ws/notifications")` endpoint. Its
 #        only job is an `@OnOpen` connection ack (`{"type":"connected"}`);
 #        it does not itself push anything.
-#   EDIT examples/notification-service/src/main/java/.../OrderPlacedConsumer.java
+#   NEW  examples/notification-service/src/main/java/.../OrderPlacedPushConsumer.java
 #        Injects `io.quarkus.websockets.next.OpenConnections` and, right
 #        after `notification.persist()`, broadcasts the persisted
 #        Notification (serialized to JSON by WebSockets.Next the same way
@@ -237,7 +237,7 @@ step "connect a real WebSocket client to ${WS_URL} (jbang, plain JDK java.net.ht
 WS_CLIENT_LOG="$(mktemp -t demo-ws-client-log-XXXXXX)"
 info "log: $WS_CLIENT_LOG"
 # Expect exactly 2 text messages on this connection: (1) the @OnOpen
-# connection ack, (2) the Notification pushed by OrderPlacedConsumer once
+# connection ack, (2) the Notification pushed by OrderPlacedPushConsumer once
 # this run's order.placed event is consumed.
 jbang "$WS_CLIENT" "$WS_URL" 90 2 >"$WS_CLIENT_LOG" 2>&1 &
 WS_CLIENT_PID=$!

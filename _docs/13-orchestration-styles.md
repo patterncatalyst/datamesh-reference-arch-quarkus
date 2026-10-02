@@ -303,4 +303,4 @@ genuinely does and doesn't work.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>. The Flow/Drools/route unit tests pass under `mvn verify`, but the end-to-end `demo-orchestration-styles.sh` (the live choreography chain plus the two orchestration engines) is gated behind the Ollama profile and was not run in this pass.*
+*Verification status: <span class="status status--verified">verified</span>. The Flow/Drools/route unit tests pass under `mvn verify`, and `demo-orchestration-styles.sh` was run end to end against the compose stack with the Ollama profile and a live `qwen2.5:3b` — all three coordination styles (Kafka choreography, the Camel route, and the Quarkus Flow workflow) ran over the same order-to-shipment domain and passed.*
