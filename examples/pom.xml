@@ -12,15 +12,15 @@
   <name>DataMesh Reference Architecture (Quarkus) :: Examples</name>
   <description>
     Maven reactor for the runnable examples backing the Quarkus DataMesh reference
-    architecture tutorial (shipping/order domain). See _plans/decisions.md in the
-    repo root for the version matrix and settled architecture decisions (DRQ-NNN).
+    architecture tutorial (shipping/order domain). See the version matrix and
+    settled architecture decisions documented in the repo root.
   </description>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-    <!-- DRQ-001/DRQ-004: JDK 25, Quarkus 3.39.5, Maven 3.9.x -->
+    <!-- JDK 25, Quarkus 3.39.5, Maven 3.9.x -->
     <maven.compiler.release>25</maven.compiler.release>
 
     <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
@@ -31,7 +31,7 @@
     <quarkus-camel-bom.version>3.39.5</quarkus-camel-bom.version>
 
     <quarkus-langchain4j-bom.group-id>io.quarkiverse.langchain4j</quarkus-langchain4j-bom.group-id>
-    <!-- DRQ-001/DEF-001: pinned to the seed's version (42-ai-mcp). 1.7.4 lets the
+    <!-- Pinned to the seed's version (42-ai-mcp). 1.7.4 lets the
          Quarkiverse BOM manage the whole dev.langchain4j family at 1.11.0 with no
          manual pin — the exact, converged classpath the
          enterprise-integration-patterns-with-camel seed runs (dev.langchain4j
@@ -40,11 +40,11 @@
          its split core/ollama versions, which added a manual pin and its own
          breakage; 1.7.4 avoids all of that.
          NOTE: version is NOT the cause of the Ollama tool-calling failure. The
-         empty-toolExecutions behaviour (DEF-001) reproduces on every version tried
+         empty-toolExecutions behaviour reproduces on every version tried
          and is an upstream integration issue — camel-quarkus-support-langchain4j
          forces the JAX-RS HTTP client factory globally, and the agent's tool-call
          round trip never fires. The behavioural IT is opt-in and deferred; see
-         _plans/decisions.md (DEF-001) and ai-mcp-service AgentProducers javadoc. -->
+         the ai-mcp-service AgentProducers javadoc. -->
     <quarkus-langchain4j-bom.version>1.7.4</quarkus-langchain4j-bom.version>
 
     <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
@@ -68,7 +68,7 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- DEF-001: BOM import ORDER is load-bearing, and mirrors the 42-ai-mcp
+      <!-- BOM import ORDER is load-bearing, and mirrors the 42-ai-mcp
            seed exactly. quarkus-langchain4j-bom:1.7.4 is imported FIRST so it wins
            version mediation for the entire langchain4j surface:
              - quarkus-langchain4j-core -> 1.7.4 (else quarkus-camel-bom drags it
@@ -81,8 +81,8 @@
            seed ships against 1.11.0, so the down-mediation is API-safe. Child
            modules must never re-declare or re-pin these imports.
            This ordering gives a clean, seed-identical classpath; it does NOT make
-           Ollama tool-calling fire — that is the separate upstream DEF-001 issue
-           documented above and in _plans/decisions.md. -->
+           Ollama tool-calling fire — that is the separate upstream issue
+           documented above. -->
       <dependency>
         <groupId>${quarkus-langchain4j-bom.group-id}</groupId>
         <artifactId>quarkus-langchain4j-bom</artifactId>

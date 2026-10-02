@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# demos/demo-tracing.sh — Phase D step 10.6 "compose (infra baseline)" demo:
+# demos/demo-tracing.sh — "compose (infra baseline)" demo:
 # OpenTelemetry distributed tracing, proven against the real compose
-# otel-lgtm stack's Tempo backend (DRQ-011's "LGTM observability is an
-# ALWAYS-ON baseline" — compose_up with no profile already brings it up).
+# otel-lgtm stack's Tempo backend (LGTM observability is an always-on
+# baseline — compose_up with no profile already brings it up).
 #
 # POST /orders on order-service calls inventory-service over gRPC
 # (CheckStock), same cross-service hop demo-order.sh exercises for Panache —
@@ -87,7 +87,7 @@ AGENT_URL="https://github.com/open-telemetry/opentelemetry-java-instrumentation/
 narrate "OpenTelemetry distributed tracing: POST /orders crosses a real"
 narrate "service boundary (order-service -> inventory-service gRPC CheckStock)."
 narrate "This demo attaches the upstream OTel Java agent to both packaged"
-narrate "services (zero source/pom changes) and QUERIES Tempo's HTTP API in"
+narrate "services (zero source/pom changes) and queries Tempo's HTTP API in"
 narrate "the compose otel-lgtm stack for a parsed, multi-service trace --"
 narrate "not just 'the app logged something'."
 
@@ -276,7 +276,7 @@ jq -e '[.batches[]?.resource.attributes[]? | select(.key == "service.name" and .
     || fail "trace ${TRACE_ID} has no span whose resource.service.name == order-service: ${SERVICE_NAMES}"
 jq -e '[.batches[]?.resource.attributes[]? | select(.key == "service.name" and .value.stringValue == "inventory-service")] | length >= 1' <<<"$TRACE_JSON" >/dev/null \
     || fail "trace ${TRACE_ID} has no span whose resource.service.name == inventory-service -- cross-service propagation did not reach Tempo: ${SERVICE_NAMES}"
-narrate "confirmed: trace ${TRACE_ID} contains spans from BOTH order-service AND inventory-service --"
+narrate "confirmed: trace ${TRACE_ID} contains spans from both order-service and inventory-service --"
 narrate "W3C trace-context propagated across the real gRPC call, exported to Tempo, and queried back"
 
 jq -e --arg t "$TRACE_ID" '[.batches[]? | (.scopeSpans[]?.spans[]?, .instrumentationLibrarySpans[]?.spans[]?) | select(.name == "capstone.inventory.v1.InventoryService/CheckStock")] | length >= 1' <<<"$TRACE_JSON" >/dev/null \

@@ -1,7 +1,7 @@
 # spring-boot-compare
 
-A faithful-but-minimal Spring Boot twin of the Quarkus `order-service`
-(DRQ-006), for a real side-by-side comparison in tutorial chapter 12. It
+A faithful-but-minimal Spring Boot twin of the Quarkus `order-service`,
+for a real side-by-side comparison in tutorial chapter 12. It
 exposes the SAME REST shapes/statuses as the Quarkus order-service and
 carries the SAME dependency surface: REST, JPA + Postgres, health, a
 Kafka/Avro `order.placed` producer via Apicurio, and a synchronous gRPC
@@ -48,7 +48,7 @@ java -Duser.timezone=UTC \
      -jar target/spring-boot-compare-1.0.0-SNAPSHOT.jar
 ```
 
-- `-Duser.timezone=UTC` -- same DRQ-011 crux as the Quarkus side: a real
+- `-Duser.timezone=UTC` -- same timezone crux as the Quarkus side: a real
   Postgres (or the postgres:18 Testcontainers image) rejects legacy Olson
   zone ids forwarded from the host's default JVM timezone.
 - `-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1` -- Avro
@@ -70,7 +70,7 @@ defaults used by compose/K8s):
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | `kafka:9094` |
 | `APICURIO_REGISTRY_URL` | `http://localhost:8080/apis/registry/v3` | `http://apicurio:8080/apis/registry/v3` |
 | `INVENTORY_GRPC_HOST` | `localhost` | `localhost` (override in compose/K8s) |
-| `INVENTORY_GRPC_PORT` | `9000` | `9000` (F2 canonical port -- do NOT reintroduce 9001) |
+| `INVENTORY_GRPC_PORT` | `9000` | `9000` (canonical port -- do NOT reintroduce 9001) |
 
 Activate the `prod` profile with `-Dspring.profiles.active=prod` (this is
 what the Containerfile's `ENTRYPOINT` does).

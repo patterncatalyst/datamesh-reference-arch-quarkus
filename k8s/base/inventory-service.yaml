@@ -1,16 +1,16 @@
-# inventory-service — gRPC SERVER for stock lookups (CheckStock), called by
-# order-service's @GrpcClient("inventory") during order placement (F2). Unlike
+# inventory-service — gRPC server for stock lookups (CheckStock), called by
+# order-service's @GrpcClient("inventory") during order placement. Unlike
 # order/notification it hosts a gRPC server (quarkus.grpc.server,
-# use-separate-server=true) in addition to HTTP, so BOTH a http (8080) and a
-# grpc (9000, F2 canonical) port are exposed and served by the Service.
+# use-separate-server=true) in addition to HTTP, so both a http (8080) and a
+# grpc (9000, canonical) port are exposed and served by the Service.
 #
-# Added as part of the F2 fix: order-service's POST /orders does a synchronous
+# Added because order-service's POST /orders does a synchronous
 # gRPC CheckStock, so without inventory-service on the cluster order placement
 # fails closed (503). order-service reaches it via INVENTORY_GRPC_HOST=
 # inventory-service / INVENTORY_GRPC_PORT=9000 (see config.yaml) — the Service
 # name below is that DNS target.
 #
-# Mesh: NOT injected (Phase C default is out of the mesh for every app
+# Mesh: not injected (the default is out of the mesh for every app
 # Deployment — see order-service.yaml for the opt-in annotation).
 #
 # Health: inventory-service has quarkus-smallrye-health on its classpath

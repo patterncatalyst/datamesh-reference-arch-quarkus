@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 #
-# demos/demo-keda-http.sh — Phase D step 10.9 "minikube" group demo, opt-in.
+# demos/demo-keda-http.sh — "minikube" group demo, opt-in.
 #
 # KEDA HTTP add-on scaling graphql-gateway from zero on inbound HTTP request
-# rate, using the REAL step-9 substrate (Phase C, DRQ-011) — nothing here is
-# invented:
+# rate, using the real minikube substrate already brought up by this repo's
+# bootstrap — nothing here is invented:
 #
 #   k8s/base/graphql-gateway.yaml          — the Deployment/Service KEDA scales
 #   k8s/keda/gateway-httpscaledobject.yaml — the HTTPScaledObject
 #                                             (http.keda.sh/v1alpha1, KEDA HTTP
 #                                             add-on 0.15.0)
 #   k8s/overlays/minikube/                 — the app overlay (images ->
-#                                             minikube docker daemon, DRQ-011)
+#                                             minikube docker daemon)
 #   scripts/bootstrap.sh                   — brings up the minikube profile
 #                                             ("datamesh") + the KEDA tier
 #                                             (scripts/setup-keda.sh, pins the
@@ -94,7 +94,7 @@ SCALED_HOST="graphql-gateway.${NS}.svc.cluster.local"
 
 narrate "KEDA HTTP add-on scaling graphql-gateway 0 -> N on inbound request"
 narrate "rate through the interceptor proxy, exactly as k8s/keda/README.md"
-narrate "documents. Targets the REAL step-9 substrate manifests — see this"
+narrate "documents. Targets the real step-9 substrate manifests — see this"
 narrate "script's header for exact file references."
 
 # ─── Static manifest validation (no cluster required) ───────────────────────

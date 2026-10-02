@@ -1,11 +1,11 @@
-# gateway-httpscaledobject.yaml — Step 9c (Phase C substrate). This is the
-# SUBSTRATE that the Phase-D demo-keda-http.sh will target — it does not
+# gateway-httpscaledobject.yaml — part of the minikube substrate. This is the
+# substrate that the demo-keda-http.sh demo will target — it does not
 # itself run a demo, it just lands the KEDA HTTP add-on's HTTPScaledObject
-# so that scale-from-zero-on-request-rate is wired up before Phase D drives
+# so that scale-from-zero-on-request-rate is wired up before the demo drives
 # it with load.
 #
 # Targets: Deployment + Service graphql-gateway in namespace datamesh
-# (k8s/base/graphql-gateway.yaml, step 9b — name/namespace/labels/port
+# (k8s/base/graphql-gateway.yaml — name/namespace/labels/port
 # copied verbatim: Service "graphql-gateway" port "http" = 8080).
 #
 # Schema is the KEDA HTTP add-on v0.15.0 API (http.keda.sh/v1alpha1,
@@ -18,7 +18,7 @@
 # scale (Deployment graphql-gateway, apps/v1).
 #
 # hosts is set to the in-cluster Service FQDN because this stack has no
-# Ingress/external hostname yet — Phase D's demo drives load by sending
+# Ingress/external hostname yet — the demo drives load by sending
 # requests through the interceptor with this Host header. pathPrefixes
 # narrows routing to the actual GraphQL endpoint.
 apiVersion: http.keda.sh/v1alpha1

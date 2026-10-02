@@ -28,13 +28,13 @@
 #      metrics pipeline, so `otelcol_process_uptime_total` actually lands
 #      in Mimir for run-all.sh's readiness probe to find.
 #
-# NOTE (Phase C, DRQ-011): the LGTM stack is wired up here as an always-on
+# NOTE: the LGTM stack is wired up here as an always-on
 # baseline, but no example service emits OTLP yet — Quarkus OTel
-# instrumentation lands in Phase D. Until then, Grafana will show empty
+# instrumentation lands later. Until then, Grafana will show empty
 # application dashboards (the collector's own self-monitoring metrics WILL
 # show up, since the stack scrapes itself); that is expected, not a bug.
-# Once a service sets OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4318 (Phase
-# D), data will start flowing through this exact pipeline with no config
+# Once a service sets OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4318,
+# data will start flowing through this exact pipeline with no config
 # changes needed here.
 
 receivers:

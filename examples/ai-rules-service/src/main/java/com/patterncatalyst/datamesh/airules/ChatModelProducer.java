@@ -26,7 +26,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * ai-mcp-service's classifier route is unaffected by this because that
  * module also pulls in {@code camel-quarkus-langchain4j-agent}, whose
  * {@code Agent} bean wiring happens to create such an injection point; this
- * module deliberately depends on neither (see the pom's DEF-001 note), so
+ * module deliberately depends on neither (see the pom's note on the known
+ * upstream limitation), so
  * without an explicit producer like this one the route fails to start with
  * {@code "chatModel must be specified"}.
  */

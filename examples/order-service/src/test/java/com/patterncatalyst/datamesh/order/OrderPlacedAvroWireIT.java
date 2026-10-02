@@ -36,13 +36,13 @@ import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.AvroSerdeConfig;
 
 /**
- * DEF-002 / step 8d: byte-level proof that {@code order.placed} is Avro on
+ * Byte-level proof that {@code order.placed} is Avro on
  * the wire, not JSON. Self-provisions its own Kafka + Apicurio Registry
  * Testcontainers (pinned to the exact tags step 8a validated in
  * {@code infra/README.md} / {@code compose.yaml} -- {@code apache/kafka-native:4.2.0}
  * and {@code quay.io/apicurio/apicurio-registry:3.1.7} -- so the broker and
  * registry behavior this test exercises matches both Quarkus Dev Services
- * and the standalone compose stack, per DRQ-011's wire-compat requirement).
+ * and the standalone compose stack, matching the wire-compat requirement).
  *
  * <p>Unlike {@link OrderResourceTest} (a {@code @QuarkusTest} that relies on
  * Dev Services and the application's own Reactive Messaging wiring), this
@@ -55,7 +55,7 @@ import io.apicurio.registry.serde.avro.AvroSerdeConfig;
  * that has NO Avro deserializer configured. If the producer-side serde ever
  * regresses to Quarkus's autodetected Jackson/JSON fallback (the exact
  * split-package failure mode documented in {@link OrderEventProducer}'s
- * class-level Javadoc and DRQ-009), the byte assertions below fail loudly
+ * class-level Javadoc), the byte assertions below fail loudly
  * instead of silently accepting JSON.
  *
  * <p>Hermetic: does NOT require {@code docker compose up} / the standing
@@ -107,7 +107,7 @@ class OrderPlacedAvroWireIT {
     void orderPlaced_isAvroOnTheWire_notJson() throws Exception {
         OrderPlaced produced = sampleOrderPlaced();
 
-        // --- Produce with the SAME serializer the application uses (DRQ-009) ---
+        // --- Produce with the SAME serializer the application uses ---
         Properties producerProps = new Properties();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());

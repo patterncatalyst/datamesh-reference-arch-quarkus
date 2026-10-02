@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# demos/demo-order.sh — Phase D step 10.6 "compose (infra baseline)" demo:
+# demos/demo-order.sh — "compose (infra baseline)" demo:
 # the Panache + REST order data product.
 #
 # POST /orders on order-service:
@@ -28,7 +28,7 @@
 # Testcontainers (which `mvn quarkus:dev` would instead spin up, bypassing
 # the compose stack entirely).
 #
-# ── The inventory gRPC port (F2 fixed; canonical 9000) ──────────────────────
+# ── The inventory gRPC port (canonical 9000) ────────────────────────────────
 # order-service's gRPC CLIENT port and inventory-service's gRPC SERVER port
 # both default to the SAME value, 9000, and are both overridable via the
 # SAME env var:
@@ -67,8 +67,8 @@
 # which packages/classes may be instantiated via reflection during Avro
 # (de)serialization, and nothing in this reactor trusts capstone.order.v1
 # by default outside of a Quarkus-bootstrapped JVM (dev/test mode trusts it
-# implicitly; a plain `java -jar` does not). _plans/decisions.md's DEF-002
-# entry already names the exact same fix for the OTHER place this bites
+# implicitly; a plain `java -jar` does not). The exact same fix is already
+# documented for the OTHER place this bites
 # (OrderPlacedAvroWireIT's failsafe execution passes
 # org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 as a plain JUnit
 # system property for the identical reason). This demo applies the same

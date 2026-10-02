@@ -1,6 +1,6 @@
 # tooling/
 
-Phase E step 14: operator-facing tooling that exercises the running stack
+Operator-facing tooling that exercises the running stack
 from the outside — a Postman/Newman API collection and `hey`/`ghz`-based
 load scripts — as opposed to `demos/`, which are assert-driven narrative
 scripts built around one capability each.

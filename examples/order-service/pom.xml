@@ -19,7 +19,7 @@
     Order data product (r21/r23/r25 in the Python reference architecture):
     Panache-owned Order entity, REST endpoints, a gRPC CheckStock call to
     inventory-service before persisting, and an order.placed Avro event
-    published via Apicurio Schema Registry (DRQ-009) after the order is
+    published via Apicurio Schema Registry after the order is
     durably persisted.
   </description>
 
@@ -74,7 +74,7 @@
       <artifactId>quarkus-grpc</artifactId>
     </dependency>
 
-    <!-- Kafka producer: order.placed emitted as Avro via Apicurio (DRQ-009). -->
+    <!-- Kafka producer: order.placed emitted as Avro via Apicurio. -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-messaging-kafka</artifactId>
@@ -107,10 +107,10 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- DEF-002 / step 8d: byte-level proof that order.placed is Avro on the
+    <!-- Byte-level proof that order.placed is Avro on the
          wire. OrderPlacedAvroWireIT self-provisions a Kafka + Apicurio
          Testcontainers pair (pinned to the same tags as infra/README.md's
-         DRQ-011 compose stack) rather than reusing Quarkus Dev Services, so
+         compose stack) rather than reusing Quarkus Dev Services, so
          it can drive a raw KafkaProducer/KafkaConsumer independent of the
          application's own Reactive Messaging wiring.
 
@@ -147,7 +147,7 @@
            the quarkus-maven-plugin's build/generate-code executions are
            bound there). Without this execution, *IT classes are compiled
            by test-compile but failsafe never runs them under `mvn verify`.
-           Bind integration-test+verify explicitly here (DRQ-011). -->
+           Bind integration-test+verify explicitly here. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>

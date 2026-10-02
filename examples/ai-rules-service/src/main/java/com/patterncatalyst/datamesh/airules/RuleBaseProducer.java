@@ -9,10 +9,9 @@ import org.kie.internal.io.ResourceFactory;
 import org.kie.api.io.ResourceType;
 
 /**
- * DRQ-012: builds the plain embedded Drools {@link KieBase} once, from the
+ * Builds the plain embedded Drools {@link KieBase} once, from the
  * classpath DRL, and hands it out as a CDI singleton -- NOT the Kogito/KIE
- * Quarkus extension (that is explicitly out of scope; see DRQ-012 in
- * {@code _plans/decisions.md}).
+ * Quarkus extension (that is explicitly out of scope).
  *
  * <p>{@link KieBase} is stateless and thread-safe and is meant to be built
  * once and reused; a fresh, short-lived {@code KieSession} is minted per

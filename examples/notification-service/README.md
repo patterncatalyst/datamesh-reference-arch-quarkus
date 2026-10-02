@@ -11,7 +11,7 @@ itself.
    `contracts` module, package `capstone.order.v1`) from the Kafka
    `order.placed` topic via the `order-placed` Reactive Messaging channel.
 2. Validates/decodes each message against the Apicurio Schema Registry
-   (**DRQ-009** — Avro + Apicurio from the start, not JSON).
+   (Avro + Apicurio from the start, not JSON).
 3. Maps each event to a `Notification` row and persists it via
    Hibernate ORM with Panache, keyed by `order_id` so at-least-once Kafka
    redelivery is a no-op rather than a duplicate row.

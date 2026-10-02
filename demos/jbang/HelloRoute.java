@@ -1,5 +1,5 @@
-// demos/jbang/HelloRoute.java — Phase D step 10.8 "bare" toolchain demo
-// source. A single self-contained Camel route with NO pom.xml and NO Maven
+// demos/jbang/HelloRoute.java — "bare" toolchain demo
+// source. A single self-contained Camel route with no pom.xml and no Maven
 // reactor module: `jbang camel@apache/camel run HelloRoute.java` resolves
 // Camel's runtime from Maven Central on first use and runs this route
 // directly, exactly the "sketch an idea before committing to a module"

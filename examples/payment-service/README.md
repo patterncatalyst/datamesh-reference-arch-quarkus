@@ -1,8 +1,8 @@
 # payment-service
 
 Real event-driven choreography processor for the DataMesh reference
-architecture (**DRQ-009**: Avro + Apicurio Schema Registry from the start,
-not JSON; **DRQ-010**: this module's runtime contract). It is the choreography
+architecture (Avro + Apicurio Schema Registry from the start,
+not JSON; this module's runtime contract is choreography, not direct calls). It is the choreography
 counterpart to `order-service`: it never receives a direct call from
 `order-service`, it reacts to the event `order-service` publishes.
 
@@ -26,9 +26,9 @@ public PaymentCaptured process(OrderPlaced orderPlaced) { ... }
   the `payment.captured` Kafka topic.
 - Records each capture in `PaymentStore`, a minimal in-memory
   (`ConcurrentHashMap`) bookkeeping structure -- real, but intentionally not a
-  database. The choreography (Kafka in/out) is the required part of DRQ-010;
-  this store just gives the module something to inspect beyond the outgoing
-  event.
+  database. The choreography (Kafka in/out) is the required part of this
+  module's runtime contract; this store just gives the module something to
+  inspect beyond the outgoing event.
 
 Both Avro records come from the `contracts` module (`order-placed.avsc`,
 `payment-captured.avsc`) -- this module never redefines the wire schema.

@@ -46,7 +46,7 @@ public class OrderPlacedConsumer {
 
     private static final Logger LOG = Logger.getLogger(OrderPlacedConsumer.class);
 
-    // NEW for demos/demo-websocket.sh (Phase D step 10.6, "WebSockets.Next"):
+    // NEW for demos/demo-websocket.sh ("WebSockets.Next"):
     // every open /ws/notifications connection (see OrderNotificationSocket)
     // gets the freshly persisted Notification pushed to it as soon as this
     // consumer commits it -- a real, event-driven push, not a poll.

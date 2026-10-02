@@ -1,14 +1,13 @@
-# k8s/keda — KEDA scalers (step 9c)
+# k8s/keda — KEDA scalers
 
-Step 9c of the Phase C minikube substrate (see `_plans/decisions.md`
-DRQ-011). This directory holds the two KEDA scaler manifests that turn the
+Part of the minikube substrate. This directory holds the two KEDA scaler manifests that turn the
 platform installed by step 9a (`scripts/setup-keda.sh`) into actual
 autoscaling behavior for the Deployments step 9b shipped
 (`k8s/base/notification-service.yaml`, `k8s/base/graphql-gateway.yaml`).
 
 **This step lands the scalers only.** The load-generating demos that
-exercise them (`demo-keda-kafka.sh`, `demo-keda-http.sh`) are Phase D's
-job — these manifests are the substrate those demos will target.
+exercise them (`demo-keda-kafka.sh`, `demo-keda-http.sh`) are a later
+step's job — these manifests are the substrate those demos will target.
 
 ## Files
 
@@ -48,7 +47,7 @@ Values used (see the comment block in the file for full sourcing):
 - `lagThreshold: "5"`, `minReplicaCount: 0`, `maxReplicaCount: 10`,
   `pollingInterval: 15`, `cooldownPeriod: 120`
 
-To observe scale-from-zero once the Phase-D demo exists, or manually:
+To observe scale-from-zero once that demo exists, or manually:
 
 ```bash
 # Watch replica count
@@ -61,7 +60,7 @@ kubectl get hpa -n datamesh -w
 kubectl describe scaledobject notification-service-scaledobject -n datamesh
 
 # Produce order.placed records faster than notification-service can consume
-# them (Phase D's demo-keda-kafka.sh automates this) and watch replicas
+# them (demo-keda-kafka.sh automates this, once it exists) and watch replicas
 # climb from 0 as lag exceeds lagThreshold=5, then fall back to 0 after
 # cooldownPeriod=120s of lag staying below threshold.
 ```
@@ -79,7 +78,7 @@ Values used:
 - `scalingMetric.requestRate.targetValue: 50` (per-pod requests/window
   before KEDA scales up), `window: 1m`, `granularity: 1s`
 
-To observe scale-from-zero once the Phase-D demo exists, or manually:
+To observe scale-from-zero once that demo exists, or manually:
 
 ```bash
 # Watch replica count
@@ -90,7 +89,7 @@ kubectl get httpscaledobject graphql-gateway-httpscaledobject -n datamesh
 
 # Requests must go through the KEDA HTTP add-on's interceptor proxy Service
 # in the keda namespace, with the Host header set to the hosts entry above
-# (Phase D's demo-keda-http.sh automates this), e.g.:
+# (demo-keda-http.sh automates this, once it exists), e.g.:
 kubectl run -n datamesh curl-test --rm -it --image=curlimages/curl --restart=Never -- \
   curl -H "Host: graphql-gateway.datamesh.svc.cluster.local" \
   http://keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local/graphql
@@ -138,5 +137,5 @@ kubectl apply --dry-run=server -k k8s/keda
   reference guide) but was not confirmed by inspecting a live consumer's
   actual group membership on a running broker — no cluster was available.
 - `lagThreshold: "5"` and `scalingMetric.requestRate.targetValue: 50` are
-  reasonable demo defaults, not load-tested; Phase D's demos may need to
+  reasonable demo defaults, not load-tested; future demos may need to
   tune them once real throughput numbers are available.

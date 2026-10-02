@@ -2,14 +2,14 @@
 #
 # setup-postgres-operator.sh — install the CloudNativePG operator (cluster-
 # wide, via Helm) and then apply a single-instance Postgres Cluster CR (raw
-# manifest — per DRQ-011, Helm is reserved for operators) into the datamesh
+# manifest — Helm is reserved for operators) into the datamesh
 # namespace.
 #
 # IMPORTANT: installing the operator is a CLUSTER-WIDE action. It registers
 # CRDs (Cluster, Pooler, Backup, ... — always cluster-scoped) and runs a
 # controller in cnpg-system that reconciles those CRs across every namespace.
 #
-# The Cluster CR pins postgresql.parameters.timezone=UTC (DRQ-011 — matches
+# The Cluster CR pins postgresql.parameters.timezone=UTC (matches
 # the Testcontainers/Dev Services convention elsewhere in this repo; avoids
 # the "invalid value for parameter TimeZone" boot failure some hosts trigger
 # with legacy Olson zone ids like US/Eastern).

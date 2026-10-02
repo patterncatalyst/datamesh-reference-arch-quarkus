@@ -1,5 +1,5 @@
 // demos/jbang/WsNotificationClient.java — demos/demo-websocket.sh's real WS
-// client (Phase D step 10.6, "WebSockets.Next" capability).
+// client ("WebSockets.Next" capability).
 //
 // A tiny, dependency-free WebSocket client: plain JDK `java.net.http.WebSocket`
 // (no extra jars to resolve -- jbang just compiles and runs this file

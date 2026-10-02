@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# tooling/newman/run-newman.sh — Phase E step 14: run the Datamesh Postman
+# tooling/newman/run-newman.sh — run the Datamesh Postman
 # collection (tooling/newman/datamesh.postman_collection.json) against the
 # local stack via Newman, using the environment file
 # tooling/newman/local.postman_environment.json.
@@ -10,7 +10,7 @@
 # scripts do, instead of letting Newman itself fail on connection-refused
 # with a confusing stack of HTTP errors.
 #
-# Services this collection targets (brought up by the demos, NOT by this
+# Services this collection targets (brought up by the demos, not by this
 # script):
 #   order-service        http://localhost:8091   (demos/demo-graphql.sh)
 #   inventory-service     http://localhost:8092   (demos/demo-graphql.sh)

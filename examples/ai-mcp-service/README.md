@@ -50,9 +50,9 @@ whole family at 1.11.0 (a brief 1.14.1 experiment required a forced
 used). The `OllamaChatModel` / `Agent` / `AgentConfiguration` /
 `AgentWithoutMemory` APIs this module uses are stable across these versions and
 compile as-is. See `../pom.xml` for the load-bearing BOM import order and
-`_plans/decisions.md` (DRQ-001) for the version matrix.
+the repo root for the version matrix.
 
-## DEF-001: Ollama tool calling does not fire on this stack (open deferral)
+## Known limitation: Ollama tool calling does not fire on this stack
 
 The behavioral test `OrderAssistantRouteIT` asserts the agent actually invokes
 the `order-status` ai-tool (a non-empty `CamelLangChain4jAgentToolExecutions`
@@ -73,8 +73,7 @@ seed, which ships no test asserting this), and an explicit JDK HTTP client.
 The IT is `*IT` (Surefire skips it), gated behind `-Dollama.tests.enabled=true`,
 and failsafe is **not** bound in this module, so the default `mvn verify` never
 runs it and the reactor build stays green. Full write-up, ruled-out hypotheses,
-and revisit options are in `_plans/decisions.md` (DEF-001) and the
-`AgentProducers` class javadoc.
+and revisit options are in the `AgentProducers` class javadoc.
 
 ## Running with Ollama
 
@@ -106,7 +105,7 @@ curl -X POST http://localhost:8088/api/assistant/chat \
   `direct:assistant-chat` via `ProducerTemplate` and asserts the
   `CamelLangChain4jAgentToolExecutions` exchange header is present and non-empty.
   A non-empty response body is deliberately **not** treated as proof of tool
-  calling. **This test currently fails — see DEF-001 above.** It is opt-in and
+  calling. **This test currently fails — see the limitation above.** It is opt-in and
   not part of the default build:
 
   ```bash

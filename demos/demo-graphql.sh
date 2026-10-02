@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# demos/demo-graphql.sh — Phase D step 10.6 "compose (infra baseline)" demo:
+# demos/demo-graphql.sh — "compose (infra baseline)" demo:
 # SmallRye GraphQL gateway.
 #
 # graphql-gateway federates two downstream protocols behind one /graphql
@@ -31,7 +31,7 @@
 #                       env var (matches its own default; set explicitly for
 #                       clarity).
 #
-# ── The inventory gRPC port (F2 fixed; canonical 9000) ──────────────────────
+# ── The inventory gRPC port (canonical 9000) ────────────────────────────────
 # order-service's gRPC CLIENT port, inventory-service's gRPC SERVER port, and
 # graphql-gateway's own gRPC client default all resolve to the SAME value,
 # 9000, via the SAME env var: `quarkus.grpc.clients.inventory.port=
@@ -242,7 +242,7 @@ STOCK_AVAILABLE="$(jq -r '.data.order.stock.available' <<<"$GQL_RESP")"
 STOCK_QOH="$(jq -r '.data.order.stock.quantityOnHand' <<<"$GQL_RESP")"
 [[ "$STOCK_QOH" =~ ^[0-9]+$ ]] || fail "expected .data.order.stock.quantityOnHand to be a number, got '$STOCK_QOH'"
 
-narrate "confirmed: one GraphQL query fanned out to order-service (REST) AND"
+narrate "confirmed: one GraphQL query fanned out to order-service (REST) and"
 narrate "inventory-service (gRPC) and returned both halves, error-free:"
 narrate "order ${ORDER_ID} (WIDGET-2) with live stock quantityOnHand=${STOCK_QOH} available=${STOCK_AVAILABLE}"
 

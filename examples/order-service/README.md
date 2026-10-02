@@ -37,7 +37,7 @@ checks with zero extra config).
 - **`OrderEventProducer`** -- `@Channel("order-placed") Emitter<OrderPlaced>`
   publishing the Avro `OrderPlaced` record (generated in the `contracts`
   module from `order-placed.avsc`) to the `order.placed` Kafka topic via the
-  Apicurio Schema Registry serializer (DRQ-009 -- Avro from the start, never
+  Apicurio Schema Registry serializer (Avro from the start, never
   JSON).
 - **`OrderResource`** -- wires the above: check stock, persist, emit,
   respond.
@@ -76,7 +76,7 @@ autodetection (`kafka-schema-registry-avro.adoc`,
 "serialization-autodetection") ambiguous; verified empirically, the
 unconfigured build logged "Generating Jackson serializer for type
 capstone.order.v1.OrderPlaced" -- a silent fallback to JSON that would
-violate DRQ-009. Setting `value.serializer` explicitly avoids that fallback.
+violate the Avro-only contract. Setting `value.serializer` explicitly avoids that fallback.
 
 Kafka and the Apicurio Schema Registry are both provided by Quarkus Dev
 Services (Testcontainers) automatically in dev/test; inventory-service must

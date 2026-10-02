@@ -8,15 +8,15 @@
 # container. From the host, Grafana itself is reachable at
 # http://localhost:${GRAFANA_PORT}/ (see .env).
 #
-# What this gives you out of the box (once Phase D wires OTLP into the
+# What this gives you out of the box (once OTLP is wired into the
 # example services):
 #   - All three signal datasources connected on startup, no manual setup
 #   - Trace -> Logs correlation via trace_id
 #   - Logs -> Trace correlation via trace_id
 #   - Exemplars: latency histograms link from metric to trace
 #
-# NOTE (Phase C): no service emits OTLP yet, so these datasources will show
-# up empty in Grafana until Phase D instruments the example services. The
+# NOTE: no service emits OTLP yet, so these datasources will show
+# up empty in Grafana until the example services are instrumented. The
 # stack is wired and ready; there is simply no data in it yet.
 
 apiVersion: 1

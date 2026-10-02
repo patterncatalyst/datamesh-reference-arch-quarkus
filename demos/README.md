@@ -1,12 +1,11 @@
 # demos/
 
 Runnable demo scripts for `datamesh-reference-arch-quarkus`, one per
-capability in the slide/tutorial matrix (`_plans/build-plan.md`, "Demo ↔
-slide ↔ capability matrix"). Each `demo-*.sh` is a thin, assert-driven
+capability in the slide/tutorial matrix ("Demo ↔ slide ↔ capability
+matrix"). Each `demo-*.sh` is a thin, assert-driven
 wrapper over an already-built service — it asserts *positive content*
 (a parsed field, an exact status code, a decision enum, a replica count),
-never just "exit code was zero". See `_plans/phase-d-step10-plan.md` for the
-full step-by-step build plan.
+never just "exit code was zero".
 
 This step (10.0) ships only the shared harness: `lib/_demo.sh` (sourced by
 every demo) and this README. The `demo-*.sh` scripts themselves land in
@@ -61,7 +60,7 @@ needed for this group.
 | `demo-tracing.sh` | OpenTelemetry | A request produces the expected trace-span count/shape in the otel-lgtm stack (Tempo) |
 | `demo-websocket.sh` | WebSockets.Next | A WebSocket client receives the expected message/event after a triggering action |
 | `demo-reactive-vertx.sh` | Vert.x unified reactive + imperative | A reactive endpoint returns correct data, demonstrating non-blocking I/O alongside imperative code in the same app |
-| `demo-oidc.sh` *(feasibility-gated, DRQ-005 — may be skipped)* | `quarkus-oidc` | A protected endpoint returns 401 unauthenticated and 200 with a valid token |
+| `demo-oidc.sh` *(feasibility-gated — may be skipped)* | `quarkus-oidc` | A protected endpoint returns 401 unauthenticated and 200 with a valid token |
 
 Prereqs: `docker` + the Compose v2 plugin (`docker compose`, not the legacy
 binary), `cp .env.example .env`, `docker compose up -d` from the repo root
@@ -73,9 +72,9 @@ needed).
 | Demo | Capability | What it asserts |
 |------|-----------|------------------|
 | `demo-ai-classify.sh` | langchain4j (single-shot chat classify) | The classify endpoint returns one of the defined category labels |
-| `demo-ai-mcp.sh` | langchain4j + MCP | The MCP-server surface lists the `order-status` tool and returns the deterministic lookup result (`ORD-001`); prints the DEF-001 caveat banner and asserts **only** the MCP-server path, never in-process tool-calling |
+| `demo-ai-mcp.sh` | langchain4j + MCP | The MCP-server surface lists the `order-status` tool and returns the deterministic lookup result (`ORD-001`); prints a known-limitation banner about the tool-calling path and asserts **only** the MCP-server path, never in-process tool-calling |
 | `demo-camel-integration.sh` | Quarkus + Camel EIP | A Camel route correctly transforms/routes a message end-to-end through its EIPs |
-| `demo-ai-triage.sh` *(showcase, DRQ-012/DRQ-014)* | langchain4j classify + embedded Drools decide, orchestrated two ways (Camel route vs Quarkus Flow) | Both `POST /api/orders/triage` (Camel) and `POST /api/orders/triage-flow` (Quarkus Flow) return the same `TriageDecision` JSON shape; 3 pre-validated inputs (benign/high-value-trusted/high-risk) assert the *specific* expected decision (`ROUTE_TO_WAREHOUSE`/`EXPEDITE`/`FRAUD_HOLD`) on both endpoints — see "ai-rules-service demo notes" below for how determinism was established and a membership fallback is not needed in practice |
+| `demo-ai-triage.sh` *(showcase)* | langchain4j classify + embedded Drools decide, orchestrated two ways (Camel route vs Quarkus Flow) | Both `POST /api/orders/triage` (Camel) and `POST /api/orders/triage-flow` (Quarkus Flow) return the same `TriageDecision` JSON shape; 3 pre-validated inputs (benign/high-value-trusted/high-risk) assert the *specific* expected decision (`ROUTE_TO_WAREHOUSE`/`EXPEDITE`/`FRAUD_HOLD`) on both endpoints — see "ai-rules-service demo notes" below for how determinism was established and a membership fallback is not needed in practice |
 
 Prereqs: everything in the `compose` group, plus either `docker compose
 --profile ollama up -d` and a pulled model in the Ollama container, OR a
@@ -124,7 +123,7 @@ only need the core service matrix.
 | `demo-keda-kafka.sh` *(opt-in — minikube)* | KEDA autoscaling on Kafka consumer lag | Replica count scales 0 → N on a lag burst and back to 0 as the backlog drains |
 | `demo-keda-http.sh` *(opt-in — minikube)* | KEDA autoscaling on HTTP (scale-to-zero) | A scaled-to-zero deployment wakes to ≥1 replica in response to an inbound HTTP request through the interceptor |
 
-Prereqs: the `lgtm-minikube-stack` substrate from Phase C / step 9
+Prereqs: the `lgtm-minikube-stack` substrate from step 9
 (minikube cluster with Istio, KEDA, Strimzi, CloudNativePG bootstrapped),
 `kubectl` context pointed at it. **Opt-in** — not required for the core
 compose-based demo set.
@@ -133,7 +132,7 @@ compose-based demo set.
 
 | Script | What it does |
 |--------|--------------|
-| `walkthrough.sh` | Five-act presenter orchestrator over all 18 demos above: **ACT1** data products & protocols (order/grpc/graphql/kafka/tracing/websocket/reactive-vertx/oidc, default), **ACT2** three orchestration styles — DRQ-015 (orchestration-styles, gated), **ACT3** AI/Camel/Drools/MCP (ai-classify/ai-mcp/camel-integration/ai-triage, gated), **ACT4** developer experience & native (jbang-prototype/continuous-testing default, native gated), **ACT5** platform autoscaling (keda-kafka/keda-http, gated). Each demo is invoked as its own child process via `run_act` — the orchestrator never double-manages a demo's own `compose_up`/`compose_down`. Gated acts are gated **per demo**, not per act, behind `--with-ollama`/`--with-native`/`--with-minikube` (cleanly SKIPPED, not failed, when the flag is absent). Also supports `--only <demo[,demo...]>`/`--skip <demo[,demo...]>` (exact demo names, mutually exclusive), `--no-preflight` (skip the toolchain/docker sweep), `--no-pause`/`--auto` (no Enter-to-advance pauses, for CI/self-test), and `-h`/`--help`. Prints a final acts/demos pass-fail-skip tally and exits non-zero if any non-skipped act failed. |
+| `walkthrough.sh` | Five-act presenter orchestrator over all 18 demos above: **ACT1** data products & protocols (order/grpc/graphql/kafka/tracing/websocket/reactive-vertx/oidc, default), **ACT2** three orchestration styles (orchestration-styles, gated), **ACT3** AI/Camel/Drools/MCP (ai-classify/ai-mcp/camel-integration/ai-triage, gated), **ACT4** developer experience & native (jbang-prototype/continuous-testing default, native gated), **ACT5** platform autoscaling (keda-kafka/keda-http, gated). Each demo is invoked as its own child process via `run_act` — the orchestrator never double-manages a demo's own `compose_up`/`compose_down`. Gated acts are gated **per demo**, not per act, behind `--with-ollama`/`--with-native`/`--with-minikube` (cleanly SKIPPED, not failed, when the flag is absent). Also supports `--only <demo[,demo...]>`/`--skip <demo[,demo...]>` (exact demo names, mutually exclusive), `--no-preflight` (skip the toolchain/docker sweep), `--no-pause`/`--auto` (no Enter-to-advance pauses, for CI/self-test), and `-h`/`--help`. Prints a final acts/demos pass-fail-skip tally and exits non-zero if any non-skipped act failed. |
 
 ## Opt-in summary
 
@@ -143,8 +142,8 @@ compose-based demo set.
   (slow; CI-grade machine recommended).
 - **minikube**: `demo-keda-kafka.sh`, `demo-keda-http.sh` — require the
   step-9 minikube substrate, not just `docker compose`.
-- **feasibility-gated**: `demo-oidc.sh` — ships only if DRQ-005 confirms
-  `quarkus-oidc` wiring is in scope; otherwise this row is dropped.
+- **feasibility-gated**: `demo-oidc.sh` — ships only if `quarkus-oidc`
+  wiring is confirmed in scope; otherwise this row is dropped.
 
 Everything else (`bare` and `compose` groups minus the above) is the
 default, always-runnable demo set.

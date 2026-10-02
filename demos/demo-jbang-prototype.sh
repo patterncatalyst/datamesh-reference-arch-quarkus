@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# demos/demo-jbang-prototype.sh — Phase D step 10.8 "bare" toolchain demo.
+# demos/demo-jbang-prototype.sh — "bare" toolchain demo.
 #
 # Demonstrates JBang-based single-file prototyping: demos/jbang/HelloRoute.java
 # is a complete Camel route with no pom.xml and no Maven reactor module.

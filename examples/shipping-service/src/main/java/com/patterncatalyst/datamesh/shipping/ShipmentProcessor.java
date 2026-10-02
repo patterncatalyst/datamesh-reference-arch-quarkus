@@ -16,7 +16,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 /**
- * Real event-choreography saga participant (DRQ-009 / DRQ-010): continues the
+ * Real event-choreography saga participant: continues the
  * order.placed -&gt; payment.captured -&gt; shipment.dispatched saga.
  *
  * <p>Consumes {@link PaymentCaptured} (Avro, {@code capstone.payment.v1}) from

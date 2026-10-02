@@ -15,7 +15,7 @@ import jakarta.inject.Inject;
 
 /**
  * Publishes {@code order.placed} as Avro against the Apicurio Schema
- * Registry (DRQ-009) after an order has been durably persisted. Mirrors
+ * Registry after an order has been durably persisted. Mirrors
  * {@code app/events.py::publish_order_placed} in the Python reference
  * architecture: publishing happens strictly after commit, and a publish
  * failure must never fail the already-committed order -- this class treats
@@ -38,7 +38,7 @@ import jakarta.inject.Inject;
  * autodetection. Autodetection was proven to silently fall back to a
  * Jackson/JSON serializer here because two Apicurio artifacts share the
  * {@code io.apicurio.registry.serde.avro} package (split-package), which
- * defeats it. The explicit key keeps events Avro on the wire (DRQ-009).
+ * defeats it. The explicit key keeps events Avro on the wire.
  */
 @ApplicationScoped
 public class OrderEventProducer {

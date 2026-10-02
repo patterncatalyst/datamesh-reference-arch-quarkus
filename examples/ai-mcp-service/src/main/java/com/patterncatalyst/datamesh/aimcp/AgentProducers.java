@@ -19,10 +19,10 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * enterprise-integration-patterns-with-camel "42-ai-mcp" seed and the Spring Boot
  * variant, rather than injecting the synthetic {@code ChatModel} that
  * quarkus-langchain4j produces. The two paths behave identically here (see the
- * DEF-001 note below); the explicit build is kept because it is the form the
+ * note below); the explicit build is kept because it is the form the
  * tutorial explains and the one that is portable across runtimes.
  *
- * <p><strong>DEF-001 (open behavioral deferral) — tool calling does not fire on
+ * <p><strong>Known limitation — tool calling does not fire on
  * this stack.</strong> The {@code OrderAssistantRouteIT} assertion that the agent
  * invokes the {@code order-status} ai-tool (a non-empty
  * {@code CamelLangChain4jAgentToolExecutions} header) currently fails: the model
@@ -48,7 +48,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * </ul>
  * The IT is opt-in ({@code -Dollama.tests.enabled=true}) and is not bound into the
  * default {@code mvn verify}, so the deferral does not break the reactor build.
- * See {@code _plans/decisions.md} (DEF-001) for the full write-up.
  *
  * <p>{@link AgentWithoutMemory} treats every exchange as an independent
  * conversation. For a multi-turn assistant, produce an {@code AgentWithMemory}

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# demos/walkthrough.sh — Phase D step 10.10: the five-act presenter
-# orchestrator that ties the 18 demo-*.sh scripts together for a live talk.
+# demos/walkthrough.sh — the five-act presenter orchestrator that ties the
+# 18 demo-*.sh scripts together for a live talk.
 #
 # This script does NOT reimplement any demo's logic and does NOT manage
 # compose/Dev Services/cluster lifecycle itself — every demo-*.sh already
@@ -10,8 +10,7 @@
 # orchestrator's only job is to invoke each one, IN SEQUENCE (back-to-back
 # compose up/down per demo is slower than sharing one stack across all of
 # them, but the demos bind fixed host ports and that sharing would be a
-# bigger refactor out of scope for this step — see
-# _plans/phase-d-step10-plan.md), narrate the five acts, pace a presenter
+# bigger refactor out of scope for now), narrate the five acts, pace a presenter
 # through them with `prompt_enter`, and report a final tally. Demos are
 # ALWAYS run sequentially (one `run_act` after another) — never in
 # parallel; that is both a presenter-pacing choice and a hard requirement
@@ -22,15 +21,16 @@
 #           demo-graphql, demo-kafka, demo-tracing, demo-websocket,
 #           demo-reactive-vertx, demo-oidc. The core compose-baseline
 #           surface, security included — always runs by default.
-#   ACT 2 — Three orchestration styles, DRQ-015 (1): demo-orchestration-
-#           styles. Kafka choreography vs a Camel route vs a Quarkus Flow
-#           workflow, side by side. Needs the compose `ollama` profile —
-#           gated behind --with-ollama.
+#   ACT 2 — Three orchestration styles (1): demo-orchestration-styles.
+#           Kafka choreography vs a Camel route vs a Quarkus Flow workflow,
+#           side by side. Needs the compose `ollama` profile — gated behind
+#           --with-ollama.
 #   ACT 3 — AI, Camel EIPs & embedded Drools (4): demo-ai-classify,
-#           demo-ai-mcp, demo-camel-integration, demo-ai-triage. The
-#           DEF-001-honest AI showcase (langchain4j classify + Drools
-#           decide + Camel EIPs + the MCP tool-server surface). Also needs
-#           the `ollama` profile — gated behind --with-ollama.
+#           demo-ai-mcp, demo-camel-integration, demo-ai-triage. The AI
+#           showcase, with a clear account of the tool-calling limitation
+#           (langchain4j classify + Drools decide + Camel EIPs + the MCP
+#           tool-server surface). Also needs the `ollama` profile — gated
+#           behind --with-ollama.
 #   ACT 4 — Developer experience & native (3): demo-jbang-prototype and
 #           demo-continuous-testing run by default (cheap, no compose, no
 #           cluster); demo-native (a real GraalVM/Mandrel compile, several
@@ -68,7 +68,7 @@ source "${SCRIPT_DIR}/lib/_demo.sh"
 ACT_TITLE=(
     ""
     "Data products & protocols"
-    "Three orchestration styles (DRQ-015)"
+    "Three orchestration styles"
     "AI, Camel EIPs & embedded Drools"
     "Developer experience & native compilation"
     "Platform: event-driven autoscaling (KEDA)"
@@ -77,7 +77,7 @@ ACT_LEDE=(
     ""
     "The core data-mesh surface against the same compose baseline (Postgres/Kafka/Apicurio/otel-lgtm): REST+Panache, gRPC, GraphQL federation, Kafka/Avro wire format, OpenTelemetry tracing, WebSockets.Next, Vert.x reactive, and an OIDC-secured endpoint."
     "The identical shipping/order domain, coordinated three different ways: Kafka choreography (decentralized, no coordinator) vs a Camel route vs a Quarkus Flow workflow (two differently-shaped centralized orchestration engines). Needs --with-ollama."
-    "langchain4j single-shot classification, an embedded Drools rules engine deciding FRAUD_HOLD/EXPEDITE/ROUTE_TO_WAREHOUSE, Camel EIPs, and the MCP tool-server surface -- DEF-001-honest throughout. Needs --with-ollama."
+    "langchain4j single-shot classification, an embedded Drools rules engine deciding FRAUD_HOLD/EXPEDITE/ROUTE_TO_WAREHOUSE, Camel EIPs, and the MCP tool-server surface -- with a clear account of the tool-calling limitation throughout. Needs --with-ollama."
     "JBang single-file Camel prototyping and Quarkus continuous testing run every time (no compose, no cluster); a real GraalVM/Mandrel native compile is opt-in behind --with-native (several minutes, pulls a builder image on first run)."
     "KEDA autoscaling on Kafka consumer-group lag and on inbound HTTP (scale-to-zero), against the step-9 minikube substrate. Author-only in this environment (no live cluster) -- needs --with-minikube."
 )
@@ -157,8 +157,8 @@ ${BOLD}Flags:${RST}
   --with-ollama         run ACT2/ACT3's ollama-profile demos (default: skipped)
   --with-native         run ACT4's demo-native, a real native compile (default: skipped)
   --with-minikube       run ACT5's KEDA demos, needs a live cluster (default: skipped)
-  --only <d[,d...]>     run ONLY the named demo(s) (comma-separated, exact name)
-  --skip <d[,d...]>     run every selected demo EXCEPT the named one(s)
+  --only <d[,d...]>     run only the named demo(s) (comma-separated, exact name)
+  --skip <d[,d...]>     run every selected demo except the named one(s)
   --no-preflight        skip the environment/toolchain preflight sweep
   --no-pause, --auto    don't wait for Enter between acts (CI/self-test)
   -h, --help            show this help and exit
@@ -263,7 +263,7 @@ for (( n = 1; n <= 5; n++ )); do
     done
 done
 
-step "walkthrough: 5 acts, 18 demos (DRQ-012..015)"
+step "walkthrough: 5 acts, 18 demos"
 narrate "selected acts: ${ACTIVE_ACTS[*]:-none}"
 (( WITH_OLLAMA ))   && narrate "--with-ollama enabled (ACT2/ACT3 ollama-profile demos in scope)"
 (( WITH_NATIVE ))   && narrate "--with-native enabled (ACT4 native compile in scope)"

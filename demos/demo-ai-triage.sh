@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# demos/demo-ai-triage.sh — Phase D step 10.3 showcase demo (DRQ-012/DRQ-014).
+# demos/demo-ai-triage.sh — showcase demo: LLM classifies, Drools decides.
 #
 # "LLM classifies, Drools decides — orchestrated two ways (Camel route vs
 # Quarkus Flow)."
@@ -15,11 +15,11 @@
 # Ollama (qwen2.5:3b) — NOT an agent, NOT tool-calling — and both hand the
 # classified fields to the SAME embedded Drools rule set
 # (rules/order-triage.drl) to make the actual business decision
-# (FRAUD_HOLD / EXPEDITE / ROUTE_TO_WAREHOUSE). This is the DEF-001-proof
-# shape: neither path has a langchain4j-agent / ai-tool / mcp-server
-# dependency, so neither can regress into the upstream Ollama tool-calling
-# failure tracked as DEF-001 — there is no in-process tool-calling round
-# trip to fail in the first place.
+# (FRAUD_HOLD / EXPEDITE / ROUTE_TO_WAREHOUSE). This is the shape that
+# structurally avoids the tool-calling defect: neither path has a
+# langchain4j-agent / ai-tool / mcp-server dependency, so neither can
+# regress into the upstream Ollama tool-calling failure — there is no
+# in-process tool-calling round trip to fail in the first place.
 #
 # Infra: this demo talks to a HOST Ollama already running on
 # http://localhost:11434 (ai-rules-service's application.properties already
@@ -50,12 +50,12 @@ PORT=8089
 BASE_URL="http://localhost:${PORT}"
 OLLAMA_URL="http://localhost:11434"
 
-narrate "DRQ-012/DRQ-014 showcase: an order is classified by Ollama (qwen2.5:3b,"
+narrate "An order is classified by Ollama (qwen2.5:3b,"
 narrate "single-shot chat — no tool-calling), then a shared Drools rule set makes"
 narrate "the FRAUD_HOLD / EXPEDITE / ROUTE_TO_WAREHOUSE decision. Two endpoints,"
 narrate "same TriageService logic: /triage (Camel route) vs /triage-flow (Quarkus"
-narrate "Flow workflow). This is the DEF-001-proof shape — zero langchain4j"
-narrate "tool-calling anywhere in either path."
+narrate "Flow workflow). This shape structurally avoids the tool-calling defect —"
+narrate "zero langchain4j tool-calling anywhere in either path."
 
 # ─── Preflight: host Ollama must be reachable with qwen2.5:3b pulled ────────
 step "preflight: host Ollama"

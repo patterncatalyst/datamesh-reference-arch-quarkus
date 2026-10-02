@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 /**
- * Behavioral, end-to-end test of the DRQ-012 showcase: a real order JSON
+ * Behavioral, end-to-end test of the showcase: a real order JSON
  * body is classified by a live Ollama server ({@code qwen2.5:3b}) via
  * {@code langchain4j-chat}, and the resulting classification is routed
  * through the embedded Drools engine to produce a {@link TriageDecision}.

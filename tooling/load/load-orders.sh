@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # tooling/load/load-orders.sh — hey-based HTTP load generator for the
-# order-service capacity story (Phase E, step 14): ramps GET/POST traffic
+# order-service capacity story: ramps GET/POST traffic
 # against /orders and lets `hey`'s own summary report throughput (RPS)
 # and the latency distribution.
 #

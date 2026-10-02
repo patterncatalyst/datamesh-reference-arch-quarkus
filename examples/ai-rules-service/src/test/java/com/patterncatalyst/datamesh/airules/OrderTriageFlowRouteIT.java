@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 /**
- * Behavioral, end-to-end test of the DRQ-014 Quarkus Flow A/B contrast: the
+ * Behavioral, end-to-end test of the Quarkus Flow A/B contrast: the
  * same order JSON body {@link OrderTriageRouteIT} posts to {@code /triage}
  * (the Camel path) is posted here to {@code /triage-flow} (the Flow path),
  * which is classified by a live Ollama server ({@code qwen2.5:3b}) and

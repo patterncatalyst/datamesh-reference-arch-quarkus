@@ -1,7 +1,7 @@
 # contracts
 
 Single source of the wire contracts shared by every producer and consumer
-service in the reference architecture. Per **DRQ-009**, all Kafka events are
+service in the reference architecture. All Kafka events are
 Avro-serialized against the Apicurio Schema Registry from the start (not
 JSON).
 

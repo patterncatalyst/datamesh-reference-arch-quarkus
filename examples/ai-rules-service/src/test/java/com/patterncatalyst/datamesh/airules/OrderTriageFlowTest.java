@@ -14,7 +14,7 @@ import io.quarkus.test.junit.mockito.InjectSpy;
 import org.junit.jupiter.api.Test;
 
 /**
- * Proves the DRQ-014 Quarkus Flow orchestration ({@code OrderTriageWorkflow},
+ * Proves the Quarkus Flow orchestration ({@code OrderTriageWorkflow},
  * driven through {@link OrderTriageFlowRunner}) wires correctly to the
  * <em>real</em> Drools {@code decide} step, WITHOUT calling Ollama.
  *

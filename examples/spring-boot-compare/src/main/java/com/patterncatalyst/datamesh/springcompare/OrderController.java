@@ -23,7 +23,7 @@ import jakarta.validation.Valid;
 
 /**
  * Order data product REST endpoints -- the Spring Boot twin of the Quarkus
- * order-service's {@code OrderResource} (DRQ-006). Same shapes/statuses:
+ * order-service's {@code OrderResource}. Same shapes/statuses:
  *
  * <ul>
  *   <li>{@code POST /orders} -- check inventory over gRPC ({@link StockChecker}),

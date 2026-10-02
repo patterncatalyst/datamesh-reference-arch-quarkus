@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# compare-quarkus-springboot.sh — DRQ-006: reproducible JVM startup-time and
+# compare-quarkus-springboot.sh — reproducible JVM startup-time and
 # memory comparison between the Quarkus order-service and its Spring Boot
 # twin (examples/spring-boot-compare), so tutorial chapter 12 can cite
 # MEASURED numbers.
@@ -109,7 +109,7 @@ SPRING_COMPARE_DIR="${EXAMPLES_DIR}/spring-boot-compare"
 [[ -f "${ORDER_SERVICE_DIR}/pom.xml" ]] \
     || fail "order-service not found at ${ORDER_SERVICE_DIR} (expected examples/order-service/pom.xml)"
 [[ -f "${SPRING_COMPARE_DIR}/pom.xml" ]] \
-    || fail "spring-boot-compare not found at ${SPRING_COMPARE_DIR} (expected examples/spring-boot-compare/pom.xml) -- it is built separately (DRQ-006); run this script again once it exists"
+    || fail "spring-boot-compare not found at ${SPRING_COMPARE_DIR} (expected examples/spring-boot-compare/pom.xml) -- it is built separately; run this script again once it exists"
 
 AVRO_SERIALIZABLE_PACKAGES="capstone.order.v1"
 JVM_PROPS=(-Dorg.apache.avro.SERIALIZABLE_PACKAGES="$AVRO_SERIALIZABLE_PACKAGES" -Duser.timezone=UTC)
@@ -355,7 +355,7 @@ narrate "spring-boot-compare built: $S_JAR"
 step "booting spring-boot-compare (JVM) and measuring startup + RSS"
 RUN_LOG2="$(mktemp -t compare-qs-run-spring-XXXXXX)"
 info "log: $RUN_LOG2"
-# spring-boot-compare reads the SAME DRQ-011 env contract as the Quarkus
+# spring-boot-compare reads the SAME env contract as the Quarkus
 # side (JDBC_URL / DB_USERNAME / DB_PASSWORD / KAFKA_BOOTSTRAP_SERVERS /
 # APICURIO_REGISTRY_URL) via ${ENV:default} placeholders in its
 # application.properties -- NOT Spring's relaxed-binding SPRING_* names.

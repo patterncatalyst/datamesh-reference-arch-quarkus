@@ -5,8 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <!-- This module is DELIBERATELY NOT part of the examples/ Maven reactor
-       (it is not listed in examples/pom.xml's <modules>, by design - see
-       DRQ-006). It is a standalone Spring Boot project with its own parent
+       (it is not listed in examples/pom.xml's <modules>, by design). It is a standalone Spring Boot project with its own parent
        (spring-boot-starter-parent), built independently so chapter 12's
        startup/memory/native comparison numbers reflect an unmodified,
        idiomatic Spring Boot build - not one bent to fit the Quarkus
@@ -27,8 +26,8 @@
 
   <name>DataMesh :: Spring Boot Compare (Order Service Twin)</name>
   <description>
-    Faithful-but-minimal Spring Boot twin of the Quarkus order-service
-    (DRQ-006), for a real side-by-side startup/memory comparison in
+    Faithful-but-minimal Spring Boot twin of the Quarkus order-service,
+    for a real side-by-side startup/memory comparison in
     tutorial chapter 12: same REST shapes/statuses (201/409/404/200), same
     Postgres-backed order entity, the same order.placed Avro event over
     Kafka/Apicurio, and the same synchronous gRPC CheckStock call to
@@ -107,7 +106,7 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
-    <!-- Kafka producer: order.placed emitted as Avro via Apicurio (DRQ-009),
+    <!-- Kafka producer: order.placed emitted as Avro via Apicurio,
          mirroring quarkus-messaging-kafka + quarkus-apicurio-registry-avro.
          Spring Boot 4.0 extracted Kafka auto-configuration into the dedicated
          spring-boot-kafka module; spring-kafka core alone does NOT bring it, so
@@ -207,7 +206,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
-      <!-- Same DRQ-011 crux as the Quarkus reactor's root pom: the
+      <!-- Same timezone crux as the Quarkus reactor's root pom: the
            postgres:18 Testcontainers image rejects legacy Olson zone ids
            (e.g. US/Eastern) that pgjdbc forwards from the host's default
            JVM timezone at connection startup, failing with

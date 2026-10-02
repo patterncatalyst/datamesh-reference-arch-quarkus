@@ -39,7 +39,7 @@ import io.apicurio.registry.serde.avro.AvroSerdeConfig;
 
 /**
  * Intended to prove the full {@code order.placed -> payment.captured ->
- * shipment.dispatched} choreography chain (DRQ-010): produce one real
+ * shipment.dispatched} choreography chain: produce one real
  * {@code order.placed} Avro event against a self-provisioned Kafka +
  * Apicurio Registry (cloning {@link OrderPlacedAvroWireIT}'s Testcontainers
  * pattern), then assert a {@code PaymentCaptured} record appears on {@code

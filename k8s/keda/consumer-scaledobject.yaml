@@ -1,20 +1,20 @@
-# consumer-scaledobject.yaml — Step 9c (Phase C substrate). This is the
-# SUBSTRATE that the Phase-D demo-keda-kafka.sh will target — it does not
+# consumer-scaledobject.yaml — part of the minikube substrate. This is the
+# substrate that the demo-keda-kafka.sh demo will target — it does not
 # itself run a demo, it just lands the KEDA core ScaledObject so that
-# scale-from-zero-on-lag is wired up before Phase D drives it.
+# scale-from-zero-on-lag is wired up before the demo drives it.
 #
 # Targets: Deployment notification-service in namespace datamesh
-# (k8s/base/notification-service.yaml, step 9b — name/namespace/labels
+# (k8s/base/notification-service.yaml — name/namespace/labels
 # copied verbatim from there; scaleTargetRef.kind defaults to Deployment
 # and apiVersion defaults to apps/v1, so neither is set explicitly here).
 #
-# Kafka trigger values, sourced from step 9a:
+# Kafka trigger values, sourced from the operator setup scripts:
 #   - bootstrapServers: datamesh-kafka-bootstrap.datamesh.svc.cluster.local:9092
 #     — Strimzi Kafka CR name "datamesh" in namespace "datamesh"
 #     (scripts/setup-kafka-operator.sh: CLUSTER_NAME=datamesh, NS=datamesh
 #     -> Strimzi's generated bootstrap Service "<cluster-name>-kafka-bootstrap").
 #   - consumerGroup: "notification-service" — notification-service's
-#     application.properties does NOT set mp.messaging.incoming.order-placed
+#     application.properties does not set mp.messaging.incoming.order-placed
 #     .group.id explicitly. Per the Quarkus Kafka reference guide ("Consumer
 #     group id defaults to the application name as set by the
 #     quarkus.application.name configuration property"), and
@@ -24,7 +24,7 @@
 #     default is ever overridden with an explicit group.id, update this value
 #     to match or the scaler will watch the wrong (nonexistent) group's lag.
 #   - topic: "order.placed" — mp.messaging.incoming.order-placed.topic in the
-#     same application.properties (DRQ-010 / DRQ-011).
+#     same application.properties.
 #   - offsetResetPolicy: earliest — matches the consumer's own
 #     auto.offset.reset=earliest so the scaler's lag calculation uses the
 #     same starting point as the application.

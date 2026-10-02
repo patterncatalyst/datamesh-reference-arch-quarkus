@@ -1,12 +1,12 @@
-# order-service — the producer (emits order.placed via Avro/Apicurio,
-# DRQ-009). gRPC CLIENT to inventory-service, not a gRPC server, so only the
+# order-service — the producer (emits order.placed via Avro/Apicurio).
+# gRPC client to inventory-service, not a gRPC server, so only the
 # HTTP port (REST + health + metrics) is exposed.
 #
-# Mesh: NOT injected (no sidecar.istio.io/inject annotation). DRQ-011 keeps
-# Istio installed cluster-wide but per-Deployment opt-in (9a did not label
-# the datamesh namespace). Phase C default is OUT of the mesh for every app
-# Deployment, to keep the substrate demo simple; the mesh demo is a later
-# phase. To opt in later, add:
+# Mesh: not injected (no sidecar.istio.io/inject annotation). This keeps
+# Istio installed cluster-wide but per-Deployment opt-in (the datamesh
+# namespace was never labeled for it). The default is out of the mesh for
+# every app Deployment, to keep the substrate demo simple; the mesh demo
+# is a later phase. To opt in later, add:
 #   template.metadata.annotations: {sidecar.istio.io/inject: "true"}
 #
 # Health: order-service has quarkus-smallrye-health on its classpath

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # setup-keda.sh — install KEDA (core + HTTP add-on) into the datamesh cluster,
-# in preparation for the two DRQ-011 autoscalers (Phase C lands the substrate;
-# the demo-keda-*.sh demos land in Phase D):
+# in preparation for the two autoscalers (this script lands the substrate;
+# the demo-keda-*.sh demos land separately):
 #   * Kafka consumer-lag scaling for notification-service (core KEDA;
 #     notification-service consumes order.placed)
 #   * HTTP request scaling for graphql-gateway (the HTTP add-on)
@@ -12,7 +12,7 @@
 # Usage (from the project root):
 #   ./scripts/setup-keda.sh
 #
-# Then, once the scaler manifests exist (Phase D):
+# Then, once the scaler manifests exist:
 #   kubectl apply -f keda/notification-scaledobject.yaml
 #   kubectl apply -f keda/gateway-httpscaledobject.yaml
 
@@ -75,6 +75,6 @@ helm upgrade --install keda-add-ons-http kedacore/keda-add-ons-http \
 
 # ─── Done ────────────────────────────────────────────────────────────────────
 printf '\n==> KEDA core + HTTP add-on installed in the %s namespace.\n\n' "$NAMESPACE"
-printf 'Scaler manifests land in Phase D. Once applied:\n'
+printf 'Scaler manifests land separately. Once applied:\n'
 printf '  kubectl apply -f keda/notification-scaledobject.yaml   # Kafka lag, notification-service\n'
 printf '  kubectl apply -f keda/gateway-httpscaledobject.yaml    # HTTP volume, graphql-gateway\n'

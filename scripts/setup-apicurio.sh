@@ -2,7 +2,7 @@
 #
 # setup-apicurio.sh — install Apicurio Registry 3.x into the cluster as the
 # schema registry for the Avro contracts used by every Kafka channel in this
-# repo (DRQ-009 — order-placed.avsc, payment-captured.avsc,
+# repo (order-placed.avsc, payment-captured.avsc,
 # shipment-dispatched.avsc, ...). Uses the v3 registry API
 # (/apis/registry/v3).
 #

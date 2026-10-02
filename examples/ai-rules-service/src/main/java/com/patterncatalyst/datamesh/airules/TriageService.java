@@ -13,7 +13,7 @@ import org.kie.api.KieBase;
 import org.kie.api.runtime.KieSession;
 
 /**
- * DRQ-012/DRQ-014: the single source of truth for "classify, then decide" --
+ * The single source of truth for "classify, then decide" --
  * extracted so both {@link OrderTriageRoute} (Camel orchestration,
  * {@code /triage}) and {@code OrderTriageWorkflow} (Quarkus Flow
  * orchestration, {@code /triage-flow}) run the exact same classify + Drools
@@ -42,7 +42,7 @@ public class TriageService {
     /**
      * Classifies the order with a single-shot {@code langchain4j}-style chat
      * call direct to the injected {@link ChatModel} (same proven,
-     * DEF-001-free pattern as the former {@code OrderTriageRoute} -- no
+     * tool-calling-free pattern as the former {@code OrderTriageRoute} -- no
      * agent, no tool calling), then merges the result with the order's own
      * fields into a single {@link ClassificationResult} that {@link #decide}
      * can act on without needing the original order again.

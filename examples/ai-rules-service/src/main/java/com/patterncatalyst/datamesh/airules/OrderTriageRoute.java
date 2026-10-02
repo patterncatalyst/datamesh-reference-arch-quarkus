@@ -8,7 +8,7 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
 
 /**
- * DRQ-012/DRQ-014 showcase: two REST endpoints orchestrate the exact same
+ * Showcase: two REST endpoints orchestrate the exact same
  * classify-then-decide logic ({@link TriageService}) two different ways, as
  * an A/B contrast:
  *
@@ -27,8 +27,8 @@ import org.apache.camel.model.dataformat.JsonLibrary;
  *
  * <p>Because both paths delegate to the same {@link TriageService} bean --
  * and Drools (not the LLM, and not a langchain4j tool-calling round trip)
- * makes the decision in both -- neither path can regress into DEF-001; see
- * this module's README and {@code _plans/decisions.md}.
+ * makes the decision in both -- neither path can regress into the tool-calling
+ * limitation; see this module's README.
  */
 @ApplicationScoped
 public class OrderTriageRoute extends RouteBuilder {

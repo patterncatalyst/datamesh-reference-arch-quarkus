@@ -101,7 +101,7 @@
            InventoryCheckStockWireIT) are compiled by test-compile but
            failsafe never runs them under `mvn verify`. Bind
            integration-test+verify explicitly here, mirroring
-           order-service/pom.xml's identical binding (DRQ-011). No Avro
+           order-service/pom.xml's identical binding. No Avro
            SERIALIZABLE_PACKAGES system property is needed here, unlike
            order-service's binding: inventory-service's IT drives a plain
            io.grpc ManagedChannel/blocking stub against the packaged
@@ -119,7 +119,7 @@
                  Olson zone (e.g. US/Eastern) as the connection TimeZone,
                  which postgres:18 rejects ("FATAL: invalid value for
                  parameter TimeZone"), so Hibernate can't connect and the app
-                 fails to start (DRQ-011). quarkus.test.arg-line forwards the
+                 fails to start. quarkus.test.arg-line forwards the
                  JVM arg to the launched integration-test process. -->
             <quarkus.test.arg-line>-Duser.timezone=UTC</quarkus.test.arg-line>
           </systemPropertyVariables>

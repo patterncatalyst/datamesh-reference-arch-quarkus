@@ -10,7 +10,7 @@ import capstone.payment.v1.PaymentCaptured;
 /**
  * Minimal, real in-memory record of captured payments, keyed by the
  * generated payment id. This is bookkeeping only -- it is not a database and
- * is not the point of this module; the required, "real" part of DRQ-010 is
+ * is not the point of this module; the required, "real" part is
  * the Kafka/Avro choreography in {@link PaymentProcessor}. Kept deliberately
  * small: a thread-safe map, nothing more.
  *

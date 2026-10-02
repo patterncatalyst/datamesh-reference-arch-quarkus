@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# demos/demo-reactive-vertx.sh — Phase D step 10.6 "compose (infra baseline)"
+# demos/demo-reactive-vertx.sh — "compose (infra baseline)"
 # demo: Vert.x unified reactive + imperative, inside ONE Quarkus app
 # (inventory-service).
 #
@@ -73,11 +73,11 @@ GRPC_PORT=9000
 BASE_URL="http://localhost:${HTTP_PORT}"
 GRPC_ADDR="localhost:${GRPC_PORT}"
 
-narrate "inventory-service exposes ONE 'stock' table through two execution"
+narrate "inventory-service exposes one 'stock' table through two execution"
 narrate "models on the same Vert.x reactor: a reactive Mutiny Uni<...> gRPC"
 narrate "endpoint (InventoryGrpcService.checkStock) and a classic imperative"
 narrate "JAX-RS+Panache REST endpoint (StockResource) -- this demo exercises"
-narrate "both independently AND concurrently against the same running process."
+narrate "both independently and concurrently against the same running process."
 
 step "preflight: docker daemon reachable (Dev Services needs it)"
 docker info >/dev/null 2>&1 \
@@ -124,32 +124,32 @@ grpc_check_stock() {
 }
 
 # ─── Part 1: reactive and imperative paths compute DIFFERENT answers ───────
-step "REACTIVE gRPC CheckStock (Mutiny Uni<CheckStockResponse>) -- sufficient stock"
+step "Reactive gRPC CheckStock (Mutiny Uni<CheckStockResponse>) -- sufficient stock"
 G1="$(grpc_check_stock WIDGET-1 10)" || fail "gRPC CheckStock(WIDGET-1, 10) failed"
 info "CheckStock(WIDGET-1, qty=10): $G1"
 assert_json_field "$G1" '.available // false' 'true'
 assert_json_field "$G1" '.quantityOnHand // 0' '50'
 narrate "confirmed: reactive gRPC endpoint reports WIDGET-1 available for a request of 10 (50 on hand)"
 
-step "REACTIVE gRPC CheckStock -- INSUFFICIENT stock (request > on-hand)"
+step "Reactive gRPC CheckStock -- insufficient stock (request > on-hand)"
 G2="$(grpc_check_stock WIDGET-2 100)" || fail "gRPC CheckStock(WIDGET-2, 100) failed"
 info "CheckStock(WIDGET-2, qty=100): $G2"
 assert_json_field "$G2" '.available // false' 'false'
 assert_json_field "$G2" '.quantityOnHand // 0' '3'
 narrate "confirmed: reactive gRPC endpoint reports available=false when the request (100) exceeds on-hand (3)"
 
-step "IMPERATIVE REST GET /stock/WIDGET-2 -- the SAME row, the OTHER (static) availability rule"
+step "Imperative REST GET /stock/WIDGET-2 -- the same row, the other (static) availability rule"
 R2="$(curl -fsS --max-time 10 "${BASE_URL}/stock/WIDGET-2")" || fail "GET /stock/WIDGET-2 failed"
 info "GET /stock/WIDGET-2: $R2"
 assert_json_field "$R2" '.sku' 'WIDGET-2'
 assert_json_field "$R2" '.available' 'true'
 assert_json_field "$R2" '.quantityOnHand' '3'
-narrate "confirmed: REST's static snapshot (available = qty>0) says WIDGET-2 IS available, while the"
+narrate "confirmed: REST's static snapshot (available = qty>0) says WIDGET-2 is available, while the"
 narrate "reactive gRPC path just said available=false for a request of 100 -- two real, independently"
 narrate "computed answers against the same row, from two different execution models in one app"
 
 # ─── Part 2: concurrent reactive + imperative traffic, same process ───────
-step "fire 3 reactive gRPC calls + 3 imperative REST calls CONCURRENTLY, assert each is correct"
+step "fire 3 reactive gRPC calls + 3 imperative REST calls concurrently, assert each is correct"
 CONC_DIR="$(mktemp -d -t demo-reactive-vertx-conc-XXXXXX)"
 CONC_START=$(date +%s%N)
 
@@ -185,7 +185,7 @@ jq -e 'map(.sku) | sort == ["GADGET-1","WIDGET-1","WIDGET-2"]' "${CONC_DIR}/r-li
     || fail "concurrent REST list did not contain exactly the 3 seeded SKUs: $(cat "${CONC_DIR}/r-list.json")"
 
 rm -rf "$CONC_DIR"
-narrate "confirmed: 3 reactive (Mutiny gRPC) + 3 imperative (REST/Panache) calls run CONCURRENTLY"
+narrate "confirmed: 3 reactive (Mutiny gRPC) + 3 imperative (REST/Panache) calls run concurrently"
 narrate "against the same inventory-service process each returned its own correct, uncorrupted"
 narrate "result (${CONC_MS}ms wall clock for all 6) -- the unified Vert.x reactor serves both"
 narrate "execution models side by side without them interfering with each other"
