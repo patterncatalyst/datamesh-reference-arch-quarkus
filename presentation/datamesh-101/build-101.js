@@ -149,7 +149,7 @@ diagramSlide({
 
 /* ============================ 16 · FITNESS ============================ */
 contentSlide({
-  eyebrow: "An honest caveat",
+  eyebrow: "Choosing a pattern",
   title: "When each pattern fits",
   bullets: [
     { text: "The choice depends on scale, data landscape, and where the bottleneck sits — not on which pattern is newest. A data mesh is not always the answer." },
@@ -160,7 +160,7 @@ contentSlide({
     { head: true, text: "Lake" },
     { text: "Heterogeneous data, ML/AI workloads, scale that exceeds what a warehouse handles. The bottleneck is format rigidity, not ownership.", lvl: 1 },
     { head: true, text: "Mesh" },
-    { text: "Many domains, many consumers, and a central team has become the constraint — and the organization has the maturity to operate federated ownership.", color: C.ink },
+    { text: "Many domains, many consumers, and a central team has become the constraint — and the organization has the maturity to operate federated ownership.", lvl: 1, color: C.ink },
   ],
   notes: "Not every organization needs a mesh, and telling people when not to use one builds more credibility than pitching it unconditionally. The question to ask is whether the bottleneck is technical — better tools solve it — or organizational — who owns what. Pipelines still fit when the plumbing is simple. A warehouse still fits when the real need is a single governed source of truth and a central team can keep up. A lake still fits when the problem is format flexibility, not ownership. The mesh fits specifically when the organization has outgrown centralized ownership — many domains, many consumers, a central team as the constraint — and has the organizational maturity to operate domain teams that treat data as a product and a platform team that can run self-serve infrastructure. Pick the pattern that matches your actual bottleneck.",
 });
@@ -170,7 +170,7 @@ contentSlide({
   const s = divider({
     num: "→",
     title: "Go deeper: the 201",
-    sub: "Orchestration styles in full depth, the Quarkus-vs-Spring-Boot numbers, contracts and the catalog, progressive delivery, autoscaling, and observability.",
+    sub: "Orchestration styles, Quarkus vs. Spring Boot, contracts and the catalog, progressive delivery, autoscaling, and observability.",
   });
   s.addNotes("That's the 101: the landscape that led to data mesh, the four principles that define it, and why Quarkus and Kubernetes are a natural pairing for building one. The 201 goes deep on everything we only teased here — the full choreography-versus-orchestration comparison across Kafka, Camel, and Quarkus Flow; the Quarkus-vs-Spring-Boot side-by-side on startup time, memory, and native builds; contracts and the schema catalog; progressive delivery with mutual TLS; elastic autoscaling with KEDA; and the observability stack tying it all together. The reference repository is patterncatalyst/datamesh-reference-arch-quarkus — it's unpublished pending approval, but that's the name to look for. Thanks — happy to take questions.");
 })();
