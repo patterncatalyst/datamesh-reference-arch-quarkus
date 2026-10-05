@@ -13,17 +13,17 @@ Branch: `docs/professional-content-pass`. Relay: Opus plan → Sonnet execute �
 | Step | Owner files | Wave | Status |
 |------|-------------|------|--------|
 | P  | this plan | 0 | done |
-| A  | `scripts/make-quarkus-diagrams.js`, new `scripts/make-appendix-diagrams.js`, figures 11,13,15–18,20,21 + new 16-websocket-failover, 20-vertx-in-memory, 20-kafka-messaging | 1 | pending |
-| B  | new `scripts/make-capability-diagrams.js`, figures 11-panache-patterns, 11-uni-vs-imperative, 11-websockets-next, 11-jbang-tooling, 11-startup-paths, 11-panama-ffm, 11-oidc-token-flow | 1 | pending |
-| C  | hand-coded / python-sourced SVGs (01-monolith-to-mesh, 02-capstone-data-mesh, 02-principles-to-pieces, 10-value-*, 05/06/07/08 scan), `assets/diagrams/README.md` | 1 | pending |
-| D  | new `demos/demo-panama.sh`, `demos/jbang/PanamaFfm.java`, `demos/walkthrough.sh`, `demos/README.md`, `demos.html`, `README.md` | 1 | pending |
-| E  | `scripts/compare-quarkus-springboot.sh` (`--aot`), `_docs/12-quarkus-vs-spring-boot.md` | 1 | pending |
-| S1 | `_docs/00`–`05` (incl. both `01-*`), `_parts/foundations.md`, `_parts/data-products.md` | 1 | pending |
-| S2 | `_docs/06`–`10`, `_parts/operating-the-mesh.md`, `_parts/lessons-and-close.md` | 1 | pending |
-| S3 | `_docs/16`–`21`, `_parts/appendices.md` | 1 | pending |
-| S4 | `index.html`, `setup.html`, `_includes/*`, `demos/demo-*.sh` (except panama), `examples/order-service/README.md`, `k8s/keda/README.md` | 1 | pending |
-| S5 | `_docs/11`, `_docs/13`, `_docs/14`, `_parts/quarkus-deep-dive.md`, `_plans/reconciliation.md` | 2 | pending |
-| F1 | both `deck-lib.js` (identical), `build-deck.js`, `build-101.js`, `presentation/README.md`, pptx r1.1 | 2 | pending |
+| A  | `scripts/make-quarkus-diagrams.js`, new `scripts/make-appendix-diagrams.js`, figures 11,13,15–18,20,21 + new 16-websocket-failover, 20-vertx-in-memory, 20-kafka-messaging | 1 | done (3d97e38) |
+| B  | new `scripts/make-capability-diagrams.js`, figures 11-panache-patterns, 11-uni-vs-imperative, 11-websockets-next, 11-jbang-tooling, 11-startup-paths, 11-panama-ffm, 11-oidc-token-flow | 1 | done (8002cb1) |
+| C  | hand-coded / python-sourced SVGs (01-monolith-to-mesh, 02-capstone-data-mesh, 02-principles-to-pieces, 10-value-*, 05/06/07/08 scan), `assets/diagrams/README.md` | 1 | done (ab62c4e) |
+| D  | new `demos/demo-panama.sh`, `demos/jbang/PanamaFfm.java`, `demos/walkthrough.sh`, `demos/README.md`, `demos.html`, `README.md` | 1 | done (c80f512) |
+| E  | `scripts/compare-quarkus-springboot.sh` (`--aot`), `_docs/12-quarkus-vs-spring-boot.md` | 1 | done (828ce7e, a539cfc) |
+| S1 | `_docs/00`–`05` (incl. both `01-*`), `_parts/foundations.md`, `_parts/data-products.md` | 1 | done (0213bde) |
+| S2 | `_docs/06`–`10`, `_parts/operating-the-mesh.md`, `_parts/lessons-and-close.md` | 1 | done (70b76ce) |
+| S3 | `_docs/16`–`21`, `_parts/appendices.md` | 1 | done (3ae8545) |
+| S4 | `index.html`, `setup.html`, `_includes/*`, `demos/demo-*.sh` (except panama), `examples/order-service/README.md`, `k8s/keda/README.md` | 1 | done (c3133d1, 5ae441a) |
+| S5 | `_docs/11`, `_docs/13`, `_docs/14`, `_parts/quarkus-deep-dive.md`, `_plans/reconciliation.md` | 2 | in progress |
+| F1 | both `deck-lib.js` (identical), `build-deck.js`, `build-101.js`, `presentation/README.md`, pptx r1.1 | 2 | in progress |
 | F2 | build + visual QA + acceptance checks + PR | 3 | pending |
 | V  | Opus validation against acceptance criteria | 3 | pending |
 
@@ -225,3 +225,10 @@ Run from repo root inside `bash -c`.
 - Parallel executors + git → `index.lock`; only coordinator commits. zsh globbing — use `bash -c`.
 - Jekyll docker build depends on Gemfile.lock platforms; CI is the fallback gate.
 - Over-correction: remove R1 outright; judge R2 case by case.
+
+## Wave 1 results (for wave 2)
+
+- Panama demo real output (JDK 25.0.3, jbang 0.138.0): `PANAMA_GETPID=867684 JVM_PID=867684`, `PANAMA_STRLEN=31 JAVA_LENGTH=31` (test string `"data mesh on Quarkus — héllo"`; strlen counts UTF-8 bytes).
+- AOT results (Temurin 25.0.3, 2026-10-05, single run, `--aot`): startup self-reported Quarkus 2.045 s → 0.992 s, Spring 4.018 s → 1.021 s; wall 2.22 → 1.21 s, 4.45 → 1.21 s; RSS Quarkus 337 → 372 MB, Spring 548 → 446 MB; cache 103 MB / 123 MB.
+- Coordinator touch-ups: capability-tour band no longer claims "one JVM" (native is in the set); fig 15/18 "real diff/real build" wording; fig 18 canvas trimmed.
+- KEDA demo headers: stale AUTHOR-ONLY block replaced; kafka-lag marked verified (5885b28), HTTP add-on unverified.
