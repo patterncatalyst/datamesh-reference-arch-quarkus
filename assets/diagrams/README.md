@@ -40,6 +40,27 @@ The include automatically:
 - Includes a "Download Excalidraw source" link pointing at the
   matching `.excalidraw` file
 
+## Generator scripts
+
+Most figures are generated from JavaScript specs in `scripts/`. Edit the
+spec and re-run the script; each run rewrites the `.svg` and
+`.excalidraw` pair together. Run from the repository root:
+
+```bash
+node scripts/make-quarkus-diagrams.js      # 11-capability-tour, 12 through 21
+node scripts/make-capability-diagrams.js   # 11-panache-patterns, 11-uni-vs-imperative,
+                                           # 11-websockets-next, 11-jbang-tooling,
+                                           # 11-startup-paths, 11-panama-ffm,
+                                           # 11-oidc-token-flow
+node scripts/make-appendix-diagrams.js     # 16-websocket-failover, 20-vertx-in-memory,
+                                           # 20-kafka-messaging
+```
+
+The scripts share the palette and helpers in `scripts/svglib.js`. Do not
+hand-edit a generated `.svg` or `.excalidraw`; the next run overwrites it.
+Figures that are not listed here come from the earlier Python generator or
+are hand-coded (see below).
+
 ## Editing a diagram
 
 1. Open https://excalidraw.com

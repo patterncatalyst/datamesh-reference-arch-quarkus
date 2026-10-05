@@ -17,11 +17,13 @@ It serves two purposes at once:
    as a product, self-serve platform, federated computational governance)
    — as a running system, with contracts, a catalog, progressive delivery,
    event-driven autoscaling, and full observability.
-2. **A Quarkus showroom.** The same services exercise Panache, gRPC,
-   GraphQL, Reactive Messaging, Camel-on-Quarkus, langchain4j/MCP,
-   WebSockets.Next, OIDC, and Vert.x reactive execution — with a
+2. **Quarkus capabilities in practice.** The same services exercise Panache,
+   gRPC, GraphQL, Reactive Messaging, Camel-on-Quarkus, langchain4j/MCP,
+   WebSockets.Next, Vert.x reactive and imperative execution, continuous
+   testing and Dev Services, native image, the JDK AOT cache (Leyden), OIDC,
+   JBang, and Panama FFM — with a
    runnable Spring Boot twin service (`examples/spring-boot-compare`) for
-   a real side-by-side JVM comparison.
+   a side-by-side JVM comparison.
 
 ## Architecture at a glance
 
@@ -39,12 +41,12 @@ into one composed query surface.
 | Quarkus Flow orchestration | a declarative workflow document | `ai-rules-service` (`POST /api/orders/triage-flow`) |
 
 **Substrate:** a local Docker Compose stack (Postgres, Kafka, Apicurio,
-the Grafana LGTM observability stack) for day-to-day dev, plus a minikube
+the Grafana LGTM observability stack) for day-to-day dev, plus a local Kubernetes
 cluster with Istio, KEDA, Strimzi (Kafka operator), and CloudNativePG
 (Postgres operator) for the Kubernetes-native demos — see `k8s/` and
 `scripts/bootstrap.sh`.
 
-![Capstone data mesh architecture](assets/diagrams/02-capstone-data-mesh.svg)
+![Data mesh reference architecture](assets/diagrams/02-capstone-data-mesh.svg)
 
 ## Quickstart
 
@@ -55,7 +57,7 @@ docker compose up -d          # Postgres, Kafka, Apicurio, LGTM observability
 ```
 
 See [`demos/README.md`](demos/README.md) for the full demo-by-demo matrix
-(18 `demo-*.sh` scripts, grouped by infra tier and opt-in profile), and the
+(19 `demo-*.sh` scripts, grouped by infra tier and opt-in profile), and the
 site's [demos & examples](https://patterncatalyst.github.io/datamesh-reference-arch-quarkus/demos/)
 page for the same content by data-mesh principle.
 
@@ -92,9 +94,9 @@ examples/        — runnable services (order, inventory, payment, shipping,
                     ai-rules-service, domain-model, contracts) built via
                     mvn verify -f examples/pom.xml, plus the standalone
                     spring-boot-compare twin service
-demos/           — 18 demo-*.sh scripts + walkthrough.sh, one per capability
+demos/           — 19 demo-*.sh scripts + walkthrough.sh, one per capability
 tooling/         — Newman/Postman API collection + hey/ghz load scripts
-k8s/             — kustomize manifests for the minikube substrate
+k8s/             — kustomize manifests for the local Kubernetes cluster
 scripts/         — bootstrap/setup/teardown scripts for the local stack
 assets/diagrams/ — paired SVG + Excalidraw architecture diagrams
 presentation/    — the 101 and 201 decks (pptxgenjs)

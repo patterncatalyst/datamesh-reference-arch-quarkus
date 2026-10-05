@@ -49,18 +49,17 @@ whole family at 1.11.0 (a brief 1.14.1 experiment required a forced
 `dev.langchain4j-bom:1.20.2` to converge a split core/ollama graph and is not
 used). The `OllamaChatModel` / `Agent` / `AgentConfiguration` /
 `AgentWithoutMemory` APIs this module uses are stable across these versions and
-compile as-is. See `../pom.xml` for the load-bearing BOM import order and
+compile as-is. See `../pom.xml` for the BOM import order, which matters, and
 the repo root for the version matrix.
 
 ## Known limitation: Ollama tool calling does not fire on this stack
 
-The behavioral test `OrderAssistantRouteIT` asserts the agent actually invokes
+The behavioral test `OrderAssistantRouteIT` asserts the agent invokes
 the `order-status` ai-tool (a non-empty `CamelLangChain4jAgentToolExecutions`
 header). **It currently fails**: the model answers in a single round trip and
 the `order-lookup-tool` route is never called.
 
-After exhaustive diagnosis this is an **upstream integration issue, not a bug in
-this module**. `camel-quarkus-support-langchain4j` unconditionally enforces the
+This is an **upstream integration issue**, not a bug in this module. `camel-quarkus-support-langchain4j` unconditionally enforces the
 Quarkiverse JAX-RS HTTP client factory globally
 (`SupportQuarkusLangchain4jProcessor.enforceJaxRsHttpClient()` →
 `langchain4j.http.clientBuilderFactory` system property), so the hand-built
@@ -101,10 +100,10 @@ curl -X POST http://localhost:8088/api/assistant/chat \
   **not** call `langchain4j-chat` or `langchain4j-agent`, so it needs no LLM.
 - `OrderAssistantRouteIT` (`*IT`, **not** picked up by Surefire's default
   include patterns, and additionally gated behind `-Dollama.tests.enabled=true`)
-  — the real behavioral test. It sends a question about `ORD-001` to
+  — the behavioral test. It sends a question about `ORD-001` to
   `direct:assistant-chat` via `ProducerTemplate` and asserts the
   `CamelLangChain4jAgentToolExecutions` exchange header is present and non-empty.
-  A non-empty response body is deliberately **not** treated as proof of tool
+  A non-empty response body is not treated as proof of tool
   calling. **This test currently fails — see the limitation above.** It is opt-in and
   not part of the default build:
 

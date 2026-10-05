@@ -23,14 +23,14 @@
 #        REST does) to every open connection.
 #   EDIT examples/notification-service/pom.xml
 #        Adds the `quarkus-websockets-next` extension dependency (not
-#        previously used ANYWHERE in this reactor — confirmed by grepping
+#        previously used anywhere in this project — confirmed by grepping
 #        every examples/*/pom.xml for "websockets" before starting).
 #
 # This demo rides the SAME real pipeline demo-order.sh/demo-kafka.sh already
 # prove (order-service -> inventory-service gRPC -> Postgres -> Avro/Kafka
 # publish -> Apicurio), with notification-service added as a THIRD packaged
 # service consuming that same order.placed event — so the WebSocket push
-# this demo asserts is driven by a genuine, already-proven, cross-service,
+# this demo asserts is driven by an already-proven, cross-service,
 # at-least-once Kafka event, not a synthetic/local trigger.
 #
 # ── Real WS client: plain JDK java.net.http.WebSocket via jbang ────────────
@@ -60,7 +60,7 @@
 # capstone.order.v1 or every order.placed publish throws (Avro 1.12.x's
 # ClassSecurityValidator — see demo-order.sh's header comment for the full
 # trace). What's NEW here: notification-service (the consumer, and the only
-# service in this reactor that actually DESERIALIZES OrderPlaced back into a
+# service in this project that DESERIALIZES OrderPlaced back into a
 # capstone.order.v1.OrderPlaced SpecificRecord) needs the IDENTICAL system
 # property on its own packaged JVM for the SAME reason — confirmed
 # empirically: without it, every poll fails with "java.lang.SecurityException:
@@ -69,7 +69,7 @@
 # pushed over the WebSocket, even though order-service's publish itself
 # succeeds. This is a second, previously-undetected instance of the same
 # production-readiness gap already named for the producer side — worth
-# flagging upstream for every %prod Avro consumer in this reactor, not
+# flagging upstream for every %prod Avro consumer in this project, not
 # just the ones already covered by an existing demo/IT.
 #
 # ── Port plan ────────────────────────────────────────────────────────────

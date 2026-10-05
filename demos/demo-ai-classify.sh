@@ -10,7 +10,7 @@
 # / OrderAssistantRoute, neither of which this demo touches).
 #
 # BUG FOUND + FIXED (uncommitted) while wiring this demo:
-# OrderClassifierRoute.java set a header literally named
+# OrderClassifierRoute.java set a header named
 # "CamelLangChain4jChatPrompt" (missing the "Template" suffix) and never
 # switched the langchain4j-chat endpoint off its default CHAT_SINGLE_MESSAGE
 # operation. Per the camel-mcp catalog (camel_catalog_component_doc
@@ -114,8 +114,7 @@ info "ai-mcp-service is listening on ${PORT}"
 # model and occasionally emits a value outside the documented enum for those
 # two fields, e.g. "NORMAL" for priority -- so this demo asserts category
 # strictly and only checks priority/fulfillmentType for presence, not exact
-# enum membership, to stay honest about what is and isn't deterministic
-# here).
+# enum membership, since only the category is deterministic).
 classify_post() {
     local body="$1"
     curl -sS --max-time 90 -X POST "${BASE_URL}/api/orders/classify" \

@@ -1,14 +1,14 @@
 # k8s — kustomize app manifests
 
-Step 9b of the minikube substrate. This directory holds the **application** manifests (order-service,
-notification-service, graphql-gateway) that run on top of the substrate
-step 9a's `scripts/bootstrap.sh` brings up (Istio, KEDA, Strimzi/Kafka,
-CloudNativePG/Postgres, Apicurio — all in the `datamesh` namespace, except
-LGTM which lives in `observability`).
+Application manifests (order-service, notification-service, graphql-gateway)
+for a local single-node Kubernetes cluster (`minikube`). They run on the
+platform that `scripts/bootstrap.sh` brings up: Istio, KEDA, Strimzi/Kafka,
+CloudNativePG/Postgres and Apicurio in the `datamesh` namespace, and LGTM in
+`observability`.
 
-KEDA `ScaledObject`s (Kafka-lag on notification-service, HTTP on
-graphql-gateway) are step 9c's job, not this one — this step only ships the
-Deployments/Services they will target.
+The KEDA `ScaledObject`s (Kafka lag on notification-service, HTTP on
+graphql-gateway) live in `k8s/keda`. This directory ships the
+Deployments and Services they target.
 
 ## Layout
 
@@ -17,19 +17,19 @@ k8s/
   base/
     config.yaml                # ConfigMap: shared %prod env contract
     order-service.yaml         # Deployment + Service (producer)
-    notification-service.yaml  # Deployment + Service (Kafka-lag consumer, KEDA target in 9c)
-    graphql-gateway.yaml       # Deployment + Service (HTTP scale target in 9c)
+    notification-service.yaml  # Deployment + Service (Kafka-lag consumer, KEDA target)
+    graphql-gateway.yaml       # Deployment + Service (HTTP scale target)
     kustomization.yaml
   overlays/
     minikube/
       kustomization.yaml       # ../../base + image tags, no registry
 ```
 
-## Build images into minikube's own Docker daemon (no registry)
+## Build images into the cluster's Docker daemon (no registry)
 
-Images are built locally straight into minikube's Docker daemon —
-there is no image registry in this stack. From the repo root, with the
-minikube profile (`datamesh`) already running:
+Images are built directly into the cluster's Docker daemon; this stack has
+no image registry. From the repo root, with the `minikube` profile
+(`datamesh`) running:
 
 ```bash
 eval $(minikube docker-env -p datamesh)
@@ -44,20 +44,18 @@ docker build -f examples/graphql-gateway/src/main/docker/Containerfile.multistag
   -t datamesh/graphql-gateway:latest .
 ```
 
-Build context is the **repo root** for all three (not `examples/<svc>`) —
+The build context is the **repo root** for all three, not `examples/<svc>`:
 each Containerfile's builder stage copies the whole `examples/` Maven
-reactor so `domain-model` and `contracts` resolve as reactor dependencies
+reactor so `domain-model` and `contracts` resolve as reactor modules
 (see the comment block at the top of each `Containerfile.multistage`).
 
-Because `eval $(minikube docker-env)` points your shell's `docker` CLI at
-the VM's own Docker daemon, the image lands directly in the place the
-kubelet looks. Every Deployment in `k8s/base/*.yaml` sets
-`imagePullPolicy: IfNotPresent`, and the image names
-(`datamesh/order-service`, etc.) carry no registry host — so as long as the
-exact `name:tag` already exists in that daemon, the kubelet never attempts
-an external pull. Rebuilding with the same tag (`latest`) and then doing
-`kubectl rollout restart deployment/<svc> -n datamesh` is the update loop
-until 9c/9d wire up anything fancier.
+`eval $(minikube docker-env)` points the shell's `docker` CLI at the
+cluster node's Docker daemon, so the image lands where the kubelet looks.
+Every Deployment in `k8s/base/*.yaml` sets `imagePullPolicy: IfNotPresent`
+and the image names (`datamesh/order-service`, etc.) carry no registry host,
+so as long as the exact `name:tag` exists in that daemon the kubelet never
+pulls externally. The update loop is to rebuild with the same tag (`latest`)
+and run `kubectl rollout restart deployment/<svc> -n datamesh`.
 
 ## Apply
 
@@ -66,17 +64,17 @@ kubectl apply -k k8s/overlays/minikube
 ```
 
 Rendering was verified with `kubectl kustomize k8s/overlays/minikube`
-(kustomize v5.7.1, bundled in kubectl v1.35.3) — no cluster required for
-that check, it's pure manifest templating.
+(kustomize v5.7.1, bundled in kubectl v1.35.3). The check is client-side
+templating and needs no cluster.
 
 ## Env contract
 
 All three Deployments pull the shared, non-secret env vars from the
 `datamesh-app-config` ConfigMap (`k8s/base/config.yaml`) via `envFrom`. The
-values are the **actual in-cluster service DNS names emitted by step 9a's
-scripts**, not invented ones:
+values are the in-cluster service DNS names created by the platform setup
+scripts:
 
-| Env var | Value | Source (9a script) |
+| Env var | Value | Source script |
 |---|---|---|
 | `KAFKA_BOOTSTRAP_SERVERS` | `datamesh-kafka-bootstrap.datamesh.svc.cluster.local:9092` | `scripts/setup-kafka-operator.sh` (Kafka CR name `datamesh` → Strimzi Service `<name>-kafka-bootstrap`) |
 | `APICURIO_REGISTRY_URL` | `http://apicurio.datamesh.svc.cluster.local:8080/apis/registry/v3` | `scripts/setup-apicurio.sh` (Service `apicurio`, v3 API) |
@@ -84,72 +82,68 @@ scripts**, not invented ones:
 | `JAVA_OPTS_APPEND` | `-Duser.timezone=UTC` | UTC convention (the postgres timezone fix) |
 | `QUARKUS_PROFILE` | `prod` | production profile |
 
-`KAFKA_BOOTSTRAP_SERVERS` and `APICURIO_REGISTRY_URL` work with **zero**
-`application.properties` changes — they land on Quarkus's own
+`KAFKA_BOOTSTRAP_SERVERS` and `APICURIO_REGISTRY_URL` need no
+`application.properties` changes; they land on Quarkus's own
 `kafka.bootstrap.servers` and `apicurio.registry.url` config keys via
 relaxed env-var binding. `QUARKUS_DATASOURCE_JDBC_URL` likewise needs no
-properties change (it's a first-class Quarkus datasource property). `JDBC_URL`
-is also set, matching the literal env-var name the services' `application.properties` expect, and is
+properties change (it is a first-class Quarkus datasource property). `JDBC_URL`
+is also set, matching the env-var name the services' `application.properties` expect, and is
 wired in both `order-service`'s and `notification-service`'s
 `application.properties` (`%prod.quarkus.datasource.jdbc.url=${JDBC_URL:...}`,
 `order-service` line 51 / `notification-service` line 36), so the ConfigMap
-value takes effect against the real `%prod` datasource with no further
-follow-up needed.
+value takes effect against the `%prod` datasource.
 
 **DB username/password** come from the **CloudNativePG-managed Secret**
 `datamesh-postgres-app` (auto-created in the `datamesh` namespace by the
 `Cluster` CR in `scripts/setup-postgres-operator.sh`'s `bootstrap.initdb`,
 keys `username`/`password`/... ) — referenced directly via `secretKeyRef` in
-each Deployment. `k8s/base/config.yaml` deliberately does **not** mint a
+each Deployment. `k8s/base/config.yaml` does **not** define a
 second Secret with a copy of those credentials: CNPG owns and rotates that
-Secret, and a hand-authored duplicate would either need a guessed password
-or create two conflicting sources of truth for the same identity. See the
-comment block at the top of `config.yaml` for the full rationale.
+Secret, and a hand-authored duplicate would need a guessed password
+or create two sources of truth for the same identity. See the
+comment block at the top of `config.yaml`.
 
 ## Namespace
 
 Everything in `k8s/base` targets `datamesh` — both via explicit
 `metadata.namespace` on each resource and via `kustomization.yaml`'s
 `namespace: datamesh` transformer (matches `NS="datamesh"` in
-`scripts/bootstrap.sh` and all three step-9a setup scripts).
+`scripts/bootstrap.sh` and the platform setup scripts).
 
 ## Mesh (Istio) decision
 
-Istio + Kiali are installed cluster-wide by 9a but the `datamesh` namespace
-is **not** labeled for sidecar auto-injection (9a's own design — per-
-Deployment opt-in, not namespace-wide). None of these three Deployments
-carry the `sidecar.istio.io/inject: "true"` pod **label**, so **none of
-them are in the mesh** for this stage. This is the deliberate default per the
-task brief: keep this stage simple, defer the mesh demo to a later phase.
+Istio and Kiali are installed cluster-wide, but the `datamesh` namespace
+is **not** labeled for sidecar auto-injection; membership is a per-Deployment
+opt-in. None of these three Deployments carry the
+`sidecar.istio.io/inject: "true"` pod **label**, so none of them are in the
+mesh in the base configuration. The mesh is added by the `k8s/istio` overlay.
 
 Opt-in is a pod-template **label**, not an annotation: Istio's
 sidecar-injection `MutatingWebhookConfiguration` matches pods via an
 `objectSelector` (`sidecar.istio.io/inject In ["true"]`), and a webhook
 `objectSelector` is evaluated against the pod's labels, never its
 annotations — so in this unlabeled namespace, an annotation of the same key
-silently injects nothing (confirmed live on the cluster). `k8s/istio/` is
+silently injects nothing (confirmed on the cluster). `k8s/istio/` is
 the overlay that adds that label to these three Deployments —
-`kubectl apply -k k8s/istio` — without editing `k8s/base` itself (remember:
-Istio 1.29+ injects as a native `initContainer`, so mesh-membership checks
+`kubectl apply -k k8s/istio` — without editing `k8s/base` itself (Istio 1.29+ injects as a native `initContainer`, so mesh-membership checks
 must look at `.spec.initContainers`, not `.spec.containers` — see the
 `lgtm-minikube-stack` skill's `known-issues.md`). That same overlay also
 ships the namespace-wide `PeerAuthentication` (STRICT mTLS) and the
 `order-service` v1/v2 canary (`DestinationRule`/`VirtualService` +
 `order-service-v2` Deployment) — see `k8s/istio/README.md`.
 
-## replicas vs. KEDA (9c)
+## Replicas and KEDA
 
-All three Deployments ship with `replicas: 1` in base — including
-notification-service. KEDA is not wired up yet (that's step 9c); setting
-`replicas: 0` now would leave the substrate with a dead consumer until 9c
-lands. Once 9c's `ScaledObject` (Kafka-lag trigger, `minReplicaCount: 0`)
-is applied, the HPA it creates takes over notification-service's replica
-count and this field becomes advisory.
+All three Deployments ship with `replicas: 1` in base, including
+notification-service. Without KEDA applied, `replicas: 0` would leave a
+dead consumer. Once the `ScaledObject` (Kafka-lag trigger,
+`minReplicaCount: 0`) is applied, the HPA it creates takes over
+notification-service's replica count and this field becomes advisory.
 
 ## Health probes
 
 `order-service` and `notification-service` both depend on
-`quarkus-smallrye-health` (confirmed in their `pom.xml`s), so they get real
+`quarkus-smallrye-health` (confirmed in their `pom.xml`s), so they get
 `startupProbe` (`/q/health/started`), `readinessProbe`
 (`/q/health/ready`), and `livenessProbe` (`/q/health/live`) checks.
 
@@ -157,14 +151,13 @@ count and this field becomes advisory.
 `examples/graphql-gateway/pom.xml`: only `quarkus-smallrye-graphql`,
 `quarkus-rest-client[-jackson]`, `quarkus-grpc`, `quarkus-arc`,
 `domain-model`, `contracts`) — `/q/health/*` would 404 there, so its probes
-use `tcpSocket` on the HTTP port instead. This is a weaker check (proves the
-HTTP listener is up, not that GraphQL execution works) and is called out as
-an unmet acceptance criterion in the handback report. Recommended follow-up:
+use `tcpSocket` on the HTTP port instead. This is a weaker check: it proves
+the HTTP listener is up, not that GraphQL execution works. The fix is to
 add `quarkus-smallrye-health` to `examples/graphql-gateway/pom.xml` and
-switch back to `httpGet` probes on `/q/health/*` — left undone here because
-it's a Java/pom.xml change outside a manifests-only step.
+switch to `httpGet` probes on `/q/health/*`; that is a `pom.xml` change
+outside this manifests directory.
 
-## Resource sizing (single-node minikube)
+## Resource sizing (single-node cluster)
 
 | Service | requests | limits |
 |---|---|---|

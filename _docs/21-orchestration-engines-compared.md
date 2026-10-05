@@ -2,31 +2,27 @@
 title: "Appendix: the three orchestration engines, compared in depth"
 order: 21
 part: Appendices
-description: "A deeper, dimension-by-dimension comparison of Kafka choreography, Camel orchestration, and Quarkus Flow orchestration over the same order-triage domain — coupling, failure handling, debuggability, where logic lives, testing, and operational cost."
+description: "Kafka choreography, Camel orchestration, and Quarkus Flow orchestration compared over the same order-triage domain: coupling, failure handling, debuggability, where logic lives, testing, and operational cost."
 duration: 40 minutes
 marker: "21"
 ---
 
-[Chapter 13]({{ '/docs/13-orchestration-styles/' | relative_url }}) introduced the vocabulary:
+[Chapter 13]({{ '/docs/13-orchestration-styles/' | relative_url }}) introduced the terms:
 **choreography** (Kafka — no coordinator, every participant reacts on its
 own) versus **orchestration** (Camel and Quarkus Flow — a single component
 sequences the steps), and showed that two things can both be
 "orchestration" while disagreeing sharply on whether that sequence is
-written as imperative code or declared as data. This appendix does not
-repeat that argument. It takes the same three engines, grounded in the same
-real code, and pushes on the dimensions Chapter 13 only had room to gesture
-at: who actually knows the sequence when something goes wrong in
-production, what "failure handling" concretely looks like (and does not
-look like) in each engine as this repo currently builds it, what debugging
-each one actually feels like, where the business logic physically lives
-versus where the coordination lives, how each shape gets tested, and what
-each one costs operationally once you're running it for real. Read Chapter
-13 first if you haven't — this appendix assumes you already have the
-three-mechanism mental model and deliberately complicates it.
+written as imperative code or declared as data. This appendix takes the same three engines and the same code and covers
+the dimensions Chapter 13 only touched: who knows the sequence when
+something goes wrong in production, what failure handling looks like in
+each engine as this repo builds it, what debugging each one involves, where
+the business logic lives versus where the coordination lives, how each
+shape is tested, and what each costs to operate. It assumes the
+three-mechanism model from Chapter 13.
 
-{% include excalidraw.html file="21-three-engines-compare" alt="Three-column comparison table with Kafka choreography, Camel orchestration, and Quarkus Flow orchestration as columns, and rows for who knows the sequence, coupling, failure handling, and debuggability: the choreography column shows four independent services each owning one reaction with no shared sequence knowledge and failures isolated per-consumer; the Camel column shows one route object holding the full step list with try/catch-shaped error handling and a single log stream to read; the Quarkus Flow column shows one workflow document holding a declared task graph with per-instance task history and engine-level retry/compensation vocabulary that is not yet exercised by this repo's own workflow" caption="Figure A6.1 — Choreography vs. two shapes of orchestration, compared" %}
+{% include excalidraw.html file="21-three-engines-compare" alt="Three-column comparison of Kafka choreography, Camel orchestration, and Quarkus Flow across who owns the sequence, coupling, failure handling, debugging, and where logic lives." caption="Figure A6.1 — Choreography vs. two shapes of orchestration, compared" %}
 
-The three real implementations behind every claim in this appendix:
+The implementations behind every claim in this appendix:
 `order-service`, `payment-service`, `shipping-service`, and
 `notification-service` for the choreography leg (each one's
 `@Incoming`/`@Outgoing` reactive-messaging methods), and
@@ -49,7 +45,7 @@ in
 is annotated the
 mirror image, `@Incoming(Topics.PAYMENT_CAPTURED_CHANNEL)` /
 `@Outgoing(Topics.SHIPMENT_DISPATCHED_CHANNEL)`. Each method's own code is
-a complete description of what *it* does; the fact that these two methods
+a complete description of what *it* does; that these two methods
 happen to chain into a three-hop saga is a fact about the system, not a
 fact recorded in either method, or in `OrderEventProducer` (which only
 knows it publishes `order.placed` after an order commits), or anywhere
@@ -72,7 +68,7 @@ builds a `Workflow` object — the same shape, structurally, as a CNCF
 Serverless Workflow document — that a human or a tool can inspect without
 executing it. The Camel route's sequence knowledge lives in control flow;
 the Flow workflow's sequence knowledge lives in a data structure that
-happens to get interpreted by an engine. Both beat choreography on "where
+is interpreted by an engine. Both beat choreography on "where
 do I even look," but they beat it in different senses: the Camel route is
 "knowable by reading code," the Flow workflow is "knowable by reading (or
 diffing, or versioning) data."
@@ -98,24 +94,20 @@ editing this route: a third `.bean(...)` call, in the right place, in a
 file that also contains every other step. `OrderTriageWorkflow` holds the
 identical `@Inject TriageService triageService` reference, and its
 `FlowDSL.function("classify", triageService::classify)` is a method
-reference against the same bean — the coupling to `TriageService` is
-exactly as tight as Camel's. What differs is the *shape* of what changes
+reference against the same bean — the coupling to `TriageService` is as tight as Camel's. What differs is the *shape* of what changes
 when a third step joins: in Camel you insert a line into a fluent method
 chain; in Flow you add an entry to the `.tasks(...)` list the `Workflow`
 descriptor returns. Both are edits to one file, reviewed by one diff, at
 one deploy — closer to each other on this axis than either is to
-choreography, despite the "declarative vs. imperative" distinction that
-dominates Chapter 13.
+choreography, despite the declarative-versus-imperative distinction that dominates
+Chapter 13.
 
 ## Failure handling and compensation
 
-This is the dimension where it's easiest to overclaim, so start with what
-this repo actually does, not what the engines are theoretically capable
-of. One statement covers all three legs below and isn't repeated per
-engine: each engine is capable of more than this repo exercises — Camel's
-EIPs, Flow's spec-level retry/compensation vocabulary — but capability in
-the engine is not the same as behavior in this code, and the sections below
-describe only what's actually wired up today.
+This dimension is easy to overclaim, so the sections below describe what
+this repo implements, not what the engines can do. Each engine can do more
+than this repo exercises (Camel's EIPs, Flow's spec-level retry and
+compensation), but engine capability is not behavior in this code.
 
 **Choreography's failure handling is per-hop, at-least-once, and
 idempotent — not compensating.** `PaymentProcessor.process` and
@@ -125,23 +117,23 @@ calls `paymentStore.findByOrderId(orderId)` and returns the existing
 `OrderPlaced` event is redelivered; `ShipmentProcessor` does the identical
 check against `Shipment.findByOrderId(orderId)`. `OrderPlacedConsumer` in
 notification-service mirrors the same guard before inserting a
-`Notification` row. That's real failure handling — it's what makes
-at-least-once Kafka delivery safe to build on — but notice what's absent:
+`Notification` row. That is failure handling, and it is what makes
+at-least-once Kafka delivery safe to build on, but there is no
+compensation:
 there is no code anywhere in this project that reacts to a *failed*
 payment by emitting a compensating event that un-dispatches a shipment, or
 reacts to a failed shipment by refunding a captured payment. `PaymentProcessor`'s
-own Javadoc says as much: "every order is captured immediately... a real
-payment service would call out to a payment gateway and could fail/decline
-a capture; that branching is out of scope for this capstone slice." If
+own Javadoc notes this: every order is captured immediately, and a
+production payment service would call a payment gateway that could decline
+a capture; that branching is out of scope for this example. If
 `payment-service` throws partway through processing an `OrderPlaced`
 event, the message's redelivery (driven by Kafka consumer group semantics,
 not application code) is the only safety net this repo wires up — there is
 no saga orchestrator, no dead-letter topic config visible in any of the
 four services' `application.properties`, and no compensating-transaction
-logic to walk the chain backwards. That's a legitimate and common choice
-for a reference architecture slice, but a reader building on this pattern
-for a real saga needs to add that layer themselves; it isn't hiding here
-unimplemented.
+logic to walk the chain backwards. That is a reasonable scope for a reference
+architecture, but a reader building a production saga needs to add that
+layer.
 
 **Camel's failure handling is also unexercised beyond default behavior in
 this route.** `OrderTriageRoute`'s `triage-order` route has no
@@ -167,16 +159,14 @@ on the resulting `Uni` — a timeout exists at the *caller* boundary (120
 seconds, not indefinite), but that's HTTP-call hygiene, not workflow-level
 compensation. (The CNCF Serverless Workflow specification that
 `quarkus-flow` implements does have retries and compensating actions as
-first-class document constructs — the appendix-worthy nuance Chapter 13
-didn't have room for: Flow's declarative shape makes compensation
+first-class document constructs — the nuance Chapter 13 did not cover: Flow's declarative shape makes compensation
 *expressible as data* in a way Camel's imperative shape doesn't naturally
-offer — but `OrderTriageWorkflow` doesn't use that vocabulary. Don't let
-"Flow supports retries as data" read as "this workflow has retries.")
+offer — but `OrderTriageWorkflow` doesn't use that vocabulary. "Flow supports retries as data" does not mean this workflow has
+retries.)
 
 In summary: today, all three legs lean on idempotency and at-least-once
 delivery (choreography) or exception propagation (both orchestration legs)
-rather than any compensating-transaction logic. The difference that's
-real, not aspirational, is *where you'd add it*: in choreography you'd add
+rather than any compensating-transaction logic. The difference is *where you would add it*: in choreography you'd add
 a new consumer reacting to a failure event (itself published as a new
 event, keeping the pattern decentralized); in Camel you'd add
 `.onException()` clauses to the one route; in Flow you'd add
@@ -192,8 +182,8 @@ hop is slow or silent," and the diagnostic path is per-service: check
 `order-service`'s logs and the `order.placed` topic to confirm the publish
 happened, then `payment-service`'s logs and the `payment.captured` topic,
 then `shipping-service`'s. Chapter 13's own demo
-([demo-orchestration-styles.sh]({{ site.repo_blob }}/demos/demo-orchestration-styles.sh)) proves this structurally — its Act 1
-literally polls each downstream topic with `kcat` one hop at a time and
+([demo-orchestration-styles.sh]({{ site.repo_blob }}/demos/demo-orchestration-styles.sh)) shows this: its Act 1
+polls each downstream topic with `kcat` one hop at a time and
 queries `shipping-service`'s own Postgres table directly, because there's
 no single place that reports "did the whole chain finish." That's the
 debugging cost of choreography's loose coupling, paid every time.
@@ -203,22 +193,19 @@ own `.log(...)` calls narrate the request linearly, one request, one
 thread, one place to look. `OrderTriageWorkflow`'s is structurally
 different: because the workflow is declared as a graph of named tasks
 (`"classify"`, `"decide"`), a given instance's progress is inspectable
-task-by-task rather than only as an undifferentiated log stream — a genuine
+task-by-task rather than only as an undifferentiated log stream — an
 advantage over Camel's route for long-running or branching workflows,
 though in this particular two-task, synchronous-from-the-caller's-perspective
-workflow (`OrderTriageFlowRunner` blocks on `.await()`) that advantage is
-mostly theoretical rather than something a reader will feel in this
-project's own demo.
+workflow (`OrderTriageFlowRunner` blocks on `.await()`) that advantage is mostly theoretical in this project's demo.
 
 ## Where the business logic lives
 
-All three legs agree on one thing worth stating plainly: coordination and
-decision-making are different responsibilities, and all three keep them
-separate. In choreography, `PaymentProcessor.process` and
+In all three legs, coordination and decision-making are separate
+responsibilities. In choreography, `PaymentProcessor.process` and
 `ShipmentProcessor.process` *are* the business logic — there's no separate
 "coordinator" to strip logic out of, because choreography has no
 coordinator. In both orchestration legs, by contrast, the coordinator
-(`OrderTriageRoute` / `OrderTriageWorkflow`) contains *zero* business
+(`OrderTriageRoute` / `OrderTriageWorkflow`) contains no business
 logic — both delegate every substantive decision to `TriageService.classify`
 (one LLM call) and `TriageService.decide` (one Drools
 `KieSession.fireAllRules()` call, against
@@ -277,18 +264,18 @@ The test suites expose the same shape difference the production code does.
 Choreography can only be *unit*-tested one participant at a time inside
 this project:
 [`OrderChoreographyChainIT.java`]({{ site.repo_blob }}/examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderChoreographyChainIT.java)
-is explicitly `@Disabled`, and its own Javadoc explains why — proving the
+is `@Disabled`, and its Javadoc explains why — proving the
 full `order.placed -> payment.captured -> shipment.dispatched` chain
 requires `payment-service`'s and `shipping-service`'s Reactive Messaging
-consumers to actually be running against the same broker, and neither
+consumers to be running against the same broker, and neither
 service has a container image or any other already-built,
 independently-launchable artifact here, so there's no way to stand up the
 full chain from a single module's test. Each service's own
 consumer *is* unit-testable in isolation (feed it an `OrderPlaced`, assert
 the `PaymentCaptured` it returns), but the end-to-end saga is only provable
 by the live demo script (`demo-orchestration-styles.sh`), not by the
-automated test suite — a real, structural cost of choreography's
-decentralization that a reader should weigh against its coupling benefits.
+automated test suite — a structural cost of choreography's
+decentralization to weigh against its coupling benefits.
 
 `OrderTriageRouteTest` (in the
 [airules]({{ site.repo_tree }}/examples/ai-rules-service/src/test/java/com/patterncatalyst/datamesh/airules)
@@ -297,7 +284,7 @@ a single `@QuarkusTest` can assert `camelContext.getRoute("triage-order")`
 is registered and started, and a second test asserts the sibling
 `"triage-flow-order"` route (the thin bridge to the Flow runner) is also
 registered — both without ever calling Ollama. The behavioral assertions
-(does `/triage` actually produce `ROUTE_TO_WAREHOUSE` for a given input)
+(does `/triage` produce `ROUTE_TO_WAREHOUSE` for a given input)
 live in separate, opt-in integration tests gated behind a live Ollama
 server, because that part of the pipeline is non-deterministic and
 shouldn't gate every build. The dividing line in both orchestration legs
@@ -343,17 +330,15 @@ touches.
 | Operational cost | Four independently deployed/scaled services + Kafka + schema registry | One service; shared fate with everything else `ai-rules-service` hosts | One service; identical shared fate, same host as the Camel leg |
 | Best fit | An event other parts of the system react to, now or later, where the publisher shouldn't know or care who's listening | A fixed process where the sequence is the valuable, reviewable artifact and you want full imperative control (branching, EIPs, try/catch) | The same kind of fixed process, but where you want the sequence as an inspectable/versionable document, and you want the engine's own retry/compensation vocabulary available if you grow into needing it |
 
-The rule this appendix adds to Chapter 13's is a sharpening, not a
-replacement: choreography and orchestration aren't compared on "which is
-better," but on which failures are visible today versus merely *possible
-to make visible* by reaching for a feature neither orchestration leg here
-currently uses. Camel's imperative route and Flow's declarative document
+This appendix sharpens Chapter 13's rule rather than replacing it. The
+comparison is not which style is better but which failures are visible
+today versus only *possible to make visible* with a feature neither
+orchestration leg currently uses. Camel's imperative route and Flow's declarative document
 land in nearly the same place on coupling, logic placement, and today's
-failure handling — the real daylight between them is in *how* you'd extend
-each one: edit a method chain, or edit a task graph. Choose choreography
-when you want that question to never come up, since there's no central
-artifact to extend in the first place.
+failure handling — they differ in *how* you would extend
+each one: edit a method chain, or edit a task graph. Choose choreography when you want that question not to arise, since there is
+no central artifact to extend.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. The orchestration code is exercised green (`OrderTriageRouteTest`, `OrderTriageFlowTest`, `OrderTriageDrlTest`), and `OrderChoreographyChainIT` is confirmed `@Disabled` for the documented reason. The live choreography chain and the Camel/Flow orchestration demos call the local LLM and need the Ollama profile, which was not run here.*
+*Verification status: <span class="status status--verified">verified</span>. The orchestration code is exercised green (`OrderTriageRouteTest`, `OrderTriageFlowTest`, `OrderTriageDrlTest`), and `OrderChoreographyChainIT` is confirmed `@Disabled` for the documented reason. The live choreography chain and the Camel/Flow orchestration demos call the local LLM and need the Ollama profile, which was not run.*

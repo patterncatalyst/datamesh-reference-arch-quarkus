@@ -2,20 +2,19 @@
 title: "Kubernetes as the substrate"
 order: 3
 part: Foundations
-description: "Why Kubernetes is a natural substrate for a data mesh, how the four principles map onto namespaces, operators, and RBAC, and the Docker-built minikube substrate this build stands up."
+description: "Why Kubernetes is a natural substrate for a data mesh, how the four principles map onto namespaces, operators, and RBAC, and the Docker-built local Kubernetes substrate this build stands up."
 duration: "25 min"
 marker: "03"
 ---
 
-The four data-mesh principles map onto Kubernetes primitives cleanly — cleanly enough
-that "implement a data mesh on Kubernetes" is less a translation exercise than a direct
-fit. This chapter makes that mapping explicit, then walks the actual substrate this build
-stands up on minikube. Figure 2.1, the capstone diagram for this part, shows where this
-chapter is headed — the full data mesh this build runs, domain services and platform tier
-together, on top of the single minikube profile
+The four data-mesh principles map onto Kubernetes primitives almost directly. This
+chapter makes that mapping explicit, then walks the substrate this build stands up on a
+local single-node Kubernetes cluster (`minikube`). Figure 2.1, the full-project diagram
+for this part, shows the destination: the data mesh this build runs, domain services and
+platform tier together, on the single `minikube` profile
 [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh) stands up.
 
-{% include excalidraw.html file="02-capstone-data-mesh" alt="The complete data mesh reference architecture running on minikube — domain services, the service mesh, and the self-serve platform tier underneath them" caption="Figure 2.1 — The capstone: a data mesh on minikube" %}
+{% include excalidraw.html file="02-capstone-data-mesh" alt="The complete data mesh reference architecture running on a local Kubernetes cluster — domain services, the service mesh, and the self-serve platform tier underneath them" caption="Figure 2.1 — Full project example: a data mesh on Kubernetes" %}
 
 ## Why Kubernetes and the mesh align
 
@@ -24,45 +23,41 @@ system, and operators that turn operational knowledge into software. Those are e
 the capabilities a data mesh needs — a place for each domain to own its slice, a way to
 express a data product as a deployable artifact with a contract, a shared platform layer
 domains consume without building it themselves, and a boundary where standards get
-enforced automatically. You *can* build a data mesh without Kubernetes, and you can
-certainly run Kubernetes without building a mesh. But the alignment is strong enough that
-each principle has a natural home in Kubernetes primitives you already know.
+enforced automatically. A data mesh does not require Kubernetes, and Kubernetes does not
+imply a mesh, but each principle has a natural home in primitives you already know.
 
 ## The four principles, mapped to primitives
 
-Figure 2.2 lays the four principles directly alongside the Kubernetes primitives that
-realize them, as a single reference before the detail below walks each pairing in turn.
+Figure 2.2 pairs each principle with the Kubernetes primitives that implement it; the
+detail below walks each pairing.
 
 {% include excalidraw.html file="02-principles-to-pieces" alt="The four data mesh principles mapped to their corresponding Kubernetes primitives — namespaces, Deployments and CRDs, operators, and admission/mesh policy" caption="Figure 2.2 — From principles to Kubernetes pieces" %}
 
 **Domain ownership → namespaces, ServiceAccounts, RBAC, quotas.** The unit of tenancy in
 Kubernetes is the namespace, and it carries its own identities (ServiceAccounts), its own
-permissions (Roles and RoleBindings), and its own resource budget (quotas). That's
-precisely the boundary a domain needs: a place it owns, with access it controls and a
-budget it lives within, isolated from other domains by default. In this build every
-domain service lands in the single `datamesh` namespace (a deliberate simplification for
-a single-node teaching cluster — a multi-team deployment would split that further), while
-the observability stack gets its own `observability` namespace, so the namespace boundary
-is already doing real separation work even at this scale.
+permissions (Roles and RoleBindings), and its own resource budget (quotas). That is
+the boundary a domain needs: a place it owns, with access it controls and a budget it
+lives within, isolated from other domains by default. In this build every domain service
+lands in the single `datamesh` namespace (a simplification for a single-node cluster; a
+multi-team deployment would split it further), while the observability stack gets its own
+`observability` namespace.
 
 **Data as a product → Deployments, Services, and CRDs.** A data product is a deployable
-artifact that exposes a contract — which is exactly what a Deployment plus a Service
-*is*. The Deployment runs the product; the Service is its stable address. And because
+artifact that exposes a contract — which is what a Deployment plus a Service
+provides. The Deployment runs the product; the Service is its stable address. And because
 Kubernetes lets you extend its own type system with Custom Resource Definitions, the
 platform can offer domain-specific types — a Kafka `Topic`, a Postgres `Cluster` — that a
-domain declares the same way it declares a Deployment. The data product becomes a
-first-class, declarable thing rather than an informal collection of scripts.
+domain declares the same way it declares a Deployment. The data product becomes a declarable resource instead of an informal collection of scripts.
 
 **Self-serve data platform → operators and shared cluster infrastructure.** This is
-the clearest mapping of the four. An *operator* packages the knowledge of
+the clearest of the four mappings. An *operator* packages the knowledge of
 how to run a complex stateful system — Kafka, Postgres, autoscaling, a service mesh —
 into a controller that reconciles a simple declarative request into a running system. A
 domain team that needs Kafka doesn't learn to operate Kafka; it asks the platform's Kafka
 operator for a cluster and gets one. In this build the event backbone (Strimzi), the
 database (CloudNativePG), autoscaling (KEDA), the service mesh (Istio), and the
 observability stack (the LGTM stack — Loki, Grafana, Tempo, Mimir) are all shared
-platform infrastructure the domains consume by declaration. That's the self-serve
-principle made literal.
+platform infrastructure the domains consume by declaration.
 
 **Federated computational governance → admission control, mesh policy, CRD validation,
 and the schema registry.** Governance in a mesh is supposed to be enforced by the
@@ -72,12 +67,12 @@ authorization and mutual-TLS policies that govern traffic between products, the 
 validation built into every CRD, and — one layer up the stack, running *on* this
 substrate — the Apicurio schema registry rejecting an incompatible Avro contract change
 at publish time. The rules become code that runs at the edge of the system, which is
-exactly what "computational governance" means.
+what "computational governance" means.
 
-## The substrate this build actually stands up
+## The substrate this build stands up
 
 Everything above is the general case. Concretely, this build's substrate is a single
-minikube profile, brought up tier by tier by
+`minikube` profile, brought up tier by tier by
 [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh), with a health gate
 between each tier so a failure in one doesn't cascade silently into the next:
 
@@ -85,18 +80,18 @@ between each tier so a failure in one doesn't cascade silently into the next:
 ./scripts/bootstrap.sh
 ```
 
-The script is intentionally linear and idempotent — every step is `helm upgrade
+The script is linear and idempotent — every step is `helm upgrade
 --install`, `kubectl apply`, or `kubectl wait`, so re-running it after an interrupted run
 resumes rather than fails. Reading top to bottom, it builds the platform tier in
 dependency order:
 
-1. **The minikube profile itself** ([setup-profile.sh]({{ site.repo_blob }}/scripts/setup-profile.sh)), driven by
-   `minikube start --driver=docker` — **Docker, not Podman**. This repo standardized on
-   Docker for every container and compose workflow (the `lgtm-docker-stack` skill rather
-   than `lgtm-podman-stack`), so the one `docker driver` flag is the only container
-   toolchain decision the substrate makes, and it's made once, at the bottom.
+1. **The `minikube` profile itself** ([setup-profile.sh]({{ site.repo_blob }}/scripts/setup-profile.sh)), driven by
+   `minikube start --driver=docker` — **Docker, not Podman**. This repo standardizes on
+   Docker for every container and compose workflow, so the `docker` driver flag is the
+   only container toolchain decision the substrate makes, and it is made once, at the
+   bottom.
 2. **Istio** ([setup-istio.sh]({{ site.repo_blob }}/scripts/setup-istio.sh)), gated on `kubectl wait --for=condition=Available
-   deploy/istiod` — nothing after this tier proceeds until the control plane is actually
+   deploy/istiod` — nothing after this tier proceeds until the control plane is
    serving, not merely scheduled.
 3. **CloudNativePG** ([setup-postgres-operator.sh]({{ site.repo_blob }}/scripts/setup-postgres-operator.sh)) — operator plus a Postgres
    `Cluster` custom resource, gated on the primary reaching `Ready`.
@@ -106,13 +101,12 @@ dependency order:
    `Part 2`'s [elastic & resilient chapter]({{ '/docs/07-elastic-and-resilient/' | relative_url }})
    builds on.
 6. **The LGTM observability stack** ([setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh)), installed into the
-   `observability` namespace rather than `datamesh` — a deliberate boundary between the
-   platform's own telemetry infrastructure and the domain services it observes.
+   `observability` namespace rather than `datamesh`, which separates the platform's
+   telemetry infrastructure from the domain services it observes.
 7. **Kiali** ([setup-kiali.sh]({{ site.repo_blob }}/scripts/setup-kiali.sh)), gated on Istio being enabled, for the live mesh
    topology view.
 8. **Apicurio** ([setup-apicurio.sh]({{ site.repo_blob }}/scripts/setup-apicurio.sh)) — the schema registry the contracts chapter
-   depends on, installed last because it's the one tier that's useful without any
-   domain service running yet.
+   depends on, installed last.
 
 Every tier is gated behind a boolean (`ENABLE_ISTIO`, `ENABLE_KAFKA`, and so on, each
 defaulting to `true`), so a narrower run — say, skipping Istio to save resources on a
@@ -126,7 +120,7 @@ Once the substrate is up, three more scripts round out the day-to-day loop:
 [cluster-status.sh]({{ site.repo_blob }}/scripts/cluster-status.sh) for a health
 summary across every tier,
 [tunnel-services.sh]({{ site.repo_blob }}/scripts/tunnel-services.sh) for stable
-NodePort-plus-SSH-tunnel access to services (deliberately not
+NodePort-plus-SSH-tunnel access to services (not
 `kubectl port-forward`, which drops under load and doesn't survive a pod restart), and
 [teardown.sh]({{ site.repo_blob }}/scripts/teardown.sh) to tear the whole profile
 down.
@@ -152,10 +146,9 @@ k8s/keda/
   gateway-httpscaledobject.yaml # HTTP ScaledObject targeting graphql-gateway
 ```
 
-The `base` layer declares the resources; the `minikube` overlay is where the
-environment-specific decision lives, and it's easy to get wrong on a teaching cluster:
-there is **no image registry** in this stack.
-Images are built directly into minikube's own Docker daemon —
+The `base` layer declares the resources; the `minikube` overlay holds the
+environment-specific decision, which is easy to get wrong: there is **no image registry**
+in this stack. Images are built directly into the cluster's own Docker daemon —
 
 ```bash
 eval $(minikube docker-env -p datamesh)
@@ -167,27 +160,24 @@ docker build -f examples/order-service/src/main/docker/Containerfile.multistage 
 the registry host, and every base manifest sets `imagePullPolicy: IfNotPresent`. Get that
 pull policy wrong — leave it at the default `Always` — and the kubelet will try to pull
 `datamesh/order-service` from Docker Hub, fail (there is no such public image), and the
-pod will sit in `ImagePullBackOff` even though the correctly-tagged image is sitting
-right there in minikube's own daemon. That coupling between "build into minikube's
-daemon" and "pull policy must be `IfNotPresent`" is the one fragile assumption worth
-remembering before you change either side of it independently.
+pod will sit in `ImagePullBackOff` even though the correctly tagged image is in the
+cluster's own daemon. Building into the cluster's daemon and setting the pull policy to
+`IfNotPresent` are coupled; change neither independently.
 
-Build context matters too, and it's easy to get backwards the first time: every
+Build context matters too: every
 `Containerfile.multistage` build documented in the k8s
 [README.md]({{ site.repo_blob }}/k8s/README.md) runs from the **repo root**, not from
 inside `examples/<service>/`. That's because each service's builder stage needs the whole
 [examples]({{ site.repo_tree }}/examples) Maven reactor on disk to resolve `domain-model`
 and `contracts` as reactor dependencies rather than as published artifacts — building
 from inside a single service directory would leave those two modules unreachable and the
-build would fail at the Maven step, not at the Docker step, which makes the mistake more
-confusing than it needs to be the first time you hit it.
+build would fail at the Maven step rather than at the Docker step.
 
 The same `base`/`overlay` split also carries the one non-secret configuration contract
 every Deployment shares:
 [config.yaml]({{ site.repo_blob }}/k8s/base/config.yaml) is a ConfigMap
 (`datamesh-app-config`) that every Deployment pulls in wholesale via `envFrom`, rather
-than each Deployment listing its own `env:` entries. Its values are not placeholders —
-they're the literal in-cluster DNS names the platform tier's own setup scripts produce,
+than each Deployment listing its own `env:` entries. Its values are the in-cluster DNS names the platform tier's own setup scripts produce,
 e.g. `KAFKA_BOOTSTRAP_SERVERS=datamesh-kafka-bootstrap.datamesh.svc.cluster.local:9092`
 (from Strimzi's own Service-naming convention off the Kafka CR name in
 [setup-kafka-operator.sh]({{ site.repo_blob }}/scripts/setup-kafka-operator.sh)) and
@@ -196,19 +186,18 @@ e.g. `KAFKA_BOOTSTRAP_SERVERS=datamesh-kafka-bootstrap.datamesh.svc.cluster.loca
 installs). Because Quarkus does relaxed
 env-var binding onto its own `kafka.bootstrap.servers` and `apicurio.registry.url`
 config keys, those two values need zero `application.properties` changes to take effect
-in-cluster — the ConfigMap *is* the production configuration, which is the self-serve
-principle showing up again at the manifest layer: a domain service declares that it
-wants the platform's Kafka and registry, and gets the real addresses without hand-wiring
-them. Database credentials are the one value deliberately **not** in that ConfigMap —
+in-cluster — the ConfigMap is the production configuration. This is the self-serve
+principle at the manifest layer: a domain service declares that it wants the platform's
+Kafka and registry and receives the addresses without hand-wiring. Database credentials
+are the one value **not** in that ConfigMap —
 they come from the CloudNativePG-managed `datamesh-postgres-app` Secret instead, so the
 operator remains the single source of truth for a credential it already owns and rotates,
 rather than that secret being duplicated into a ConfigMap a human might forget to update.
 
 ## The shape of the system
 
-With the mapping and the substrate both in hand, here's the system this build runs.
-Figure 2.3 draws it as three horizontal planes — the layout to keep in mind for every
-chapter that follows.
+Figure 2.3 draws the system this build runs as three horizontal planes, the layout the
+following chapters assume.
 
 {% include excalidraw.html file="02-platform-planes" alt="Three horizontal planes — external clients, the service-mesh plane running the domain services, and the self-serve platform plane underneath — with protocols labeled on the flows between them" caption="Figure 2.3 — The three planes: clients, mesh, platform" %}
 
@@ -226,26 +215,25 @@ Read top to bottom, the system is the four principles again: external clients co
 products through stable contracts (data as a product), the domain services each own
 their slice of the mesh (domain ownership), the platform tier underneath is shared and
 consumed by declaration (self-serve platform), and the mesh and registry enforce the
-rules on the traffic and the contracts between everything (federated governance). It's
-the picture to return to as the rest of the tutorial works through the parts.
+rules on the traffic and the contracts between everything (federated governance). The
+later chapters elaborate this picture.
 
-## A note on minikube specifically
+## A note on single-node clusters
 
-This build runs on minikube — a single-node Kubernetes cluster — which is the right
-choice for *learning* the pattern and wrong for running it in production. A single node
-means every tier shares one machine's resources, which keeps the whole mesh runnable on
-a laptop but also concentrates failure modes that a real multi-node cluster would spread
-out. [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh)'s own header documents the resource budget this concentration
-demands: 32 GB of host RAM recommended (the minikube profile itself is sized at 24 GB /
+This build runs on `minikube`, a single-node Kubernetes cluster, which suits learning the
+pattern and not production. A single node means every tier shares one machine's
+resources, which keeps the whole mesh runnable on a laptop but concentrates failure modes
+that a multi-node cluster would spread out. [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh)'s own header documents the resource budget this concentration
+demands: 32 GB of host RAM recommended (the `minikube` profile itself is sized at 24 GB /
 16 vCPUs / 80 GB disk) with roughly 2.9 GiB of idle in-cluster footprint once every tier
 is on. Where single-node realities bite beyond raw resource ceilings — node-level decay,
 the operational care a long-lived single-node cluster needs — those are operational
-gotchas particular to this deployment choice rather than to data mesh as a pattern, and
-belong in the operations-focused chapters of Part 2 rather than here.
+gotchas specific to this deployment choice rather than to data mesh, and belong in the
+operations chapters of Part 2.
 
 Next, the services themselves: what a data product looks like in this build, the
 order-service template the others follow, and how each one is packaged and shipped.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `scripts/bootstrap.sh` was driven end to end on a real minikube cluster (podman driver, 24 GB / 16 CPU), bringing up all eight tiers healthy — minikube, Istio, CloudNativePG + Postgres, Strimzi + Kafka, KEDA, the full LGTM stack, Kiali, and Apicurio (50/50 pods Running). The bring-up surfaced and fixed three bootstrap bugs along the way: the Strimzi Kafka CR pinned an unsupported Kafka version, Mimir rejected overlapping filesystem data dirs, and Apicurio's readiness probe used a health path its image doesn't serve.*
+*Verification status: <span class="status status--verified">verified</span>. `scripts/bootstrap.sh` was driven end to end on a local `minikube` cluster (podman driver, 24 GB / 16 CPU), bringing up all eight tiers healthy — the cluster itself, Istio, CloudNativePG + Postgres, Strimzi + Kafka, KEDA, the full LGTM stack, Kiali, and Apicurio (50/50 pods Running). The bring-up surfaced and fixed three bootstrap bugs along the way: the Strimzi Kafka CR pinned an unsupported Kafka version, Mimir rejected overlapping filesystem data dirs, and Apicurio's readiness probe used a health path its image doesn't serve.*

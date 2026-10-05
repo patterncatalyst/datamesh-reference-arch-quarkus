@@ -50,11 +50,9 @@ at all.
 
 This module uses **plain embedded Drools as a library** — `drools-engine` +
 a `KieBase` built once at startup via `KieHelper` from a classpath `.drl`
-resource, with a short-lived `KieSession` minted per request. This is **not**
-the Kogito/KIE Quarkus extension; no Kogito platform, no KIE process/flow/
-BPMN engine is used or planned — KIE is explicitly not a roadmap item for
-this reactor. Orchestration is done by
-Quarkus + Camel, which is the point of the demo.
+resource, with a short-lived `KieSession` minted per request. This is not
+the Kogito/KIE Quarkus extension: no Kogito platform and no KIE process/flow/
+BPMN engine is used. Orchestration is done by Quarkus + Camel.
 
 `drools-mvel` is a **required** runtime dependency, not optional: it supplies
 the MVEL-backed `ConstraintBuilder` SPI that Drools' `PatternBuilder` needs
@@ -63,10 +61,10 @@ when compiling DRL pattern constraints. Without it on the classpath,
 `PatternBuilder` at rule-compile time. Both `org.drools:drools-engine` and
 `org.drools:drools-mvel` are version-managed in **this module's own**
 `<dependencyManagement>` (importing `org.drools:drools-bom:10.2.0`) — Drools
-is deliberately *not* added to the parent reactor's BOM management, since no
-other module needs it.
+is not added to the parent reactor's BOM management, since no other module
+needs it.
 
-## Why there's an explicit `ChatModel` producer
+## Explicit `ChatModel` producer
 
 `ChatModelProducer` builds an `OllamaChatModel` directly and exposes it as a
 CDI bean, rather than relying on quarkus-langchain4j-ollama's own synthetic
@@ -79,7 +77,7 @@ Camel's `langchain4j-chat:` component does to autowire its `chatModel`
 property, is invisible to that build step. ai-mcp-service's classifier route
 is unaffected by this because that module also depends on
 `camel-quarkus-langchain4j-agent`, whose `Agent` wiring happens to create
-such an injection point; this module deliberately depends on neither (see
+such an injection point; this module depends on neither (see
 above), so without this explicit producer the route fails to start with
 `chatModel must be specified`. The producer also sets
 `.responseFormat(ResponseFormat.JSON)`, which makes Ollama itself constrain
@@ -89,7 +87,7 @@ extracts the `{...}` substring before unmarshalling (small local models
 sometimes wrap the answer in a ` ```json ` fence despite being told not to)
 and `ClassificationResult` is `@JsonIgnoreProperties(ignoreUnknown = true)`
 in case the model pads its answer with extra fields. If the model omits one
-of the three expected fields entirely, that field lands `null` and simply
+of the three expected fields entirely, that field lands `null` and
 fails to match any Drools condition that tests it, falling through to the
 `ROUTE_TO_WAREHOUSE` default rule rather than throwing.
 
@@ -191,9 +189,8 @@ curl -X POST http://localhost:8089/api/orders/triage-flow \
   -d '{"customerId":"CUST-42","itemSku":"LAPTOP-15","quantity":1,"amount":1899.99}'
 ```
 
-Port **8089** is used deliberately — `ai-mcp-service` (the sibling AI
-example) uses **8088**, so both modules can run side by side without a port
-clash.
+Port **8089** avoids a clash: `ai-mcp-service` (the sibling AI
+example) uses **8088**, so both modules can run side by side.
 
 ## Tests
 
@@ -207,7 +204,7 @@ clash.
   producer works, without calling Ollama. Runs under the default
   `mvn verify`.
 - `OrderTriageRouteIT` (`*IT`, opt-in) — end-to-end behavioral test that
-  posts a real order to `/api/orders/triage` and asserts Drools returned one
+  posts an order to `/api/orders/triage` and asserts Drools returned one
   of the three valid decisions. Requires a live Ollama server and is gated
   behind `-Dollama.tests.enabled=true`; Surefire's default include patterns
   skip `*IT` classes and failsafe is not bound in this module, so the
@@ -221,8 +218,8 @@ clash.
 - `OrderTriageFlowTest` (`*Test`, `@QuarkusTest`) — the Flow-path
   counterpart to `OrderTriageDrlTest`: `TriageService` is `@InjectSpy`'d so
   only `classify` is stubbed with a canned `ClassificationResult` (a
-  HIGH-risk one and a benign one), while `decide` runs for real against the
-  real, CDI-injected `KieBase`. Proves the `OrderTriageWorkflow` Flow
+  HIGH-risk one and a benign one), while `decide` runs unstubbed against the
+  CDI-injected `KieBase`. Proves the `OrderTriageWorkflow` Flow
   orchestration and the Drools wiring together, without calling Ollama.
   Runs under the default `mvn verify`.
 - `OrderTriageFlowRouteIT` (`*IT`, opt-in) — the `/triage-flow` counterpart

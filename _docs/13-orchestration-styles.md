@@ -2,18 +2,16 @@
 title: "Orchestration styles: choreography vs. two kinds of orchestration"
 order: 14
 part: The Quarkus deep-dive
-description: "Three coordination engines over the same shipping/order domain — Kafka choreography, a Camel route, and a declarative Quarkus Flow workflow — teaching when decentralized reaction beats a named coordinator, and when it doesn't."
+description: "Three coordination engines over the same shipping/order domain (Kafka choreography, a Camel route, and a declarative Quarkus Flow workflow) and when decentralized reaction beats a named coordinator."
 duration: 50 minutes
 marker: "14"
 ---
 
 Every event-driven system eventually has to answer one question: when
 multiple steps need to happen in sequence, who decides the sequence? This
-project runs three different answers side by side, over the same
-shipping/order domain, so the distinction can be shown rather than just
-defined. Two of the three are "orchestration" by name, but they are not the
-same engine, and seeing both makes clear that "orchestration" describes a
-*shape* (a coordinator exists), not a specific technology.
+project runs three answers side by side over the same shipping/order domain.
+Two of them are orchestration, but they use different engines: "orchestration"
+describes a *shape* (a coordinator exists), not a specific technology.
 
 The code is in [order-service]({{ site.repo_tree }}/examples/order-service), [payment-service]({{ site.repo_tree }}/examples/payment-service),
 [shipping-service]({{ site.repo_tree }}/examples/shipping-service), [notification-service]({{ site.repo_tree }}/examples/notification-service) (the
@@ -48,21 +46,18 @@ placing one real order and then reading the raw bytes back off each
 downstream topic with `kcat` — a byte-level Kafka consumer, no Avro
 deserializer involved on the read side. It asserts the Apicurio/Confluent
 wire-format magic byte (`0x00`) is the first byte of each record, which is
-the demo's proof that these are genuine Avro-encoded events on Kafka, not a
-simulated chain. It also queries `shipping-service`'s own Postgres table
+the demo's check that these are Avro-encoded events on Kafka. It also queries `shipping-service`'s own Postgres table
 directly (`shippingdb.shipment`) and `notification-service`'s REST surface,
 confirming each service's own persisted state independently reflects the
 event it reacted to.
 
-The cost of choreography is that there is no single place to read "what
-happens when an order is placed" — you have to go find every subscriber.
-Its benefit is exactly the same fact stated positively: adding a fifth
-reaction to `order.placed` (say, an analytics service) requires zero changes
+The cost of choreography is that no single place describes what happens when
+an order is placed; you have to find every subscriber. The same property is
+its benefit: adding a fifth reaction to `order.placed` (say, an analytics service) requires zero changes
 to `order-service`, `payment-service`, or `shipping-service`. That
-loose-coupling property is why event-driven architectures reach for
-choreography by default for cross-service reactions — and why the next two
-sections exist to show what you gain, and give up, by introducing a
-coordinator instead.
+loose coupling is why event-driven architectures default to choreography for
+cross-service reactions. The next two sections show what a coordinator adds
+and what it costs.
 
 ## Orchestration: a Camel route
 
@@ -83,9 +78,8 @@ from("direct:triage")
 
 This route is the coordinator. It explicitly names every step in order:
 unmarshal the request, call `classify`, log the intermediate result, call
-`decide`, marshal the response. Nothing about this sequence is implicit or
-discoverable only at runtime — reading the route top to bottom *is* reading
-the business process. `classify` and `decide` are both plain methods on
+`decide`, marshal the response. Nothing about the sequence is implicit, so
+reading the route top to bottom is reading the business process. `classify` and `decide` are both plain methods on
 [TriageService.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/TriageService.java):
 `classify` sends a single-shot prompt to an injected `langchain4j` `ChatModel`
 (backed by Ollama) and parses the category/priority/riskSignal JSON it
@@ -93,11 +87,11 @@ returns; `decide` inserts those classified fields as a fact into a Drools
 `KieSession` and fires the rules in
 [order-triage.drl]({{ site.repo_blob }}/examples/ai-rules-service/src/main/resources/rules/order-triage.drl) to
 produce a `FRAUD_HOLD`, `EXPEDITE`, or `ROUTE_TO_WAREHOUSE` decision. The
-route coordinates; it does not decide — Drools does.
+route coordinates, and Drools decides.
 
 ## Orchestration: a Quarkus Flow workflow
 
-The *same* two-step sequence is orchestrated a second way by
+The same two-step sequence is orchestrated a second way by
 [OrderTriageWorkflow.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageWorkflow.java),
 reached via `POST /api/orders/triage-flow`:
 
@@ -119,12 +113,12 @@ public class OrderTriageWorkflow extends Flow {
 }
 ```
 
-This is a **declarative** coordinator: instead of imperative route code
-calling one bean method after another, it's a workflow *document* — built
-here with `quarkus-flow`'s Java DSL, but structurally the same shape as a
-CNCF Serverless Workflow YAML/JSON document — that declares two tasks,
-`classify` then `decide`, and lets the Quarkus Flow engine's default
-behavior (each task's input is the prior task's output) wire them together.
+This is a **declarative** coordinator. Instead of imperative route code
+calling one bean method after another, it is a workflow document, built here
+with `quarkus-flow`'s Java DSL and structurally the same as a CNCF Serverless
+Workflow YAML or JSON document. It declares two tasks, `classify` then
+`decide`, and the Quarkus Flow engine's default behavior (each task's input is
+the prior task's output) connects them.
 [OrderTriageFlowRunner.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageFlowRunner.java)
 bridges this back to the REST layer:
 
@@ -138,14 +132,12 @@ public TriageDecision run(OrderCreate order) {
 
 `startInstance(order)` returns a `Uni` (Flow instances run asynchronously);
 `.await().atMost(Duration.ofSeconds(120))` blocks the calling thread until the
-workflow completes (with a bounded timeout rather than an unbounded wait, so a
-stuck instance fails the request instead of hanging it), then
-`.as(TriageDecision.class)` unwraps the workflow's final
-model back into the exact same response shape `/triage` returns. Both
-endpoints call the identical `TriageService.classify`/`decide` methods — the
-workflow does not reimplement any part of the classify-or-decide logic as,
-say, a Flow `switchCase`; Drools still makes the one decision that matters,
-in both paths.
+workflow completes (the timeout is bounded so a stuck instance fails the request instead of
+hanging it), then `.as(TriageDecision.class)` unwraps the workflow's final
+model into the response shape `/triage` returns. Both endpoints call the same
+`TriageService.classify` and `decide` methods. The workflow does not
+reimplement the decision logic as, say, a Flow `switchCase`, so Drools makes
+the decision in both paths.
 
 {% include codetabs.html langs="Kafka choreography|Camel orchestration|Quarkus Flow orchestration" %}
 ```yaml
@@ -190,22 +182,17 @@ return FlowWorkflowBuilder.workflow("order-triage")
 
 {% include excalidraw.html file="13-orchestration-styles" alt="Three coordination shapes over the same shipping/order domain: decentralized Kafka choreography across order-service, payment-service, shipping-service and notification-service with no central caller; a Camel route in ai-rules-service explicitly sequencing classify then decide; and a declarative Quarkus Flow workflow document expressing the same two tasks" caption="Figure 13.1 — Choreography and two orchestration shapes, side by side" %}
 
-The three boxes in that diagram carry the entire argument of this chapter,
-and are worth examining closely before reading further. The choreography box has no single arrow entering from "the
-top" — every service subscribes to a topic and publishes to another, and
-the diagram has no node labeled "coordinator" because there isn't one. The
-two orchestration boxes both have exactly one entry point and one box that
-owns the sequence, but they draw that ownership differently: the Camel box
-is a straight line of named steps, because a route *is* a sequence of
-method calls. The Quarkus Flow box is a small graph of tasks with declared
-dependencies, because a workflow document describes *what* must happen
-before what, and leaves *how* to call it to the engine. That distinction —
-code that calls things in order versus data that declares an order — is
-the one this chapter spends the most effort separating from "orchestration
-versus choreography." Learners who are new to this space tend to conflate
-"a coordinator exists" with "the coordinator is a hand-written imperative
-function," and the Quarkus Flow leg exists specifically to break that
-assumption.
+The choreography box has no entry point: every service subscribes to a topic
+and publishes to another, and no node is labeled "coordinator" because none
+exists. The two orchestration boxes each have one entry point and one owner of
+the sequence, drawn differently. The Camel box is a straight line of named
+steps, because a route is a sequence of method calls. The Quarkus Flow box is
+a small graph of tasks with declared dependencies, because a workflow document
+states what must happen before what and leaves the calling to the engine.
+The difference between code that calls things in order and data that declares
+an order is separate from the difference between orchestration and
+choreography. A coordinator can exist without being a hand-written imperative
+function, which is why the Quarkus Flow leg is included.
 
 ## When to reach for which
 
@@ -217,7 +204,7 @@ assumption.
 | Best fit | Independent reactions to a domain event, unknown/growing set of subscribers, no step needs to wait on another's result before proceeding | A fixed, code-reviewed business process where the sequence itself is the valuable artifact, and you want full imperative control (branching, error handling, EIPs) | The same kind of fixed business process, but you want the sequence expressed as data (a workflow document) rather than code — useful when the process itself needs to be inspected, versioned, or edited independently of a Java release |
 | Coupling | Loosest — publishers and subscribers never reference each other | Tighter — the route references every participant bean directly | Tighter, same as Camel — but the reference is a task graph, not imperative calls |
 
-The general rule this project teaches: reach for **choreography** when you
+The rule of thumb: reach for **choreography** when you
 have a domain event other parts of the system might react to today or in
 the future, and you don't want the publisher to know or care who's
 listening. Reach for **orchestration** when a specific business process has
@@ -226,39 +213,29 @@ an explicit, inspectable artifact — and then choose **imperative**
 (Camel route) vs. **declarative** (Quarkus Flow) based on whether that
 artifact is better reviewed as code or as a document.
 
-## A deliberate limit: these three legs don't share one literal order
+## Limit: the three legs do not share one order
 
-It's tempting to picture a single order flowing through all three engines
-end to end — placed via Kafka, then triaged via Camel, then triaged again
-via Flow. That is not what `demo-orchestration-styles.sh` does, and the
-script's own header is explicit about why: the triage endpoints
+A single order does not flow through all three engines (placed via Kafka, then
+triaged via Camel, then triaged again via Flow). The script's header gives the
+reason: the triage endpoints
 (`/triage`, `/triage-flow`) only accept an order's line-item fields — they
-don't persist anything and don't publish an event. The Kafka leg's order
-payload was never run through a classifier-stability trial; the specific
-order used for the choreography leg wasn't chosen to produce a deterministic
-triage decision. What genuinely *is* shared across all three legs is the
-**domain** (the same shipping/order concepts: customer, SKU, quantity,
-amount) and the **comparison** this chapter exists to teach: one
-decentralized mechanism versus two differently-shaped centralized ones,
-coordinating the same *kind* of step. This chapter does not claim more
-continuity between the legs than that, and the demo does not either.
+don't persist anything and don't publish an event. The Kafka leg's order payload was never run through a classifier-stability trial, and the
+order used for the choreography leg was not chosen to produce a deterministic
+triage decision. The legs share the **domain** (customer, SKU, quantity,
+amount) and the **comparison**: one decentralized mechanism against two
+differently shaped centralized ones, coordinating the same kind of step.
 
-The reason the demo picked a *pre-validated* input for Act 2 and Act 3,
-rather than reusing whatever order Act 1 happened to place, is itself a
-lesson about mixing a deterministic coordinator with a non-deterministic
+The demo uses a pre-validated input for Act 2 and Act 3 instead of reusing
+Act 1's order, because a deterministic coordinator wraps a non-deterministic
 step. Chapter 14 shows that `/triage` and `/triage-flow` both delegate their
 actual classification to a small local LLM (`qwen2.5:3b` via Ollama) before
-Drools ever sees a fact. An LLM classification is not guaranteed to repeat
-identically on every input, so asserting a *specific* decision
-(`ROUTE_TO_WAREHOUSE`, not merely "one of three valid decisions") requires
-an input whose classification has already been shown stable across repeated
-trials. Act 1's order was never put through that trial, because Act 1 isn't
-testing classification at all. It's testing whether four independently
-deployed services correctly react to Kafka events — a question that has
-nothing to do with what the order's fields happen to be. Keeping the three
-acts' test inputs deliberately uncoupled, rather than threading one order
-through all three for narrative tidiness, lets each act make a strict
-assertion.
+Drools sees a fact. An LLM classification is not guaranteed to repeat on every
+input, so asserting a specific decision (`ROUTE_TO_WAREHOUSE`, not one of three
+valid decisions) requires an input whose classification has been stable across
+repeated trials. Act 1's order was never put through that trial because Act 1
+does not test classification. It tests whether four independently deployed
+services react to Kafka events, which does not depend on the order's fields.
+Keeping the acts' inputs uncoupled lets each act make a strict assertion.
 
 ## Build, run, observe
 
@@ -287,16 +264,16 @@ the three mechanisms side by side.
   explicit steps; the two orchestration engines here differ in *how* the
   sequence is expressed — imperative route code vs. a declarative workflow
   document — not in whether a coordinator exists.
-- The choice between choreography and orchestration is about who needs to
-  see the whole sequence and how loosely coupled the participants should
-  be, not about which is universally "better."
-- The three legs of this demo share a domain and a comparison, not one
-  literal order flowing through all three — don't overstate the continuity.
+- The choice between choreography and orchestration depends on who needs to
+  see the whole sequence and how loosely coupled the participants should be.
 
-The next chapter goes deeper into one of these two orchestration legs — the
-AI-assisted triage itself — including where its in-process LLM tool-calling
-genuinely does and doesn't work.
+- The three legs of the demo share a domain and a comparison, not one order
+  flowing through all three.
+
+The next chapter goes deeper into the AI-assisted triage behind both
+orchestration legs, including where in-process LLM tool-calling works and
+where it does not.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. The Flow/Drools/route unit tests pass under `mvn verify`, and `demo-orchestration-styles.sh` was run end to end against the compose stack with the Ollama profile and a live `qwen2.5:3b` — all three coordination styles (Kafka choreography, the Camel route, and the Quarkus Flow workflow) ran over the same order-to-shipment domain and passed.*
+*Verification status: <span class="status status--verified">verified</span>. The Flow, Drools, and route unit tests pass under `mvn verify`, and `demo-orchestration-styles.sh` ran end to end against the compose stack with the Ollama profile and a live `qwen2.5:3b`. All three coordination styles (Kafka choreography, the Camel route, and the Quarkus Flow workflow) ran over the same order-to-shipment domain and passed.*

@@ -1,7 +1,7 @@
 # spring-boot-compare
 
-A faithful-but-minimal Spring Boot twin of the Quarkus `order-service`,
-for a real side-by-side comparison in tutorial chapter 12. It
+A minimal Spring Boot twin of the Quarkus `order-service`,
+for a side-by-side comparison in tutorial chapter 12. It
 exposes the SAME REST shapes/statuses as the Quarkus order-service and
 carries the SAME dependency surface: REST, JPA + Postgres, health, a
 Kafka/Avro `order.placed` producer via Apicurio, and a synchronous gRPC
@@ -9,11 +9,11 @@ Kafka/Avro `order.placed` producer via Apicurio, and a synchronous gRPC
 a JVM-only comparison -- there is no native-image build in scope for this
 module.
 
-This module is **deliberately NOT part of the `examples/` Maven reactor**
-(it is not listed in `examples/pom.xml`'s `<modules>`). It has its own
-parent (`spring-boot-starter-parent`), built standalone, so chapter 12's
-startup/memory numbers reflect an unmodified, idiomatic Spring Boot build
-rather than one bent to fit the Quarkus reactor's BOM/plugin wiring. It
+This module is **not part of the `examples/` Maven reactor**
+(it is not listed in `examples/pom.xml`'s `<modules>`) so that chapter 12's
+startup and memory numbers reflect an unmodified, idiomatic Spring Boot
+build. It has its own
+parent (`spring-boot-starter-parent`), built standalone, not adapted to the Quarkus reactor's BOM/plugin wiring. It
 still reuses `domain-model` and `contracts` as plain jar dependencies --
 no source is copied from either.
 
@@ -33,7 +33,7 @@ Then build this module on its own:
 mvn -q -f examples/spring-boot-compare/pom.xml package
 ```
 
-`package` runs the test suite, which spins up a real `postgres:18`
+`package` runs the test suite, which starts a `postgres:18`
 Testcontainer (`OrderControllerTest`) -- Docker must be available. Use
 `-DskipTests` to compile/package only.
 
@@ -42,22 +42,21 @@ Testcontainer (`OrderControllerTest`) -- Docker must be available. Use
 ```bash
 # against a local Postgres/Kafka/Apicurio/inventory-service (see infra/ or
 # lgtm-docker-stack), with the `dev-no-inventory` profile if you don't have
-# a real inventory-service running locally:
+# an inventory-service running locally:
 java -Duser.timezone=UTC \
      -Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 \
      -jar target/spring-boot-compare-1.0.0-SNAPSHOT.jar
 ```
 
-- `-Duser.timezone=UTC` -- same timezone crux as the Quarkus side: a real
-  Postgres (or the postgres:18 Testcontainers image) rejects legacy Olson
+- `-Duser.timezone=UTC` -- same timezone requirement as the Quarkus side: Postgres (or the postgres:18 Testcontainers image) rejects legacy Olson
   zone ids forwarded from the host's default JVM timezone.
 - `-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1` -- Avro
   1.12.x's `ClassSecurityValidator` refuses to (de)serialize a generated
   `SpecificRecord` from a packaged `java -jar` run unless its package is
   explicitly trusted. `OrderPlaced` lives in `capstone.order.v1` (the
   `contracts` module). Without this flag, publishing `order.placed` throws
-  `SecurityException: Forbidden capstone.order.v1.OrderPlaced!` the first
-  time a real send is attempted.
+  `SecurityException: Forbidden capstone.order.v1.OrderPlaced!` on the first
+  send.
 
 Env vars (all optional, sane localhost defaults for local/dev; see
 `application.properties`'s `prod` profile for the container-hostname
@@ -110,14 +109,14 @@ The stubs are generated at build time straight from the SAME
 configuration), not duplicated into this module.
 
 `protoc` is pinned to `3.25.5` to match the `protobuf-java` version that
-`grpc-protobuf:1.73.0` actually depends on (confirmed via its published
+`grpc-protobuf:1.73.0` depends on (confirmed via its published
 POM), so the compiler generating the Java sources matches the
 `protobuf-java` runtime this module ships.
 
 ### StockChecker seam
 
 - `StockChecker` -- the interface `OrderController` depends on.
-- `GrpcStockChecker` -- the **default** implementation: a real gRPC
+- `GrpcStockChecker` -- the **default** implementation: a gRPC
   `CheckStock` call to inventory-service (3s deadline, same as the Quarkus
   side's `InventoryClient`). Unreachable/erroring inventory-service surfaces
   as `StockChecker.StockCheckUnavailableException`, mapped to a 503 --
@@ -125,12 +124,12 @@ POM), so the compiler generating the Java sources matches the
 - `AlwaysAvailableStockChecker` -- a **dev/test-only** fallback, active only
   under the `dev-no-inventory` or `test` Spring profile, so
   `OrderControllerTest` and local runs without a live inventory-service
-  don't need a real gRPC server.
+  don't need a gRPC server.
 
 `OrderControllerTest` mocks `StockChecker` directly (both the 201/available
 and 409/unavailable cases), so it never needs a live inventory-service or a
-live Kafka/Apicurio broker -- only Postgres (via Testcontainers). The real
-`GrpcStockChecker` path (an actual gRPC round trip) is NOT exercised by this
+live Kafka/Apicurio broker -- only Postgres (via Testcontainers). The
+`GrpcStockChecker` path (a gRPC round trip) is not exercised by this
 module's test suite; it would need a plain grpc-java test server
 implementing `InventoryServiceGrpc.InventoryServiceImplBase` standing in for
 inventory-service, the same way the Quarkus side's `OrderPlacedAvroWireIT`

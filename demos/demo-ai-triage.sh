@@ -136,7 +136,7 @@ BENIGN_ORDER='{"customerId":"CUST-1001","itemSku":"BOOK-NOVEL-001","quantity":1,
 #      and amount >= 1000 across repeated trials -> "Expedite large trusted
 #      order" rule matches -> deterministic EXPEDITE.
 EXPEDITE_ORDER='{"customerId":"CUST-VERIFIED-LONGTIME","itemSku":"OFFICE-CHAIR-ERGO","quantity":2,"amount":1250.00}'
-#   3. RISKY_ORDER    — a deliberately fraud-signalling item description
+#   3. RISKY_ORDER    — a fraud-signalling item description
 #      (bulk reselling of stolen gift cards) at high volume/amount. Observed
 #      riskSignal=HIGH across repeated trials -> "Fraud hold on high risk"
 #      rule matches (highest salience) -> deterministic FRAUD_HOLD,

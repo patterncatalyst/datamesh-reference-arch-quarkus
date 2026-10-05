@@ -53,7 +53,7 @@
 #
 # ── order.placed publish silently fails in packaged/%prod mode without an
 # Avro security system property (found wiring this demo -- a real, previously
-# undetected production-readiness gap, not just a demo-script wrinkle) ──────
+# undetected production-readiness gap) ──────
 # A packaged order-service boots and serves POST /orders fine (the publish
 # is fire-and-forget -- OrderEventProducer's failure path only logs, see
 # OrderResource.placeOrder's `.exceptionally(...)`), but EVERY order.placed
@@ -65,7 +65,7 @@
 # This is Avro 1.12.x's ClassSecurityValidator (a real security hardening
 # feature introduced upstream, not a Quarkus/Apicurio bug) -- it allow-lists
 # which packages/classes may be instantiated via reflection during Avro
-# (de)serialization, and nothing in this reactor trusts capstone.order.v1
+# (de)serialization, and nothing in this project trusts capstone.order.v1
 # by default outside of a Quarkus-bootstrapped JVM (dev/test mode trusts it
 # implicitly; a plain `java -jar` does not). The exact same fix is already
 # documented for the OTHER place this bites

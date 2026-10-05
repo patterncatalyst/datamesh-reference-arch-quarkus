@@ -1,6 +1,6 @@
 # shipping-service
 
-Real event-choreography saga participant for the order → payment → shipment
+Event-choreography saga participant for the order → payment → shipment
 flow (Avro events, choreography-based runtime contract). Upgrades the Python reference architecture's
 shipping-service stub to a running Quarkus service.
 
@@ -64,9 +64,8 @@ automatically via Dev Services — no local broker or registry needed.
 
 `Shipment` (a `PanacheEntity`) persists one row per dispatched shipment via
 `quarkus-hibernate-orm-panache` + `quarkus-jdbc-postgresql`. Postgres also
-starts via Dev Services with zero configuration. This is intentionally
-minimal — the required part of this module is the choreography step, not the
-data store.
+starts via Dev Services with zero configuration. The data store is
+minimal; the choreography step is the point of this module.
 
 ## Health
 

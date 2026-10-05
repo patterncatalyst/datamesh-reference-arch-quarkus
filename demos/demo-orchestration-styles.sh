@@ -24,7 +24,7 @@
 #      document instead of imperative route code.
 #
 # Kafka's chain and the two triage endpoints are two independent capabilities
-# of this reactor (order/payment/shipping/notification-service vs
+# of this project (order/payment/shipping/notification-service vs
 # ai-rules-service) -- there is no single "the same literal order" flowing
 # through all three engines end to end, because the triage endpoints only
 # accept the order's line-item fields (no persistence, no event publish) and
@@ -76,7 +76,7 @@
 # payment-captured topic override must match on payment-service's OUTGOING
 # channel and shipping-service's INCOMING channel; the shipment-dispatched
 # topic override only has one side (shipping-service's OUTGOING channel, read
-# back by kcat, not by another service in this reactor).
+# back by kcat, not by another service in this project).
 #
 # ── inventory-service gRPC port (canonical 9000, same as demo-order.sh) ─────
 # order-service's gRPC client port and inventory-service's gRPC server port
@@ -474,7 +474,7 @@ narrate "event, with no service orchestrating the others. This is choreography."
 VALID_DECISIONS='FRAUD_HOLD EXPEDITE ROUTE_TO_WAREHOUSE'
 # Pre-validated stable input (same as demo-ai-triage.sh): low amount,
 # ordinary item -> deterministic ROUTE_TO_WAREHOUSE for qwen2.5:3b across
-# repeated trials, so this assertion is strict, not merely membership.
+# repeated trials, so this assertion is strict, not membership-only.
 TRIAGE_ORDER='{"customerId":"CUST-1001","itemSku":"BOOK-NOVEL-001","quantity":1,"amount":19.99}'
 
 assert_decision_member() {

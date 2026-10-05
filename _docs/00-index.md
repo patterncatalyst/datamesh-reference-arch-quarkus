@@ -7,17 +7,15 @@ duration: "5 min"
 marker: "00"
 ---
 
-This is the reading guide for the data-mesh-on-Quarkus reference — the map of what the
-tutorial covers and the order to read it in. It builds one working system end to end: a
-data mesh of Quarkus services that own their data as products, talk over a deliberate
-mix of protocols, evolve their contracts safely, scale to demand, and stay observable
+This is the reading guide for the data-mesh-on-Quarkus reference. It builds one working
+system end to end: a data mesh of Quarkus services that own their data as products, talk
+over a mix of protocols, evolve their contracts safely, scale to demand, and stay observable
 throughout. A dedicated part covers what Quarkus itself brings to that build, including
 a runnable Spring Boot twin service for a direct side-by-side comparison.
 
-The tutorial is written to be read straight through the first time — each chapter picks
-up where the last left off, and the cross-references assume you've seen the earlier
-material. If you're returning to find one thing, the descriptions below will point you
-at the right chapter.
+Read the tutorial straight through the first time: each chapter builds on the last, and
+the cross-references assume the earlier material. To find a single topic, use the
+chapter descriptions below.
 
 ## How the tutorial is organized
 
@@ -37,7 +35,7 @@ Appendices**.
   principles. The grounding before any commands.
 - [**03 · Kubernetes as the substrate**]({{ '/docs/02-kubernetes-substrate/' | relative_url }}) —
   Why the four principles map cleanly onto namespaces, operators, RBAC, and platform
-  primitives, and the shape of the minikube substrate this build stands up with Docker.
+  primitives, and the shape of the local Kubernetes substrate this build stands up with Docker.
 
 ## Part 1 — Building data products
 
@@ -46,7 +44,7 @@ Appendices**.
   order-service template the others follow.
 - [**05 · Contracts & the catalog**]({{ '/docs/04-contracts-and-catalog/' | relative_url }}) —
   Versioned Avro contracts in the Apicurio registry, the runtime-versus-discovery
-  distinction, and why a catalog is a mesh requirement rather than an add-on.
+  distinction, and why a catalog is a mesh requirement, not an add-on.
 - [**06 · The data planes**]({{ '/docs/05-data-planes/' | relative_url }}) —
   The synchronous read layer (REST, gRPC, a GraphQL gateway) and the asynchronous event
   backbone, and why the build uses all of them.
@@ -70,7 +68,7 @@ Appendices**.
   them early.
 - [**11 · Summary**]({{ '/docs/10-summary/' | relative_url }}) —
   Each principle, reorganized: the value it delivers, the implementation pieces that
-  realize it, and the failure mode when it's missing.
+  implement it, and the failure mode when it's missing.
 
 ## Part 4 — The Quarkus deep-dive
 
@@ -91,17 +89,17 @@ Appendices**.
 
 ## Part 5 — Appendices
 
-Optional deep-dives — reference material, not required reading. Each goes further
-on a single topic than the main narrative does, and each stands on its own.
+Optional deep-dives. Each goes further on a single topic than the main narrative and
+stands on its own.
 
 - [**16 · Scaling WebSocket push with Kafka**]({{ '/docs/16-websocket-scaling/' | relative_url }}) —
   What the single-instance push does today, why it breaks across replicas, and the
   Kafka fan-out pattern a multi-replica deployment would need.
 - [**17 · Gotchas**]({{ '/docs/17-gotchas/' | relative_url }}) —
-  The real pitfalls hit building this system — timezone, Avro, gRPC ports,
+  The pitfalls hit building this system — timezone, Avro, gRPC ports,
   integration-test wiring — each with its symptom and the fix that landed.
 - [**18 · Agentic recommendations**]({{ '/docs/18-agentic-recommendations/' | relative_url }}) —
-  Practical, non-hype guidance for AI-agent-assisted development on a
+  Practical guidance for AI-agent-assisted development on a
   Quarkus/Camel codebase: the plan/execute/validate relay and grounding in MCP tooling.
 - [**19 · Testing, in detail**]({{ '/docs/19-testing-details/' | relative_url }}) —
   The full test pyramid — unit, integration, functional, and load — and the
@@ -115,31 +113,27 @@ on a single topic than the main narrative does, and each stands on its own.
 
 ## Who this is for
 
-This tutorial assumes you can read Java comfortably and have used Kubernetes at
-the level of `kubectl apply` and `kubectl get pods` — it does not re-teach either.
-It does *not* assume prior exposure to data mesh as a pattern (Part 0 builds that
-from the ground up), nor does it assume you've used Kafka, Avro, gRPC, GraphQL,
-Istio, or KEDA before; each gets introduced at the point the build first needs it,
-with a pointer to the real file that uses it. Two audiences get the most out of
-it: platform or data engineers evaluating whether data mesh is the right answer
-for their organization, and Quarkus developers who want a single, coherent,
-non-trivial codebase that exercises most of the framework's reactive and
-imperative surface area at once rather than ten disconnected quickstarts.
+This tutorial assumes you read Java comfortably and have used Kubernetes at
+the level of `kubectl apply` and `kubectl get pods`. It does not assume prior exposure
+to data mesh (Part 0 covers it) or to Kafka, Avro, gRPC, GraphQL, Istio, or KEDA; each
+is introduced where the build first needs it, with a pointer to the file that uses it.
+It suits two audiences: platform or data engineers evaluating whether data mesh fits
+their organization, and Quarkus developers who want one coherent codebase that
+exercises most of the framework's reactive and imperative surface instead of ten
+disconnected quickstarts.
 
 If you're coming from the sibling `datamesh-reference-arch-python` repository,
-the domain, the four principles, and the chapter structure are intentionally
-familiar — this build is the same reference architecture re-expressed on
-Quarkus, not a different design. A reconciliation document tracks where the two
-repos deliberately diverge (and where a divergence is a bug to fix rather than a
-choice).
+the domain, the four principles, and the chapter structure carry over: this build is the
+same reference architecture on Quarkus. A reconciliation document tracks where the two
+repos diverge and which divergences are bugs to fix.
 
-## Prerequisites to actually run anything
+## Prerequisites to run the code
 
 Reading Part 0 needs nothing but a browser. Once you reach Part 1 and want to run
 the services rather than just read about them, you'll want: JDK 25 (`25-tem`),
 Maven 3.9.x, Docker plus the Compose v2 plugin (this repo standardizes on Docker,
 not Podman, for every compose and container workflow), and — only once you reach
-Part 2's Kubernetes material — `minikube`, `kubectl`, and `helm`. The
+Part 2's Kubernetes material — `minikube` (a local single-node Kubernetes cluster), `kubectl`, and `helm`. The
 [Kubernetes substrate chapter]({{ '/docs/02-kubernetes-substrate/' | relative_url }})
 covers the heavier [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh) prerequisites (32 GB of host RAM
 recommended) in full; nothing before that chapter needs a cluster at all. Part 4's
@@ -148,8 +142,8 @@ called out again at that point.
 
 ## How the chapters map to runnable code
 
-Every part past Part 0 is backed by something you can actually execute, not just
-read. The mapping is deliberately 1:1 wherever possible:
+Every part past Part 0 is backed by something you can execute. The mapping is 1:1
+wherever possible:
 
 - **Part 1's services** are the Maven reactor under
   [examples]({{ site.repo_tree }}/examples) — `order-service`,
@@ -175,9 +169,9 @@ read. The mapping is deliberately 1:1 wherever possible:
   [demo-keda-kafka.sh]({{ site.repo_blob }}/demos/demo-keda-kafka.sh) for the two
   autoscaling triggers, [demo-tracing.sh]({{ site.repo_blob }}/demos/demo-tracing.sh)
   for the observability stack, and several more for the AI, Camel, and
-  orchestration material in Part 4. Each demo is a thin, assertion-driven script —
-  it checks a specific field, status code, or replica count, never just an exit
-  code — and the demos' [README.md]({{ site.repo_blob }}/demos/README.md) has the
+  orchestration material in Part 4. Each demo is a thin, assertion-driven script that
+  checks a specific field, status code, or replica count, not just an exit
+  code, and the demos' [README.md]({{ site.repo_blob }}/demos/README.md) has the
   full matrix grouped by how much infrastructure each one needs (bare JVM,
   `docker compose`, or compose plus the opt-in Ollama profile).
   [walkthrough.sh]({{ site.repo_blob }}/demos/walkthrough.sh) chains the core set
@@ -190,28 +184,26 @@ read. The mapping is deliberately 1:1 wherever possible:
   [demo-ai-triage.sh]({{ site.repo_blob }}/demos/demo-ai-triage.sh),
   [demo-ai-classify.sh]({{ site.repo_blob }}/demos/demo-ai-classify.sh), and
   [demo-ai-mcp.sh]({{ site.repo_blob }}/demos/demo-ai-mcp.sh) — the last two
-  needing the heavier, opt-in Ollama compose profile rather than the baseline
+  need the heavier, opt-in Ollama compose profile rather than the baseline
   stack.
 
-If a chapter cites a path, it's a path in this layout — the chapters are written
-against the actual repository, not an idealized one, and each closes with a
+Paths cited in chapters refer to this layout. Each chapter closes with a
 verification-status footer noting what has and hasn't been run end to end.
 
 ## Suggested reading paths
 
-**Straight through**, start to finish, is the path the tutorial is written for —
-each chapter assumes the vocabulary and the running example built up by the ones
-before it. Budget roughly four to five hours for Parts 0 through 3 if you read
+**Straight through**, start to finish, is the intended path: each chapter assumes
+the terms and the running example built up by the ones before it. Budget roughly four to five hours for Parts 0 through 3 if you read
 without running code, longer if you run the demos alongside each chapter.
 
 **Evaluating data mesh as a pattern, not as a Quarkus build.** Read Part 0 in
 full, then [anti-patterns]({{ '/docs/09-anti-patterns/' | relative_url }}) and
 [the summary]({{ '/docs/10-summary/' | relative_url }}), and treat Parts 1
 through 4 as a reference to dip into for the specific mechanism you need to see
-made concrete (contracts, mTLS, autoscaling).
+in code (contracts, mTLS, autoscaling).
 
-**Here for Quarkus, already know data mesh.** Skim Part 0 for the vocabulary
-this build's comments and prose assume, then jump straight to
+**Here for Quarkus, already know data mesh.** Skim Part 0 for the terminology
+this build assumes, then jump straight to
 [Part 4]({{ '/docs/11-quarkus-capability-tour/' | relative_url }}) — the
 capability tour, the Spring Boot comparison, and the orchestration-styles and
 AI-rules chapters stand on their own and don't require having run the Part 1–2
@@ -220,7 +212,7 @@ services first, though the cross-references will make more sense if you have.
 **Building something similar yourself.** Part 1 (data products, contracts,
 planes) and Part 2 (delivery, scaling, observability) are the operational core —
 read those closely, run the demos as you go, and treat Part 0 and Part 3 as the
-framing that explains *why* the Part 1–2 decisions were made the way they were.
+framing for *why* the Part 1–2 decisions were made.
 
 ## If you have time for only a few
 

@@ -20,8 +20,8 @@ titleSlide({
   eyebrow: "Data Mesh · 101",
   title: "Building a Datamesh using Quarkus and Kubernetes",
   subtitle: "From data-mesh principles to a running platform on Quarkus and Kubernetes — no Quarkus experience assumed",
-  breadcrumb: "Data Mesh · 101",
-  notes: "Welcome. This talk teaches the data-mesh principles from first principles and doubles as a showroom for Quarkus — no prior Quarkus experience needed; Quarkus is the vehicle we'll demonstrate with, not a prerequisite for following along. The destination is a data mesh running on Kubernetes, and the principles we cover apply regardless of runtime. We'll start with the landscape of data architectures that came before the mesh, define the mesh precisely through its four principles, then show why Quarkus and Kubernetes are a natural pairing for building one. By the end you should be able to explain what a data mesh is, when it's the right answer, and where to go deeper if you want to see one actually running.",
+  breadcrumb: "Data Mesh · 101 · r1.1",
+  notes: "Welcome. This talk teaches the data-mesh principles from first principles and uses Quarkus to demonstrate them. No prior Quarkus experience is needed. The destination is a data mesh running on Kubernetes, and the principles we cover apply regardless of runtime. We'll start with the landscape of data architectures that came before the mesh, define the mesh through its four principles, then show why Quarkus and Kubernetes are a natural pairing for building one. By the end you should be able to explain what a data mesh is, when it's the right answer, and where to go deeper if you want to see one actually running.",
 });
 
 /* ============================ 2 · DIVIDER 01 ============================ */
@@ -29,7 +29,7 @@ dividerWithNotes({
   num: "01",
   title: "The landscape",
   sub: "Four data architectures — what each pattern solves and the limitation it leaves behind.",
-  notes: "Before we can appreciate what a data mesh is, we need to see what came before it. Every pattern in this section — pipelines, warehouses, lakes — solved a real problem for its era. None of them is wrong. The mesh isn't a replacement for all of them; it's a response to a specific organizational scaling problem that none of them fully solves. We'll walk through each pattern quickly, then see how they led to the mesh.",
+  notes: "Before we can appreciate what a data mesh is, we need to see what came before it. Every pattern in this section — pipelines, warehouses, lakes — solved a real problem for its era. None of them is wrong. The mesh does not replace all of them; it responds to a specific organizational scaling problem that none of them fully solves. We'll walk through each pattern quickly, then see how they led to the mesh.",
 });
 
 /* ---- Pipelines ---- */
@@ -65,7 +65,7 @@ diagramSlide({
   title: "The seam a mesh addresses: operational vs. analytical",
   image: "01-operational-vs-analytical",
   caption: "Traditionally two separate technology layers joined by pipelines — the mesh reorganizes the same distinction by domain instead.",
-  notes: "One more distinction underlies everything before we get to the mesh itself. Operational data is the current-state data behind a domain's running services — the rows a microservice reads and writes to do its job. Analytical data is the historical, aggregated view used for decisions and models. Traditionally these live in separate worlds joined by a tangle of ETL on a delay — all operational data here, all analytical data there, pipelines between. A data mesh doesn't erase that distinction, but reorganizes it by domain rather than by technology layer: each domain owns both its operational systems and the analytical products derived from them. That's the seam the rest of this talk is about closing.",
+  notes: "One more distinction underlies everything before we get to the mesh itself. Operational data is the current-state data behind a domain's running services — the rows a microservice reads and writes to do its job. Analytical data is the historical, aggregated view used for decisions and models. Traditionally these live in separate worlds joined by a tangle of ETL on a delay — all operational data here, all analytical data there, pipelines between. A data mesh doesn't erase that distinction, but reorganizes it by domain rather than by technology layer: each domain owns both its operational systems and the analytical products derived from them. That is the seam the mesh closes.",
 });
 
 /* ---- Decentralized mesh ---- */
@@ -91,7 +91,7 @@ dividerWithNotes({
   num: "02",
   title: "The four principles",
   sub: "Domain ownership, data as a product, self-serve platform, federated computational governance.",
-  notes: "With the landscape in place, let's define data mesh precisely. Zhamak Dehghani coined the term in 2019 and formalized it in her 2022 O'Reilly book. It rests on four interlocking principles that depend on each other — implement one without the others and you get a distributed mess, not a mesh. We'll look at all four together, then at the analogy that makes them concrete for anyone who has lived through a monolith-to-microservices transition: the same decomposition, applied to data ownership instead of application code.",
+  notes: "With the landscape in place, let's define data mesh. Zhamak Dehghani coined the term in 2019 and formalized it in her 2022 O'Reilly book. It rests on four interlocking principles that depend on each other — implement one without the others and you get a distributed mess, not a mesh. We'll look at all four together, then at the analogy that makes them concrete for anyone who has lived through a monolith-to-microservices transition: the same decomposition, applied to data ownership instead of application code.",
 });
 
 /* ---- Four principles ---- */
@@ -106,10 +106,10 @@ diagramSlide({
 /* ---- Monolith to mesh ---- */
 diagramSlide({
   eyebrow: "The four principles",
-  title: "Domain ownership, made real: monolith to mesh",
+  title: "Domain ownership: from monolith to mesh",
   image: "01-monolith-to-mesh",
   caption: "The same monolith-to-microservices transition most engineers have lived through, applied to data ownership instead of application code.",
-  notes: "This is the analogy that tends to land well for anyone who has lived through a monolith-to-microservices transition. Just as a monolithic application gets refactored into bounded contexts owned by domain teams — the microservices transition many engineers have already lived through — a monolithic data platform gets refactored into bounded data products owned by those same domain teams. The mesh is the network of those products plus the platform and standards that let them interoperate. The hard part was never drawing the boxes; it was deciding where one bounded context ends and the next begins, and then living with the contract at that boundary. Decomposing a data platform into data products is the identical exercise, one layer up — the boundary is now a versioned data contract instead of a REST endpoint.",
+  notes: "The analogy for anyone who has been through a monolith-to-microservices transition. Just as a monolithic application gets refactored into bounded contexts owned by domain teams — the microservices transition many engineers have already lived through — a monolithic data platform gets refactored into bounded data products owned by those same domain teams. The mesh is the network of those products plus the platform and standards that let them interoperate. The hard part was never drawing the boxes; it was deciding where one bounded context ends and the next begins, and then living with the contract at that boundary. Decomposing a data platform into data products is the identical exercise, one layer up — the boundary is now a versioned data contract instead of a REST endpoint.",
 });
 
 /* ============================ 12 · DIVIDER 03 ============================ */
@@ -126,7 +126,7 @@ diagramSlide({
   title: "Quarkus as the developer lens",
   image: "11-capability-tour",
   caption: "REST, gRPC, GraphQL, Kafka, reactive and imperative in one JVM, fast boot, low memory — one coherent toolchain across every data-product surface.",
-  notes: "This reference build uses Quarkus to implement every domain service — order, inventory, payment, shipping, notification, review — and exercises Panache for persistence, gRPC for typed inter-domain calls, GraphQL for a federated gateway, Reactive Messaging for Kafka-backed events, and WebSockets.Next for live pushes, all sharing one Vert.x reactor whether the handler is reactive or imperative. Add fast boot and low memory footprint, and Quarkus becomes the practical reason a domain team can stand up a well-behaved data product without first becoming distributed-systems experts. This is a teaser — the full capability tour, side by side with a Spring Boot twin service for a real comparison, is the centerpiece of the 201.",
+  notes: "This reference architecture uses Quarkus for every domain service (order, inventory, payment, shipping, notification, review) and demonstrates twelve capabilities, among them Panache for persistence, gRPC for typed inter-domain calls, GraphQL for a federated gateway, Reactive Messaging for Kafka-backed events, and WebSockets.Next for live pushes, with reactive and imperative handlers sharing one Vert.x reactor. The tour also covers the JDK 25 AOT cache, native image, OIDC, JBang, and Panama FFM. With fast boot and a small memory footprint, Quarkus gives a domain team a way to stand up a well-behaved data product without first becoming distributed-systems experts. This is a teaser — the full capability tour, with a Spring Boot twin service for a side-by-side comparison, is the centerpiece of the 201.",
 });
 
 /* ---- Orchestration styles teaser ---- */
@@ -135,16 +135,16 @@ diagramSlide({
   title: "Choreography vs. orchestration — one domain, three coordination engines",
   image: "13-orchestration-styles",
   caption: "The same order-to-shipment domain coordinated three ways: Kafka choreography, a Camel route, and a declarative Quarkus Flow workflow.",
-  notes: "Every event-driven system eventually has to answer one question: when multiple steps need to happen in sequence, who decides the sequence? This build runs three answers side by side over the same shipping/order domain. Kafka choreography: no one is in charge — order-service publishes order.placed and has never heard of payment-service or shipping-service; each service only knows 'when I see event X, I do Y and emit Z.' Camel orchestration: one route explicitly sequences every step, imperative code you read top to bottom. Quarkus Flow orchestration: the same two steps expressed declaratively, as a workflow document rather than hand-written control flow — the same shape, two different engines. This exact comparison, with the keywords choreography and orchestration used precisely, is the centerpiece of the 201.",
+  notes: "Every event-driven system eventually has to answer one question: when multiple steps need to happen in sequence, who decides the sequence? This build runs three answers side by side over the same shipping/order domain. Kafka choreography: no one is in charge — order-service publishes order.placed and has never heard of payment-service or shipping-service; each service only knows 'when I see event X, I do Y and emit Z.' Camel orchestration: one route explicitly sequences every step, imperative code you read top to bottom. Quarkus Flow orchestration: the same two steps expressed declaratively, as a workflow document rather than hand-written control flow — the same shape, two different engines. The 201 covers this comparison in full, using the terms choreography and orchestration exactly.",
 });
 
-/* ---- Capstone ---- */
+/* ---- Full project example ---- */
 diagramSlide({
   eyebrow: "Where this lands",
-  title: "The capstone — a data mesh on minikube",
+  title: "The full project example: a data mesh on Kubernetes",
   image: "02-capstone-data-mesh",
-  caption: "Domain services, the service mesh, and the self-serve platform tier, running together on a single minikube profile.",
-  notes: "This is where the whole story lands: the complete reference architecture, domain services and platform tier together, running on a single minikube profile this repo's bootstrap script stands up. Every piece you've seen in this talk — the domains owning their own data, the shared platform underneath, the governance enforced at the mesh and registry boundaries — is running code here, not a slide. This is the capstone shape the 201 builds toward in depth.",
+  caption: "Domain services, the service mesh, and the self-serve platform tier, running together on a local Kubernetes cluster.",
+  notes: "This is the complete reference architecture: domain services and platform tier together, on a local single-node Kubernetes cluster that the repository's bootstrap script creates. Each piece covered in this talk is running code here: the domains owning their data, the shared platform underneath, and governance enforced at the mesh and registry boundaries. The 201 builds toward this shape in depth.",
 });
 
 /* ============================ 16 · FITNESS ============================ */
@@ -176,4 +176,4 @@ contentSlide({
 })();
 
 /* ============================ WRITE ============================ */
-pres.writeFile({ fileName: "Datamesh_101-r1.0.pptx" }).then((f) => console.log("WROTE", f));
+require("./deck-lib.js").writeDeck("Datamesh_101-r1.1.pptx").then((f) => console.log("WROTE", f));

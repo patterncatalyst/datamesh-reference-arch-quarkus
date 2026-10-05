@@ -13,7 +13,7 @@ permalink: /demos/
             Each demo is mapped 1:1 to a data-mesh principle — domain
             ownership, data as a product, self-serve platform, federated
             computational governance — and to the Quarkus capability it
-            exercises. The runnable <code>examples/</code> tree and all 18
+            exercises. The runnable <code>examples/</code> tree and all 19
             <code>demos/*.sh</code> scripts are in the repo today — every
             card below links straight to the script and the service it
             exercises.
@@ -84,7 +84,7 @@ permalink: /demos/
         <div class="cards">
             <a class="card" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/demos/demo-kafka.sh">
                 <div class="card__eyebrow">Self-serve platform &middot; <strong>Kafka</strong></div>
-                <h3 class="card__title">Async spine (Reactive Messaging)</h3>
+                <h3 class="card__title">Kafka messaging with Reactive Messaging</h3>
                 <p class="card__desc">
                     <code>demo-kafka.sh</code> — order-service publishes
                     <code>order.placed</code>; notification-service consumes
@@ -98,7 +98,7 @@ permalink: /demos/
                 <p class="card__desc">
                     <code>demo-keda-kafka.sh</code> and
                     <code>demo-keda-http.sh</code> — Kafka consumer-lag and
-                    HTTP-concurrency scaling on the minikube substrate
+                    HTTP-concurrency scaling on the local Kubernetes cluster
                     (opt-in — requires the Istio/KEDA/Strimzi/CloudNativePG
                     cluster from <code>scripts/bootstrap.sh</code>).
                 </p>
@@ -109,7 +109,18 @@ permalink: /demos/
                 <p class="card__desc">
                     <code>demo-continuous-testing.sh</code> — live reload,
                     continuous testing, and Testcontainers-backed Dev
-                    Services as a platform capability, not a chore.
+                    Services as platform capabilities.
+                </p>
+            </a>
+            <a class="card" href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/demos/demo-panama.sh">
+                <div class="card__eyebrow">Self-serve platform &middot; <strong>Panama FFM</strong></div>
+                <h3 class="card__title">Native calls without JNI</h3>
+                <p class="card__desc">
+                    <code>demo-panama.sh</code> — a JBang script
+                    (<code>demos/jbang/PanamaFfm.java</code>) calls libc
+                    <code>getpid()</code> and <code>strlen()</code> through
+                    the Foreign Function &amp; Memory API (JEP 454). No
+                    JNI, no C glue, no native build (Linux/macOS).
                 </p>
             </a>
         </div>
@@ -178,7 +189,7 @@ docker compose up -d
             Some demos are opt-in — AI/MCP demos need
             <code>docker compose --profile ollama up -d</code>, the native
             demo needs a GraalVM/Mandrel build, and the KEDA demos need the
-            minikube substrate from <code>scripts/bootstrap.sh</code>. See
+            local Kubernetes cluster from <code>scripts/bootstrap.sh</code>. See
             <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/blob/main/demos/README.md" rel="noopener">demos/README.md ↗</a>
             for the full prereqs-by-demo matrix.
         </p>

@@ -143,6 +143,29 @@ missing ports:
   `demo-native.sh`
 - The `lgtm-docker-stack` skill itself (DRQ-003)
 
+## Professional content pass additions (no python source)
+
+Entries added by the `docs/professional-content-pass` branch. Status
+describes what actually ran: `verified` means the demo or script ran in this
+environment; `measured` means numbers were captured; `unverified` means the
+content is explanatory or conceptual and was not run.
+
+| Artifact | Counterpart | Status | Notes |
+|---|---|---|---|
+| _(none — new)_ | `_docs/11-quarkus-capability-tour.md`: twelve-capability tour (was nine; ten in practice) | verified (adapted) | Adds JDK AOT cache (Leyden), Panama FFM, Panache patterns, Uni and imperative subsection. Native image still not exercised in this pass |
+| _(none — new)_ | `demos/demo-panama.sh`, `demos/jbang/PanamaFfm.java` | verified | Ran on JDK 25.0.3 with JBang 0.138.0: `PANAMA_GETPID` equals `JVM_PID`, `PANAMA_STRLEN` equals `JAVA_LENGTH` (31). Linux and macOS only (libc default lookup) |
+| _(none — new)_ | JDK 25 AOT cache comparison: `scripts/compare-quarkus-springboot.sh --aot`, `_docs/12-quarkus-vs-spring-boot.md` | measured | Temurin 25.0.3, 2026-10-05, single run; startup, RSS, and cache size recorded in chapter 12. Not a benchmark |
+| _(none — new)_ | Figure `11-panache-patterns` | unverified | Explanatory; the `PanacheRepository` example in chapter 11 is illustrative and not run |
+| _(none — new)_ | Figure `11-uni-vs-imperative` | unverified | Explanatory; grounded in `InventoryGrpcService.checkStock` and `StockResource.get` |
+| _(none — new)_ | Figure `11-websockets-next` | unverified | Explanatory; legacy versus Next comparison |
+| _(none — new)_ | Figure `11-jbang-tooling` | unverified | Explanatory; the three scripts in `demos/jbang` are run by their demos |
+| _(none — new)_ | Figure `11-startup-paths` | unverified | Qualitative; numbers are in chapter 12 |
+| _(none — new)_ | Figure `11-panama-ffm` | unverified | Explanatory; the code it describes was run (see Panama row) |
+| _(none — new)_ | Figure `11-oidc-token-flow` | unverified | Explanatory; the flow matches what `demo-oidc.sh` exercised |
+| _(none — new)_ | Figure `16-websocket-failover` | unverified | Reconnect and backoff are conceptual; `WsNotificationClient` does not implement them |
+| _(none — new)_ | Figure `20-vertx-in-memory` | unverified | Event bus usage is illustrative; the project uses the in-memory connector in shipping-service tests |
+| _(none — new)_ | Figure `20-kafka-messaging` | unverified | Explanatory; consumer groups and partitions as used by the Kafka legs |
+
 ## How to keep this current
 
 Update a row's status when the corresponding artifact is created or

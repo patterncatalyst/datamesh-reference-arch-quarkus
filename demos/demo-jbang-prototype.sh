@@ -3,7 +3,7 @@
 # demos/demo-jbang-prototype.sh — "bare" toolchain demo.
 #
 # Demonstrates JBang-based single-file prototyping: demos/jbang/HelloRoute.java
-# is a complete Camel route with no pom.xml and no Maven reactor module.
+# is a complete Camel route with no pom.xml and no Maven module.
 # `jbang camel@apache/camel run <file>.java` (Apache Camel's own JBang CLI —
 # jbang transparently installs/trusts the `camel@apache/camel` app catalog
 # entry the first time it's invoked) resolves Camel's runtime straight from
