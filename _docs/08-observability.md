@@ -11,8 +11,8 @@ The [previous chapter](/docs/07-elastic-and-resilient/) ended on scaling and rec
 the platform doing things automatically in response to demand and failure. "The
 platform does things automatically" is only reassuring if you can *see* it happening.
 This chapter covers observability as this repo actually ships it: the LGTM stack
-(`scripts/setup-lgtm.sh`) that collects metrics, traces, and logs; the one demo
-(`demos/demo-tracing.sh`) that was run against a real backend and produced a verified
+([setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh)) that collects metrics, traces, and logs; the one demo
+([demo-tracing.sh]({{ site.repo_blob }}/demos/demo-tracing.sh)) that was run against a real backend and produced a verified
 cross-service trace; and Kiali as the live view of traffic moving through the mesh.
 
 {% include excalidraw.html file="08-reference-architecture" alt="Reference architecture diagram showing the full datamesh stack: data products behind the Istio mesh, KEDA-driven autoscaling, and every signal flowing through the OpenTelemetry Collector into the Grafana LGTM stack and Kiali" caption="Figure 8.1 — the full reference architecture: mesh, scaling, and observability together" %}
@@ -54,7 +54,7 @@ to narrow the search means grepping three services' logs for a needle with no id
 which haystack it's in; that's the specific cost a mesh pays for not wiring up tracing,
 and the specific cost this chapter's stack is built to avoid.
 
-## Installing the stack: `scripts/setup-lgtm.sh`
+## Installing the stack: [setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh)
 
 Every component runs in **monolithic / single-binary mode**, because this is a
 single-node minikube — production deployments would run each backend's distributed
@@ -91,7 +91,7 @@ sidecar pattern so it auto-picks-up any ConfigMap labeled `grafana_datasource: "
 ### Everything through one Collector
 
 Applications don't talk to Loki, Tempo, or Mimir directly. They emit OTLP to a single
-OpenTelemetry Collector, and `scripts/otel-collector-config.yaml` is the routing table
+OpenTelemetry Collector, and [otel-collector-config.yaml]({{ site.repo_blob }}/scripts/otel-collector-config.yaml) is the routing table
 that decides where each signal goes:
 
 ```yaml
@@ -129,7 +129,7 @@ service's configuration.
 
 ### Mimir registered as both itself and Prometheus
 
-`scripts/grafana-datasources.yaml` registers Mimir **twice** — once as itself, once
+[grafana-datasources.yaml]({{ site.repo_blob }}/scripts/grafana-datasources.yaml) registers Mimir **twice** — once as itself, once
 aliased as `Prometheus` — both pointing at the same URL
 (`http://mimir-nginx.observability.svc.cluster.local:80/prometheus`):
 
@@ -155,9 +155,9 @@ install.
 
 ### Dashboards ship as code
 
-`scripts/grafana-dashboards/` holds four dashboard ConfigMaps
-(`dashboard-overview.yaml`, `dashboard-loki.yaml`, `dashboard-tempo.yaml`,
-`dashboard-mimir.yaml`), each labeled `grafana_dashboard: "1"` so Grafana's sidecar
+[grafana-dashboards]({{ site.repo_tree }}/scripts/grafana-dashboards) holds four dashboard ConfigMaps
+([dashboard-overview.yaml]({{ site.repo_blob }}/scripts/grafana-dashboards/dashboard-overview.yaml), [dashboard-loki.yaml]({{ site.repo_blob }}/scripts/grafana-dashboards/dashboard-loki.yaml), [dashboard-tempo.yaml]({{ site.repo_blob }}/scripts/grafana-dashboards/dashboard-tempo.yaml),
+[dashboard-mimir.yaml]({{ site.repo_blob }}/scripts/grafana-dashboards/dashboard-mimir.yaml)), each labeled `grafana_dashboard: "1"` so Grafana's sidecar
 mounts them automatically — no manual "import dashboard" step. The overview dashboard's
 first row is a trio of ingest-rate stats, one per backend:
 
@@ -180,7 +180,7 @@ application problem.
 
 ## A verified cross-service trace
 
-Unlike most of this part, `demos/demo-tracing.sh` was actually run against a real
+Unlike most of this part, [demo-tracing.sh]({{ site.repo_blob }}/demos/demo-tracing.sh) was actually run against a real
 backend (the docker-compose LGTM baseline, not minikube) and produced the effect it
 claims. It is the one place in this part where verification means the demo was
 actually executed and observed, not just reviewed as code.
@@ -245,7 +245,7 @@ betting on one.
 Metrics and traces are recorded and queried after the fact. Alongside them, this stack
 also provides a *live* picture of the mesh topology — which products are
 talking to which, right now, with health and traffic rate on each edge. That's Kiali's
-job, and `scripts/setup-kiali.sh` installs it wired to the **existing** LGTM stack
+job, and [setup-kiali.sh]({{ site.repo_blob }}/scripts/setup-kiali.sh) installs it wired to the **existing** LGTM stack
 rather than standing up a separate Prometheus of its own:
 
 ```bash
@@ -267,7 +267,7 @@ pipeline that would eventually drift from the first.
 
 Kiali's graph is quiet by default — its own script output says so plainly: "the live
 traffic graph only shows edges while traffic is flowing — the mesh graph is quiet
-until a service is opted into the mesh (see `setup-istio.sh`) and is receiving
+until a service is opted into the mesh (see [setup-istio.sh]({{ site.repo_blob }}/scripts/setup-istio.sh)) and is receiving
 traffic." That ties directly back to the [previous chapter's](/docs/06-progressive-delivery-mtls/)
 selective-injection decision: a product has to actually carry the
 `sidecar.istio.io/inject: "true"` annotation before Kiali has anything to draw for it.
@@ -279,7 +279,7 @@ rather than inferring it from logs.
 
 Every backend above is installed as a `NodePort` Service at a fixed port — Grafana at
 `30300`, Tempo at `30320`, Mimir at `30009`, OTLP at `30417`/`30418`, Kiali at
-`30201` — and `scripts/tunnel-services.sh` is the one way this repo reaches them from
+`30201` — and [tunnel-services.sh]({{ site.repo_blob }}/scripts/tunnel-services.sh) is the one way this repo reaches them from
 the host, deliberately not `kubectl port-forward`:
 
 ```bash
@@ -303,8 +303,8 @@ port, backgrounded with `-f` and kept alive with `ServerAliveInterval=30`/
 and dropped. Re-running the script kills any previous tunnels first
 (`pkill -f 'ssh.*docker@127.0.0.1'`) before opening fresh ones, which is what makes it
 safe to re-run after a minikube restart changes the underlying SSH port. The same
-NodePort convention is what every `--set service.type=NodePort` in `setup-lgtm.sh` and
-`setup-kiali.sh` exists to set up; this script is simply the one place all of those
+NodePort convention is what every `--set service.type=NodePort` in [setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh) and
+[setup-kiali.sh]({{ site.repo_blob }}/scripts/setup-kiali.sh) exists to set up; this script is simply the one place all of those
 fixed ports get turned into stable `localhost` URLs in one command.
 
 ## What it all adds up to

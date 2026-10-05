@@ -51,7 +51,7 @@ Postgres Dev Services/Testcontainers instance from the *test JVM*, which
 forwards whatever timezone it resolved from the host — the container's own
 `TZ` env var doesn't change what the client sends.
 
-**Fix.** The parent reactor POM (`examples/pom.xml`) pins `user.timezone`
+**Fix.** The parent reactor POM ([pom.xml]({{ site.repo_blob }}/examples/pom.xml)) pins `user.timezone`
 on both `maven-surefire-plugin` and `maven-failsafe-plugin` so every test
 JVM in the reactor connects as UTC regardless of host locale:
 
@@ -71,8 +71,9 @@ JVM in the reactor connects as UTC regardless of host locale:
 ```
 
 The same block is repeated for `maven-failsafe-plugin`. Belt-and-suspenders:
-the container is forced to UTC (`compose.yaml`), the test JVM is forced to
-UTC (`examples/pom.xml`), and the server itself is told `timezone=UTC` via
+the container is forced to UTC
+([compose.yaml]({{ site.repo_blob }}/compose.yaml)), the test JVM is forced to
+UTC (reactor `pom.xml`, above), and the server itself is told `timezone=UTC` via
 its own `-c` flag — three independent layers, since any one being wrong
 reproduces the failure on a host whose locale differs from the author's.
 
@@ -116,10 +117,11 @@ ENV JAVA_TOOL_OPTIONS="-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1
 `payment-service`'s image trusts two packages
 (`capstone.order.v1,capstone.payment.v1`) and `shipping-service`'s trusts
 `capstone.payment.v1,capstone.shipping.v1` — each service lists exactly the
-Avro types it touches, not a blanket wildcard. `OrderPlacedAvroWireIT`
-(`examples/order-service/src/test/java/.../OrderPlacedAvroWireIT.java`), the
-byte-level regression test for this, needs the identical system property on
-its own failsafe execution (`examples/order-service/pom.xml`) for the same
+Avro types it touches, not a blanket wildcard.
+[OrderPlacedAvroWireIT]({{ site.repo_blob }}/examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderPlacedAvroWireIT.java),
+the byte-level regression test for this, needs the identical system property on
+its own failsafe execution (order-service's
+[pom.xml]({{ site.repo_blob }}/examples/order-service/pom.xml)) for the same
 reason: it's a plain JUnit/Testcontainers test with no Quarkus bootstrap to
 auto-trust the package either.
 
@@ -135,8 +137,9 @@ isolation — health checks pass, nothing logs an error — but
 
 **Root cause.** This was a genuine wiring mismatch, not a hypothetical
 one: `order-service` pinned `quarkus.grpc.clients.inventory.port=9001`
-while `inventory-service`'s gRPC server defaulted to port `9000`, and
-`k8s/base/*` set no explicit inventory `Service`/env to reconcile the two.
+while `inventory-service`'s gRPC server defaulted to port `9000`, and the
+[base]({{ site.repo_tree }}/k8s/base) manifests set no explicit inventory
+`Service`/env to reconcile the two.
 Two Quarkus apps starting without error tells you nothing about whether
 their *cross-service* wiring agrees; each one only validates its own
 config in isolation.
@@ -152,8 +155,8 @@ quarkus.grpc.server.port=${INVENTORY_GRPC_PORT:9000}
 quarkus.grpc.clients.inventory.port=${INVENTORY_GRPC_PORT:9000}
 ```
 
-`k8s/base/config.yaml` sets `INVENTORY_GRPC_PORT: "9000"` once, and
-`k8s/base/inventory-service.yaml` exposes `containerPort: 9000` under the
+[config.yaml]({{ site.repo_blob }}/k8s/base/config.yaml) sets `INVENTORY_GRPC_PORT: "9000"` once, and
+[inventory-service.yaml]({{ site.repo_blob }}/k8s/base/inventory-service.yaml) exposes `containerPort: 9000` under the
 same name — a single source of truth both sides read, rather than two
 numbers kept in sync by hand. The lesson generalizes past gRPC: any value
 repeated across file-disjoint config (a port, a topic name, a package)
@@ -175,9 +178,9 @@ Maven/Surefire test JVM at all — it packages the application and launches
 JVM default timezone resolved from the host, independent of whatever `-D`
 flags the launching test JVM was given. Setting `user.timezone=UTC` on the
 failsafe execution only affects the process *running the test class*, not
-the process *being tested*. `InventoryCheckStockWireIT`'s own Javadoc
-(`examples/inventory-service/src/test/java/.../InventoryCheckStockWireIT.java`)
-spells this out.
+the process *being tested*.
+[InventoryCheckStockWireIT]({{ site.repo_blob }}/examples/inventory-service/src/test/java/com/patterncatalyst/datamesh/inventory/InventoryCheckStockWireIT.java)'s
+own Javadoc spells this out.
 
 **Fix.** `quarkus.test.arg-line` is the forwarding mechanism Quarkus
 provides specifically for this — it passes JVM arguments through to the
@@ -246,7 +249,8 @@ static void setUp() throws Exception {
 }
 ```
 
-This is documented in `examples/inventory-service/README.md`'s "Seeding in
+This is documented in inventory-service's
+[README.md]({{ site.repo_blob }}/examples/inventory-service/README.md)'s "Seeding in
 `%prod`" section, and every demo script that touches inventory does the
 same `POST /stock` dance before relying on it.
 
@@ -308,7 +312,10 @@ assertEquals(200, response.statusCode());
 ```
 
 The same `@Consumes(WILDCARD)` fix was applied identically to
-`StockResource` and `ReviewResource`'s bodyless methods in the same commit
+[StockResource]({{ site.repo_blob }}/examples/inventory-service/src/main/java/com/patterncatalyst/datamesh/inventory/StockResource.java)
+and
+[ReviewResource]({{ site.repo_blob }}/examples/review-service/src/main/java/com/patterncatalyst/datamesh/review/ReviewResource.java)'s
+bodyless methods in the same commit
 — the pattern, once found once, was searched for and fixed everywhere it
 appeared, not just at the one call site that happened to surface it.
 

@@ -21,8 +21,9 @@ pattern `notification-service` now implements to solve it.
 
 ## What the repo does today
 
-Everything here traces back to three classes in
-`examples/notification-service/src/main/java/com/patterncatalyst/datamesh/notification/`.
+Everything here traces back to three classes in the
+[notification]({{ site.repo_tree }}/examples/notification-service/src/main/java/com/patterncatalyst/datamesh/notification)
+package.
 
 `OrderNotificationSocket` is deliberately minimal — it only acknowledges the
 connection:
@@ -86,7 +87,8 @@ the WebSockets.Next registry of every socket currently open **in this JVM**.
 replica; it never needs to know about sockets held by any other replica,
 because every replica runs its own `OrderPlacedPushConsumer` against the
 same topic (see "The fan-out pattern" below for why that's safe to do
-without racing `OrderPlacedConsumer`'s write). `demos/demo-websocket.sh`
+without racing `OrderPlacedConsumer`'s write).
+[demo-websocket.sh]({{ site.repo_blob }}/demos/demo-websocket.sh)
 proves the single-replica case of this chain end to end — order placed,
 consumed, persisted, pushed — by running exactly one `notification-service`
 JVM, where persistence and push happen to be observed by that same one
@@ -106,18 +108,19 @@ mechanism for it to. So if a client opens `/ws/notifications` and lands on
 replica A, replica A is the *only* process in the fleet holding that socket;
 `OpenConnections` on replica B knows nothing about it — a plain in-memory
 registry scoped to the JVM it lives in, with no clustering extension wired up
-(this module's `pom.xml` depends on `quarkus-websockets-next` and nothing
+(this module's [pom.xml]({{ site.repo_blob }}/examples/notification-service/pom.xml) depends on `quarkus-websockets-next` and nothing
 else — no Infinispan, no Vert.x cluster manager). This is an unavoidable
 property of what a WebSocket is, not something the fan-out pattern below
 removes — see "Sticky sessions vs. broadcast."
 
 **A single shared consumer group would only deliver the push to whichever
-replica wins the partition.** `order-placed`'s `application.properties`
+replica wins the partition.** `order-placed`'s
+[application.properties]({{ site.repo_blob }}/examples/notification-service/src/main/resources/application.properties)
 entry sets `mp.messaging.incoming.order-placed.connector=smallrye-kafka` and
 `mp.messaging.incoming.order-placed.topic=order.placed`, but sets no
 `group.id`. Per Quarkus's Kafka reference guide, the consumer group id
 defaults to `quarkus.application.name`, which is `notification-service` — and
-`k8s/keda/consumer-scaledobject.yaml` says so explicitly in its header
+[consumer-scaledobject.yaml]({{ site.repo_blob }}/k8s/keda/consumer-scaledobject.yaml) says so explicitly in its header
 comment, pointing its `consumerGroup: notification-service` KEDA trigger at
 that same default. A Kafka consumer group's defining behavior is that its
 members **split the topic's partitions among themselves** — each partition
@@ -258,7 +261,7 @@ would be new code, not a configuration flag that already exists on
 
 ## KEDA and scale-to-zero: a socket pins a replica up
 
-`k8s/keda/consumer-scaledobject.yaml` configures `notification-service` to
+`consumer-scaledobject.yaml` configures `notification-service` to
 scale on Kafka consumer lag for the `notification-service` group, with
 `minReplicaCount: 0` — the deployment can go to zero replicas when there's no
 lag, and KEDA's Kafka trigger brings a replica back up once lag accrues past

@@ -12,7 +12,8 @@ that "implement a data mesh on Kubernetes" is less a translation exercise than a
 fit. This chapter makes that mapping explicit, then walks the actual substrate this build
 stands up on minikube. Figure 2.1, the capstone diagram for this part, shows where this
 chapter is headed — the full data mesh this build runs, domain services and platform tier
-together, on top of the single minikube profile `scripts/bootstrap.sh` stands up.
+together, on top of the single minikube profile
+[bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh) stands up.
 
 {% include excalidraw.html file="02-capstone-data-mesh" alt="The complete data mesh reference architecture running on minikube — domain services, the service mesh, and the self-serve platform tier underneath them" caption="Figure 2.1 — The capstone: a data mesh on minikube" %}
 
@@ -76,7 +77,8 @@ exactly what "computational governance" means.
 ## The substrate this build actually stands up
 
 Everything above is the general case. Concretely, this build's substrate is a single
-minikube profile, brought up tier by tier by `scripts/bootstrap.sh`, with a health gate
+minikube profile, brought up tier by tier by
+[bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh), with a health gate
 between each tier so a failure in one doesn't cascade silently into the next:
 
 ```bash
@@ -88,27 +90,27 @@ The script is intentionally linear and idempotent — every step is `helm upgrad
 resumes rather than fails. Reading top to bottom, it builds the platform tier in
 dependency order:
 
-1. **The minikube profile itself** (`scripts/setup-profile.sh`), driven by
+1. **The minikube profile itself** ([setup-profile.sh]({{ site.repo_blob }}/scripts/setup-profile.sh)), driven by
    `minikube start --driver=docker` — **Docker, not Podman**. This repo standardized on
    Docker for every container and compose workflow (the `lgtm-docker-stack` skill rather
    than `lgtm-podman-stack`), so the one `docker driver` flag is the only container
    toolchain decision the substrate makes, and it's made once, at the bottom.
-2. **Istio** (`scripts/setup-istio.sh`), gated on `kubectl wait --for=condition=Available
+2. **Istio** ([setup-istio.sh]({{ site.repo_blob }}/scripts/setup-istio.sh)), gated on `kubectl wait --for=condition=Available
    deploy/istiod` — nothing after this tier proceeds until the control plane is actually
    serving, not merely scheduled.
-3. **CloudNativePG** (`scripts/setup-postgres-operator.sh`) — operator plus a Postgres
+3. **CloudNativePG** ([setup-postgres-operator.sh]({{ site.repo_blob }}/scripts/setup-postgres-operator.sh)) — operator plus a Postgres
    `Cluster` custom resource, gated on the primary reaching `Ready`.
-4. **Strimzi** (`scripts/setup-kafka-operator.sh`) — the Kafka operator and cluster CR
+4. **Strimzi** ([setup-kafka-operator.sh]({{ site.repo_blob }}/scripts/setup-kafka-operator.sh)) — the Kafka operator and cluster CR
    for the event backbone the services publish Avro records to.
-5. **KEDA** (`scripts/setup-keda.sh`), pinned to 0.15.0 — the autoscaling primitives
+5. **KEDA** ([setup-keda.sh]({{ site.repo_blob }}/scripts/setup-keda.sh)), pinned to 0.15.0 — the autoscaling primitives
    `Part 2`'s [elastic & resilient chapter]({{ '/docs/07-elastic-and-resilient/' | relative_url }})
    builds on.
-6. **The LGTM observability stack** (`scripts/setup-lgtm.sh`), installed into the
+6. **The LGTM observability stack** ([setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh)), installed into the
    `observability` namespace rather than `datamesh` — a deliberate boundary between the
    platform's own telemetry infrastructure and the domain services it observes.
-7. **Kiali** (`scripts/setup-kiali.sh`), gated on Istio being enabled, for the live mesh
+7. **Kiali** ([setup-kiali.sh]({{ site.repo_blob }}/scripts/setup-kiali.sh)), gated on Istio being enabled, for the live mesh
    topology view.
-8. **Apicurio** (`scripts/setup-apicurio.sh`) — the schema registry the contracts chapter
+8. **Apicurio** ([setup-apicurio.sh]({{ site.repo_blob }}/scripts/setup-apicurio.sh)) — the schema registry the contracts chapter
    depends on, installed last because it's the one tier that's useful without any
    domain service running yet.
 
@@ -121,16 +123,19 @@ ENABLE_ISTIO=false ENABLE_KIALI=false ./scripts/bootstrap.sh
 ```
 
 Once the substrate is up, three more scripts round out the day-to-day loop:
-`scripts/cluster-status.sh` for a health summary across every tier, `scripts/tunnel-services.sh`
-for stable NodePort-plus-SSH-tunnel access to services (deliberately not
+[cluster-status.sh]({{ site.repo_blob }}/scripts/cluster-status.sh) for a health
+summary across every tier,
+[tunnel-services.sh]({{ site.repo_blob }}/scripts/tunnel-services.sh) for stable
+NodePort-plus-SSH-tunnel access to services (deliberately not
 `kubectl port-forward`, which drops under load and doesn't survive a pod restart), and
-`scripts/teardown.sh` to tear the whole profile down.
+[teardown.sh]({{ site.repo_blob }}/scripts/teardown.sh) to tear the whole profile
+down.
 
 ## The application manifests: kustomize, not raw YAML per environment
 
 The platform tier above is operators and Helm charts; the *application* tier — the
 domain services themselves — ships as plain Kubernetes manifests organized with
-kustomize, under `k8s/`:
+kustomize, under [k8s]({{ site.repo_tree }}/k8s):
 
 ```
 k8s/base/
@@ -168,24 +173,27 @@ daemon" and "pull policy must be `IfNotPresent`" is the one fragile assumption w
 remembering before you change either side of it independently.
 
 Build context matters too, and it's easy to get backwards the first time: every
-`Containerfile.multistage` build in `k8s/README.md` runs from the **repo root**, not from
+`Containerfile.multistage` build documented in the k8s
+[README.md]({{ site.repo_blob }}/k8s/README.md) runs from the **repo root**, not from
 inside `examples/<service>/`. That's because each service's builder stage needs the whole
-`examples/` Maven reactor on disk to resolve `domain-model` and `contracts` as reactor
-dependencies rather than as published artifacts — building from inside a single service
-directory would leave those two modules unreachable and the build would fail at the
-Maven step, not at the Docker step, which makes the mistake more confusing than it needs
-to be the first time you hit it.
+[examples]({{ site.repo_tree }}/examples) Maven reactor on disk to resolve `domain-model`
+and `contracts` as reactor dependencies rather than as published artifacts — building
+from inside a single service directory would leave those two modules unreachable and the
+build would fail at the Maven step, not at the Docker step, which makes the mistake more
+confusing than it needs to be the first time you hit it.
 
 The same `base`/`overlay` split also carries the one non-secret configuration contract
-every Deployment shares: `k8s/base/config.yaml` is a ConfigMap (`datamesh-app-config`)
-that every Deployment pulls in wholesale via `envFrom`, rather than each Deployment
-listing its own `env:` entries. Its values are not placeholders — they're the literal
-in-cluster DNS names the platform tier's own setup scripts produce, e.g.
-`KAFKA_BOOTSTRAP_SERVERS=datamesh-kafka-bootstrap.datamesh.svc.cluster.local:9092` (from
-Strimzi's own Service-naming convention off the Kafka CR name in
-`scripts/setup-kafka-operator.sh`) and
+every Deployment shares:
+[config.yaml]({{ site.repo_blob }}/k8s/base/config.yaml) is a ConfigMap
+(`datamesh-app-config`) that every Deployment pulls in wholesale via `envFrom`, rather
+than each Deployment listing its own `env:` entries. Its values are not placeholders —
+they're the literal in-cluster DNS names the platform tier's own setup scripts produce,
+e.g. `KAFKA_BOOTSTRAP_SERVERS=datamesh-kafka-bootstrap.datamesh.svc.cluster.local:9092`
+(from Strimzi's own Service-naming convention off the Kafka CR name in
+[setup-kafka-operator.sh]({{ site.repo_blob }}/scripts/setup-kafka-operator.sh)) and
 `APICURIO_REGISTRY_URL=http://apicurio.datamesh.svc.cluster.local:8080/apis/registry/v3`
-(the v3 API path `scripts/setup-apicurio.sh` installs). Because Quarkus does relaxed
+(the v3 API path [setup-apicurio.sh]({{ site.repo_blob }}/scripts/setup-apicurio.sh)
+installs). Because Quarkus does relaxed
 env-var binding onto its own `kafka.bootstrap.servers` and `apicurio.registry.url`
 config keys, those two values need zero `application.properties` changes to take effect
 in-cluster — the ConfigMap *is* the production configuration, which is the self-serve
@@ -227,7 +235,7 @@ This build runs on minikube — a single-node Kubernetes cluster — which is th
 choice for *learning* the pattern and wrong for running it in production. A single node
 means every tier shares one machine's resources, which keeps the whole mesh runnable on
 a laptop but also concentrates failure modes that a real multi-node cluster would spread
-out. `scripts/bootstrap.sh`'s own header documents the resource budget this concentration
+out. [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh)'s own header documents the resource budget this concentration
 demands: 32 GB of host RAM recommended (the minikube profile itself is sized at 24 GB /
 16 vCPUs / 80 GB disk) with roughly 2.9 GiB of idle in-cluster footprint once every tier
 is on. Where single-node realities bite beyond raw resource ceilings — node-level decay,

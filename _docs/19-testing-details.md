@@ -13,7 +13,8 @@ verifies it with a demo script. This appendix steps back and looks at
 uses for which kind of claim, which of those tests can run with nothing but
 a JDK and a Docker daemon, which need a live, fully-wired stack listening on
 real host ports, which are deliberately gated off because they depend on a
-local LLM, and how `scripts/run-all-tests.sh` sequences all of it into one
+local LLM, and how
+[run-all-tests.sh]({{ site.repo_blob }}/scripts/run-all-tests.sh) sequences all of it into one
 command instead of leaving a contributor to remember the right order of
 `mvn`, `docker compose`, Newman, and two load scripts.
 
@@ -26,7 +27,8 @@ command instead of leaving a contributor to remember the right order of
 The base of the pyramid is the ordinary Quarkus unit test: a class
 annotated `@QuarkusTest` (or a plain JUnit 5 test with no Quarkus
 annotation at all), compiled and executed by `maven-surefire-plugin` when
-you run `mvn -f examples/pom.xml test`. `examples/pom.xml`'s
+you run `mvn -f examples/pom.xml test`. The reactor
+[pom.xml]({{ site.repo_blob }}/examples/pom.xml)'s
 `pluginManagement` pins `maven-surefire-plugin` (and `maven-failsafe-plugin`)
 to the same version property, `surefire-plugin.version` (3.5.2), and adds
 one reactor-wide system property to both: `user.timezone=UTC`, which exists
@@ -61,7 +63,8 @@ under `mvn -f examples/pom.xml verify`. Several of this project's modules
 (for example `order-service`) have to bind that execution explicitly in
 their own `pom.xml`, because the parent reactor pom's `pluginManagement`
 only *pins the version* and the UTC system property; it binds no execution.
-`order-service/pom.xml` spells this out in its own comment: "Without this
+order-service's
+[pom.xml]({{ site.repo_blob }}/examples/order-service/pom.xml) spells this out in its own comment: "Without this
 execution, `*IT` classes are compiled by `test-compile` but failsafe never
 runs them under `mvn verify`." The same block also documents a second,
 unrelated gotcha this module's integration tests hit: Avro 1.12.x's
@@ -80,8 +83,7 @@ Quarkus packages the application once and launches it as a real separate
 process, again without anything pre-existing on the host. No
 `docker compose up` is required for any test in this tier.
 
-**`OrderPlacedAvroWireIT`**
-(`examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderPlacedAvroWireIT.java`)
+[**`OrderPlacedAvroWireIT`**]({{ site.repo_blob }}/examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderPlacedAvroWireIT.java)
 is the sharpest example of why this tier exists. A `@QuarkusTest` for
 order-service's REST endpoint could pass even if the Kafka producer
 silently fell back from Avro to Quarkus's autodetected Jackson/JSON
@@ -119,8 +121,7 @@ round trip: deserializing the same bytes with the real
 `AvroKafkaDeserializer` and asserting every field survived the Avro
 encoding intact.
 
-**`InventoryCheckStockWireIT`**
-(`examples/inventory-service/src/test/java/com/patterncatalyst/datamesh/inventory/InventoryCheckStockWireIT.java`)
+[**`InventoryCheckStockWireIT`**]({{ site.repo_blob }}/examples/inventory-service/src/test/java/com/patterncatalyst/datamesh/inventory/InventoryCheckStockWireIT.java)
 tests a different layer — gRPC, not Kafka — and uses a different mechanism:
 `@QuarkusIntegrationTest`, which boots the already-packaged
 `quarkus-run.jar` as a genuinely separate OS process rather than running
@@ -153,8 +154,8 @@ as "consistent with how the other wire-level ITs set up their own
 fixtures."
 
 Worth noting: a third `*IT` in this same tier does
-*not* currently run: `OrderChoreographyChainIT`
-(`examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderChoreographyChainIT.java`)
+*not* currently run:
+[`OrderChoreographyChainIT`]({{ site.repo_blob }}/examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderChoreographyChainIT.java)
 is written and compiles — it would produce one `order.placed` Avro event
 and assert a `PaymentCaptured` record appears on `payment.captured`
 followed by a `ShipmentDispatched` record on `shipment.dispatched` — but it
@@ -175,7 +176,8 @@ intent or leaving a silently-skipped test with no explanation.
 `run-all-tests.sh` folds in a fourth, less obvious tier between IT and the
 live-stack phases: the **TWIN** phase, which builds `domain-model` and
 `contracts` (`mvn -pl domain-model,contracts -am install -DskipTests`) and
-then runs `mvn test` against `examples/spring-boot-compare/pom.xml` — the
+then runs `mvn test` against spring-boot-compare's
+[pom.xml]({{ site.repo_blob }}/examples/spring-boot-compare/pom.xml) — the
 one runnable Spring Boot twin service this project ships for a real
 side-by-side comparison. Per the script's own header comment,
 `OrderControllerTest` in that module uses `@ServiceConnection` plus
@@ -187,9 +189,11 @@ phases below it.
 ### Functional tests: the Newman/Postman collection
 
 The third tier moves outside Maven entirely. `tooling/newman/` holds a
-Postman collection, `tooling/newman/datamesh.postman_collection.json`, run
-against a live stack via `tooling/newman/run-newman.sh`. Per
-`tooling/README.md`, this collection is grouped into five folders —
+Postman collection,
+[datamesh.postman_collection.json]({{ site.repo_blob }}/tooling/newman/datamesh.postman_collection.json),
+run against a live stack via
+[run-newman.sh]({{ site.repo_blob }}/tooling/newman/run-newman.sh). Per
+[tooling's README.md]({{ site.repo_blob }}/tooling/README.md), this collection is grouped into five folders —
 Health, Inventory, Order, GraphQL, and Review — covering roughly twenty
 requests: health probes for all four services; inventory stock seeding,
 lookup, and a 404 case; order placement (including a deliberate
@@ -217,9 +221,13 @@ an HTTP nor a gRPC unary endpoint that Newman, `hey`, or `ghz` can reach.
 
 ### Load tests: `hey` for HTTP, `ghz` for gRPC
 
-The top of the pyramid is capacity, not correctness: `tooling/load/` holds
-two scripts, `load-orders.sh` (HTTP, via `hey`) and `load-checkstock.sh`
-(gRPC, via `ghz`), both built on the same `demos/lib/_demo.sh` harness
+The top of the pyramid is capacity, not correctness:
+[load]({{ site.repo_tree }}/tooling/load) holds
+two scripts,
+[load-orders.sh]({{ site.repo_blob }}/tooling/load/load-orders.sh) (HTTP, via `hey`) and
+[load-checkstock.sh]({{ site.repo_blob }}/tooling/load/load-checkstock.sh)
+(gRPC, via `ghz`), both built on the same
+[_demo.sh]({{ site.repo_blob }}/demos/lib/_demo.sh) harness
 every demo script uses — `require`/`fail`/`step`/`narrate`/`wait_http` — on
 the principle, stated in both scripts' headers, that "a load run that
 short-circuits before producing a summary must never read as clean."
@@ -289,7 +297,10 @@ mvn test -Dollama.tests.enabled=true -Dtest=OrderTriageRouteIT \
     -f examples/pom.xml -pl ai-rules-service
 ```
 
-(`ai-rules-service/README.md` and `ai-mcp-service/README.md` document the
+(ai-rules-service's
+[README.md]({{ site.repo_blob }}/examples/ai-rules-service/README.md) and
+ai-mcp-service's
+[README.md]({{ site.repo_blob }}/examples/ai-mcp-service/README.md) document the
 equivalent invocations for the other two classes.) This is the same
 `ollama.tests.enabled` gate discussed from the application-behavior side in
 Chapter 14, applied here purely as a test-opt-in mechanism: these three
@@ -304,8 +315,10 @@ Quarkus's own default *test* HTTP port is `8081` — what
 (`System.getProperty("test.url", "http://localhost:8081")`) when no
 `test.url` property is set. Second, order-service's own default *dev-mode*
 HTTP port is *also* `8081` by Quarkus convention, and that collides with
-`APICURIO_PORT=8081` in `.env.example` — the host port the compose stack's
-Apicurio Registry container publishes on. `demos/demo-graphql.sh`'s header
+`APICURIO_PORT=8081` in
+[.env.example]({{ site.repo_blob }}/.env.example) — the host port the compose stack's
+Apicurio Registry container publishes on.
+[demo-graphql.sh]({{ site.repo_blob }}/demos/demo-graphql.sh)'s header
 comment documents this: order-service runs with its HTTP port explicitly
 overridden to `8091` because its own default collides with compose's
 Apicurio host port, and `graphql-gateway`'s `ORDER_SERVICE_URL` is pointed
@@ -359,7 +372,7 @@ The phases, in the fixed order the script runs and reports them:
    still reports," so one broken tier doesn't hide whether downstream tiers
    are healthy.
 3. **TWIN** — only runs if `--it`/`--all`: builds `domain-model` and
-   `contracts`, then runs `mvn test` against `examples/spring-boot-compare/pom.xml`.
+   `contracts`, then runs `mvn test` against spring-boot-compare's `pom.xml`.
 4. **STACK-UP** — only runs if `--load`/`--all`: copies `.env.example` to
    `.env` if missing, runs `docker compose up`, polls Postgres readiness
    for up to 30 seconds, packages order-service/inventory-service/graphql-gateway
@@ -382,7 +395,9 @@ The phases, in the fixed order the script runs and reports them:
 
 `--keep-up` changes only the cleanup behavior: the script installs an
 `EXIT` trap the moment it's about to bring anything up (the same "this
-script owns it" idiom `demo-order.sh`/`demo-graphql.sh` use for their own
+script owns it" idiom
+[demo-order.sh]({{ site.repo_blob }}/demos/demo-order.sh)/`demo-graphql.sh`
+use for their own
 compose lifecycle), so a Ctrl-C or any later failure still tears the stack
 down — unless `--keep-up` is set, leaving compose and the four services
 running to poke at manually.

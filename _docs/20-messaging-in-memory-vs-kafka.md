@@ -18,15 +18,14 @@ producer method to a consumer method is decided entirely in configuration:
 project actually ships to, and SmallRye's in-memory connector
 (`InMemoryConnector`) for the one environment it deliberately does not ship
 to — the test JVM. This chapter looks at both wiring paths with real code
-from `examples/shipping-service`, and is direct about where the in-memory
+from [shipping-service]({{ site.repo_tree }}/examples/shipping-service), and is direct about where the in-memory
 connector's resemblance to Kafka ends.
 
 {% include excalidraw.html file="20-inmemory-vs-kafka" alt="Two columns side by side. Left column, labeled 'In-memory (Vert.x) connector — tests': a single JVM box containing an InMemorySource, the ShipmentProcessor.process method annotated @Incoming/@Outgoing, and an InMemorySink, all connected by in-process method calls with no network hop and no broker. Right column, labeled 'Kafka connector — %prod': two separate JVM boxes (payment-service and shipping-service) each talking over the network to a Kafka broker box in the middle holding the payment.captured and shipment.dispatched topics with partitions and an Apicurio Schema Registry box beside it for Avro schemas. Below both columns, a trade-off table with rows for latency, coupling, durability, ordering guarantees, back-pressure, and testing ergonomics, with the in-memory column marked fast/tightly-coupled/non-durable/single-JVM-only and the Kafka column marked network-latency/decoupled/durable/partition-ordered/broker-mediated-back-pressure." caption="Figure A5.1 — In-memory vs. Kafka: same code, different connector" %}
 
 ## The code that doesn't change
 
-`ShipmentProcessor`
-(`examples/shipping-service/src/main/java/com/patterncatalyst/datamesh/shipping/ShipmentProcessor.java`)
+[`ShipmentProcessor`]({{ site.repo_blob }}/examples/shipping-service/src/main/java/com/patterncatalyst/datamesh/shipping/ShipmentProcessor.java)
 is the saga participant that continues the `order.placed` -> `payment.captured`
 -> `shipment.dispatched` choreography. Its entire contract with the messaging
 layer is two annotations and a return value:
@@ -44,7 +43,7 @@ public ShipmentDispatched process(PaymentCaptured paymentCaptured) {
 ```
 
 `Topics.PAYMENT_CAPTURED_CHANNEL` and `Topics.SHIPMENT_DISPATCHED_CHANNEL`
-(`examples/domain-model/.../Topics.java`) resolve to the plain strings
+([`Topics.java`]({{ site.repo_blob }}/examples/domain-model/src/main/java/com/patterncatalyst/datamesh/domain/Topics.java)) resolve to the plain strings
 `"payment-captured"` and `"shipment-dispatched"` — logical Reactive Messaging
 *channel ids*, not topic names. Channel ids are the one piece of vocabulary
 shared by both connectors: `@Incoming("payment-captured")` just means "give
@@ -75,11 +74,9 @@ and the failure modes are not.
 ## In-memory: `InMemoryConnector` in `shipping-service`'s tests
 
 `shipping-service` has exactly one place that uses the in-memory connector:
-`ShipmentProcessorTest`
-(`examples/shipping-service/src/test/java/com/patterncatalyst/datamesh/shipping/ShipmentProcessorTest.java`),
+[`ShipmentProcessorTest`]({{ site.repo_blob }}/examples/shipping-service/src/test/java/com/patterncatalyst/datamesh/shipping/ShipmentProcessorTest.java),
 wired in by a `QuarkusTestResourceLifecycleManager` named
-`InMemoryChannelsTestResource`
-(`examples/shipping-service/src/test/java/com/patterncatalyst/datamesh/shipping/InMemoryChannelsTestResource.java`).
+[`InMemoryChannelsTestResource`]({{ site.repo_blob }}/examples/shipping-service/src/test/java/com/patterncatalyst/datamesh/shipping/InMemoryChannelsTestResource.java).
 The resource's entire job is to override two configuration keys before the
 test's Quarkus instance boots, as shown in the codetabs comparison at the
 end of this chapter.
@@ -131,7 +128,8 @@ for the `Shipment` persistence inside `process`, so it is not broker-free
 ## Kafka: `shipping-service` and `payment-service` in `%prod`
 
 The same two channel ids that `ShipmentProcessorTest` redirects to memory
-are, in `shipping-service/src/main/resources/application.properties`, wired
+are, in shipping-service's
+[application.properties]({{ site.repo_blob }}/examples/shipping-service/src/main/resources/application.properties), wired
 to `smallrye-kafka` with explicit Avro (de)serializers and commit/offset
 settings (shown in full in the codetabs comparison at the end of this
 chapter).
@@ -141,9 +139,9 @@ different string from the channel id (`payment-captured`, hyphenated) — the
 channel id is local vocabulary for this service's wiring; the topic name is
 the shared, physical, cross-service contract, defined once in
 `Topics.PAYMENT_CAPTURED_TOPIC`
-(`examples/domain-model/.../Topics.java`) and referenced the same way by
-`payment-service`'s outgoing side
-(`examples/payment-service/src/main/resources/application.properties`):
+(`Topics.java`, above) and referenced the same way by
+payment-service's outgoing side
+([application.properties]({{ site.repo_blob }}/examples/payment-service/src/main/resources/application.properties)):
 
 ```properties
 mp.messaging.outgoing.payment-captured.connector=smallrye-kafka

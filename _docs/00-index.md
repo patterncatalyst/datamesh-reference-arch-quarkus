@@ -141,7 +141,7 @@ Maven 3.9.x, Docker plus the Compose v2 plugin (this repo standardizes on Docker
 not Podman, for every compose and container workflow), and — only once you reach
 Part 2's Kubernetes material — `minikube`, `kubectl`, and `helm`. The
 [Kubernetes substrate chapter]({{ '/docs/02-kubernetes-substrate/' | relative_url }})
-covers the heavier `./scripts/bootstrap.sh` prerequisites (32 GB of host RAM
+covers the heavier [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh) prerequisites (32 GB of host RAM
 recommended) in full; nothing before that chapter needs a cluster at all. Part 4's
 native-compilation material additionally wants a GraalVM/Mandrel distribution,
 called out again at that point.
@@ -151,33 +151,47 @@ called out again at that point.
 Every part past Part 0 is backed by something you can actually execute, not just
 read. The mapping is deliberately 1:1 wherever possible:
 
-- **Part 1's services** are the Maven reactor under `examples/` — `order-service`,
+- **Part 1's services** are the Maven reactor under
+  [examples]({{ site.repo_tree }}/examples) — `order-service`,
   `inventory-service`, `payment-service`, `shipping-service`,
   `notification-service`, `review-service`, `graphql-gateway`, plus the shared,
   framework-agnostic `domain-model` and `contracts` modules every service depends
-  on. `examples/spring-boot-compare` is the one runnable Spring Boot twin that
-  Part 4's comparison chapter measures against.
+  on. [spring-boot-compare]({{ site.repo_tree }}/examples/spring-boot-compare) is
+  the one runnable Spring Boot twin that Part 4's comparison chapter measures
+  against.
 - **Part 2's operating concerns** — progressive delivery, KEDA autoscaling,
-  observability — run against the Kubernetes substrate `scripts/bootstrap.sh`
-  stands up, with the application manifests living under `k8s/`.
-- **Nearly every capability chapter has a matching demo script** under `demos/` —
-  `demo-order.sh` for the Panache/REST data product, `demo-grpc.sh` for the
-  order→inventory gRPC call, `demo-graphql.sh` for the gateway fan-out,
-  `demo-kafka.sh` for the Avro/Apicurio event path, `demo-keda-http.sh` and
-  `demo-keda-kafka.sh` for the two autoscaling triggers, `demo-tracing.sh` for
-  the observability stack, and several more for the AI, Camel, and orchestration
-  material in Part 4. Each demo is a thin, assertion-driven script — it checks a
-  specific field, status code, or replica count, never just an exit code — and
-  `demos/README.md` has the full matrix grouped by how much infrastructure each
-  one needs (bare JVM, `docker compose`, or compose plus the opt-in Ollama
-  profile). `demos/walkthrough.sh` chains the core set into a single five-act
-  presenter run, if you'd rather watch the whole system than drive it chapter by
-  chapter.
+  observability — run against the Kubernetes substrate
+  [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh) stands up, with the
+  application manifests living under [k8s]({{ site.repo_tree }}/k8s).
+- **Nearly every capability chapter has a matching demo script** under
+  [demos]({{ site.repo_tree }}/demos) —
+  [demo-order.sh]({{ site.repo_blob }}/demos/demo-order.sh) for the Panache/REST
+  data product, [demo-grpc.sh]({{ site.repo_blob }}/demos/demo-grpc.sh) for the
+  order→inventory gRPC call,
+  [demo-graphql.sh]({{ site.repo_blob }}/demos/demo-graphql.sh) for the gateway
+  fan-out, [demo-kafka.sh]({{ site.repo_blob }}/demos/demo-kafka.sh) for the
+  Avro/Apicurio event path,
+  [demo-keda-http.sh]({{ site.repo_blob }}/demos/demo-keda-http.sh) and
+  [demo-keda-kafka.sh]({{ site.repo_blob }}/demos/demo-keda-kafka.sh) for the two
+  autoscaling triggers, [demo-tracing.sh]({{ site.repo_blob }}/demos/demo-tracing.sh)
+  for the observability stack, and several more for the AI, Camel, and
+  orchestration material in Part 4. Each demo is a thin, assertion-driven script —
+  it checks a specific field, status code, or replica count, never just an exit
+  code — and the demos' [README.md]({{ site.repo_blob }}/demos/README.md) has the
+  full matrix grouped by how much infrastructure each one needs (bare JVM,
+  `docker compose`, or compose plus the opt-in Ollama profile).
+  [walkthrough.sh]({{ site.repo_blob }}/demos/walkthrough.sh) chains the core set
+  into a single five-act presenter run, if you'd rather watch the whole system
+  than drive it chapter by chapter.
 - **Part 4's orchestration-styles and AI-rules chapters** are backed by
-  `examples/ai-rules-service` and `examples/ai-mcp-service`, exercised by
-  `demo-orchestration-styles.sh`, `demo-ai-triage.sh`, `demo-ai-classify.sh`, and
-  `demo-ai-mcp.sh` — the last two needing the heavier, opt-in Ollama compose
-  profile rather than the baseline stack.
+  [ai-rules-service]({{ site.repo_tree }}/examples/ai-rules-service) and
+  [ai-mcp-service]({{ site.repo_tree }}/examples/ai-mcp-service), exercised by
+  [demo-orchestration-styles.sh]({{ site.repo_blob }}/demos/demo-orchestration-styles.sh),
+  [demo-ai-triage.sh]({{ site.repo_blob }}/demos/demo-ai-triage.sh),
+  [demo-ai-classify.sh]({{ site.repo_blob }}/demos/demo-ai-classify.sh), and
+  [demo-ai-mcp.sh]({{ site.repo_blob }}/demos/demo-ai-mcp.sh) — the last two
+  needing the heavier, opt-in Ollama compose profile rather than the baseline
+  stack.
 
 If a chapter cites a path, it's a path in this layout — the chapters are written
 against the actual repository, not an idealized one, and each closes with a

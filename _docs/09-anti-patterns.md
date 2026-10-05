@@ -73,11 +73,11 @@ policy-driven* rather than approval-driven.
 
 *In this build:* order, inventory, payment, shipping, notification, and
 review are seven independently buildable, independently deployable Quarkus
-modules under `examples/` — there is no shared "data" module or central team
+modules under [examples]({{ site.repo_tree }}/examples) — there is no shared "data" module or central team
 in the path between a service owning its schema and a consumer reading it.
 All seven currently run in one shared
 `datamesh` Kubernetes namespace rather than one namespace per domain (see
-`k8s/base/`), a simplification this build made for demo clarity, not a claim
+[base]({{ site.repo_tree }}/k8s/base)), a simplification this build made for demo clarity, not a claim
 that namespace-level isolation is unnecessary in a real mesh.
 
 ## Data products that are "inert"

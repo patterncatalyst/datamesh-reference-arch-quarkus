@@ -16,8 +16,8 @@ service, an event publish — as the template the rest of the mesh repeats,
 then shows two more services, inventory-service and review-service, that
 reuse the same shape while varying the protocol surface to fit their role.
 
-The code is in `examples/order-service/`, `examples/inventory-service/`, and
-`examples/review-service/`. `demos/demo-order.sh` builds and runs
+The code is in [order-service]({{ site.repo_tree }}/examples/order-service), [inventory-service]({{ site.repo_tree }}/examples/inventory-service), and
+[review-service]({{ site.repo_tree }}/examples/review-service). [demo-order.sh]({{ site.repo_blob }}/demos/demo-order.sh) builds and runs
 order-service and inventory-service together and drives a real order through
 them; its narration in the script header covers what it proves and the
 sharp edges hit wiring it up.
@@ -70,7 +70,7 @@ reasoning behind *which* protocol fits which job is the subject of the next
 two chapters — contracts, then the data planes themselves.
 
 Each service owns its own Postgres schema/database in the shared compose
-stack (`orderdb`, `inventorydb`, and so on — see `infra/db/init` and each
+stack (`orderdb`, `inventorydb`, and so on — see [init]({{ site.repo_tree }}/infra/db/init) and each
 service's `application.properties`). One cluster, one database per service
 is what makes "per-service data ownership" real without running a fleet of
 database instances for a learning project.
@@ -273,7 +273,7 @@ public class InventoryClient {
 the channel named `inventory` (configured in `application.properties`,
 pointed at inventory-service's gRPC port). `InventoryService` here is not
 hand-written — it's the **Mutiny-flavored service interface quarkus-grpc
-generates at build time** from `capstone/inventory/v1/inventory.proto`,
+generates at build time** from [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto),
 which order-service never defines itself; it's scanned out of the
 `contracts` module's packaged jar (more on that mechanism in the next
 chapter). Because the generated interface is Mutiny-based, the call returns

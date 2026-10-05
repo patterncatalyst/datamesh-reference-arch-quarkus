@@ -44,7 +44,7 @@ short, KEDA drives an HPA for the `1`-to-`N` range; its operator alone handles
 
 {% include excalidraw.html file="07-hpa-vs-keda" alt="Diagram comparing the stock Kubernetes HPA scaling on CPU/memory with KEDA driving an HPA from external signals (Kafka lag, HTTP rate) and handling the zero-to-one activation the HPA cannot do on its own" caption="Figure 7.1 — the stock HPA vs. KEDA's two-tier scale-to-zero model" %}
 
-`scripts/setup-keda.sh` installs both pieces this build uses: KEDA core and
+[setup-keda.sh]({{ site.repo_blob }}/scripts/setup-keda.sh) installs both pieces this build uses: KEDA core and
 the KEDA HTTP add-on, pinned to `2.19.0` and `0.15.0` respectively —
 
 ```bash
@@ -64,14 +64,14 @@ replica ever came up, and that starved KEDA of the pending-request pressure it n
 activate promptly in the first place.
 
 This repo wires up **two** scalers, deliberately of different kinds, on two different
-real products — the manifests live in `k8s/keda/` and target Deployments that already
-exist in `k8s/base/`.
+real products — the manifests live in [keda]({{ site.repo_tree }}/k8s/keda) and target Deployments that already
+exist in [base]({{ site.repo_tree }}/k8s/base).
 
 ### Consumer-lag scaling: `notification-service`
 
-`k8s/keda/consumer-scaledobject.yaml` is a `ScaledObject` (`keda.sh/v1alpha1`,
+[consumer-scaledobject.yaml]({{ site.repo_blob }}/k8s/keda/consumer-scaledobject.yaml) is a `ScaledObject` (`keda.sh/v1alpha1`,
 KEDA core) targeting the `notification-service` Deployment from
-`k8s/base/notification-service.yaml`:
+[notification-service.yaml]({{ site.repo_blob }}/k8s/base/notification-service.yaml):
 
 ```yaml
 apiVersion: keda.sh/v1alpha1
@@ -99,11 +99,11 @@ spec:
 
 Every value here is sourced from a real place, not invented for the manifest:
 `bootstrapServers` is the Service Strimzi creates for the Kafka cluster CR named
-`datamesh` (`scripts/setup-kafka-operator.sh`); `topic` matches
+`datamesh` ([setup-kafka-operator.sh]({{ site.repo_blob }}/scripts/setup-kafka-operator.sh)); `topic` matches
 `mp.messaging.incoming.order-placed.topic` in notification-service's
-`application.properties`; and `consumerGroup` relies on a Quarkus default:
+[application.properties]({{ site.repo_blob }}/examples/notification-service/src/main/resources/application.properties); and `consumerGroup` relies on a Quarkus default:
 notification-service never sets `group.id`, so its runtime consumer
-group id is `quarkus.application.name`, which its own `application.properties` sets to
+group id is `quarkus.application.name`, which its own [application.properties]({{ site.repo_blob }}/examples/notification-service/src/main/resources/application.properties) sets to
 `notification-service`. If that property is ever overridden with an explicit
 `group.id`, this `consumerGroup` value has to change with it, or the scaler watches a
 group that no longer exists. `minReplicaCount: 0` is what makes this scale-to-zero:
@@ -121,7 +121,7 @@ every second.
 
 ### HTTP-request scaling: `graphql-gateway`
 
-`k8s/keda/gateway-httpscaledobject.yaml` is an `HTTPScaledObject`
+[gateway-httpscaledobject.yaml]({{ site.repo_blob }}/k8s/keda/gateway-httpscaledobject.yaml) is an `HTTPScaledObject`
 (`http.keda.sh/v1alpha1`, the HTTP add-on) targeting `graphql-gateway`:
 
 ```yaml
@@ -192,7 +192,7 @@ workload judgment this build applies elsewhere.
 
 ## How the demos drive it
 
-`demos/demo-keda-kafka.sh` and `demos/demo-keda-http.sh` are the demos that
+[demo-keda-kafka.sh]({{ site.repo_blob }}/demos/demo-keda-kafka.sh) and [demo-keda-http.sh]({{ site.repo_blob }}/demos/demo-keda-http.sh) are the demos that
 actually exercise these two `ScaledObject`s against a live cluster. Both do something
 notable *before* touching a cluster at all: a static-validation pass with zero cluster
 dependency.
@@ -202,7 +202,7 @@ kubectl kustomize "${K8S_DIR}/overlays/minikube" >"$APP_RENDER_LOG"
 kubectl kustomize "${K8S_DIR}/keda" >"$KEDA_RENDER_LOG"
 ```
 
-Both demos render `k8s/overlays/minikube` and `k8s/keda` with `kubectl`'s bundled
+Both demos render [minikube]({{ site.repo_tree }}/k8s/overlays/minikube) and [keda]({{ site.repo_tree }}/k8s/keda) with `kubectl`'s bundled
 kustomize and grep the output for the exact resource names, kinds, and field values the
 manifests above declare (the `ScaledObject`/`HTTPScaledObject` kind, the target
 Deployment name, the Kafka topic, the `replicas.min: 0` scale-to-zero setting) — proving
@@ -215,7 +215,7 @@ Once a cluster is confirmed reachable, both demos follow the same shape: apply t
 overlay and scalers (`kubectl apply -k k8s/overlays/minikube`, `kubectl apply -k
 k8s/keda`), record the baseline replica count, generate load from a throwaway in-cluster
 pod, then poll replica count until it climbs off baseline within a budget generous
-enough for a JVM cold start. `demo-keda-kafka.sh` additionally asserts the inverse:
+enough for a JVM cold start. [demo-keda-kafka.sh]({{ site.repo_blob }}/demos/demo-keda-kafka.sh) additionally asserts the inverse:
 that replicas drain back to baseline once the burst ends and `cooldownPeriod` elapses.
 That is the stronger, before/after kind of evidence — not just that replicas scaled
 up, but that they scaled up *and back down*, on the real trigger, in both directions.
@@ -230,11 +230,11 @@ get_replicas() {
 The budgets each script polls against aren't round numbers picked for convenience —
 each is sized against a concrete, named cost in the path it's measuring:
 
-- `demo-keda-http.sh` polls for up to `SCALE_UP_BUDGET=240` seconds after its load
+- [demo-keda-http.sh]({{ site.repo_blob }}/demos/demo-keda-http.sh) polls for up to `SCALE_UP_BUDGET=240` seconds after its load
   burst, in five-second increments, before failing with a message that points at the
   exact things to check (interceptor logs, the `Host` header match, the
   `HTTPScaledObject`'s own status).
-- `demo-keda-kafka.sh` polls a `SCALE_UP_BUDGET=180` seconds for the climb off
+- [demo-keda-kafka.sh]({{ site.repo_blob }}/demos/demo-keda-kafka.sh) polls a `SCALE_UP_BUDGET=180` seconds for the climb off
   baseline, then a separate `SCALE_DOWN_BUDGET=300` seconds — in ten-second
   increments — for the drain back to baseline. That drain budget is deliberately
   wider than `cooldownPeriod: 120`, to leave margin for KEDA's own `pollingInterval`
@@ -247,12 +247,12 @@ each is sized against a concrete, named cost in the path it's measuring:
   `CALL_TIMEOUT` is 3 seconds, so a budget that only accounted for fast successful
   calls would be too tight the moment any of those 60 requests hits a slow path.
 
-Driving load for `demo-keda-kafka.sh` means POSTing to the real `/orders` endpoint on
+Driving load for [demo-keda-kafka.sh]({{ site.repo_blob }}/demos/demo-keda-kafka.sh) means POSTing to the real `/orders` endpoint on
 `order-service`, which performs a synchronous gRPC `CheckStock` against
 `inventory-service` before it publishes `order.placed`. That path is wired end-to-end
 in-cluster: `order-service` targets `inventory-service` on the canonical gRPC port
 `9000` (env-overridable via `INVENTORY_GRPC_HOST` / `INVENTORY_GRPC_PORT`), and
-`inventory-service` has its own Deployment + Service under `k8s/base/`. The packaged
+`inventory-service` has its own Deployment + Service under [base]({{ site.repo_tree }}/k8s/base). The packaged
 image also trusts the Avro event package, so the publish actually lands. A successful
 `POST /orders` therefore emits a real `order.placed` event, giving the KEDA Kafka-lag
 scaler genuine application traffic to act on. The demo drives the real endpoint rather
@@ -284,17 +284,17 @@ the system correctly determining there is nothing to do right now. `order-servic
 own health
 probes (`startupProbe`/`readinessProbe`/`livenessProbe` against `quarkus-smallrye-
 health`'s `/q/health/started`, `/q/health/ready`, `/q/health/live`, all present in
-`k8s/base/order-service.yaml`) are what let the platform tell "still starting" apart
+[order-service.yaml]({{ site.repo_blob }}/k8s/base/order-service.yaml)) are what let the platform tell "still starting" apart
 from "actually broken," so it restarts the right thing instead of killing a pod that
 just needs another few seconds to boot.
 
 One asymmetry here: `graphql-gateway` does not depend on
-`quarkus-smallrye-health` (its `pom.xml` pulls `quarkus-smallrye-graphql`,
+`quarkus-smallrye-health` (its [pom.xml]({{ site.repo_blob }}/examples/graphql-gateway/pom.xml) pulls `quarkus-smallrye-graphql`,
 `quarkus-rest-client[-jackson]`, `quarkus-grpc`, and `quarkus-arc`, but not the health
-extension), so `/q/health/*` would 404 on it. `k8s/base/graphql-gateway.yaml` falls
+extension), so `/q/health/*` would 404 on it. [graphql-gateway.yaml]({{ site.repo_blob }}/k8s/base/graphql-gateway.yaml) falls
 back to a `tcpSocket` probe on its HTTP port instead — a weaker check that proves the
 listener is up but not that GraphQL execution actually works. That gap is documented
-plainly in `k8s/README.md` rather than hidden, and the fix (add the health extension,
+plainly in [README.md]({{ site.repo_blob }}/k8s/README.md) rather than hidden, and the fix (add the health extension,
 switch the probes to `httpGet` on `/q/health/*`) is a one-dependency change outside this
 chapter's scope.
 

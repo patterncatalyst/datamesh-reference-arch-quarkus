@@ -17,10 +17,10 @@ through the same lens — Apache Camel's enterprise integration patterns
 (EIPs) — which is also where this project's Camel-on-Quarkus work actually
 shows up.
 
-The code is in `examples/order-service/` (the producer side, already built
-in the first chapter of this part), `examples/notification-service/`, and
-`examples/graphql-gateway/`. `demos/demo-kafka.sh`, `demos/demo-graphql.sh`,
-and `demos/demo-grpc.sh` exercise each piece; `demos/demo-camel-integration.sh`
+The code is in [order-service]({{ site.repo_tree }}/examples/order-service) (the producer side, already built
+in the first chapter of this part), [notification-service]({{ site.repo_tree }}/examples/notification-service), and
+[graphql-gateway]({{ site.repo_tree }}/examples/graphql-gateway). [demo-kafka.sh]({{ site.repo_blob }}/demos/demo-kafka.sh), [demo-graphql.sh]({{ site.repo_blob }}/demos/demo-graphql.sh),
+and [demo-grpc.sh]({{ site.repo_blob }}/demos/demo-grpc.sh) exercise each piece; [demo-camel-integration.sh]({{ site.repo_blob }}/demos/demo-camel-integration.sh)
 exercises the Camel route this chapter closes with.
 
 Figure 5.1 previews the shape the rest of the chapter fills in: four
@@ -193,7 +193,7 @@ selected. That's what makes "one query, two protocols" a real optimization
 rather than always paying for both backends regardless of what the client
 asked for.
 
-The actual shape sent over the wire, from `demos/demo-graphql.sh`, makes the
+The actual shape sent over the wire, from [demo-graphql.sh]({{ site.repo_blob }}/demos/demo-graphql.sh), makes the
 composition concrete:
 
 ```graphql
@@ -240,10 +240,10 @@ Both planes above move data without any *conditional routing logic* inside
 them — order-service always publishes to the same topic, the gateway always
 calls the same two backends. Where this project's data flow does branch on
 content, it's modeled as a textbook Camel enterprise integration pattern:
-the **Content-Based Router**. `examples/ai-mcp-service`'s
+the **Content-Based Router**. [ai-mcp-service]({{ site.repo_tree }}/examples/ai-mcp-service)'s
 `OrderLookupToolRoute` is reached through Camel's `ai-tool:` component (the
 only HTTP-reachable path into it is the embedded MCP server's `tools/call`
-method — see `demos/demo-camel-integration.sh`'s header comment for why),
+method — see [demo-camel-integration.sh]({{ site.repo_blob }}/demos/demo-camel-integration.sh)'s header comment for why),
 and its body is a `.choice()/.when()/.otherwise()` chain routing on an
 incoming `orderId` header to one of four fixed responses:
 
@@ -310,8 +310,8 @@ from("ai-tool:order-status"
 ```
 
 The two are equivalent route definitions, not two different behaviors: the
-Java DSL version is the one actually running in `examples/ai-mcp-service`
-(it's what `demos/demo-camel-integration.sh` exercises, asserting all four
+Java DSL version is the one actually running in [ai-mcp-service]({{ site.repo_tree }}/examples/ai-mcp-service)
+(it's what [demo-camel-integration.sh]({{ site.repo_blob }}/demos/demo-camel-integration.sh) exercises, asserting all four
 branches including the `.otherwise()` fallback), and the YAML DSL block is
 the same route expressed in Camel's YAML route syntax, which this project
 does not currently ship as a running example — it's shown here because the
@@ -335,7 +335,7 @@ happens, so downstream consumers attach to the live operational flow rather
 than a stale snapshot. Where routing logic needs to branch on content inside
 either plane, Camel's EIPs are the pattern vocabulary this project reaches
 for, with a real Content-Based Router already running in
-`examples/ai-mcp-service`.
+[ai-mcp-service]({{ site.repo_tree }}/examples/ai-mcp-service).
 
 ## Build, run, observe
 

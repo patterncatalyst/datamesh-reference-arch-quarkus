@@ -15,9 +15,9 @@ actually hand you, out of the box, across REST, RPC, messaging, testing, and
 packaging — so that later chapters (especially 13 and 14, which lean on two
 of these capabilities hard) have a named vocabulary to build on.
 
-The code is in `examples/notification-service/`, `examples/inventory-service/`,
-`examples/order-service/`, `examples/review-service/`, and
-`examples/graphql-gateway/`; each section below names its own demo script —
+The code is in [notification-service]({{ site.repo_tree }}/examples/notification-service), [inventory-service]({{ site.repo_tree }}/examples/inventory-service),
+[order-service]({{ site.repo_tree }}/examples/order-service), [review-service]({{ site.repo_tree }}/examples/review-service), and
+[graphql-gateway]({{ site.repo_tree }}/examples/graphql-gateway); each section below names its own demo script —
 the run script there builds/sets up and runs it; its `README.md` (where one
 exists) covers what it does and how to drive it.
 
@@ -34,7 +34,7 @@ the orchestration shapes built on top of plain bean calls (chapters 13 and
 
 Hibernate ORM with Panache collapses the repository layer into the entity
 itself. `order-service`'s `Order` entity
-(`examples/order-service/src/main/java/com/patterncatalyst/datamesh/order/Order.java`)
+([Order.java]({{ site.repo_blob }}/examples/order-service/src/main/java/com/patterncatalyst/datamesh/order/Order.java))
 extends `PanacheEntityBase` and exposes its columns as plain public fields:
 
 ```java
@@ -69,16 +69,14 @@ real — your entity classes now depend on a Panache base class, and the active
 record style doesn't suit every team's layering preference — but for a
 reference architecture built around one aggregate per service, it removes an
 entire layer of indirection with nothing lost: `inventory-service`'s
-`StockResource`
-(`examples/inventory-service/src/main/java/com/patterncatalyst/datamesh/inventory/StockResource.java`)
+[StockResource.java]({{ site.repo_blob }}/examples/inventory-service/src/main/java/com/patterncatalyst/datamesh/inventory/StockResource.java)
 calls `Stock.findBySku(request.sku())` directly from a JAX-RS resource method,
 no repository bean in between.
 
 ## gRPC: a typed contract, generated at build time
 
 `inventory-service` answers `capstone.inventory.v1.InventoryService/CheckStock`
-over gRPC, implemented by `InventoryGrpcService`
-(`examples/inventory-service/src/main/java/com/patterncatalyst/datamesh/inventory/InventoryGrpcService.java`):
+over gRPC, implemented by [InventoryGrpcService.java]({{ site.repo_blob }}/examples/inventory-service/src/main/java/com/patterncatalyst/datamesh/inventory/InventoryGrpcService.java):
 
 ```java
 @GrpcService
@@ -101,7 +99,7 @@ public class InventoryGrpcService implements InventoryService {
 ```
 
 `InventoryService` itself is not hand-written — it's generated at build time
-from `contracts/src/main/proto/capstone/inventory/v1/inventory.proto` (the
+from [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto) (the
 `contracts` module is a dependency jar, and `quarkus.generate-code.grpc.scan-for-proto`
 tells Quarkus to generate from a proto packaged inside a dependency rather
 than only from `src/main/proto` in this module). `@GrpcService` registers the
@@ -109,15 +107,14 @@ bean as the gRPC server's implementation; `@Blocking` tells Vert.x this
 particular handler does blocking JDBC/Panache work and should run on a
 worker thread rather than the event loop, even though its public signature
 (`Uni<CheckStockResponse>`) is the fully reactive, non-blocking shape every
-caller sees. `demos/demo-grpc.sh` drives this directly with `grpcurl` against
+caller sees. [demo-grpc.sh]({{ site.repo_blob }}/demos/demo-grpc.sh) drives this directly with `grpcurl` against
 the real `.proto` (not server reflection as the primary path, though
 reflection is also demonstrated) — a genuine gRPC client issuing a unary RPC
 over HTTP/2, not merely a REST call over a different protocol.
 
 ## GraphQL: one query, two downstream protocols
 
-`graphql-gateway`'s `GatewayApi`
-(`examples/graphql-gateway/src/main/java/com/patterncatalyst/datamesh/gateway/GatewayApi.java`)
+`graphql-gateway`'s [GatewayApi.java]({{ site.repo_blob }}/examples/graphql-gateway/src/main/java/com/patterncatalyst/datamesh/gateway/GatewayApi.java)
 federates two protocols behind a single `/graphql` endpoint:
 
 ```java
@@ -157,15 +154,14 @@ query actually selects that field. That laziness matters: a client asking
 only for `order(id) { customerId }` never triggers the gRPC call to
 `inventory-service` at all. One client request, two backend protocols (REST
 and gRPC), stitched into one response shape — and the second protocol call is
-opt-in per query, not per endpoint. `demos/demo-graphql.sh` places a real
+opt-in per query, not per endpoint. [demo-graphql.sh]({{ site.repo_blob }}/demos/demo-graphql.sh) places a real
 order, then queries the gateway and asserts both the REST-sourced order
 fields and the gRPC-sourced nested `stock` fields land in one `.data.order`
 payload with no `.errors`.
 
 ## Reactive Messaging: Avro events, not raw bytes
 
-`order-service`'s `OrderEventProducer`
-(`examples/order-service/src/main/java/com/patterncatalyst/datamesh/order/OrderEventProducer.java`)
+`order-service`'s [OrderEventProducer.java]({{ site.repo_blob }}/examples/order-service/src/main/java/com/patterncatalyst/datamesh/order/OrderEventProducer.java)
 publishes `order.placed` through an injected `Emitter`:
 
 ```java
@@ -188,7 +184,7 @@ public class OrderEventProducer {
 ```
 
 `@Channel("order-placed")` binds this emitter to Kafka configuration in
-`application.properties` (topic name, serializer); MicroProfile Reactive
+[application.properties]({{ site.repo_blob }}/examples/order-service/src/main/resources/application.properties) (topic name, serializer); MicroProfile Reactive
 Messaging turns a typed `Emitter<OrderPlaced>.send(...)` call into a Kafka
 produce, with the `OrderPlaced` Avro record serialized against the Apicurio
 Schema Registry rather than as raw JSON — this repo pins the Avro serializer
@@ -201,8 +197,7 @@ manual Kafka client code either direction.
 
 ## WebSockets.Next: pushing a real, already-committed event
 
-`notification-service` exposes `/ws/notifications` via `OrderNotificationSocket`
-(`examples/notification-service/src/main/java/com/patterncatalyst/datamesh/notification/OrderNotificationSocket.java`):
+`notification-service` exposes `/ws/notifications` via [OrderNotificationSocket.java]({{ site.repo_blob }}/examples/notification-service/src/main/java/com/patterncatalyst/datamesh/notification/OrderNotificationSocket.java):
 
 ```java
 @WebSocket(path = "/ws/notifications")
@@ -216,8 +211,7 @@ public class OrderNotificationSocket {
 ```
 
 This endpoint is deliberately thin — its only job is to acknowledge a new
-connection. The actual push happens from `OrderPlacedConsumer`
-(`examples/notification-service/src/main/java/com/patterncatalyst/datamesh/notification/OrderPlacedConsumer.java`),
+connection. The actual push happens from [OrderPlacedConsumer.java]({{ site.repo_blob }}/examples/notification-service/src/main/java/com/patterncatalyst/datamesh/notification/OrderPlacedConsumer.java),
 the same Reactive Messaging consumer from the previous section, right after
 it persists a `Notification` row:
 
@@ -239,7 +233,7 @@ serializes the entity to JSON the same way the REST layer would (Jackson)
 and pushes it. The design decision worth noticing: the push happens *after*
 `notification.persist()` commits, not before — a client only ever sees an
 event that is already durable, never a speculative one that might later roll
-back. `demos/demo-websocket.sh` proves this with a real JDK
+back. [demo-websocket.sh]({{ site.repo_blob }}/demos/demo-websocket.sh) proves this with a real JDK
 `java.net.http.WebSocket` client (run via JBang, see below), connected
 *before* an order is placed, and asserts the second message it receives over
 the live socket matches the order's `orderId`/`customerId`/`itemSku` exactly
@@ -250,8 +244,7 @@ the live socket matches the order's `orderId`/`customerId`/`itemSku` exactly
 `inventory-service` answers the *same* `stock` table through two different
 execution models at once: `InventoryGrpcService.checkStock` (above) is a
 reactive `Uni<CheckStockResponse>` endpoint with its blocking Panache lookup
-safely offloaded via `@Blocking`; `StockResource`
-(`examples/inventory-service/src/main/java/com/patterncatalyst/datamesh/inventory/StockResource.java`)
+safely offloaded via `@Blocking`; [StockResource.java]({{ site.repo_blob }}/examples/inventory-service/src/main/java/com/patterncatalyst/datamesh/inventory/StockResource.java)
 is a classic imperative JAX-RS resource, thread-per-request, no `Uni`
 anywhere:
 
@@ -271,7 +264,7 @@ The two paths compute different results: the gRPC path's `available` is
 request-dependent (`quantity > 0 && onHand >= quantity`), while the REST
 path's `available` is a static snapshot (`quantityOnHand > 0`) — asking for
 more stock than is on hand can report `available=false` over gRPC for a SKU
-that REST still calls available. `demos/demo-reactive-vertx.sh` proves both
+that REST still calls available. [demo-reactive-vertx.sh]({{ site.repo_blob }}/demos/demo-reactive-vertx.sh) proves both
 independently, *and* fires three gRPC calls and three REST calls
 concurrently against the one running process, asserting every response
 comes back correct and uncorrelated — the textbook Quarkus/Vert.x claim
@@ -294,7 +287,7 @@ declared return type.
 `mvn quarkus:dev` with `quarkus.test.continuous-testing=enabled` re-runs a
 module's tests automatically on every save, and Dev Services provisions the
 Testcontainers (Postgres, Kafka, Apicurio) those tests need with zero
-`docker compose` and zero `.env` — `demos/demo-continuous-testing.sh` starts
+`docker compose` and zero `.env` — [demo-continuous-testing.sh]({{ site.repo_blob }}/demos/demo-continuous-testing.sh) starts
 `order-service` this way and watches its own dev-mode log for the literal
 pass banner Quarkus 3.39.5 prints:
 
@@ -312,7 +305,7 @@ target capability should fail, not quietly narrow its own claim.
 
 ## Native compilation: no JVM at all
 
-`demos/demo-native.sh` compiles `order-service` to a native executable —
+[demo-native.sh]({{ site.repo_blob }}/demos/demo-native.sh) compiles `order-service` to a native executable —
 first checking for a local GraalVM/Mandrel `native-image`, falling back to
 `-Dquarkus.native.container-build=true` (a Docker-based Mandrel builder
 image) if none is found, and failing loudly rather than silently building a
@@ -334,7 +327,7 @@ auto-provisions a disposable Keycloak container in dev/test (realm
 `quarkus`, client `quarkus-app`/`secret`, and two builtin accounts: `alice`
 with `admin`+`user` roles, `bob` with only `user`). One endpoint,
 `DELETE /reviews/{id}`, is annotated `@RolesAllowed("admin")`; every other
-endpoint is untouched. `demos/demo-oidc.sh` drives three real password-grant
+endpoint is untouched. [demo-oidc.sh]({{ site.repo_blob }}/demos/demo-oidc.sh) drives three real password-grant
 token requests against the live, randomly-ported Keycloak Dev Service
 container (discovered via `docker port`, since Testcontainers binds it to a
 random host port) and proves all three outcomes:
@@ -354,7 +347,7 @@ it; here it could).
 
 ## JBang: prototyping without a Maven module
 
-`demos/demo-jbang-prototype.sh` runs `demos/jbang/HelloRoute.java` — a
+[demo-jbang-prototype.sh]({{ site.repo_blob }}/demos/demo-jbang-prototype.sh) runs [HelloRoute.java]({{ site.repo_blob }}/demos/jbang/HelloRoute.java) — a
 complete Camel route with no `pom.xml` and no Maven reactor module:
 
 ```java

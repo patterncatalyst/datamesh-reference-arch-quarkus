@@ -7,7 +7,7 @@ duration: 40 minutes
 marker: "21"
 ---
 
-Chapter 13 (`_docs/13-orchestration-styles.md`) introduced the vocabulary:
+[Chapter 13]({{ '/docs/13-orchestration-styles/' | relative_url }}) introduced the vocabulary:
 **choreography** (Kafka — no coordinator, every participant reacts on its
 own) versus **orchestration** (Camel and Quarkus Flow — a single component
 sequences the steps), and showed that two things can both be
@@ -30,9 +30,9 @@ The three real implementations behind every claim in this appendix:
 `order-service`, `payment-service`, `shipping-service`, and
 `notification-service` for the choreography leg (each one's
 `@Incoming`/`@Outgoing` reactive-messaging methods), and
-`examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageRoute.java`
+[`OrderTriageRoute.java`]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageRoute.java)
 and
-`examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageWorkflow.java`
+[`OrderTriageWorkflow.java`]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageWorkflow.java)
 (plus its `OrderTriageFlowRunner` bridge) for the two orchestration legs.
 
 ## Who knows the sequence
@@ -40,11 +40,13 @@ and
 In the choreography chain, no file in the repo contains the string
 "order.placed, then payment.captured, then shipment.dispatched" as a
 single artifact. `PaymentProcessor.process` in
-`examples/payment-service/src/main/java/com/patterncatalyst/datamesh/payment/PaymentProcessor.java`
+[`PaymentProcessor.java`]({{ site.repo_blob }}/examples/payment-service/src/main/java/com/patterncatalyst/datamesh/payment/PaymentProcessor.java)
 is annotated `@Incoming(Topics.ORDER_PLACED_CHANNEL)` /
 `@Outgoing(Topics.PAYMENT_CAPTURED_CHANNEL)` — it knows it consumes one
 topic and produces another, and nothing more. `ShipmentProcessor.process`
-in `examples/shipping-service/.../ShipmentProcessor.java` is annotated the
+in
+[`ShipmentProcessor.java`]({{ site.repo_blob }}/examples/shipping-service/src/main/java/com/patterncatalyst/datamesh/shipping/ShipmentProcessor.java)
+is annotated the
 mirror image, `@Incoming(Topics.PAYMENT_CAPTURED_CHANNEL)` /
 `@Outgoing(Topics.SHIPMENT_DISPATCHED_CHANNEL)`. Each method's own code is
 a complete description of what *it* does; the fact that these two methods
@@ -190,7 +192,7 @@ hop is slow or silent," and the diagnostic path is per-service: check
 `order-service`'s logs and the `order.placed` topic to confirm the publish
 happened, then `payment-service`'s logs and the `payment.captured` topic,
 then `shipping-service`'s. Chapter 13's own demo
-(`demo-orchestration-styles.sh`) proves this structurally — its Act 1
+([demo-orchestration-styles.sh]({{ site.repo_blob }}/demos/demo-orchestration-styles.sh)) proves this structurally — its Act 1
 literally polls each downstream topic with `kcat` one hop at a time and
 queries `shipping-service`'s own Postgres table directly, because there's
 no single place that reports "did the whole chain finish." That's the
@@ -220,7 +222,7 @@ coordinator. In both orchestration legs, by contrast, the coordinator
 logic — both delegate every substantive decision to `TriageService.classify`
 (one LLM call) and `TriageService.decide` (one Drools
 `KieSession.fireAllRules()` call, against
-`examples/ai-rules-service/src/main/resources/rules/order-triage.drl`).
+[order-triage.drl]({{ site.repo_blob }}/examples/ai-rules-service/src/main/resources/rules/order-triage.drl)).
 This is why Chapter 14 can say "the route coordinates; it does not decide
 — Drools does" and have it apply unchanged to the Flow leg: the test for
 "did I put a decision in the wrong layer" is the same regardless of
@@ -274,7 +276,7 @@ return workflow.startInstance(order)
 The test suites expose the same shape difference the production code does.
 Choreography can only be *unit*-tested one participant at a time inside
 this project:
-`examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderChoreographyChainIT.java`
+[`OrderChoreographyChainIT.java`]({{ site.repo_blob }}/examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderChoreographyChainIT.java)
 is explicitly `@Disabled`, and its own Javadoc explains why — proving the
 full `order.placed -> payment.captured -> shipment.dispatched` chain
 requires `payment-service`'s and `shipping-service`'s Reactive Messaging
@@ -288,8 +290,9 @@ by the live demo script (`demo-orchestration-styles.sh`), not by the
 automated test suite — a real, structural cost of choreography's
 decentralization that a reader should weigh against its coupling benefits.
 
-`OrderTriageRouteTest` (in `examples/ai-rules-service/src/test/java/com/patterncatalyst/datamesh/airules/`)
-shows the opposite: because the whole sequence lives in one `CamelContext`,
+`OrderTriageRouteTest` (in the
+[airules]({{ site.repo_tree }}/examples/ai-rules-service/src/test/java/com/patterncatalyst/datamesh/airules)
+test package) shows the opposite: because the whole sequence lives in one `CamelContext`,
 a single `@QuarkusTest` can assert `camelContext.getRoute("triage-order")`
 is registered and started, and a second test asserts the sibling
 `"triage-flow-order"` route (the thin bridge to the Flow runner) is also

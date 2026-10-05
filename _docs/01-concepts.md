@@ -78,8 +78,9 @@ nightly extract. That's the loop the mesh is meant to keep closed.
 Concretely, each domain service's operational plane is a Panache entity backed by its
 own Postgres database — `order-service`'s `Order` entity, for instance, persisted with
 `quarkus.hibernate-orm.schema-management.strategy=drop-and-create` in dev and an
-env-driven `%prod.quarkus.datasource.jdbc.url` in production
-(`examples/order-service/src/main/resources/application.properties`). The moment that
+env-driven `%prod.quarkus.datasource.jdbc.url` in production (order-service's
+[application.properties]({{ site.repo_blob }}/examples/order-service/src/main/resources/application.properties)).
+The moment that
 operational write happens, the service also emits an `OrderPlaced` Avro event onto the
 `order.placed` Kafka topic — the analytical plane's on-ramp. Nothing about the
 operational database table is shared outward; the *event* is the product. A downstream
@@ -109,8 +110,8 @@ literally at the persistence layer: `order-service`, `inventory-service`,
 own schema, never a shared table another service reaches into directly. When
 `order-service` needs to know whether an item is in stock, it doesn't query inventory's
 database — it calls inventory's gRPC `CheckStock` RPC
-(`examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto`), a contract
-inventory owns and can evolve on its own schedule. The ownership boundary is enforced by
+([inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto)),
+a contract inventory owns and can evolve on its own schedule. The ownership boundary is enforced by
 the absence of a shortcut, not by a policy document: there is no shared connection
 string, no cross-service JDBC URL, nothing to accidentally reach through.
 
@@ -121,10 +122,14 @@ table. In this build, each domain service publishes its event schemas as version
 contracts to the Apicurio registry and its metadata to a catalog, so consumers can find
 it, understand it, and depend on it — the subject of the
 [contracts & catalog chapter]({{ '/docs/04-contracts-and-catalog/' | relative_url }}).
-Concretely, the `examples/contracts` module is where that product boundary becomes a
-build artifact: `order-placed.avsc`, `payment-captured.avsc`, and
-`shipment-dispatched.avsc` are the three Avro schemas every producer and consumer
-compiles against, generated into typed `SpecificRecord` Java classes
+Concretely, the [contracts]({{ site.repo_tree }}/examples/contracts) module is where
+that product boundary becomes a build artifact:
+[order-placed.avsc]({{ site.repo_blob }}/examples/contracts/src/main/avro/order-placed.avsc),
+[payment-captured.avsc]({{ site.repo_blob }}/examples/contracts/src/main/avro/payment-captured.avsc),
+and
+[shipment-dispatched.avsc]({{ site.repo_blob }}/examples/contracts/src/main/avro/shipment-dispatched.avsc)
+are the three Avro schemas every producer and consumer compiles against, generated
+into typed `SpecificRecord` Java classes
 (`OrderPlaced`, `PaymentCaptured`, `ShipmentDispatched`) rather than hand-maintained
 POJOs that could silently drift from the wire format. A consumer doesn't guess at
 `order-service`'s event shape from documentation — it depends on the `contracts` jar and
@@ -142,13 +147,16 @@ all platform infrastructure shared by the services —
 about exactly how Kubernetes makes that self-serve layer real. Concretely, a domain team
 adding a new service to this mesh does not stand up its own Kafka cluster or its own
 schema registry — it points `mp.messaging.outgoing.<channel>.connector` at the Strimzi
-cluster `scripts/setup-kafka-operator.sh` already runs, and
-`mp.messaging.connector.smallrye-kafka.apicurio.registry.url` at the Apicurio instance
-`scripts/setup-apicurio.sh` already runs, both by declaration rather than by operating
-either system themselves. The same is true of autoscaling (KEDA, `scripts/setup-keda.sh`)
-and observability (the LGTM stack, `scripts/setup-lgtm.sh`): a new domain consumes each
-one as a platform capability, the way `notification-service` already does for its
-Kafka-lag `ScaledObject` (`k8s/keda/consumer-scaledobject.yaml`).
+cluster [setup-kafka-operator.sh]({{ site.repo_blob }}/scripts/setup-kafka-operator.sh)
+already runs, and `mp.messaging.connector.smallrye-kafka.apicurio.registry.url` at the
+Apicurio instance [setup-apicurio.sh]({{ site.repo_blob }}/scripts/setup-apicurio.sh)
+already runs, both by declaration rather than by operating either system themselves.
+The same is true of autoscaling (KEDA,
+[setup-keda.sh]({{ site.repo_blob }}/scripts/setup-keda.sh)) and observability (the
+LGTM stack, [setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh)): a new
+domain consumes each one as a platform capability, the way `notification-service`
+already does for its Kafka-lag `ScaledObject`
+([consumer-scaledobject.yaml]({{ site.repo_blob }}/k8s/keda/consumer-scaledobject.yaml)).
 
 **Federated computational governance.** Standards are enforced *computationally* — by
 the platform, automatically — rather than by review meetings and policy documents. A
