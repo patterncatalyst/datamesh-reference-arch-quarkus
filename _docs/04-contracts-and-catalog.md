@@ -17,8 +17,8 @@ enforcing those Avro contracts at runtime. It closes by being direct about
 what's still missing — a discovery catalog — and why that gap matters more
 than it might look.
 
-The code is in `examples/contracts/`. There's no standalone demo script for
-the registry itself; `demos/demo-kafka.sh` exercises it as part of proving
+The code is in [contracts]({{ site.repo_tree }}/examples/contracts). There's no standalone demo script for
+the registry itself; [demo-kafka.sh]({{ site.repo_blob }}/demos/demo-kafka.sh) exercises it as part of proving
 the Kafka data plane, and that's where this chapter's cross-check comes from.
 
 Figure 4.1 is the shape of this whole chapter before the detail. Every
@@ -58,7 +58,7 @@ examples/contracts/
     capstone/inventory/v1/inventory.proto
 ```
 
-The Avro schemas are the event contracts. Here's `order-placed.avsc` in
+The Avro schemas are the event contracts. Here's [order-placed.avsc]({{ site.repo_blob }}/examples/contracts/src/main/avro/order-placed.avsc) in
 full:
 
 ```json
@@ -123,8 +123,8 @@ message CheckStockResponse {
 ```
 
 The `contracts` module does **not** generate gRPC stubs itself — it packages
-`inventory.proto` as a plain resource so it ships inside the jar at
-`capstone/inventory/v1/inventory.proto`. Each consuming service (order-service
+[inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto) as a plain resource so it ships inside the jar.
+Each consuming service (order-service
 as a client, inventory-service as a server) adds the `quarkus-grpc`
 extension and points `quarkus.generate-code.grpc.scan-for-proto` at this
 module's Maven coordinates:
@@ -197,7 +197,7 @@ file actually guarantees at runtime.
 `application.properties` in each producing/consuming service configures the
 Apicurio Avro serde explicitly (see the previous chapter's note on why
 `value.serializer` is pinned rather than autodetected), pointing at the
-compose stack's Apicurio instance. `demos/demo-kafka.sh` is the place this
+compose stack's Apicurio instance. [demo-kafka.sh]({{ site.repo_blob }}/demos/demo-kafka.sh) is the place this
 project actually proves the registry is doing real work, not just sitting
 there configured: it places a real order (triggering
 `OrderEventProducer.publish`), reads the **raw bytes** back off the real

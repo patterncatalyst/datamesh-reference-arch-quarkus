@@ -15,10 +15,10 @@ defined. Two of the three are "orchestration" by name, but they are not the
 same engine, and seeing both makes clear that "orchestration" describes a
 *shape* (a coordinator exists), not a specific technology.
 
-The code is in `examples/order-service/`, `examples/payment-service/`,
-`examples/shipping-service/`, `examples/notification-service/` (the
-choreography leg), and `examples/ai-rules-service/` (both orchestration
-legs); `demos/demo-orchestration-styles.sh` runs all three legs back to
+The code is in [order-service]({{ site.repo_tree }}/examples/order-service), [payment-service]({{ site.repo_tree }}/examples/payment-service),
+[shipping-service]({{ site.repo_tree }}/examples/shipping-service), [notification-service]({{ site.repo_tree }}/examples/notification-service) (the
+choreography leg), and [ai-rules-service]({{ site.repo_tree }}/examples/ai-rules-service) (both orchestration
+legs); [demo-orchestration-styles.sh]({{ site.repo_blob }}/demos/demo-orchestration-styles.sh) runs all three legs back to
 back (see "Build, run, observe" below for what each act checks).
 
 ## Choreography: no central coordinator
@@ -68,8 +68,7 @@ coordinator instead.
 
 **Orchestration** means a single process explicitly sequences the steps and
 knows the whole flow. `ai-rules-service` exposes `POST /api/orders/triage`,
-backed by `OrderTriageRoute`
-(`examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageRoute.java`):
+backed by [OrderTriageRoute.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageRoute.java):
 
 ```java
 from("direct:triage")
@@ -87,21 +86,19 @@ unmarshal the request, call `classify`, log the intermediate result, call
 `decide`, marshal the response. Nothing about this sequence is implicit or
 discoverable only at runtime — reading the route top to bottom *is* reading
 the business process. `classify` and `decide` are both plain methods on
-`TriageService`
-(`examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/TriageService.java`):
+[TriageService.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/TriageService.java):
 `classify` sends a single-shot prompt to an injected `langchain4j` `ChatModel`
 (backed by Ollama) and parses the category/priority/riskSignal JSON it
 returns; `decide` inserts those classified fields as a fact into a Drools
 `KieSession` and fires the rules in
-`examples/ai-rules-service/src/main/resources/rules/order-triage.drl` to
+[order-triage.drl]({{ site.repo_blob }}/examples/ai-rules-service/src/main/resources/rules/order-triage.drl) to
 produce a `FRAUD_HOLD`, `EXPEDITE`, or `ROUTE_TO_WAREHOUSE` decision. The
 route coordinates; it does not decide — Drools does.
 
 ## Orchestration: a Quarkus Flow workflow
 
 The *same* two-step sequence is orchestrated a second way by
-`OrderTriageWorkflow`
-(`examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageWorkflow.java`),
+[OrderTriageWorkflow.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageWorkflow.java),
 reached via `POST /api/orders/triage-flow`:
 
 ```java
@@ -128,8 +125,7 @@ here with `quarkus-flow`'s Java DSL, but structurally the same shape as a
 CNCF Serverless Workflow YAML/JSON document — that declares two tasks,
 `classify` then `decide`, and lets the Quarkus Flow engine's default
 behavior (each task's input is the prior task's output) wire them together.
-`OrderTriageFlowRunner`
-(`examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageFlowRunner.java`)
+[OrderTriageFlowRunner.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageFlowRunner.java)
 bridges this back to the REST layer:
 
 ```java

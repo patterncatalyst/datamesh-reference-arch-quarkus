@@ -13,6 +13,11 @@ brand_emoji: "⚛️"   # Single emoji that appears next to the title in the hea
 github_username: "patterncatalyst"
 github_repo: "datamesh-reference-arch-quarkus"
 
+# Base URLs for linking repo source files/dirs from chapter prose, so the
+# visible text can be just a filename instead of a long path. See the chapters.
+repo_blob: "https://github.com/patterncatalyst/datamesh-reference-arch-quarkus/blob/main"
+repo_tree: "https://github.com/patterncatalyst/datamesh-reference-arch-quarkus/tree/main"
+
 # baseurl
 # - On user/org Pages site (USERNAME.github.io): set to ""
 # - On project Pages site (USERNAME.github.io/PROJECT): set to "/PROJECT"

@@ -13,7 +13,7 @@ product you met in [chapter 3]({{ '/docs/03-services-and-data-products/' | relat
 — and stands a **Spring Boot twin** next to it that does the same job, then
 measures both on the JVM.
 
-The twin lives at `examples/spring-boot-compare/`. It is deliberately *not*
+The twin lives at [spring-boot-compare]({{ site.repo_tree }}/examples/spring-boot-compare). It is deliberately *not*
 a second mesh: it is one service, built to be a fair mirror of one Quarkus
 service, so the numbers reflect the framework and not a difference in scope.
 This chapter is the only place in the deep-dive that steps outside Quarkus
@@ -26,13 +26,13 @@ service would have cost to build in the framework most teams already know.
 
 A standalone Spring Boot **4.0.8** project on the **same JDK 25** the rest of
 the repo targets. It is intentionally kept out of the Quarkus Maven reactor
-(`examples/pom.xml`'s `<modules>` list runs from `domain-model` through
+([pom.xml]({{ site.repo_blob }}/examples/pom.xml)'s `<modules>` list runs from `domain-model` through
 `ai-rules-service` and does not mention `spring-boot-compare` anywhere) —
 Spring Boot wants its own `spring-boot-starter-parent`, so mixing the two
 parents in one module would only create dependency-management friction, and
 more importantly would mean the comparison measures a Spring Boot project
 bent to fit Quarkus's BOM and plugin wiring rather than an idiomatic,
-unmodified Spring Boot build. The project's own `pom.xml` says as much in a
+unmodified Spring Boot build. The project's own [pom.xml]({{ site.repo_blob }}/examples/spring-boot-compare/pom.xml) says as much in a
 comment at the top of the file: the project ships one runnable twin for a
 real, not synthetic, side-by-side number.
 
@@ -43,13 +43,13 @@ copying anything: the shared `domain-model` DTOs (`OrderDto`, `OrderStatus`,
 `capstone.order.v1.OrderPlaced` are the *identical* classes both services
 use. There is zero schema or DTO drift between the two.
 
-Concretely, that means `spring-boot-compare`'s `pom.xml` declares
+Concretely, that means `spring-boot-compare`'s [pom.xml]({{ site.repo_blob }}/examples/spring-boot-compare/pom.xml) declares
 `domain-model` and `contracts` as plain `<dependency>` jars at
 `${datamesh.domain-contracts.version}`. Those jars have to be `mvn
 install`-ed to the local repository before the twin can build, because
 `spring-boot-compare` is a standalone Maven project and cannot `-am` build
 its siblings the way a reactor module can. Both the README and
-`scripts/compare-quarkus-springboot.sh` run that install step explicitly
+[compare-quarkus-springboot.sh]({{ site.repo_blob }}/scripts/compare-quarkus-springboot.sh) run that install step explicitly
 before touching the twin at all.
 
 The payoff for that extra step is real: the `OrderPlaced` Avro record the
@@ -72,8 +72,7 @@ surface** as the Quarkus order-service:
 The REST surface matches down to the status codes — `201` on create, `409`
 on insufficient stock, `404` on an unknown id, `503` when inventory is
 unreachable — because both map to the same `OrderDto` and implement the same
-pre-persist `CheckStock` guard. `OrderController`
-(`examples/spring-boot-compare/src/main/java/com/patterncatalyst/datamesh/springcompare/OrderController.java`)
+pre-persist `CheckStock` guard. [OrderController.java]({{ site.repo_blob }}/examples/spring-boot-compare/src/main/java/com/patterncatalyst/datamesh/springcompare/OrderController.java)
 makes that guard explicit: `placeOrder` calls `stockChecker.check(sku, qty)`
 before anything is persisted. It catches
 `StockChecker.StockCheckUnavailableException` to return `503` rather than
@@ -86,8 +85,7 @@ client is included deliberately: the synchronous internal call to
 out of the twin would understate Spring's real dependency surface and
 flatter its numbers unfairly.
 
-`GrpcClientConfig`
-(`examples/spring-boot-compare/src/main/java/com/patterncatalyst/datamesh/springcompare/GrpcClientConfig.java`)
+[GrpcClientConfig.java]({{ site.repo_blob }}/examples/spring-boot-compare/src/main/java/com/patterncatalyst/datamesh/springcompare/GrpcClientConfig.java)
 wires a plain `io.grpc` `ManagedChannel` — plaintext, `@Value`-overridable
 host/port with the identical `INVENTORY_GRPC_HOST`/`INVENTORY_GRPC_PORT`
 env var names and the same port-9000 default the Quarkus side's
@@ -184,8 +182,7 @@ from order-service's.
 
 Reusing `domain-model`'s and `contracts`' jars unmodified meant the twin had
 to make Spring Boot's own auto-configuration cooperate with a strongly-typed
-`OrderPlaced` producer, and that didn't work out of the box. `KafkaConfig`
-(`examples/spring-boot-compare/src/main/java/com/patterncatalyst/datamesh/springcompare/KafkaConfig.java`)
+`OrderPlaced` producer, and that didn't work out of the box. [KafkaConfig.java]({{ site.repo_blob }}/examples/spring-boot-compare/src/main/java/com/patterncatalyst/datamesh/springcompare/KafkaConfig.java)
 exists for exactly one reason, documented in its own Javadoc: Spring Boot's
 Kafka auto-configuration only exposes a raw `KafkaTemplate<Object, Object>`,
 and that generic type does not satisfy the type-aware autowire `@Autowired
@@ -193,7 +190,7 @@ KafkaTemplate<String, OrderPlaced>` would need in `OrderEventProducer` — left
 unaddressed, the application context simply fails to start. The fix is not
 to hand-write the whole producer configuration (bootstrap servers,
 serializers, the `apicurio.registry.*` passthrough already correctly derived
-from `application.properties`'s `spring.kafka.*` keys) a second time; it's
+from [application.properties]({{ site.repo_blob }}/examples/spring-boot-compare/src/main/resources/application.properties)'s `spring.kafka.*` keys) a second time; it's
 to reuse the auto-configured `ProducerFactory` bean Spring Boot already built
 and simply re-wrap it in a correctly-typed `KafkaTemplate`:
 
@@ -211,7 +208,7 @@ sharp edge that doesn't show up in a framework's marketing copy: even a twin
 built to be as idiomatic as possible still needed one explicit
 `@Configuration` class to bridge Spring Boot's generic auto-configuration to
 a schema-aware Avro producer, surfacing the first time a real, strongly-typed
-event contract meets a generic-erasure-based DI container. `application.properties`
+event contract meets a generic-erasure-based DI container. [application.properties]({{ site.repo_blob }}/examples/spring-boot-compare/src/main/resources/application.properties)
 carries a parallel note about the producer's `value-serializer`: on the
 Spring side it's set explicitly for parity and documentation with the
 Quarkus side, which has to set the equivalent property explicitly to dodge
@@ -223,7 +220,7 @@ dependency management get involved.
 
 ## How the numbers were captured
 
-The comparison lives in one script, `scripts/compare-quarkus-springboot.sh`,
+The comparison lives in one script, [compare-quarkus-springboot.sh]({{ site.repo_blob }}/scripts/compare-quarkus-springboot.sh),
 and it is worth understanding *how* it measures before trusting *what* it
 measured. The script builds both services, then boots them one at a time —
 never concurrently, so neither competes with the other for CPU or memory —
@@ -285,7 +282,7 @@ Being precise about the boundaries is what keeps the numbers meaningful:
   side, and **no native build was run for this project**. Quarkus's native
   story (the commonly cited figures are sub-100 ms startup and tens of MB of
   RSS — general Quarkus numbers, not measured here) is a separate axis you can
-  exercise yourself via the opt-in `demo-native.sh` (see
+  exercise yourself via the opt-in [demo-native.sh]({{ site.repo_blob }}/demos/demo-native.sh) (see
   [chapter 11]({{ '/docs/11-quarkus-capability-tour/' | relative_url }})); it
   is deliberately kept out of this chapter so the
   table compares like with like.

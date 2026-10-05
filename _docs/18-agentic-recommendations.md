@@ -134,7 +134,8 @@ specifically is refusing to let an agent guess at component URIs,
 configuration option names, or extension APIs it hasn't looked up. General
 LLM knowledge about Camel is stale the moment a version shifts, and small
 syntax mistakes compile and run — they just fail quietly or wrong, worse
-than failing loudly. This repo's `CLAUDE.md` names two MCP servers for
+than failing loudly. This repo's
+[CLAUDE.md]({{ site.repo_blob }}/CLAUDE.md) names two MCP servers for
 exactly this reason:
 
 - **`camel-mcp`** exposes the live Camel catalog, route validation, and

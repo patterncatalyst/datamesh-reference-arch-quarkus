@@ -18,10 +18,10 @@ second, separate service (`ai-mcp-service`) showing where a related but
 different capability, in-process LLM tool-calling, currently does not work
 on this stack.
 
-The code is in `examples/ai-rules-service/` (`TriageService`,
-`rules/order-triage.drl`, `OrderTriageRoute`, `OrderTriageWorkflow`,
+The code is in [ai-rules-service]({{ site.repo_tree }}/examples/ai-rules-service) (`TriageService`,
+[order-triage.drl]({{ site.repo_blob }}/examples/ai-rules-service/src/main/resources/rules/order-triage.drl), `OrderTriageRoute`, `OrderTriageWorkflow`,
 `ChatModelProducer`, `OrderTriageFact`, `TriageDecision`) and
-`examples/ai-mcp-service/` (`OrderClassifierRoute`, `OrderLookupToolRoute`,
+[ai-mcp-service]({{ site.repo_tree }}/examples/ai-mcp-service) (`OrderClassifierRoute`, `OrderLookupToolRoute`,
 `AgentProducers`, `OrderAssistantRoute`); the demo scripts named in each
 section build/set up and run the pieces they cover.
 
@@ -43,8 +43,7 @@ exists specifically to stop that generalization before a reader makes it.
 
 ## The split: classify (LLM), then decide (Drools)
 
-`TriageService`
-(`examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/TriageService.java`)
+[TriageService.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/TriageService.java)
 is the single source of truth both orchestration paths from Chapter 13 call
 into. Its `classify` method does exactly one LLM call:
 
@@ -74,8 +73,7 @@ though the prompt explicitly says "no markdown fences," the model sometimes
 wraps its answer in a ```` ```json ```` fence anyway, so this method takes
 the substring between the first `{` and the last `}` before handing it to
 Jackson, rather than trusting the model's formatting discipline outright.
-`ChatModelProducer`
-(`examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/ChatModelProducer.java`)
+[ChatModelProducer.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/ChatModelProducer.java)
 goes one step further on reliability by forcing Ollama's native JSON output
 mode (`.responseFormat(ResponseFormat.JSON)`) at the model level — this
 constrains *decoding* to valid JSON syntax, though it does not enforce the
@@ -106,8 +104,7 @@ public TriageDecision decide(ClassificationResult classification) {
 }
 ```
 
-`OrderTriageFact`
-(`examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageFact.java`)
+[OrderTriageFact.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageFact.java)
 is a plain mutable JavaBean — not a record — because Drools' MVEL-backed rule
 compilation reads fields via getters and writes the decision back via
 `modify()`, which needs a mutable target. `orderTriageKieBase` (the compiled
@@ -117,7 +114,7 @@ rule set) is built once at startup and reused across requests, but a fresh
 concurrent requests the way the immutable `KieBase` is.
 
 The rules themselves, in
-`examples/ai-rules-service/src/main/resources/rules/order-triage.drl`, are
+[order-triage.drl]({{ site.repo_blob }}/examples/ai-rules-service/src/main/resources/rules/order-triage.drl), are
 three guarded, mutually-exclusive outcomes:
 
 ```text
@@ -179,7 +176,7 @@ return FlowWorkflowBuilder.workflow("order-triage")
     .build();
 ```
 
-`demos/demo-ai-triage.sh` drives both endpoints with three inputs that were
+[demo-ai-triage.sh]({{ site.repo_blob }}/demos/demo-ai-triage.sh) drives both endpoints with three inputs that were
 pre-validated directly against the live model across repeated trials
 specifically to find classifications stable enough for *strict* assertions
 (exact decision, not just "one of the three valid values"): a low-value
@@ -199,8 +196,7 @@ It's worth walking through exactly what works and what doesn't, because
 documenting the broken path is more useful than a demo that quietly avoids
 it.
 
-**What is registered correctly.** `OrderLookupToolRoute`
-(`examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderLookupToolRoute.java`)
+**What is registered correctly.** [OrderLookupToolRoute.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderLookupToolRoute.java)
 registers an order-status lookup as a callable tool via Camel's
 framework-neutral `ai-tool:` component:
 
@@ -227,12 +223,11 @@ wired to do exactly that: `OrderAssistantRoute`'s in-process
 langchain4j-agent, and the embedded MCP server. Only one of them actually
 works.
 
-**What doesn't work: the in-process agent.** `OrderAssistantRoute`
-(`examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderAssistantRoute.java`)
+**What doesn't work: the in-process agent.** [OrderAssistantRoute.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderAssistantRoute.java)
 wires a `langchain4j-agent:` endpoint to the `order-status` tool via the
 `shipping` tag, backed by an `Agent` bean `AgentProducers` builds from a
 hand-constructed `OllamaChatModel`
-(`examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/AgentProducers.java`).
+([AgentProducers.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/AgentProducers.java)).
 That agent's tool-calling round trip **does not fire** on this stack. The
 root cause, documented in `AgentProducers`'s own Javadoc after exhaustive
 diagnosis, is upstream, not a bug in this module: `camel-quarkus-support-langchain4j`
@@ -250,7 +245,7 @@ transport-wiring defect in `camel-quarkus-support-langchain4j`. This is
 a known open upstream issue, not a
 regression to fix locally.
 
-The practical consequence: `demos/demo-ai-mcp.sh` **never calls**
+The practical consequence: [demo-ai-mcp.sh]({{ site.repo_blob }}/demos/demo-ai-mcp.sh) **never calls**
 `POST /api/assistant/chat` and never treats a non-empty chat response as
 evidence that tool-calling succeeded — doing so would be exactly the kind of
 green-washed result this tutorial's verification discipline exists to rule
@@ -274,15 +269,14 @@ is a minimal real MCP client over `curl`/`jq`, speaking actual JSON-RPC 2.0:
    for `ORD-001`/`ORD-002`/`ORD-003` → the exact deterministic lookup body
    `OrderLookupToolRoute` hardcodes for each id.
 
-Separately, `demos/demo-camel-integration.sh` reaches the *same* route
+Separately, [demo-camel-integration.sh]({{ site.repo_blob }}/demos/demo-camel-integration.sh) reaches the *same* route
 through the *same* MCP server surface and asserts all four branches of its
 Content-Based Router (`.choice()`/`.when()`/`.otherwise()`) — including the
 `.otherwise()` fallback for an unrecognized order id — proving the EIP logic
 itself routes correctly, independent of the tool-calling defect entirely.
 
-And one level below either of those: `demos/demo-ai-classify.sh` exercises
-`OrderClassifierRoute`
-(`examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderClassifierRoute.java`),
+And one level below either of those: [demo-ai-classify.sh]({{ site.repo_blob }}/demos/demo-ai-classify.sh) exercises
+[OrderClassifierRoute.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderClassifierRoute.java),
 a `langchain4j-chat:` single-shot classification endpoint — structurally the
 same shape as `TriageService.classify` above, no agent, no tool calling —
 which is why it is **not** affected by the agent tool-calling defect at all; it was its own
