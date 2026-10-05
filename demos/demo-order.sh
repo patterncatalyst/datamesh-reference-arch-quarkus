@@ -65,7 +65,7 @@
 # This is Avro 1.12.x's ClassSecurityValidator (a real security hardening
 # feature introduced upstream, not a Quarkus/Apicurio bug) -- it allow-lists
 # which packages/classes may be instantiated via reflection during Avro
-# (de)serialization, and nothing in this reactor trusts capstone.order.v1
+# (de)serialization, and nothing in this project trusts capstone.order.v1
 # by default outside of a Quarkus-bootstrapped JVM (dev/test mode trusts it
 # implicitly; a plain `java -jar` does not). The exact same fix is already
 # documented for the OTHER place this bites
