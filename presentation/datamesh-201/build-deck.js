@@ -225,7 +225,7 @@ contentSlide({ eyebrow: "Quarkus capability tour", title: "Continuous testing",
     { lead: "Dev Services", text: "starts the Testcontainers those tests need (Postgres, Kafka, Apicurio) with no docker compose and no .env.", lvl: 1 },
     { text: "The demo parses the Quarkus 3.39.5 pass banner in order-service's dev log and asserts passing == run. A missing banner fails the demo.", lvl: 1 },
   ],
-  notes: "DEMO 7 of 19. What it does: continuous testing and native compilation sit at opposite ends of the feedback-loop spectrum: instant, infra-provisioned reruns on one end and a multi-minute ahead-of-time compile on the other. Dev Services applies only to the former. A demo that cannot observe its target capability should fail rather than quietly narrow its claim, so a missing banner fails this one. What to show: the banner line 'All 4 tests are passing (0 skipped), 4 tests were run in 8318ms.' Infra: bare (JDK 25 and Maven only; Dev Services starts its own containers). Fallback: the recorded banner line." });
+  notes: "DEMO 7 of 19. What it does: continuous testing and native compilation sit at opposite ends of the feedback-loop spectrum: instant, infra-provisioned reruns on one end and a multi-minute ahead-of-time compile on the other. Dev Services applies only to the former. A demo that cannot observe its target capability should fail rather than claim less than it set out to, so a missing banner fails this one. What to show: the banner line 'All 4 tests are passing (0 skipped), 4 tests were run in 8318ms.' Infra: bare (JDK 25 and Maven only; Dev Services starts its own containers). Fallback: the recorded banner line." });
 
 diagramSlide({ eyebrow: "Quarkus capability tour", title: "Three ways to start a Java service",
   image: "11-startup-paths",
@@ -554,7 +554,7 @@ diagramSlide({ eyebrow: "Governance, mesh, observability", title: "The trusted s
 /* ====================== 08 · SECURITY ====================== */
 (() => {
   const s = divider({ num: "08", title: "Security", sub: "quarkus-oidc, run live against Keycloak on the smallest module in this project." });
-  s.addNotes("The rule for this section was to attempt a live OIDC demo and defer only if the laptop-scale budget could not support it. It could. review-service is the smallest module (three REST endpoints, Postgres as the only other Dev Services dependency, no cross-service calls), which makes this the smallest viable OIDC demo.");
+  s.addNotes("The rule for this section was to attempt a live OIDC demo and defer only if the single-machine budget could not support it. It could. review-service is the smallest module (three REST endpoints, Postgres as the only other Dev Services dependency, no cross-service calls), which makes this the smallest viable OIDC demo.");
 })();
 
 diagramSlide({ eyebrow: "Security", title: "How OIDC protects review-service",
@@ -761,7 +761,7 @@ contentSlide({ eyebrow: "Appendix · demo matrix", title: "All 19 demos by infra
     { lead: "walkthrough.sh", sep: " — ", text: "five acts over all 19 demos, gated per demo by --with-ollama, --with-native, and --with-minikube." },
     { text: "Opt-in summary: ollama gates the four AI demos; native gates demo-native.sh; Kubernetes gates the two KEDA demos; demo-oidc.sh is feasibility-gated.", color: C.ink },
   ],
-  notes: "Everything outside the opt-in summary (bare and compose, minus demo-oidc.sh) is the default, always-runnable set: the core of a laptop-scale run with no extra flags. walkthrough.sh also supports --only and --skip, --no-preflight, --no-pause and --auto, and prints a pass, fail, and skip tally." });
+  notes: "Everything outside the opt-in summary (bare and compose, minus demo-oidc.sh) is the default, always-runnable set: the core of a single-machine run with no extra flags. walkthrough.sh also supports --only and --skip, --no-preflight, --no-pause and --auto, and prints a pass, fail, and skip tally." });
 
 contentSlide({ eyebrow: "Appendix · known limitation", title: "Known limitation: in-process LLM tool calling",
   bullets: [
