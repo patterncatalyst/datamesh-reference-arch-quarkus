@@ -2,14 +2,13 @@
 title: "AI-assisted rules triage: Ollama classifies, Drools decides"
 order: 15
 part: The Quarkus deep-dive
-description: "An LLM extracts structured fields from an order; a deterministic Drools rule set makes the actual business decision — plus a clear account of where in-process langchain4j tool-calling does and doesn't work on this stack."
+description: "An LLM extracts structured fields from an order; a deterministic Drools rule set makes the business decision. The chapter also covers where in-process langchain4j tool-calling works and where it does not on this stack."
 duration: 45 minutes
 marker: "15"
 ---
 
 The previous chapter used `ai-rules-service`'s two triage endpoints as the
-example for orchestration *shape*. This chapter opens up what they actually
-do: an LLM is good at reading a loosely-structured description and pulling
+example for orchestration *shape*. This chapter covers what they do: an LLM is good at reading a loosely-structured description and pulling
 out a few categorical fields, but it is a poor choice to make a business
 decision you need to audit, replay deterministically, or explain to a
 compliance reviewer. This project's answer is a strict division of labor —
@@ -27,19 +26,15 @@ section build/set up and run the pieces they cover.
 
 {% include excalidraw.html file="14-ai-rules-triage" alt="The classify-then-decide pipeline: an order flows into TriageService.classify, which calls Ollama's qwen2.5:3b model to produce category, priority, and riskSignal; those fields become an OrderTriageFact handed to a Drools KieSession, which fires order-triage.drl and returns one of FRAUD_HOLD, EXPEDITE, or ROUTE_TO_WAREHOUSE; a separate branch shows ai-mcp-service's in-process langchain4j agent failing to reach the order-status tool while the embedded MCP server reaches the same tool successfully" caption="Figure 14.1 — Ollama classifies, Drools decides, and where the in-process agent path breaks" %}
 
-Read the diagram as two halves. The top half is the pipeline this chapter
-spends most of its words on: one LLM call feeding one deterministic rule
-engine, reached by two different orchestration shapes (Camel, Quarkus Flow)
-that both terminate in the identical `TriageService` methods. The bottom
-half is the cautionary half: the same local model, wired into a
-structurally different capability — multi-turn tool-calling rather than
-single-shot classification — in a *different* service (`ai-mcp-service`),
-where one specific path is broken for a documented, upstream reason while a
-second path that looks superficially similar works perfectly. Keeping those
-two halves visually separate is deliberate: the fact that an LLM call
-succeeds in one part of this project is not evidence that a structurally
-different LLM call succeeds somewhere else, and this chapter's second half
-exists specifically to stop that generalization before a reader makes it.
+The top half is the pipeline: one LLM call feeding one deterministic rule
+engine, reached by two orchestration shapes (Camel, Quarkus Flow) that both end
+in the same `TriageService` methods. The bottom half shows the same local
+model in a structurally different capability, multi-turn tool-calling instead
+of single-shot classification, in a different service (`ai-mcp-service`). One
+path there is broken for a documented upstream reason, and a second path that
+looks similar works. An LLM call that succeeds in one part of the project says
+nothing about a structurally different call elsewhere, so the halves are kept
+separate.
 
 ## The split: classify (LLM), then decide (Drools)
 
@@ -68,17 +63,16 @@ response out, no multi-turn conversation and no tool calling. The prompt
 prompt text, because — per the method's own comment — the small local model
 used here (`qwen2.5:3b`) reliably classifies against a concrete example but
 drifts into echoing the order back verbatim or writing free prose without
-one. `extractJsonObject` is a defensive second line of resistance: even
-though the prompt explicitly says "no markdown fences," the model sometimes
+one. `extractJsonObject` is a second line of defense: although the prompt says "no markdown fences," the model sometimes
 wraps its answer in a ```` ```json ```` fence anyway, so this method takes
 the substring between the first `{` and the last `}` before handing it to
-Jackson, rather than trusting the model's formatting discipline outright.
+Jackson.
 [ChatModelProducer.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/ChatModelProducer.java)
-goes one step further on reliability by forcing Ollama's native JSON output
-mode (`.responseFormat(ResponseFormat.JSON)`) at the model level — this
-constrains *decoding* to valid JSON syntax, though it does not enforce the
-specific three-key schema, which is why `extractJsonObject` and the
-exception-throwing parse in `classify` still exist as fallbacks.
+also forces Ollama's native JSON output mode
+(`.responseFormat(ResponseFormat.JSON)`) at the model level. That constrains
+decoding to valid JSON syntax but does not enforce the three-key schema, so
+`extractJsonObject` and the exception-throwing parse in `classify` remain as
+fallbacks.
 
 Classification done, `decide` hands a merged fact to Drools and lets the
 *rules*, not the model, make the call:
@@ -105,7 +99,7 @@ public TriageDecision decide(ClassificationResult classification) {
 ```
 
 [OrderTriageFact.java]({{ site.repo_blob }}/examples/ai-rules-service/src/main/java/com/patterncatalyst/datamesh/airules/OrderTriageFact.java)
-is a plain mutable JavaBean — not a record — because Drools' MVEL-backed rule
+is a plain mutable JavaBean, not a record, because Drools' MVEL-backed rule
 compilation reads fields via getters and writes the decision back via
 `modify()`, which needs a mutable target. `orderTriageKieBase` (the compiled
 rule set) is built once at startup and reused across requests, but a fresh
@@ -115,7 +109,7 @@ concurrent requests the way the immutable `KieBase` is.
 
 The rules themselves, in
 [order-triage.drl]({{ site.repo_blob }}/examples/ai-rules-service/src/main/resources/rules/order-triage.drl), are
-three guarded, mutually-exclusive outcomes:
+three guarded, mutually exclusive outcomes:
 
 ```text
 rule "Fraud hold on high risk"
@@ -148,13 +142,12 @@ re-evaluates the fact against every rule's condition, the instant one rule
 fires and sets a non-null decision, every other rule's still-pending
 activation for that fact loses its guard and never fires — so exactly one
 rule's consequence runs per request, and `salience` (30, 20, 10) only fixes
-a deterministic firing order for readability, not correctness. This is the
-whole point of the split: the LLM's job ends at `riskSignal`/`amount`
-classification; from there, the decision is a pure, deterministic function
-of those fields, reproducible outside the model entirely, auditable by
-reading three `when`/`then` blocks, and immune to the model answering
-slightly differently on a re-run as long as its classification lands in the
-same bucket.
+the firing order for readability, not correctness. This is the point of the
+split: the LLM's job ends at the `riskSignal` and `amount` classification, and
+the decision is then a deterministic function of those fields. It is
+reproducible without the model, auditable by reading three `when`/`then`
+blocks, and unaffected by the model answering slightly differently on a re-run
+as long as the classification lands in the same bucket.
 
 {% include codetabs.html langs="Camel route|Quarkus Flow" %}
 ```java
@@ -177,24 +170,21 @@ return FlowWorkflowBuilder.workflow("order-triage")
 ```
 
 [demo-ai-triage.sh]({{ site.repo_blob }}/demos/demo-ai-triage.sh) drives both endpoints with three inputs that were
-pre-validated directly against the live model across repeated trials
-specifically to find classifications stable enough for *strict* assertions
-(exact decision, not just "one of the three valid values"): a low-value
-ordinary item (expect `ROUTE_TO_WAREHOUSE`), a high-value order from a
-trusted-looking customer (expect `EXPEDITE`), and a deliberately
-fraud-signalling item description at high volume (expect `FRAUD_HOLD`). It
-asserts both `/triage` and `/triage-flow` return the identical decision for
-the identical input — proof the two orchestration shapes drive the same
-underlying logic, not two independently-tuned copies of it.
+validated against the live model across repeated trials to find
+classifications stable enough for strict assertions (the exact decision, not
+one of three valid values): a low-value ordinary item (expect
+`ROUTE_TO_WAREHOUSE`), a high-value order from a trusted-looking customer
+(expect `EXPEDITE`), and a fraud-signalling item description at high volume
+(expect `FRAUD_HOLD`). It asserts that `/triage` and `/triage-flow` return the
+same decision for the same input, which shows both orchestration shapes drive
+the same logic.
 
 ## The tool-calling caveat: in-process tool-calling does not fire here
 
-`ai-mcp-service` is a *different* module built around a related but
-genuinely separate capability: letting an LLM call a tool mid-conversation
-(langchain4j "agent" tool-calling), rather than classifying in one shot.
-It's worth walking through exactly what works and what doesn't, because
-documenting the broken path is more useful than a demo that quietly avoids
-it.
+`ai-mcp-service` is a different module built around a related but separate
+capability: letting an LLM call a tool mid-conversation (langchain4j "agent"
+tool-calling) instead of classifying in one shot. The sections below cover
+what works and what does not, including the broken path.
 
 **What is registered correctly.** [OrderLookupToolRoute.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderLookupToolRoute.java)
 registers an order-status lookup as a callable tool via Camel's
@@ -219,9 +209,8 @@ from("ai-tool:order-status"
 
 This publishes the route into a shared `AiToolRegistry`; any producer
 filtering on the `shipping` tag can invoke it. Two different consumers are
-wired to do exactly that: `OrderAssistantRoute`'s in-process
-langchain4j-agent, and the embedded MCP server. Only one of them actually
-works.
+wired to do that: `OrderAssistantRoute`'s in-process
+langchain4j-agent, and the embedded MCP server. Only the MCP server works.
 
 **What doesn't work: the in-process agent.** [OrderAssistantRoute.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderAssistantRoute.java)
 wires a `langchain4j-agent:` endpoint to the `order-status` tool via the
@@ -229,87 +218,80 @@ wires a `langchain4j-agent:` endpoint to the `order-status` tool via the
 hand-constructed `OllamaChatModel`
 ([AgentProducers.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/AgentProducers.java)).
 That agent's tool-calling round trip **does not fire** on this stack. The
-root cause, documented in `AgentProducers`'s own Javadoc after exhaustive
-diagnosis, is upstream, not a bug in this module: `camel-quarkus-support-langchain4j`
+root cause, documented in `AgentProducers`'s Javadoc, is upstream and not a
+bug in this module: `camel-quarkus-support-langchain4j`
 unconditionally sets the global `langchain4j.http.clientBuilderFactory`
 system property to a Quarkiverse JAX-RS HTTP client factory for *every*
 `dev.langchain4j` model on the classpath — there is no toggle for it — so
 the hand-built `OllamaChatModel`'s own configured `base-url` is never
-honored by the transport that actually sends the request, and an explicit
+honored by the transport that sends the request, and an explicit
 `httpClientBuilder(new JdkHttpClientBuilder())` override doesn't change it
 either. This was ruled out as a model-capability problem (a direct Ollama
 `/api/chat` call with a tools array *does* return `tool_calls` for both
 `qwen2.5:3b` and `qwen2.5:7b-instruct`) and as a tool-registration or
 tag-matching problem (the tags line up correctly) — it is specifically a
-transport-wiring defect in `camel-quarkus-support-langchain4j`. This is
-a known open upstream issue, not a
-regression to fix locally.
+transport-wiring defect in `camel-quarkus-support-langchain4j`, a known open
+upstream issue that cannot be fixed locally.
 
 The practical consequence: [demo-ai-mcp.sh]({{ site.repo_blob }}/demos/demo-ai-mcp.sh) **never calls**
 `POST /api/assistant/chat` and never treats a non-empty chat response as
-evidence that tool-calling succeeded — doing so would be exactly the kind of
-green-washed result this tutorial's verification discipline exists to rule
-out. The script prints an explicit banner to this effect before it runs
-anything.
+evidence that tool-calling succeeded, since a model can answer without
+calling the tool. The script prints a banner stating the limitation before it
+runs anything.
 
 **What does work: the embedded MCP server.** Instead, `demo-ai-mcp.sh`
-demonstrates the one tool-calling-adjacent path that genuinely works
-end to end: `camel-quarkus-mcp-server` (wrapping the Quarkiverse
+demonstrates the tool-calling-adjacent path that works end to end: `camel-quarkus-mcp-server` (wrapping the Quarkiverse
 `quarkus-mcp-server-http` extension) publishes the same `order-status`
-`ai-tool:` route to **external** MCP clients over the real MCP Streamable
-HTTP wire protocol — a structurally separate code path from the broken
-in-process agent, with no `langchain4j-agent` involved anywhere. The demo
-is a minimal real MCP client over `curl`/`jq`, speaking actual JSON-RPC 2.0:
+`ai-tool:` route to **external** MCP clients over the MCP Streamable HTTP protocol. It is a
+separate code path from the broken in-process agent, with no
+`langchain4j-agent` involved. The demo is a minimal MCP client over `curl` and
+`jq`, speaking JSON-RPC 2.0:
 
-1. `POST /mcp {"method":"initialize"}` → a real handshake, returning a
+1. `POST /mcp {"method":"initialize"}` → a handshake that returns a
    protocol version and an `Mcp-Session-Id` header.
 2. `POST /mcp {"method":"tools/list"}` (with that session) → lists a tool
-   literally named `order-status`.
+   named `order-status`.
 3. `POST /mcp {"method":"tools/call", params: {name: "order-status", ...}}`
    for `ORD-001`/`ORD-002`/`ORD-003` → the exact deterministic lookup body
    `OrderLookupToolRoute` hardcodes for each id.
 
-Separately, [demo-camel-integration.sh]({{ site.repo_blob }}/demos/demo-camel-integration.sh) reaches the *same* route
-through the *same* MCP server surface and asserts all four branches of its
-Content-Based Router (`.choice()`/`.when()`/`.otherwise()`) — including the
-`.otherwise()` fallback for an unrecognized order id — proving the EIP logic
-itself routes correctly, independent of the tool-calling defect entirely.
+[demo-camel-integration.sh]({{ site.repo_blob }}/demos/demo-camel-integration.sh) reaches the same route through the same MCP server
+surface and asserts all four branches of its Content-Based Router
+(`.choice()`, `.when()`, `.otherwise()`), including the `.otherwise()` fallback
+for an unrecognized order id. That verifies the EIP logic independently of the
+tool-calling defect.
 
-And one level below either of those: [demo-ai-classify.sh]({{ site.repo_blob }}/demos/demo-ai-classify.sh) exercises
+[demo-ai-classify.sh]({{ site.repo_blob }}/demos/demo-ai-classify.sh) exercises
 [OrderClassifierRoute.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderClassifierRoute.java),
 a `langchain4j-chat:` single-shot classification endpoint — structurally the
 same shape as `TriageService.classify` above, no agent, no tool calling —
-which is why it is **not** affected by the agent tool-calling defect at all; it was its own
-separate bug (a misnamed prompt-template header, `CamelLangChain4jChatPrompt`
-instead of the real `CamelLangChain4jChatPromptTemplate`, combined with the
+so the agent tool-calling defect does not affect it. It had its own bug (a misnamed prompt-template header, `CamelLangChain4jChatPrompt`
+instead of `CamelLangChain4jChatPromptTemplate`, combined with the
 endpoint never being switched off its default single-message operation)
-that silently made the model chat about the order instead of classifying
+that made the model chat about the order instead of classifying
 it, fixed by correcting the header name and setting
 `chatOperation=CHAT_SINGLE_MESSAGE_WITH_PROMPT`.
 
-## What this teaches about trusting an LLM in a pipeline
+## Trusting an LLM in a pipeline
 
-Put together, these three demos make one argument in three parts: single-shot
-classification (`classify`, `OrderClassifierRoute`) is reliable enough to
-build on, as long as you defensively parse its output; a deterministic rules
-engine (Drools) should make any decision you need to reproduce, audit, or
-explain; and in-process multi-step tool-calling is a materially different
-and currently less reliable capability on this specific stack, with a named,
-diagnosed upstream cause — not a vague "AI is flaky" shrug. Knowing exactly
-which of the three you're relying on, in any given endpoint, is the
-difference between a system you can reason about and one you can't.
+Together the demos show three things. Single-shot classification (`classify`,
+`OrderClassifierRoute`) is reliable enough to build on if the output is parsed
+defensively. A deterministic rules engine (Drools) should make any decision
+that must be reproduced, audited, or explained. In-process multi-step
+tool-calling is a different and currently less reliable capability on this
+stack, with a diagnosed upstream cause. Knowing which of the three an endpoint
+relies on is what makes the system predictable.
 
-`AgentProducers` already tried the two levers a caller actually has — a
+`AgentProducers` already tried the two levers a caller has: a
 hand-built `OllamaChatModel` with an explicit `base-url`, and an explicit
-`httpClientBuilder(new JdkHttpClientBuilder())` override — and neither
+`httpClientBuilder(new JdkHttpClientBuilder())` override. Neither
 changed the outcome, because `camel-quarkus-support-langchain4j` sets that
 system property JVM-wide before either bean is constructed. A property set
 at that layer wins over any per-model builder argument, so no caller-side
 override is available. That is why this is logged as a defect against the
-extension rather than worked around with a classpath exclusion or a shaded
-client: the fix has to come from `camel-quarkus-support-langchain4j` making
-that property conditional, or honoring a per-agent client override, not
-from anything `ai-mcp-service` can reasonably do to its own wiring.
+extension instead of being worked around with a classpath exclusion or a
+shaded client. The fix has to come from `camel-quarkus-support-langchain4j`
+making that property conditional or honoring a per-agent client override.
 
 ## Build, run, observe
 
@@ -325,9 +307,9 @@ via the compose `ollama` profile.
 
 ## What you learned
 
-- Split the LLM's job (extract structured fields) from the decision
-  (Drools fires deterministic rules on those fields) — the model never
-  makes the business call directly.
+- Split the LLM's job (extract structured fields) from the decision (Drools
+  fires deterministic rules on those fields). The model never makes the
+  business call.
 - A JavaBean-shaped fact plus a short-lived `KieSession` per request is the
   standard Drools integration pattern; the compiled `KieBase` is reused,
   the session is not.
@@ -335,13 +317,13 @@ via the compose `ollama` profile.
   in-process agent tool-calling independent of model capability
   or tool registration — the embedded MCP server is a structurally separate
   path that is unaffected and does work.
-- Demonstrating a known limitation openly (an explicit banner, a demo that
-  deliberately never calls the broken endpoint) is more useful to a reader
-  than hiding it behind a demo that only exercises the working paths.
+- A demo can document a known limitation: `demo-ai-mcp.sh` prints a banner and
+  never calls the broken endpoint, so a passing run cannot be mistaken for
+  working tool-calling.
 
-This closes the Quarkus deep dive. From here, the comparison against Spring
-Boot (Chapter 12) puts a number on what all of this costs at startup.
+This closes the Quarkus deep dive. The comparison against Spring Boot
+(Chapter 12) measures startup and memory.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. Run against the compose stack with the Ollama profile and a live `qwen2.5:3b`: `demo-ai-classify.sh`, `demo-ai-mcp.sh`, `demo-camel-integration.sh`, and `demo-ai-triage.sh` all passed. The triage showcase returned the exact expected decisions (ROUTE_TO_WAREHOUSE / EXPEDITE / FRAUD_HOLD) for all three inputs on both the Camel `/api/orders/triage` and the Quarkus Flow `/api/orders/triage-flow` endpoints — the LLM classifies, Drools decides. The in-process tool-calling defect remains documented as before; it is the MCP-server path that is exercised, consistent with the chapter.*
+*Verification status: <span class="status status--verified">verified</span>. Run against the compose stack with the Ollama profile and a live `qwen2.5:3b`: `demo-ai-classify.sh`, `demo-ai-mcp.sh`, `demo-camel-integration.sh`, and `demo-ai-triage.sh` all passed. The triage showcase returned the exact expected decisions (ROUTE_TO_WAREHOUSE / EXPEDITE / FRAUD_HOLD) for all three inputs on both the Camel `/api/orders/triage` and the Quarkus Flow `/api/orders/triage-flow` endpoints the LLM classifies, Drools decides. The in-process tool-calling defect remains documented as before; the MCP-server path is the one exercised.*
