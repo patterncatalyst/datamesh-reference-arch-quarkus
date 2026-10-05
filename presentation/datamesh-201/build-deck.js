@@ -1,15 +1,15 @@
-// Build the Datamesh 201 deep-dive deck — Quarkus + Kubernetes.
+// Build the Datamesh 201 deep-dive deck — Quarkus + Kubernetes (r1.1).
 // Mirrors the structure of the sibling Python "Data Mesh on OpenShift" deck:
 // section dividers, diagram-forward content, code slides where code is the
 // lesson, one slide per demo, speaker notes on every slide, large appendix.
 const L = require("./deck-lib.js");
-const { pres, C, F, PW, PH, titleSlide, agendaSlide, divider, contentSlide, diagramSlide, codeSlide, tableSlide } = L;
+const { pres, C, F, PW, PH, titleSlide, agendaSlide, divider, contentSlide, diagramSlide, codeSlide, tableSlide, glossarySlide } = L;
 const code = (s) => s.replace(/\t/g, "  ");
 
 pres.title = "Building a Datamesh using Quarkus and Kubernetes";
 
-// ---- local helper: two diagrams side by side (for parking unused figures
-// in the appendix without giving each one a full-width slide) ----
+// ---- local helper: two diagrams side by side (for background figures in the
+// appendix without giving each one a full-width slide) ----
 function twoUpDiagramSlide({ eyebrow, title, images, captions, note, notes }) {
   const s = pres.addSlide();
   s.background = { color: C.white };
@@ -34,13 +34,30 @@ function twoUpDiagramSlide({ eyebrow, title, images, captions, note, notes }) {
   return s;
 }
 
+// ---- local helper: diagram on the left (~55%), bold-lead bullets on the right ----
+function diagramBulletsSlide({ eyebrow, title, image, bullets, notes }) {
+  const s = pres.addSlide();
+  s.background = { color: C.white };
+  L.head(s, eyebrow, title);
+  const d = L.DIMS[image];
+  const maxW = (PW - 1.4) * 0.55, maxH = 4.5;
+  let w = maxW, h = w * (d.h / d.w);
+  if (h > maxH) { h = maxH; w = h * (d.w / d.h); }
+  s.addImage({ path: L.IMG(image), x: 0.7, y: 1.95 + (maxH - h) / 2, w, h });
+  const bx = 0.7 + maxW + 0.4;
+  L.addBullets(s, bullets, { x: bx, y: 1.95, w: PW - 0.7 - bx, h: 4.6, fontSize: 14 });
+  L.footer(s);
+  if (notes) s.addNotes(notes);
+  return s;
+}
+
 /* ============================ TITLE ============================ */
 titleSlide({
   eyebrow: "Data Mesh · 201",
   title: "Building a Datamesh using Quarkus and Kubernetes",
-  subtitle: "From the four principles to a running platform on Quarkus + Kubernetes — capability tour, three orchestration engines, AI+rules triage, and live demos; no prior Quarkus experience required.",
-  breadcrumb: "Data Mesh · 201",
-  notes: "Welcome to the 201 deep-dive. This is not the conceptual case for data mesh — that's the 101 deck. This is the running system: a Quarkus-and-Kubernetes reference architecture, built on the shipping/order domain, with eighteen real demo scripts behind it. No prior Quarkus experience is assumed — every capability is demonstrated from first principles as it comes up, so this deck doubles as a Quarkus showroom for newcomers to the framework as well as a data-mesh deep dive for anyone who's seen the 101. Set expectations up front: this is a long walk, deliberately diagram-forward, with code where the code is the lesson, and a plain accounting of what works, what's opt-in, and the one capability that's documented as broken rather than hidden.",
+  subtitle: "From the four principles to a running platform on Quarkus and Kubernetes: a capability tour, three orchestration engines, AI and rules triage, and live demos. No prior Quarkus experience required.",
+  breadcrumb: "Data Mesh · 201 · r1.1",
+  notes: "Welcome to the 201 deep-dive. The 101 deck makes the conceptual case for data mesh; this deck covers the running system: a Quarkus and Kubernetes reference architecture built on the shipping and order domain, with nineteen demo scripts behind it. No prior Quarkus experience is assumed. Each capability is introduced as it comes up, so the deck works as a Quarkus introduction as well as a data-mesh deep dive for anyone who has seen the 101. Expectations: a long walk, diagram-forward, with code where the code is the lesson. It states what works, what is opt-in, and the one capability documented as broken (in-process LLM tool calling).",
 });
 
 /* ============================ AGENDA ============================ */
@@ -62,49 +79,56 @@ agendaSlide({
     { text: "11 · Appendices" },
     { text: "Appendix", italic: true },
   ],
-  notes: "Thirteen sections. The spine is the same four data-mesh principles the 101 deck introduced, but every section here is anchored to real Quarkus code and a runnable demo script, not a conceptual diagram alone. Section 03 is the centerpiece this deck adds over the Python sibling — three different coordination engines over the same domain. Section 04 is the second centerpiece — AI classification feeding a deterministic rules engine, with a plain caveat about what doesn't work. The appendix is large deliberately: every diagram gets a home, every decision gets a citation, and the matrix of all eighteen demos lives there in one place.",
+  notes: "Twelve numbered sections (00 to 11) plus a reference appendix. The thread is the four data-mesh principles from the 101 deck, and every section is tied to Quarkus code and a runnable demo script. The three-engines section is the main addition over the Python sibling: three coordination engines over one domain. The AI and rules section is the second: LLM classification feeding a deterministic rules engine, with the known limitation stated. The Quarkus section covers twelve capabilities, including the JDK 25 AOT cache and the Panama foreign function API. The appendix holds the full demo matrix, a glossary, and the background diagrams.",
 });
 
 /* ====================== 00 · FROM PRINCIPLES TO PLATFORM ====================== */
 (() => {
   const s = divider({ num: "00", title: "From principles to platform", sub: "The four principles, the reference architecture we build toward, and how the pieces map onto Quarkus and Kubernetes." });
-  s.addNotes("Orientation. Three diagrams: the four principles recapped, the reference architecture this whole deck assembles piece by piece, and the principles-to-Kubernetes-primitives map. Keep it brisk — this is the map, not the territory. Everything in this section already appeared in the 101 deck; the point here is simply to re-anchor before we go deep on Quarkus specifics.");
+  s.addNotes("Orientation with three diagrams: the four principles recapped, the reference architecture the deck assembles piece by piece, and the map from principles to Kubernetes primitives. Keep it brisk. The principles already appeared in the 101 deck; this section re-anchors before the Quarkus detail.");
 })();
 
 diagramSlide({ eyebrow: "From principles to platform", title: "Four principles, recapped",
   image: "01-data-mesh-four-principles",
-  caption: "Domain ownership, data as a product, self-serve data platform, federated computational governance — interlocking, not sequential.",
-  notes: "Straight from the 101 deck, deliberately, so the two decks connect. The four principles don't layer on top of each other — they interlock. Implement data-as-a-product without a self-serve platform and every domain reinvents its own Kafka; implement governance without domain ownership and you've rebuilt the central bottleneck under new vocabulary. Everything from here on is 'here is where Quarkus and Kubernetes put each of these four.'" });
+  caption: "Domain ownership, data as a product, self-serve data platform, federated computational governance: interlocking, not sequential.",
+  notes: "Taken from the 101 deck so the two decks connect. The principles interlock rather than stack. Data as a product without a self-serve platform means every domain builds its own Kafka. Governance without domain ownership rebuilds the central bottleneck under a new name. Everything that follows shows where Quarkus and Kubernetes put each of the four." });
 
 diagramSlide({ eyebrow: "From principles to platform", title: "The reference architecture we build toward",
   image: "08-reference-architecture",
   caption: "Data products behind the Istio mesh, KEDA-driven autoscaling, and every signal flowing through the OpenTelemetry Collector into Grafana LGTM and Kiali.",
-  notes: "The centerpiece we return to assembled in section 10. For now, just orient: data products in the middle, the selectively-meshed Istio data plane around them, KEDA watching two of them from outside the mesh, and the Collector fanning every signal — metrics, traces, logs — into one observability stack. Promise the audience: by the end, every box here will have had its own demo." });
+  notes: "This diagram returns in assembled form near the end. For now: data products in the middle, the selectively meshed Istio data plane around them, KEDA watching two of them from outside the mesh, and the Collector fanning metrics, traces, and logs into one observability stack. By the end of the deck, each box here has a demo or a verified manifest behind it." });
 
 diagramSlide({ eyebrow: "From principles to platform", title: "From principles to Kubernetes and Quarkus pieces",
   image: "02-principles-to-pieces",
-  caption: "The four principles mapped to concrete primitives — namespaces, Deployments and CRDs, operators, admission/mesh policy — the vocabulary the rest of this deck uses by name.",
-  notes: "This is the deck's whole structure in one picture. Domain ownership maps to namespace/Project boundaries; data as a product maps to a Deployment+Service+contract per domain; self-serve platform maps to operators (Strimzi, CloudNativePG, KEDA); federated governance maps to the mesh and admission policy. Every later section is one column of this picture, built out with real Quarkus code and a demo." });
+  caption: "Each principle maps to Kubernetes building blocks: namespaces, Deployments and CRDs, operators, and mesh and admission policy.",
+  notes: "This picture is the deck's structure. Domain ownership maps to namespace boundaries; data as a product maps to a Deployment, Service, and contract per domain; the self-serve platform maps to operators (Strimzi, CloudNativePG, KEDA); federated governance maps to the mesh and admission policy. Each later section builds out one column of this picture with Quarkus code and a demo." });
 
 /* ====================== 01 · QUARKUS CAPABILITY TOUR ====================== */
 (() => {
-  const s = divider({ num: "01", title: "Quarkus capability tour", sub: "Nine capabilities, each demonstrated by a real endpoint or route already running in this build — not a toy snippet." });
-  s.addNotes("Nine capabilities across Panache, gRPC, GraphQL, Reactive Messaging, WebSockets.Next, unified Vert.x reactive/imperative execution, continuous testing, native compilation, OIDC, and JBang. Read this section left to right as a map, not a sequence — nothing here depends on anything else running first. The two capabilities the rest of the deck leans on by name are Reactive Messaging (section 03's choreography leg republishes the exact OrderEventProducer shown here) and plain orchestration over bean calls (sections 03 and 04).");
+  const s = divider({ num: "01", title: "Quarkus capability tour", sub: "Twelve capabilities, each backed by running code in this project." });
+  s.addNotes("Twelve capabilities: Panache, gRPC, GraphQL, Reactive Messaging, WebSockets.Next, Vert.x with Uni and imperative handlers, continuous testing with Dev Services, native image, the JDK AOT cache, OIDC, JBang, and Panama FFM. Read the section as a map; no capability depends on another running first. Reactive Messaging and plain bean orchestration are the two the later sections build on: the choreography leg republishes the OrderEventProducer shown here, and the orchestration legs call the same bean methods.");
 })();
 
-diagramSlide({ eyebrow: "Quarkus capability tour", title: "Nine capabilities, nine real services",
+diagramSlide({ eyebrow: "Quarkus capability tour", title: "Twelve capabilities demonstrated",
   image: "11-capability-tour",
-  caption: "Panache and Vert.x unification in inventory-service; gRPC between inventory-service and the gateway; GraphQL federation; Reactive Messaging and WebSockets.Next; continuous testing and native compilation; OIDC; JBang prototyping.",
-  notes: "Walk the map once. inventory-service carries the most capabilities at once (Panache, gRPC, REST, the reactive/imperative split) because it's the smallest aggregate with the richest protocol surface. order-service carries continuous testing and native compilation because it's the cleanest REST+Panache service in this build. review-service got OIDC because it's the smallest module — one protected endpoint, zero cross-service calls, nothing to distract from the capability. JBang stands alone, deliberately — it needs no other service running." });
+  caption: "Each capability is anchored to one service, script, or directory in this project.",
+  notes: "Walk the map once. inventory-service carries the most capabilities: Panache, gRPC, REST, and the Uni versus imperative handlers, because it is the smallest aggregate with the richest protocol surface. order-service carries Panache, Reactive Messaging, continuous testing, and the native image because it is the cleanest REST and Panache service. review-service carries OIDC because it is the smallest module: one protected endpoint, no cross-service calls. notification-service carries WebSockets.Next. JBang, the AOT cache comparison, and Panama FFM are tied to scripts and directories rather than services, and need no other service running." });
 
-diagramSlide({ eyebrow: "Quarkus capability tour", title: "demo-order.sh — Panache + REST, the template product",
+diagramSlide({ eyebrow: "Quarkus capability tour", title: "Panache and REST: the template data product",
+  subtitle: "One entity, one resource, one gRPC call, one event",
+  demoRef: "demos/demo-order.sh",
   image: "03-data-product-anatomy",
-  caption: "order-service is this picture: a Panache entity as its own repository, REST input/output ports, a gRPC call out, an event published on commit.",
-  notes: "DEMO 1 of 18. What it does: POST /orders calls inventory-service's CheckStock over gRPC to validate stock, persists the Order via Hibernate ORM Panache, then publishes order.placed to Kafka (best-effort here; the Avro wire-format proof is demo-kafka.sh's job, not this one's). What to show: place an order, GET it back by id, then query Postgres directly to show the row is really there — three independent confirmations, not one green checkmark. Infra: compose (docker compose up -d; postgres + kafka + apicurio baseline). Fallback: a recorded transcript of the 201/200/404 status codes and the row dump, narrated the same way live." });
+  caption: "order-service follows this shape: a Panache entity as its own repository, REST ports in and out, a gRPC call out, an event published on commit.",
+  notes: "DEMO 1 of 19. What it does: POST /orders calls inventory-service's CheckStock over gRPC to validate stock, persists the Order through Hibernate ORM Panache, then publishes order.placed to Kafka (best-effort here; demo-kafka.sh proves the Avro wire format). What to show: place an order, GET it back by id, then query Postgres directly to confirm the row. That gives three independent confirmations. Infra: compose (docker compose up -d; postgres, kafka, apicurio baseline). Fallback: a recorded transcript of the 201, 200, and 404 status codes and the row dump." });
 
-codeSlide({ eyebrow: "Quarkus capability tour", title: "Panache: the entity is the repository",
+diagramSlide({ eyebrow: "Quarkus capability tour", title: "Panache: active record or repository",
+  image: "11-panache-patterns",
+  caption: "Same Hibernate ORM and SQL under both patterns; they differ in layering and in how much code they need.",
+  notes: "Panache offers two styles. Active record (used in this project): the entity extends PanacheEntityBase, and Order.findById(id) and order.persist() are the data-access layer. Repository: a PanacheRepository<Order> bean is injected into the resource, which makes mocking and layering easier at the cost of an extra class per aggregate. Both produce the same Hibernate ORM calls and SQL. Active record means less code; the repository suits teams that want strict layering. The Spring Boot twin uses a Spring Data JPA repository, which is the repository equivalent. The repository example on this diagram is illustrative; only active record runs in this project." });
+
+codeSlide({ eyebrow: "Quarkus capability tour", title: "Panache active record in order-service",
   lang: "Java · Hibernate ORM Panache",
-  note: "Active record, not repository-plus-DAO: Order.findById(id) and order.persist() are the whole data-access layer. OrderResource calls Order directly — no OrderRepository interface, no mapper, no @Autowired DAO standing between the REST layer and the row.",
+  note: "Order.findById(id) and order.persist() are the whole data-access layer; OrderResource calls Order directly.",
   code: code(`@Entity
 @Table(name = "orders")
 public class Order extends PanacheEntityBase {
@@ -128,77 +152,141 @@ public class Order extends PanacheEntityBase {
 // OrderResource — no repository bean in between:
 Order order = Order.findById(id);
 order.persist();`),
-  notes: "The trade-off is real: your entity now depends on a Panache base class, and active record doesn't suit every team's layering preference. But for a reference architecture built around one aggregate per service, it removes an entire layer of indirection with nothing lost — inventory-service's StockResource calls Stock.findBySku(...) the same way, directly from a JAX-RS resource method." });
+  notes: "The trade-off: the entity depends on a Panache base class, and active record does not suit every team's layering preference. For a reference architecture with one aggregate per service it removes a layer of indirection. inventory-service's StockResource calls Stock.findBySku(...) the same way, directly from a JAX-RS resource method. No OrderRepository interface, no mapper, and no injected DAO sit between the REST layer and the row." });
 
-diagramSlide({ eyebrow: "Quarkus capability tour", title: "demo-grpc.sh — a typed contract, generated at build time",
+diagramSlide({ eyebrow: "Quarkus capability tour", title: "gRPC typed contracts",
+  subtitle: "Generated at build time",
+  demoRef: "demos/demo-grpc.sh",
   image: "05-api-implementations",
-  caption: "REST at the edge, gRPC between services, GraphQL to compose, events to decouple — each protocol's Quarkus extension and contract type, by fitness.",
-  notes: "DEMO 2 of 18. What it does: inventory-service answers capstone.inventory.v1.InventoryService/CheckStock over gRPC; InventoryService itself is generated at build time from contracts/.../inventory.proto, not hand-written. @GrpcService registers the bean; @Blocking tells Vert.x this handler does blocking Panache work and should run on a worker thread even though its signature is the fully reactive Uni<CheckStockResponse>. What to show: drive it directly with grpcurl against the real .proto — a genuine gRPC client over HTTP/2, not a REST call in disguise, so there's no ambiguity about which protocol actually ran. Infra: compose. Fallback: recorded grpcurl JSON response showing available/quantityOnHand." });
+  caption: "REST at the edge, gRPC between services, GraphQL to compose, events to decouple: each protocol's Quarkus extension and contract type.",
+  notes: "DEMO 2 of 19. What it does: inventory-service answers capstone.inventory.v1.InventoryService/CheckStock over gRPC. The InventoryService base is generated at build time from the inventory.proto contract, not hand-written. @GrpcService registers the bean; @Blocking tells Vert.x the handler does blocking Panache work and must run on a worker thread, even though its signature is the reactive Uni<CheckStockResponse>. What to show: call it with grpcurl against the .proto, a gRPC client over HTTP/2, so the protocol that ran is unambiguous. Infra: compose. Fallback: a recorded grpcurl JSON response showing available and quantityOnHand." });
 
-contentSlide({ eyebrow: "Quarkus capability tour", title: "demo-graphql.sh — one query, two downstream protocols",
+contentSlide({ eyebrow: "Quarkus capability tour", title: "GraphQL: one query, two protocols",
+  subtitle: "REST and gRPC resolved behind one endpoint",
+  demoRef: "demos/demo-graphql.sh",
   bullets: [
-    { text: "graphql-gateway's GatewayApi federates two protocols behind one /graphql endpoint: order(id) resolves over REST from order-service; the nested stock field resolves over gRPC from inventory-service." },
-    { text: "MicroProfile GraphQL's @Source marks stock as a field resolver, called only when a client query actually selects that field — a client asking only for order(id) { customerId } never triggers the gRPC call at all.", lvl: 1 },
-    { text: "One request, two backend protocols, stitched into one response shape — opt-in per query, not per endpoint.", lvl: 1 },
+    { lead: "graphql-gateway's", text: "GatewayApi serves one /graphql endpoint: order(id) resolves over REST from order-service; the nested stock field resolves over gRPC from inventory-service." },
+    { text: "MicroProfile GraphQL's @Source marks stock as a field resolver. It runs only when a query selects that field, so order(id) { customerId } never triggers the gRPC call.", lvl: 1 },
+    { text: "One request, two backend protocols, one response shape. The choice is made per query, not per endpoint.", lvl: 1 },
   ],
-  notes: "DEMO 3 of 18. What it does: order(id) resolves over REST from order-service; the nested stock field resolves lazily over gRPC from inventory-service, stitched into one /graphql response. The thing to land: the domain services were not changed to support GraphQL — they keep their plain REST and gRPC interfaces, and the gateway does the composing. This is gateway orchestration of reads, not true subgraph federation, but it's the right-sized answer for five services. What to show: place a real order, then query the gateway and assert both the REST-sourced order fields and the gRPC-sourced nested stock fields land in one .data.order payload with no .errors. Infra: compose (docker compose up -d). Fallback: recorded .data.order JSON showing both REST- and gRPC-sourced fields together." });
+  notes: "DEMO 3 of 19. What it does: order(id) resolves over REST from order-service; the nested stock field resolves lazily over gRPC from inventory-service; both land in one /graphql response. The domain services did not change to support GraphQL; they keep their REST and gRPC interfaces and the gateway composes. This is gateway orchestration of reads, not subgraph federation, which is the right size for five services. What to show: place an order, query the gateway, and assert both the REST-sourced order fields and the gRPC-sourced stock fields appear in one .data.order payload with no .errors. Infra: compose (docker compose up -d). Fallback: recorded .data.order JSON with both sets of fields." });
 
-contentSlide({ eyebrow: "Quarkus capability tour", title: "demo-reactive-vertx.sh — one reactor, two execution models",
-  bullets: [
-    { text: "inventory-service answers the same stock table through two execution models at once, on the same Vert.x reactor, in the same JVM." },
-    { text: "Reactive: the gRPC CheckStock handler, a Uni<CheckStockResponse> with its blocking Panache lookup offloaded via @Blocking. Imperative: StockResource, a classic thread-per-request JAX-RS method, no Uni anywhere.", lvl: 1 },
-    { text: "They don't even compute the same thing — gRPC's available is request-dependent (quantity > 0 && onHand >= quantity); REST's available is a static snapshot (quantityOnHand > 0).", lvl: 1 },
-  ],
-  notes: "DEMO 4 of 18. What it does: exercises the textbook Quarkus/Vert.x claim — 'unified reactive and imperative, one reactor' — under genuine concurrent load, not just asserted in prose. The framework, not the developer, decides which thread pool a given request lands on, based on @Blocking and the handler's declared return type. No migration, no second event loop spun up for the imperative side. What to show: fire three gRPC and three REST calls concurrently against one running process; assert every response is correct and uncorrelated. Infra: compose. Fallback: recorded six-call transcript, all six correct." });
+diagramSlide({ eyebrow: "Quarkus capability tour", title: "Uni and imperative handlers",
+  image: "11-uni-vs-imperative",
+  caption: "The method signature and @Blocking or @NonBlocking choose the thread; the same JVM runs both.",
+  notes: "A Uni<T> is Mutiny's lazy single-value asynchronous result: nothing runs until something subscribes, and operators such as onItem().transform() and onFailure().retry() compose it. An imperative method (StockDto get(sku)) runs on a worker thread, where blocking is fine. A method returning Uni runs on the Vert.x event loop, where blocking is forbidden; @Blocking moves it to a worker, and @RunOnVirtualThread is the third option. Quarkus picks the thread from the signature and the annotations, so one service can mix both styles over the same Panache entity. The next demo exercises exactly this with concurrent gRPC and REST calls." });
 
-contentSlide({ eyebrow: "Quarkus capability tour", title: "demo-websocket.sh — pushing an already-committed event",
+contentSlide({ eyebrow: "Quarkus capability tour", title: "Reactive and imperative on one reactor",
+  subtitle: "Two execution models in the same JVM",
+  demoRef: "demos/demo-reactive-vertx.sh",
   bullets: [
-    { text: "notification-service's /ws/notifications endpoint (WebSockets.Next) is deliberately thin — its only job is to acknowledge a connection." },
-    { text: "The real push happens from OrderPlacedConsumer, the same Reactive Messaging consumer that reacts to order.placed, right after it persists a Notification row.", lvl: 1 },
-    { text: "Design decision worth noticing: the push happens after the transaction commits, not before — a client only ever sees an event that is already durable, never a speculative one that might roll back.", lvl: 1 },
+    { lead: "inventory-service", text: "answers the same stock table through two execution models at once, on one Vert.x reactor in one JVM." },
+    { text: "Reactive: the gRPC CheckStock handler returns Uni<CheckStockResponse>, with its blocking Panache lookup offloaded by @Blocking.", lvl: 1 },
+    { text: "Imperative: StockResource is a thread-per-request JAX-RS method with no Uni.", lvl: 1 },
+    { text: "The two compute different things: gRPC available depends on the requested quantity; REST available is a static snapshot (quantityOnHand > 0).", lvl: 1 },
   ],
-  notes: "DEMO 5 of 18. What it does: WebSockets.Next and Reactive Messaging compose naturally — a Kafka consumer can push to every open socket connection the moment it commits, with no polling. OpenConnections is WebSockets.Next's injectable registry of live connections; listAll().forEach(...).sendTextAndAwait(...) does the fan-out. What to show: a real JDK java.net.http.WebSocket client (via JBang), connected before an order is placed, asserts the second message it receives matches the order's orderId/customerId/itemSku exactly. Infra: compose. Fallback: recorded socket transcript." });
+  notes: "DEMO 4 of 19. What it does: tests the claim that Quarkus unifies reactive and imperative code on one Vert.x reactor, under concurrent load. The framework, not the developer, chooses the thread pool for each request from @Blocking and the handler's return type. No migration is needed and no second event loop is started for the imperative side. What to show: three gRPC and three REST calls fired concurrently at one running process; every response correct and uncorrelated. The gRPC rule is quantity > 0 and onHand >= quantity; the REST rule is quantityOnHand > 0. Infra: compose. Fallback: recorded six-call transcript, all six correct. 'Reactor' here means the Vert.x event loop." });
 
-contentSlide({ eyebrow: "Quarkus capability tour", title: "demo-jbang-prototype.sh — prototyping without a Maven module",
-  bullets: [
-    { text: "demos/jbang/HelloRoute.java is a complete Camel route with no pom.xml and no Maven reactor module." },
-    { text: "jbang camel@apache/camel run HelloRoute.java resolves Camel's runtime straight from Maven Central and runs the route directly.", lvl: 1 },
-    { text: "The 'sketch an idea before committing to a module' workflow — useful for trying a route shape, an EIP combination, or a component configuration before paying the cost of a full Maven module.", lvl: 1 },
-  ],
-  notes: "DEMO 6 of 18. What it does: the lightest-weight demo in this build by design — no Maven, no containers, just jbang resolving Camel. jbang transparently installs/trusts the camel@apache/camel app-catalog entry on first use. What to show: assert the exact transformed marker string (JBANG_PROTOTYPE_OK: ...) appears in the route's log output — not just that the process exited zero. Infra: bare (JDK 25 + jbang on PATH; no docker compose needed). Fallback: recorded log line." });
+diagramSlide({ eyebrow: "Quarkus capability tour", title: "WebSockets.Next vs. Jakarta WebSockets",
+  image: "11-websockets-next",
+  caption: "Annotated endpoints with an injectable OpenConnections, on Vert.x, against the callback-style Jakarta WebSocket extension.",
+  notes: "Left: the legacy quarkus-websockets extension implements Jakarta WebSocket on Undertow, with @ServerEndpoint, a Session, and a callback API. Right: quarkus-websockets-next on Vert.x, with @WebSocket(path), @OnOpen and @OnTextMessage methods that return values or Uni and Multi, an execution model inferred from the signature, an injectable OpenConnections registry, and @WebSocketClient for outbound sockets. Bottom band: this project's push path. A Kafka @Incoming consumer calls OpenConnections.listAll() and sendText to every open socket, and each replica has its own consumer group so every replica sees every event." });
 
-contentSlide({ eyebrow: "Quarkus capability tour", title: "demo-continuous-testing.sh — tests that run themselves",
+contentSlide({ eyebrow: "Quarkus capability tour", title: "WebSocket push from Kafka",
+  subtitle: "Clients receive only committed events",
+  demoRef: "demos/demo-websocket.sh",
   bullets: [
-    { text: "mvn quarkus:dev with quarkus.test.continuous-testing=enabled re-runs a module's tests automatically on every save." },
-    { text: "Dev Services provisions the Testcontainers (Postgres, Kafka, Apicurio) those tests need with zero docker compose and zero .env.", lvl: 1 },
-    { text: "The demo watches order-service's own dev-mode log for the literal Quarkus 3.39.5 pass banner and parses it for passing/run counts, asserting passing == run — if the banner never appears, the demo does not silently treat 'the app came up' as a pass.", lvl: 1 },
+    { lead: "notification-service's", text: "/ws/notifications endpoint (WebSockets.Next) is thin: it only acknowledges a connection." },
+    { text: "The push comes from the Reactive Messaging consumer for order.placed, right after it persists a Notification row.", lvl: 1 },
+    { text: "The push happens after the transaction commits, so a client never sees an event that might still roll back.", lvl: 1 },
   ],
-  notes: "DEMO 7 of 18. What it does: continuous testing and native compilation sit at opposite ends of the feedback-loop spectrum — instant, infra-provisioned reruns on one end, a multi-minute ahead-of-time compile on the other. Dev Services only applies to the former. A demo that can't observe its target capability should fail, not quietly narrow its claim. What to show: the 'All 4 tests are passing (0 skipped), 4 tests were run in 8318ms.' banner line. Infra: bare (JDK 25 + Maven only; Dev Services spins its own containers). Fallback: recorded banner line." });
+  notes: "DEMO 5 of 19. What it does: WebSockets.Next and Reactive Messaging compose. A Kafka consumer pushes to every open socket right after it commits, with no polling. OpenConnections is the injectable registry of live connections; listAll().forEach(...).sendTextAndAwait(...) does the fan-out. What to show: a JDK java.net.http.WebSocket client run through JBang, connected before an order is placed, asserts that the second message it receives matches the order's orderId, customerId, and itemSku. Infra: compose. Fallback: recorded socket transcript." });
+
+diagramSlide({ eyebrow: "Quarkus capability tour", title: "JBang as environment tooling",
+  image: "11-jbang-tooling",
+  caption: "One .java file with //DEPS and //JAVA directives; JBang resolves dependencies, finds or downloads a JDK, and caches the build.",
+  notes: "JBang runs a single Java source file with inline dependency directives: //DEPS for Maven coordinates and //JAVA 25 for the JDK. It resolves from Maven Central, downloads a JDK if none matches, and caches the compiled result. The app catalog adds entries such as camel@apache/camel, and the Quarkus CLI is distributed the same way. This project uses it for HelloRoute.java (a Camel route), WsNotificationClient.java (the WebSocket test client), and PanamaFfm.java (the Panama demo). It matters for the demos because they need no Maven module." });
+
+contentSlide({ eyebrow: "Quarkus capability tour", title: "Prototyping with JBang",
+  subtitle: "A Camel route without a Maven module",
+  demoRef: "demos/demo-jbang-prototype.sh",
+  bullets: [
+    { lead: "demos/jbang/HelloRoute.java", text: "is a complete Camel route with no pom.xml and no Maven module." },
+    { lead: "jbang camel@apache/camel run", text: "resolves Camel's runtime from Maven Central and runs the route directly.", lvl: 1 },
+    { text: "Use it to try a route shape, an EIP combination, or a component configuration before committing to a module.", lvl: 1 },
+  ],
+  notes: "DEMO 6 of 19. What it does: the lightest demo in the set; no Maven and no containers, only JBang resolving Camel. JBang installs and trusts the camel@apache/camel catalog entry on first use. What to show: the exact transformed marker string (JBANG_PROTOTYPE_OK: ...) in the route's log output, not only a zero exit code. Infra: bare (JDK 25 and jbang on PATH; no docker compose). Fallback: the recorded log line." });
+
+contentSlide({ eyebrow: "Quarkus capability tour", title: "Continuous testing",
+  subtitle: "Tests rerun on every save, against Dev Services",
+  demoRef: "demos/demo-continuous-testing.sh",
+  bullets: [
+    { lead: "mvn quarkus:dev", text: "with quarkus.test.continuous-testing=enabled reruns a module's tests on every save." },
+    { lead: "Dev Services", text: "starts the Testcontainers those tests need (Postgres, Kafka, Apicurio) with no docker compose and no .env.", lvl: 1 },
+    { text: "The demo parses the Quarkus 3.39.5 pass banner in order-service's dev log and asserts passing == run. A missing banner fails the demo.", lvl: 1 },
+  ],
+  notes: "DEMO 7 of 19. What it does: continuous testing and native compilation sit at opposite ends of the feedback-loop spectrum: instant, infra-provisioned reruns on one end and a multi-minute ahead-of-time compile on the other. Dev Services applies only to the former. A demo that cannot observe its target capability should fail rather than quietly narrow its claim, so a missing banner fails this one. What to show: the banner line 'All 4 tests are passing (0 skipped), 4 tests were run in 8318ms.' Infra: bare (JDK 25 and Maven only; Dev Services starts its own containers). Fallback: the recorded banner line." });
+
+diagramSlide({ eyebrow: "Quarkus capability tour", title: "Three ways to start a Java service",
+  image: "11-startup-paths",
+  caption: "Plain JVM, JVM with the JDK 25 AOT cache, and native image: what each costs to build and what each gives at startup.",
+  notes: "Three startup paths. Plain JVM: load, link, interpret, then JIT warm-up. JVM with the AOT cache (JDK 25, Project Leyden, JEPs 483, 514, and 515): a training run with -XX:AOTCacheOutput writes app.aot, and production runs with -XX:AOTCache; it is the same jar on a full JVM with the JIT still active. Native image (GraalVM or Mandrel): a closed-world build that takes minutes and needs reflection configuration, and it produces an executable with no JVM. The diagram is qualitative; measured numbers for the JVM and AOT paths appear in the Spring Boot comparison, and native is exercised by its own demo." });
+
+diagramSlide({ eyebrow: "Quarkus capability tour", title: "Panama: native calls without JNI",
+  image: "11-panama-ffm",
+  caption: "Java resolves a libc symbol, builds a downcall handle from a FunctionDescriptor, and passes off-heap memory owned by an Arena.",
+  notes: "The Foreign Function and Memory API (Project Panama, final in JDK 22) calls native libraries from Java without JNI. Linker.nativeLinker() gives the platform linker, defaultLookup() resolves symbols from libc, and downcallHandle(FunctionDescriptor) produces a MethodHandle. An Arena allocates off-heap MemorySegments, such as a C string, and frees them when it closes. JNI needs C glue, generated headers, and a separate native build; FFM needs none of those. JDK 25 warns unless --enable-native-access is set, which the demo passes. The default lookup covers libc on Linux and macOS." });
+
+codeSlide({ eyebrow: "Quarkus capability tour", title: "Panama FFM in practice",
+  subtitle: "getpid() and strlen() from libc",
+  demoRef: "demos/demo-panama.sh",
+  lang: "Java · demos/jbang/PanamaFfm.java",
+  note: "Output: PANAMA_GETPID equals the JVM pid; PANAMA_STRLEN equals the UTF-8 byte length.",
+  code: code(`Linker linker = Linker.nativeLinker();
+SymbolLookup libc = linker.defaultLookup();
+
+// int getpid(void)
+MethodHandle getpid = linker.downcallHandle(
+    libc.find("getpid").orElseThrow(),
+    FunctionDescriptor.of(JAVA_INT));
+
+// size_t strlen(const char *s)
+MethodHandle strlen = linker.downcallHandle(
+    libc.find("strlen").orElseThrow(),
+    FunctionDescriptor.of(JAVA_LONG, ADDRESS));
+
+try (Arena arena = Arena.ofConfined()) {
+    MemorySegment cString = arena.allocateFrom(text);
+    long nativeLen = (long) strlen.invokeExact(cString);
+}`),
+  notes: "DEMO 8 of 19. What it does: a JBang script (JDK 25, no Maven module) calls getpid() and strlen() in libc through the FFM API and checks both results against Java's own values. What to show: the two output lines, PANAMA_GETPID=<n> JVM_PID=<n> and PANAMA_STRLEN=<n> JAVA_LENGTH=<n>, with each pair equal. Recorded run (JDK 25.0.3, jbang 0.138.0): PANAMA_GETPID=867684 JVM_PID=867684 and PANAMA_STRLEN=31 JAVA_LENGTH=31. The test string is 'data mesh on Quarkus — héllo'; strlen counts UTF-8 bytes, so the Java side compares against the UTF-8 byte length, not the character count. Infra: bare (JDK 25 and jbang). Fallback: the recorded output above." });
 
 /* ====================== 02 · DATA AS A PRODUCT ====================== */
 (() => {
-  const s = divider({ num: "02", title: "Data as a product", sub: "Contracts, the registry, and the catalog — a data product held to the standard of any software product." });
-  s.addNotes("Data as a product is the principle this section is about. The teaching spine: a runtime contract (Avro, load-bearing on the hot path) is a different kind of thing from a discovery contract (OpenAPI/Protobuf/SDL, descriptive); conflating the two is the most common confusion in this space. The governing decision in this build: every Kafka event uses Avro via Apicurio from day one — no JSON shortcut, even early on.");
+  const s = divider({ num: "02", title: "Data as a product", sub: "Contracts, the registry, and the catalog: a data product held to the standard of any software product." });
+  s.addNotes("This section covers the data-as-a-product principle. Two kinds of contract: a runtime contract (Avro, on the hot path) and a discovery contract (OpenAPI, Protobuf, SDL, which are descriptive). Conflating the two is the most common confusion in this area. The governing decision in this project: every Kafka event uses Avro through Apicurio from the start, with no JSON shortcut.");
 })();
 
 diagramSlide({ eyebrow: "Data as a product", title: "Where analytical sourcing would plug in",
   image: "05-ingestion-streaming-sourcing",
-  caption: "Ingestion, streaming, and CDC sourcing for analytical consumers — conceptual in this build, not built; shown so the picture of 'data as a product' stays complete.",
-  notes: "This diagram is explicitly conceptual — this build doesn't ship a built analytical-sourcing layer or Debezium-style CDC. It's included because a complete 'data as a product' story has an analytical half as well as an operational one, and the shape is worth seeing even though we didn't build it here." });
+  caption: "Ingestion, streaming, and CDC sourcing for analytical consumers. Conceptual in this project; not built.",
+  notes: "This diagram is conceptual. The project does not ship an analytical-sourcing layer or Debezium-style CDC. It is included because a complete data-as-a-product picture has an analytical half as well as an operational one." });
 
-diagramSlide({ eyebrow: "Data as a product", title: "demo-kafka.sh — Avro on the wire, verified at the byte level",
+diagramSlide({ eyebrow: "Data as a product", title: "Avro on the wire",
+  subtitle: "Verified at the byte level",
+  demoRef: "demos/demo-kafka.sh",
   image: "04-contract-flow",
-  caption: "The runtime path (serialize, publish, fetch schema, deserialize) vs. the discovery path (OpenAPI/Protobuf/SDL/Avro contracts for a catalog to ingest).",
-  notes: "DEMO 8 of 18. What it does: every Kafka event in this build uses Avro against the Apicurio Schema Registry from the start — no JSON shortcut, ever. order-service pins AvroKafkaSerializer explicitly in application.properties, because Quarkus's connector-serializer autodetection was proven to silently fall back to a Jackson/JSON serializer here (two Avro serdes on the classpath creates ambiguity). What to show: place a real order, then read the raw bytes back off the real compose Kafka broker with a plain byte-level consumer and assert the Apicurio/Confluent wire-format magic byte (0x00) is the first byte — proof this is genuine Avro, not JSON (0x7B) masquerading as an event. Infra: compose. Fallback: recorded byte dump showing 0x00 + schema id." });
+  caption: "The runtime path (serialize, publish, fetch schema, deserialize) and the discovery path (OpenAPI, Protobuf, SDL, and Avro contracts for a catalog to ingest).",
+  notes: "DEMO 9 of 19. What it does: every Kafka event uses Avro against the Apicurio Schema Registry from the start. order-service pins AvroKafkaSerializer in application.properties because Quarkus's connector-serializer autodetection silently fell back to a Jackson JSON serializer here; two Avro serdes on the classpath make the choice ambiguous. What to show: place an order, read the raw bytes back from the compose Kafka broker with a byte-level consumer, and assert the Apicurio and Confluent wire-format magic byte (0x00) is the first byte. A JSON payload would start with 0x7B. Infra: compose. Fallback: a recorded byte dump showing 0x00 and the schema id. The same check runs automatically in OrderPlacedAvroWireIT." });
 
-diagramSlide({ eyebrow: "Data as a product", title: "Runtime vs. discovery contracts — and the catalog gap",
+diagramSlide({ eyebrow: "Data as a product", title: "Runtime vs. discovery contracts",
   image: "04-contracts-registry-catalog",
-  caption: "Runtime contracts (Avro, filled) vs. discovery contracts (OpenAPI/Protobuf/SDL, hollow) — all registered in Apicurio; a catalog downstream would ingest them into a lineage graph.",
-  notes: "The conceptual heart of contracts, stated precisely: a runtime contract (Avro) is load-bearing — the event literally won't serialize without it, so the registry can reject a breaking change at publish time, computational governance in action. A discovery contract (OpenAPI, GraphQL SDL, Protobuf) is descriptive — source of truth for humans and CI, but nothing fails at runtime if it's stale. This build registers both kinds in Apicurio; a full catalog (OpenMetadata) ingesting them into lineage is the conceptual next step, not built here." });
+  caption: "Runtime contracts (Avro, filled) and discovery contracts (OpenAPI, Protobuf, SDL, hollow) are registered in Apicurio; a catalog downstream would ingest them into a lineage graph.",
+  notes: "A runtime contract (Avro) is required to publish: the event does not serialize without it, so the registry can reject a breaking change at publish time. That is computational governance in action. A discovery contract (OpenAPI, GraphQL SDL, Protobuf) is descriptive. It is the source of truth for people and CI, but nothing fails at runtime if it goes stale. This project registers both kinds in Apicurio. A catalog such as OpenMetadata that ingests them into lineage is the next step and is not built." });
 
 codeSlide({ eyebrow: "Data as a product", title: "The runtime contract: a registered Avro schema",
   lang: "Avro · Apicurio Schema Registry",
-  note: "Illustrative of the contracts module's shape (capstone.order.v1.OrderPlaced). AvroKafkaSerializer is pinned explicitly in application.properties on the producer side — autodetection proved unreliable here with two Avro serdes on the classpath.",
+  note: "Illustrative of the contracts module's shape (capstone.order.v1.OrderPlaced). The producer pins AvroKafkaSerializer in application.properties.",
   code: code(`{
   "type": "record",
   "namespace": "capstone.order.v1",
@@ -214,500 +302,544 @@ codeSlide({ eyebrow: "Data as a product", title: "The runtime contract: a regist
 }
 # registry: schema registered at publish time via
 # apicurio-registry-avro; producer pins AvroKafkaSerializer explicitly`),
-  notes: "Shown because the contract is the lesson. order-service's OrderEventProducer builds this record via emitter.send(...); the consumer side (notification-service's OrderPlacedConsumer) is the mirror image, @Incoming('order-placed') on a plain @Transactional method — no manual Kafka client code on either side." });
+  notes: "The contract is the lesson here. order-service's OrderEventProducer builds this record and calls emitter.send(...). The consumer side, notification-service's OrderPlacedConsumer, mirrors it: @Incoming('order-placed') on a @Transactional method, with no Kafka client code on either side. Details behind the pin: autodetection proved unreliable with two Avro serdes on the classpath, in both Quarkus and the Spring Boot twin. OrderPlacedAvroWireIT (Testcontainers Kafka and Apicurio) produces an OrderPlaced with AvroKafkaSerializer, consumes it with a byte-level KafkaConsumer, and asserts value[0] == 0x00 and value[0] != 0x7B. Avro 1.12's ClassSecurityValidator needs org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 on that test's failsafe execution; the order-service README records both." });
 
-diagramSlide({ eyebrow: "Data as a product", title: "The full contract picture, capstone view",
+diagramSlide({ eyebrow: "Data as a product", title: "The full contract picture",
   image: "04-capstone-contracts",
-  caption: "Every protocol's contract type feeding into Apicurio Registry, with a catalog downstream building lineage from the registry and the running data stores.",
-  notes: "The closer for this section. Every protocol in this build — REST's OpenAPI, gRPC's Protobuf, GraphQL's SDL, Kafka's Avro — has a contract, and all of them register in one place (Apicurio). A mesh's premise is consumers finding and trusting products without a central team; without a usable registry/catalog, they fall back to asking someone, and the bottleneck returns." });
+  caption: "Every protocol's contract type feeds Apicurio Registry; a catalog downstream builds lineage from the registry and the running data stores.",
+  notes: "Every protocol in the project has a contract: OpenAPI for REST, Protobuf for gRPC, SDL for GraphQL, and Avro for Kafka. All of them register in Apicurio. A mesh depends on consumers finding and trusting products without a central team. Without a usable registry and catalog they fall back to asking someone, and the bottleneck returns." });
 
 /* ====================== 03 · THE THREE ENGINES ====================== */
 (() => {
   const s = divider({ num: "03", title: "The three engines", sub: "Three ways to coordinate the same order-to-shipment domain: choreography, and two shapes of orchestration." });
-  s.addNotes("The centerpiece this deck adds. Every event-driven system eventually answers one question: when multiple steps need to happen in sequence, who decides the sequence? This build runs three different answers side by side so the distinction can be shown, not just defined. Terminology discipline, exact: Kafka is choreography; Camel and Quarkus Flow are both orchestration — they differ in how the sequence is expressed (imperative route vs. declarative workflow document), not in whether a coordinator exists. Don't let 'orchestration' collapse into 'a specific technology.'");
+  s.addNotes("The main addition over the Python sibling. Every event-driven system answers one question: when several steps happen in sequence, who decides the sequence? This project runs three answers side by side. Terminology: Kafka is choreography. Camel and Quarkus Flow are both orchestration; they differ in how the sequence is expressed (an imperative route or a declarative workflow document), not in whether a coordinator exists. Keep 'orchestration' from collapsing into one technology.");
 })();
 
 diagramSlide({ eyebrow: "The three engines", title: "Three coordination shapes, one domain",
   image: "13-orchestration-styles",
-  caption: "Decentralized Kafka choreography; a Camel route explicitly sequencing steps; a declarative Quarkus Flow workflow document expressing the same two tasks.",
-  notes: "Trace the three boxes with your finger. The choreography box has no single arrow entering from 'the top' — no node labeled coordinator, because there isn't one. The two orchestration boxes both have exactly one entry point and one thing that owns the sequence, but draw that ownership differently: the Camel box is a straight line of named steps (a route is a sequence of method calls); the Quarkus Flow box is a small graph of declared tasks (a workflow document describes what must happen before what, and leaves how to the engine). That distinction — code that calls things in order vs. data that declares an order — is worth more teaching time than 'orchestration vs. choreography' itself." });
+  caption: "Decentralized Kafka choreography; a Camel route that sequences steps; a declarative Quarkus Flow workflow expressing the same two tasks.",
+  notes: "Trace the three boxes. The choreography box has no coordinator node, because none exists. The two orchestration boxes each have one entry point and one owner of the sequence, drawn differently: the Camel box is a straight line of named steps (a route is a sequence of method calls), and the Quarkus Flow box is a small graph of declared tasks (a workflow document says what must happen before what and leaves the how to the engine). Code that calls things in order versus data that declares an order is the more useful distinction than orchestration versus choreography." });
 
-contentSlide({ eyebrow: "The three engines", title: "Engine 1 — Kafka choreography: no one is in charge",
+contentSlide({ eyebrow: "The three engines", title: "Engine 1: Kafka choreography",
+  subtitle: "No single service owns the sequence",
   bullets: [
-    { text: "order-service publishes order.placed and has never heard of payment-service or shipping-service — doesn't know they exist, doesn't call them, doesn't wait on them." },
-    { text: "payment-service independently subscribes to order.placed, captures payment, and publishes payment.captured; shipping-service subscribes to payment.captured and publishes shipment.dispatched.", lvl: 1 },
-    { text: "notification-service also subscribes to order.placed as a fourth, parallel reaction to the same original event — not a step after the chain.", lvl: 1 },
-    { head: true, text: "Cost and benefit, stated as the same fact" },
-    { text: "No single place reads 'what happens when an order is placed' — you have to go find every subscriber. But adding a fifth reaction (say, analytics) costs zero changes to any existing service. That loose coupling is why event-driven systems reach for choreography by default.", color: C.ink },
+    { lead: "order-service", text: "publishes order.placed and does not know payment-service or shipping-service exist. It does not call them or wait on them." },
+    { lead: "payment-service", text: "subscribes to order.placed, captures payment, and publishes payment.captured. shipping-service subscribes to that and publishes shipment.dispatched.", lvl: 1 },
+    { lead: "notification-service", text: "also subscribes to order.placed, as a parallel reaction to the same event rather than a step after the chain.", lvl: 1 },
+    { head: true, text: "Trade-off" },
+    { text: "No single place describes what happens when an order is placed; you find every subscriber. Adding a fifth reaction, such as analytics, changes no existing service.", color: C.ink },
   ],
-  notes: "No service holds a reference to 'the whole sequence.' Each one knows exactly one rule: when I see event X, I do Y and emit Z (or, for notification-service, just do Y). This is the baseline the next two engines contrast against." });
+  notes: "No service holds a reference to the whole sequence. Each follows one rule: when I see event X, I do Y and emit Z (notification-service only does Y). This is the baseline the next two engines contrast against. The coupling is loose, through topics, and failure handling relies on idempotent redelivery. The cost is discoverability: reading one service tells you nothing about the end-to-end flow, so tracing and a catalog matter more here than in the orchestrated styles." });
 
-codeSlide({ eyebrow: "The three engines", title: "Engine 2 — Camel orchestration: the route is the coordinator",
+codeSlide({ eyebrow: "The three engines", title: "Engine 2: Camel orchestration",
+  subtitle: "The route is the coordinator",
   lang: "Java · Camel route · POST /api/orders/triage",
-  note: "One route explicitly sequences every step — reading it top to bottom is reading the business process.",
+  note: "One route sequences every step; reading it top to bottom is reading the business process.",
   code: code(`from("direct:triage")
     .routeId("triage-order")
     .unmarshal().json(JsonLibrary.Jackson, OrderCreate.class)
     .bean(triageService, "classify")
     .bean(triageService, "decide")
     .marshal().json(JsonLibrary.Jackson);`),
-  notes: "ai-rules-service exposes this at POST /api/orders/triage. Orchestration means a single process explicitly sequences the steps and knows the whole flow — nothing about this sequence is implicit or discoverable only at runtime. classify (Ollama) and decide (Drools) are plain bean methods; the route coordinates the sequence but does not make the business decision itself." });
+  notes: "ai-rules-service exposes this at POST /api/orders/triage. Orchestration means one process sequences the steps and knows the whole flow; nothing about the sequence is implicit or visible only at runtime. classify (Ollama) and decide (Drools) are bean methods. The route coordinates but does not make the business decision." });
 
-codeSlide({ eyebrow: "The three engines", title: "Engine 3 — Quarkus Flow: the same two steps, declared",
+codeSlide({ eyebrow: "The three engines", title: "Engine 3: Quarkus Flow",
+  subtitle: "The same two steps, declared",
   lang: "Java · Quarkus Flow (CNCF Serverless Workflow) · POST /api/orders/triage-flow",
-  note: "A declarative coordinator: a workflow document, structurally the same shape as a CNCF Serverless Workflow YAML/JSON file, not imperative route code.",
+  note: "A declarative coordinator: a workflow definition shaped like a CNCF Serverless Workflow document, not imperative route code.",
   code: code(`return FlowWorkflowBuilder.workflow("order-triage")
     .tasks(
         FlowDSL.function("classify", triageService::classify),
         FlowDSL.function("decide", triageService::decide))
     .build();`),
-  notes: "This is the leg that breaks a common misconception: learners new to this space tend to conflate 'a coordinator exists' with 'the coordinator is a hand-written imperative function.' Quarkus Flow exists specifically to show a coordinator can be declared as data instead. Both classify and decide are the identical TriageService methods Engine 2 calls — same logic, different coordination shape; Drools still makes the one decision that matters, in both paths." });
+  notes: "This engine separates two ideas that are often conflated: that a coordinator exists, and that the coordinator is a hand-written imperative function. Quarkus Flow declares the coordinator as data. classify and decide are the same TriageService methods Engine 2 calls: same logic, different coordination shape. Drools still makes the decision in both paths." });
 
 tableSlide({ eyebrow: "The three engines", title: "When to reach for which",
   headers: ["Engine", "Reach for it when"],
   rows: [
     ["Choreography", "Reactions are independent and the set of subscribers is growing or unknown."],
-    ["Camel orchestration", "The process needs full imperative control — branching, EIPs, code review as the artifact."],
-    ["Quarkus Flow", "That same fixed process is better reviewed, versioned, or edited as a document than as a Java release."],
+    ["Camel orchestration", "The process needs full imperative control: branching, EIPs, code review as the artifact."],
+    ["Quarkus Flow", "The same fixed process is better reviewed, versioned, or edited as a document than as a Java release."],
   ],
-  note: "All three paths reach the identical TriageService.classify/decide methods — Drools always makes the business decision.",
-  notes: "Decision guide for the three coordination engines introduced in this section. The point isn't that one engine is strictly better — it's fitting the coordination shape to how the process needs to be owned, reviewed, and changed over time." });
+  note: "All three paths reach the same TriageService.classify and decide methods; Drools makes the business decision.",
+  notes: "A decision guide for the three engines. No engine is strictly better; the point is to match the coordination shape to how the process is owned, reviewed, and changed over time." });
 
-contentSlide({ eyebrow: "The three engines", title: "demo-orchestration-styles.sh — all three, back to back",
+contentSlide({ eyebrow: "The three engines", title: "All three engines, back to back",
+  subtitle: "Choreography, Camel, and Quarkus Flow on one domain",
+  demoRef: "demos/demo-orchestration-styles.sh",
   bullets: [
-    { text: "Act 1 (choreography): places one real order, polls each downstream Kafka topic with a byte-level consumer, and asserts the Avro wire-format magic byte on every hop — plus a direct Postgres row check and a REST lookup corroborating independently." },
-    { text: "Act 2 (Camel orchestration): posts to /triage and asserts a strict decision (ROUTE_TO_WAREHOUSE) for a pre-validated, stable low-risk input." },
-    { text: "Act 3 (Quarkus Flow orchestration): posts the identical input to /triage-flow and asserts the identical decision — proof the two orchestration shapes drive the same underlying logic." },
-    { text: "Known limit: the three acts share a domain and a comparison, not one literal order flowing through all three end to end — Act 1's order was never run through the classifier-stability trial Acts 2/3 require.", color: C.ink },
+    { lead: "Act 1 — choreography:", text: "places one order, polls each downstream topic with a byte-level consumer, and asserts the Avro magic byte on every hop." },
+    { lead: "Act 2 — Camel:", text: "posts to /triage and asserts the strict decision ROUTE_TO_WAREHOUSE for a pre-validated, stable low-risk input." },
+    { lead: "Act 3 — Quarkus Flow:", text: "posts the same input to /triage-flow and asserts the same decision, showing both shapes drive the same logic." },
+    { lead: "Known limit:", text: "the acts share a domain and a comparison, not one order flowing through all three.", color: C.ink },
   ],
-  notes: "DEMO 9 of 18. What it does: runs all three coordination engines back to back over the same domain. What to show: the Avro magic byte on every Act-1 hop, and the matching strict decisions in Acts 2 and 3. Infra: compose baseline for Act 1 (five services); Acts 2/3 require the compose ollama profile, opt-in via --with-ollama (Ollama-backed classification). Fallback: recorded narration transcript of all three acts. This is the showcase demo for the three-engines narrative. The script's own header is explicit about the known limit above — don't claim more continuity between the acts than the demo itself claims." });
+  notes: "DEMO 10 of 19. What it does: runs all three coordination engines back to back over one domain. Act 1 also checks a direct Postgres row and a REST lookup. What to show: the Avro magic byte on every Act 1 hop, and matching strict decisions in Acts 2 and 3. Infra: compose baseline for Act 1 (five services); Acts 2 and 3 need the compose ollama profile, opt-in through --with-ollama. Fallback: the recorded narration transcript of all three acts. This is the showcase demo for the three-engines story. The known limit: Act 1's order never went through the classifier-stability trial that Acts 2 and 3 require, and the script header says so; do not claim more continuity than the demo does." });
 
 /* ====================== 04 · AI + RULES TRIAGE ====================== */
 (() => {
   const s = divider({ num: "04", title: "AI + rules triage", sub: "An LLM extracts structured fields; a deterministic Drools rule set makes the business decision." });
-  s.addNotes("The strict division of labor this build teaches: the LLM classifies, Drools decides. An LLM is good at reading a loosely-structured order description and pulling out a few categorical fields; it is a poor choice to make a decision you need to audit, replay deterministically, or explain to a compliance reviewer. This section also carries a known-limitation caveat — a separate, genuinely broken capability (in-process multi-turn tool-calling) in a different service, noted plainly rather than hidden.");
+  s.addNotes("The division of labor: the LLM classifies and Drools decides. An LLM reads a loosely structured order description and extracts a few categorical fields reliably. It is a poor choice for a decision that must be audited, replayed deterministically, or explained to a compliance reviewer. This section also carries a known limitation: in-process multi-turn tool calling is broken in a different service, for a documented upstream reason.");
 })();
 
 diagramSlide({ eyebrow: "AI + rules triage", title: "Ollama classifies, Drools decides",
   image: "14-ai-rules-triage",
-  caption: "classify (Ollama qwen2.5:3b) produces category/priority/riskSignal; decide (a Drools KieSession firing order-triage.drl) returns FRAUD_HOLD, EXPEDITE, or ROUTE_TO_WAREHOUSE. A separate branch shows where in-process tool-calling breaks, and where the embedded MCP server path works.",
-  notes: "Read the diagram as two halves. Top half: one LLM call feeding one deterministic rule engine, reached by two orchestration shapes (section 03) that both terminate in the identical TriageService methods. Bottom half: the cautionary half — the same local model, wired into a structurally different capability (multi-turn tool-calling) in a different service (ai-mcp-service), where one path is broken for a documented upstream reason while a second, structurally separate path works perfectly. The fact that an LLM call succeeds in one part of this build is not evidence a structurally different LLM call succeeds elsewhere — that's this section's whole second half." });
+  caption: "classify (Ollama qwen2.5:3b) produces category, priority, and riskSignal; decide (a Drools KieSession firing order-triage.drl) returns FRAUD_HOLD, EXPEDITE, or ROUTE_TO_WAREHOUSE. A separate branch shows where in-process tool calling breaks and where the MCP server path works.",
+  notes: "Two halves. Top: one LLM call feeding one deterministic rule engine, reached by two orchestration shapes that end in the same TriageService methods. Bottom: the same local model in a different capability, multi-turn tool calling in ai-mcp-service, where one path is broken for a documented upstream reason and a structurally separate path works. A successful LLM call in one part of the project is no evidence that a different kind of LLM call succeeds elsewhere." });
 
-contentSlide({ eyebrow: "AI + rules triage", title: "demo-ai-classify.sh — single-shot classification, unaffected by the tool-calling limitation",
+contentSlide({ eyebrow: "AI + rules triage", title: "Single-shot classification",
+  subtitle: "One LLM call, outside the tool-calling limitation",
+  demoRef: "demos/demo-ai-classify.sh",
   bullets: [
-    { text: "ai-mcp-service's OrderClassifierRoute exposes POST /api/orders/classify, a single-shot langchain4j chat call (CHAT_SINGLE_MESSAGE_WITH_PROMPT) — not an agent, not tool calling." },
-    { text: "Structurally unaffected by the tool-calling limitation, which lives entirely in a separate path (OrderLookupToolRoute/OrderAssistantRoute) that this demo never touches.", lvl: 1 },
-    { text: "Needed its own fix, separate from that limitation: a misnamed prompt-template header plus the endpoint's default operation mode were silently making the model chat about the order instead of classifying it.", lvl: 1 },
+    { lead: "ai-mcp-service's", text: "OrderClassifierRoute exposes POST /api/orders/classify, a single-shot langchain4j chat call (CHAT_SINGLE_MESSAGE_WITH_PROMPT). It is not an agent and does not call tools." },
+    { text: "The tool-calling limitation lives in a separate path (OrderLookupToolRoute and OrderAssistantRoute) that this demo never touches.", lvl: 1 },
+    { text: "It needed its own fix: a misnamed prompt-template header and the default operation mode made the model chat about the order instead of classifying it.", lvl: 1 },
   ],
-  notes: "DEMO 10 of 18. What it does: a single-shot langchain4j chat call that classifies an order — not an agent, not tool calling — fixed by correcting a misnamed prompt-template header and setting the single-message operation explicitly. What to show: assert the classify endpoint returns one of the defined category labels. Infra: compose + the ollama profile. Fallback: recorded category label response. Worth stating plainly: single-shot classification is a reliable shape to build on, as long as you defensively parse its output — it is categorically different from multi-turn tool-calling, which is where the known limitation lives." });
+  notes: "DEMO 11 of 19. What it does: a single-shot langchain4j chat call that classifies an order. The fix was to correct a misnamed prompt-template header and set the single-message operation explicitly. What to show: the classify endpoint returns one of the defined category labels. Infra: compose plus the ollama profile. Fallback: a recorded category-label response. Single-shot classification is a reliable shape as long as the output is parsed defensively. It is a different thing from multi-turn tool calling, which is where the known limitation lives." });
 
-contentSlide({ eyebrow: "AI + rules triage", title: "demo-ai-triage.sh — the AI + rules showcase",
+contentSlide({ eyebrow: "AI + rules triage", title: "The AI and rules showcase",
+  subtitle: "The same decision from both orchestration paths",
+  demoRef: "demos/demo-ai-triage.sh",
   bullets: [
-    { text: "Both POST /api/orders/triage (Camel) and POST /api/orders/triage-flow (Quarkus Flow) run the identical classify-then-decide pipeline: Ollama (qwen2.5:3b) classifies, a Drools KieSession fires order-triage.drl and makes the one decision that matters." },
-    { text: "Three salience-guarded, mutually-exclusive rules: FRAUD_HOLD (HIGH risk signal), EXPEDITE (amount ≥ 1000 with LOW risk), ROUTE_TO_WAREHOUSE (default). The model never makes the business call directly.", lvl: 1 },
-    { text: "Three pre-validated inputs — sampled repeatedly against the live model until their classification was shown stable, not just plausible — assert the exact expected decision (not merely 'one of three valid values') on both endpoints.", lvl: 1 },
-    { text: "Both endpoints return the identical decision for the identical input: proof the two orchestration shapes drive the same underlying logic, not two independently-tuned copies of it.", color: C.ink },
+    { lead: "POST /api/orders/triage", text: "(Camel) and /triage-flow (Quarkus Flow) run the same pipeline: Ollama classifies, a Drools KieSession fires order-triage.drl and decides." },
+    { text: "Three salience-guarded rules: FRAUD_HOLD (HIGH risk signal), EXPEDITE (amount ≥ 1000 with LOW risk), ROUTE_TO_WAREHOUSE (default). The model never makes the business call.", lvl: 1 },
+    { text: "Three inputs, sampled against the live model until their classification was stable, assert the exact expected decision on both endpoints.", lvl: 1 },
   ],
-  notes: "DEMO 11 of 18. What it does: runs the identical classify-then-decide pipeline through both orchestration shapes and asserts the exact expected decision on three pre-validated inputs. What to show: the three-decision table across both endpoints. Infra: compose + the ollama profile (host Ollama with qwen2.5:3b already pulled, or the compose ollama profile). Fallback: recorded three-decision table across both endpoints. This is the primary AI demo in the deck. It sidesteps the tool-calling limitation entirely by design — Drools, not langchain4j tool-calling, makes the decision, so no in-process agent round trip is required for the demo to work end to end." });
+  notes: "DEMO 12 of 19. What it does: runs the same classify-then-decide pipeline through both orchestration shapes and asserts the exact expected decision on three pre-validated inputs. Both endpoints return the same decision for the same input, which shows the two shapes drive the same logic and are not two separately tuned copies. What to show: the three-decision table across both endpoints. Infra: compose plus the ollama profile (host Ollama with qwen2.5:3b pulled, or the compose ollama profile). Fallback: the recorded three-decision table. This is the primary AI demo. It avoids the tool-calling limitation by design: Drools, not langchain4j tool calling, makes the decision, so no in-process agent round trip is needed." });
 
-contentSlide({ eyebrow: "AI + rules triage", title: "demo-camel-integration.sh — the EIP logic, proven independent of the tool-calling limitation",
+contentSlide({ eyebrow: "AI + rules triage", title: "Camel EIP routing, tested in isolation",
+  subtitle: "Content-based router verified independently of tool calling",
+  demoRef: "demos/demo-camel-integration.sh",
   bullets: [
-    { text: "Subject: OrderLookupToolRoute, a textbook Content-Based Router EIP (.choice()/.when()×3/.otherwise()) that inspects an orderId and routes to one of four distinct, statically-defined response bodies." },
-    { text: "Reached through the same MCP server surface demo-ai-mcp.sh uses — asserts all four branches, including the .otherwise() fallback for an unrecognized order id.", lvl: 1 },
-    { text: "The point: this proves the routing logic itself is correct, entirely independent of whether in-process tool-calling works.", color: C.ink },
+    { lead: "OrderLookupToolRoute", text: "is a Content-Based Router EIP (.choice(), three .when(), .otherwise()) that inspects an orderId and returns one of four static response bodies." },
+    { text: "The demo reaches it through the same MCP server surface as demo-ai-mcp.sh and asserts all four branches, including the .otherwise() fallback for an unknown id.", lvl: 1 },
+    { text: "The routing logic is correct regardless of whether in-process tool calling works.", color: C.ink },
   ],
-  notes: "DEMO 12 of 18. What it does: a deliberately Camel/EIP-focused demo, distinct from the AI-capability demos around it — it isolates 'does the route logic work' from 'does the AI tool-calling work', because those are two different questions this build answers separately. What to show: all four branches, including the fallback. Infra: compose + the ollama profile. Fallback: recorded four-branch response transcript (ORD-001/002/003 plus the unrecognized-id fallback)." });
+  notes: "DEMO 13 of 19. What it does: a Camel and EIP-focused demo that isolates two questions the project answers separately: does the route logic work, and does AI tool calling work. What to show: all four branches, including the fallback. Infra: compose plus the ollama profile. Fallback: the recorded four-branch transcript (ORD-001, ORD-002, ORD-003, and the unrecognized-id fallback)." });
 
-contentSlide({ eyebrow: "AI + rules triage", title: "demo-ai-mcp.sh — the working MCP-server path",
+contentSlide({ eyebrow: "AI + rules triage", title: "Tool calling through the MCP server",
+  subtitle: "The working path alongside a known limitation",
+  demoRef: "demos/demo-ai-mcp.sh",
   bullets: [
-    { text: "Known limitation: in-process langchain4j agent tool-calling does not fire on this stack — a transport-wiring defect in camel-quarkus-support-langchain4j, not a model-capability problem (full root cause in the appendix)." },
-    { text: "This demo never calls POST /api/assistant/chat and never treats a non-empty chat response as evidence tool-calling succeeded — it prints an explicit banner before running anything.", color: C.ink },
-    { text: "What works: the embedded Camel MCP server, a structurally separate code path with no langchain4j agent involved — real MCP Streamable HTTP, real JSON-RPC 2.0: initialize → tools/list → tools/call(order-status) for ORD-001/002/003.", lvl: 1 },
+    { lead: "Known limitation:", text: "in-process langchain4j agent tool calling does not fire on this stack. The cause is a transport-wiring defect in camel-quarkus-support-langchain4j, not model capability." },
+    { lead: "The demo", text: "never calls POST /api/assistant/chat and prints a banner before running anything.", lvl: 1 },
+    { lead: "What works:", text: "the embedded Camel MCP server, a separate code path with no langchain4j agent. It speaks MCP Streamable HTTP and JSON-RPC 2.0: initialize, tools/list, tools/call(order-status) for ORD-001, 002, 003.", lvl: 1 },
   ],
-  notes: "DEMO 13 of 18. What it does: demonstrates the working MCP-server tool-calling path while explicitly refusing to call the broken in-process agent path. What to show: the MCP JSON-RPC handshake, tool list, and three deterministic lookups. Infra: compose + the ollama profile. Fallback: recorded MCP JSON-RPC transcript (handshake, tool list, three deterministic lookups). Diagnosed as a transport-wiring defect in camel-quarkus-support-langchain4j, not a model-capability problem (a direct Ollama /api/chat call with a tools array does return tool_calls) and not a tool-registration problem (tags line up correctly) — an open upstream deferral; full root cause is in the appendix. Demonstrating a known limitation plainly, with a banner and a demo that deliberately never calls the broken endpoint, is more useful than hiding it." });
+  notes: "DEMO 14 of 19. What it does: demonstrates the working MCP-server tool-calling path and refuses to call the broken in-process agent path. What to show: the MCP JSON-RPC handshake, the tool list, and three deterministic lookups. Infra: compose plus the ollama profile. Fallback: the recorded MCP JSON-RPC transcript. Diagnosis: a transport-wiring defect in camel-quarkus-support-langchain4j, not model capability (a direct Ollama /api/chat call with a tools array returns tool_calls) and not tool registration (the tags match). It is an open upstream deferral; the appendix has the root cause. A demo that states the limitation with a banner and avoids the broken endpoint is more useful than omitting it." });
 
 /* ====================== 05 · QUARKUS VS. SPRING BOOT ====================== */
 (() => {
-  const s = divider({ num: "05", title: "Quarkus vs. Spring Boot", sub: "The same order-service data product, rebuilt as a Spring Boot twin and measured side by side — JVM only." });
-  s.addNotes("The only chapter in this deck that steps outside Quarkus entirely. One runnable Spring Boot 4.0.8 twin, same JDK 25, feature-matched dependency surface (REST, Panache-equivalent JPA, Kafka/Avro, gRPC client) — built so the numbers reflect the framework, not a difference in scope. No demo-springboot.sh exists; this section is a diagram-and-script story, not a live demo.");
+  const s = divider({ num: "05", title: "Quarkus vs. Spring Boot", sub: "The same order-service data product, rebuilt as a Spring Boot twin and measured side by side on the JVM, with and without the AOT cache." });
+  s.addNotes("The one section that steps outside Quarkus. A runnable Spring Boot 4.0.8 twin on the same JDK 25, with a matched dependency surface (REST, JPA as the Panache equivalent, Kafka and Avro, gRPC client), so the numbers reflect the framework and not a difference in scope. No demo-springboot.sh exists. The comparison is run by scripts/compare-quarkus-springboot.sh, with an --aot mode for the JDK 25 AOT cache.");
 })();
 
 diagramSlide({ eyebrow: "Quarkus vs. Spring Boot", title: "Same workload, same JVM, two startup paths",
   image: "12-quarkus-vs-spring-boot",
-  caption: "order-service (Quarkus, build-time metaprogramming) and spring-boot-compare (Spring Boot 4.0.8, classpath scanning and reflection at startup) booting against the same throwaway postgres:18 container under identical JVM flags, each measured via its own self-reported started-log line.",
-  notes: "The twin reuses the project's framework-agnostic jars unmodified — the same domain-model DTOs and the same generated Avro OrderPlaced class both services serialize — so there is zero schema or DTO drift between the two. The one genuine code difference is the persistence idiom: Panache active record vs. a derived Spring Data JPA repository. Everything else the two services do is identical." });
+  caption: "order-service (Quarkus, build-time processing) and spring-boot-compare (Spring Boot 4.0.8, classpath scanning and reflection at startup) boot against the same throwaway postgres:18 container under identical JVM flags, each measured by its own started-log line.",
+  notes: "The twin reuses the project's framework-agnostic jars unmodified: the same domain-model DTOs and the same generated Avro OrderPlaced class. There is no schema or DTO drift between the two. The one code difference is the persistence idiom: Panache active record in Quarkus and a derived Spring Data JPA repository in Spring Boot. Everything else the two services do is identical." });
 
-tableSlide({ eyebrow: "Quarkus vs. Spring Boot", title: "The numbers — and what they do and don't show",
+tableSlide({ eyebrow: "Quarkus vs. Spring Boot", title: "The numbers on the plain JVM",
   headers: ["Metric", "Quarkus order-service", "Spring Boot twin"],
   rows: [
-    ["Startup (self-reported)", "1.54 s", "3.21 s"],
-    ["Resident memory (RSS)", "314 MB", "494 MB"],
+    ["Startup (self-reported)", "2.045 s", "4.018 s"],
+    ["Resident memory (RSS)", "337 MB", "548 MB"],
     ["Native image", "separate axis", "n/a"],
-    ["Persistence idiom", "Panache active-record", "Spring Data JPA"],
+    ["Persistence idiom", "Panache active record", "Spring Data JPA"],
   ],
-  note: "Quarkus starts in roughly half the time and boots into roughly two-thirds the memory of a Spring Boot service carrying the identical REST + JPA + Kafka/Avro + gRPC surface.",
-  notes: "One real run, both services under their packaged/prod profile. What this does not measure: JVM-to-JVM only — no native image on either side (Quarkus's native story is a separate axis, section 09). Indicative, not a benchmark: a single run on one developer machine via scripts/compare-quarkus-springboot.sh, unverified, no JIT warm-up or averaging across runs — your absolute numbers will differ. The write paths are mocked in unit tests, not in this measurement — the measurement boots the real wiring (gRPC channel + Kafka producer both initialize). Measured by watching each framework's own self-reported 'boot complete' log line, not an aggregate health check — the script points KAFKA_BOOTSTRAP_SERVERS at a dead port intentionally for both services, so a health-based wait would time out on both sides and prove nothing. Every cell the script couldn't actually measure prints the literal placeholder <measured-on-run> rather than a fabricated number. When to reach for which: Quarkus's footprint matters most where you pay for it repeatedly — scale-to-zero, dense multi-tenant deployments, serverless; Spring Boot's ecosystem and team familiarity are real, countervailing advantages." });
+  note: "Quarkus starts in about half the time and uses about 60% of the memory of the Spring Boot service on the same REST, JPA, Kafka/Avro, and gRPC surface.",
+  notes: "One run (Temurin 25.0.3, 2026-10-05; the JVM columns of the AOT comparison that follows) with both services under their packaged profile. Scope: JVM to JVM, with no native image on either side (native is a separate axis, covered in its own section). Treat the numbers as indicative: a single run on one developer machine through scripts/compare-quarkus-springboot.sh, unverified, with no averaging across runs, so absolute numbers will differ. The measurement boots the real wiring: the gRPC channel and the Kafka producer both initialize. Each framework's own self-reported 'boot complete' log line is the signal, because the script points KAFKA_BOOTSTRAP_SERVERS at a dead port for both services, so a health-based wait would time out on both. A cell the script cannot measure prints the placeholder <measured-on-run> in place of a number. The next slide adds the JDK 25 AOT cache to both services and brings startup to parity. Reach for Quarkus's footprint where it is paid repeatedly: scale to zero, dense multi-tenant deployments, serverless. Spring Boot's ecosystem and team familiarity are real advantages." });
+
+tableSlide({ eyebrow: "Quarkus vs. Spring Boot", title: "With the JDK 25 AOT cache on both",
+  demoRef: "scripts/compare-quarkus-springboot.sh --aot",
+  headers: ["Metric", "Quarkus JVM", "Spring Boot JVM", "Quarkus + AOT", "Spring Boot + AOT"],
+  rows: [
+    ["Startup (self-reported)", "2.045 s", "4.018 s", "0.992 s", "1.021 s"],
+    ["Startup (wall clock)", "2.22 s", "4.45 s", "1.21 s", "1.21 s"],
+    ["Resident memory (RSS)", "337 MB", "548 MB", "372 MB", "446 MB"],
+    ["AOT cache size", "n/a", "n/a", "103 MB", "123 MB"],
+  ],
+  note: "Single run on Temurin JDK 25.0.3, same JDK flags on both frameworks. Indicative, not a benchmark.",
+  notes: "What it shows: the same order-service and Spring Boot twin, run once on the plain JVM and once with a JDK 25 AOT cache (Project Leyden). A training run with -XX:AOTCacheOutput writes the cache when the application exits; the measured run uses -XX:AOTCache with -XX:AOTMode=on, which fails loudly if the cache is unusable instead of silently falling back. Spring Boot runs from its extracted layout because nested jars cannot be cached. Reading the table: startup on both frameworks drops to about one second, so the AOT cache narrows the gap to parity. Quarkus's memory rises (337 to 372 MB) while Spring Boot's falls (548 to 446 MB); the cache is memory-mapped and counts toward RSS, and the cache files are 103 MB and 123 MB. Quarkus is still faster and smaller on the plain JVM. Caveats: single run on Temurin 25.0.3 on 2026-10-05, same JDK and classpath required for the cache, indicative only. Both services were measured with identical flags; Quarkus's own AOT integration was not used, to keep the comparison symmetric." });
 
 /* ====================== 06 · PLATFORM: SELF-SERVE, ELASTIC, RESILIENT ====================== */
 (() => {
-  const s = divider({ num: "06", title: "Platform: self-serve, elastic, resilient", sub: "KEDA scales two real products to demand, and to zero — the self-serve platform in action." });
-  s.addNotes("A domain that needs elastic scaling asks for a ScaledObject — it does not learn to operate the Kubernetes autoscaler internals. KEDA is the mechanism: it doesn't replace the HPA, it drives one, and it covers the one thing the HPA fundamentally cannot do on its own — the zero-to-one transition.");
+  const s = divider({ num: "06", title: "Platform: self-serve, elastic, resilient", sub: "KEDA scales two data products to demand, and to zero: the self-serve platform in action." });
+  s.addNotes("A domain that needs elastic scaling asks for a ScaledObject; it does not operate the Kubernetes autoscaler internals. KEDA is the mechanism. It drives an HPA instead of replacing it, and it covers the one thing the HPA cannot do alone: the zero-to-one transition.");
 })();
 
 diagramSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "The three planes of the platform",
   image: "02-platform-planes",
-  caption: "External clients, the service-mesh plane running the domain services, and the self-serve platform plane underneath — protocols labeled on every flow between them.",
-  notes: "A domain interacts with the higher planes by declaration, not raw infrastructure. The point isn't to memorize the plane names — it's that 'platform' is layered, and the layers below are exactly what sections 06 and 07 build out with real Kubernetes pieces." });
+  caption: "External clients, the service-mesh plane running the domain services, and the self-serve platform plane underneath, with protocols labeled on every flow.",
+  notes: "A domain interacts with the higher planes by declaration, not by touching infrastructure. The plane names matter less than the layering: the planes below are what the next two sections build out with Kubernetes components." });
 
 diagramSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "The stock HPA vs. KEDA's two-tier model",
   image: "07-hpa-vs-keda",
-  caption: "The stock Kubernetes HPA scales on CPU/memory; KEDA drives an HPA from external signals (Kafka lag, HTTP rate) and handles the zero-to-one activation the HPA cannot do alone.",
-  notes: "KEDA doesn't replace the HPA — a KEDA ScaledObject is consumed by the KEDA operator, which creates and manages a standard Kubernetes HorizontalPodAutoscaler behind the scenes, fed by an external.metrics.k8s.io server KEDA itself runs. From 1 replica upward, the ordinary HPA control loop does the scaling on a Kafka-lag or HTTP-rate metric instead of CPU. The part the HPA fundamentally cannot do — minReplicas: 0 — is where KEDA's own operator polls the trigger source directly and does the 0-to-1 jump itself." });
+  caption: "The stock Kubernetes HPA scales on CPU and memory; KEDA drives an HPA from external signals (Kafka lag, HTTP rate) and handles the zero-to-one activation the HPA cannot do alone.",
+  notes: "A KEDA ScaledObject is consumed by the KEDA operator, which creates and manages a standard HorizontalPodAutoscaler, fed by an external.metrics.k8s.io server that KEDA runs. From one replica upward, the ordinary HPA control loop scales on a Kafka-lag or HTTP-rate metric instead of CPU. The HPA cannot do minReplicas: 0, so KEDA's own operator polls the trigger source and makes the 0-to-1 jump itself." });
 
 diagramSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "Elastic products: scale on lag, even to zero",
   image: "07-keda-lag",
-  caption: "The KEDA Kafka-lag scaler polls consumer-group lag on order.placed and scales notification-service from zero to N replicas once lag crosses the threshold, then back to zero after cooldown.",
-  notes: "Why not CPU: a consumer idling at 0% CPU with a 10,000-message backlog should scale up, and CPU can't see that — lag can. scripts/setup-keda.sh installs KEDA core 2.19.0 via Helm. Scale-to-zero makes 'elastic data product' real economics: it costs nothing while idle." });
+  caption: "The KEDA Kafka-lag scaler polls consumer-group lag on order.placed and scales notification-service from zero to N replicas once lag crosses the threshold, then back to zero after the cooldown.",
+  notes: "Why not CPU: a consumer idling at 0% CPU with a 10,000-message backlog should scale up, and CPU cannot see that; lag can. scripts/setup-keda.sh installs KEDA core 2.19.0 through Helm. Scale to zero means an elastic data product costs nothing while idle." });
 
-contentSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "demo-keda-kafka.sh — lag-driven scaling, on the real substrate",
+contentSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "Scaling on Kafka lag",
+  subtitle: "Zero to N replicas and back on Kubernetes",
+  demoRef: "demos/demo-keda-kafka.sh",
   bullets: [
-    { text: "KEDA core scales notification-service 0 → N on Kafka consumer-group lag, using the real step-9 minikube substrate — k8s/base/notification-service.yaml, k8s/keda/consumer-scaledobject.yaml, nothing invented." },
-    { text: "Asserted: replica count climbs from zero on a lag burst and returns to zero as the backlog drains.", lvl: 1 },
+    { lead: "KEDA core", text: "scales notification-service from zero to N on Kafka consumer-group lag, using the manifests k8s/base/notification-service.yaml and k8s/keda/consumer-scaledobject.yaml." },
+    { text: "Asserted: the replica count climbs from zero on a lag burst and returns to zero as the backlog drains.", lvl: 1 },
   ],
-  notes: "DEMO 14 of 18. What it does: scales notification-service from zero based on Kafka consumer-group lag, on the real minikube substrate. What to show: replica count climbing from zero on a lag burst and returning to zero as the backlog drains. Infra: opt-in minikube — requires the substrate bootstrapped (Istio, KEDA, Strimzi, CloudNativePG) with kubectl context pointed at it. Fallback: recorded replica-count timeline (0 → N → 0). Not required for the core compose-based demo set — this one specifically exercises the minikube/Kubernetes substrate, not just docker compose." });
+  notes: "DEMO 15 of 19. What it does: scales notification-service from zero on Kafka consumer-group lag, on the local Kubernetes cluster that scripts/bootstrap.sh builds. What to show: the replica count climbing from zero on a lag burst and returning to zero as the backlog drains. Infra: opt-in local Kubernetes cluster; it needs the platform bootstrapped (Istio, KEDA, Strimzi, CloudNativePG) with the kubectl context pointed at it, and runs through walkthrough.sh with --with-minikube. Fallback: a recorded replica-count timeline (0, N, 0). This demo is verified on the cluster. It is outside the core compose-based demo set because it exercises the Kubernetes platform and not docker compose." });
 
 diagramSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "The KEDA HTTP add-on, as a system",
   image: "07-keda-http-addon",
   caption: "The interceptor proxy buffers requests to graphql-gateway and reports request rate to the external scaler, which drives the HTTPScaledObject's zero-to-N activation.",
-  notes: "The HTTP add-on is itself a small system, not a single component — an interceptor proxy sits in front of the scaled Deployment, buffering requests while the Deployment is at zero and reporting rate to an external scaler. Pinned to 0.15.0 (full rationale in the appendix): v0.14.0 shipped a panic that 0.15.0 fixes, and 0.15.0 also adds HTTP/2 and gRPC support." });
+  notes: "The HTTP add-on is a small system, not one component: an interceptor proxy sits in front of the scaled Deployment, buffers requests while the Deployment is at zero, and reports rate to an external scaler. It is pinned to 0.15.0 because v0.14.0 shipped a panic (upstream issue #1668) that 0.15.0 fixes, and 0.15.0 adds HTTP/2 and gRPC support. The interceptor's default wait timeout of 20 s is shorter than a cold JVM boot, so interceptor.replicas.waitTimeout is raised to 180 s; without that, a wake-up request returns 502 with 'context deadline exceeded' before a replica is ready. The k8s/keda README records both details." });
 
 diagramSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "Elastic reads: scaling on request volume",
   image: "07-keda-http",
-  caption: "demo-keda-http.sh drives a request burst through the interceptor with the Host header set, polling graphql-gateway's replica count until it climbs off baseline within the 240-second budget.",
-  notes: "Design point: HTTP scaling goes on graphql-gateway, deliberately not order-service — order-service carries the canary (section 07), and HTTP-scaling a service whose traffic is split by weight would have the two mechanisms fight over the same pods. Fit the mechanism to the workload." });
+  caption: "demo-keda-http.sh drives a request burst through the interceptor with the Host header set and polls graphql-gateway's replica count until it climbs off baseline within the 240-second budget.",
+  notes: "HTTP scaling goes on graphql-gateway and not on order-service: order-service carries the canary, and HTTP-scaling a service whose traffic is split by weight would put two mechanisms in conflict over the same pods. Fit the mechanism to the workload. The Kafka-lag scaler targets notification-service and the HTTP scaler targets graphql-gateway." });
 
-contentSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "demo-keda-http.sh — scale-to-zero on HTTP, on the real substrate",
+contentSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "Scale to zero on HTTP",
+  subtitle: "The KEDA HTTP add-on wakes graphql-gateway on demand",
+  demoRef: "demos/demo-keda-http.sh",
   bullets: [
-    { text: "KEDA HTTP add-on scales graphql-gateway from zero on inbound HTTP request rate — k8s/base/graphql-gateway.yaml, k8s/keda/gateway-httpscaledobject.yaml (http.keda.sh/v1alpha1, add-on 0.15.0)." },
-    { text: "The interceptor's default wait timeout (20s) is shorter than a cold JVM boot, so it's raised to 180s — otherwise a wake-up request 502s with 'context deadline exceeded' before a replica is ready.", lvl: 1 },
-    { text: "Asserted: a scaled-to-zero deployment wakes to at least one replica in response to an inbound HTTP request through the interceptor, within a 240-second scale-up budget.", lvl: 1 },
+    { lead: "KEDA HTTP add-on", text: "scales graphql-gateway from zero on inbound request rate: k8s/base/graphql-gateway.yaml and k8s/keda/gateway-httpscaledobject.yaml (http.keda.sh/v1alpha1, add-on 0.15.0)." },
+    { text: "The interceptor's wait timeout is raised from 20 s to 180 s to cover a cold JVM boot.", lvl: 1 },
+    { text: "Asserted: a scaled-to-zero deployment reaches at least one replica within a 240-second budget.", lvl: 1 },
   ],
-  notes: "DEMO 15 of 18. What it does: scales graphql-gateway from zero on inbound HTTP request rate through the KEDA HTTP add-on's interceptor. What to show: a scaled-to-zero deployment waking to at least one replica within budget. Infra: opt-in minikube, same substrate as demo-keda-kafka.sh. Fallback: recorded scale-up timeline showing the replica count climbing off baseline within budget. A scaled-to-zero workload reports 'unknown' health until the first request — expected, not a bug, worth pre-empting the question before someone in the audience asks it." });
+  notes: "DEMO 16 of 19. What it does: scales graphql-gateway from zero on inbound HTTP request rate through the KEDA HTTP add-on's interceptor. What to show: a scaled-to-zero deployment reaching at least one replica within budget. Infra: opt-in local Kubernetes cluster, the same platform as demo-keda-kafka.sh. Fallback: a recorded scale-up timeline. Status: unverified; the HTTP add-on demo has not been run end to end. A scaled-to-zero workload reports 'unknown' health until the first request; that is expected, and worth answering before someone asks." });
 
 /* ====================== 07 · GOVERNANCE, MESH, OBSERVABILITY ====================== */
 (() => {
-  const s = divider({ num: "07", title: "Governance, mesh, observability", sub: "Standards enforced by the platform — mTLS by default, three correlated signals, and a trust path from contract to runtime." });
-  s.addNotes("Federated computational governance: a small set of global rules the platform enforces automatically, at the boundary — not a review board after the fact. This section covers the mesh (selective, not namespace-wide, and why), observability as governance made visible, and the trusted supply chain underneath every data product.");
+  const s = divider({ num: "07", title: "Governance, mesh, observability", sub: "Standards enforced by the platform: mTLS by default, three correlated signals, and a trust path from contract to runtime." });
+  s.addNotes("Federated computational governance: a small set of global rules that the platform enforces automatically at the boundary, not a review board after the fact. This section covers the mesh (selective, not namespace-wide, and why), observability as governance made visible, and the trusted supply chain under every data product.");
 })();
 
 diagramSlide({ eyebrow: "Governance, mesh, observability", title: "Istio: control plane in, selective injection",
   image: "06-istio-mesh",
-  caption: "The Istio control plane installed cluster-wide via Helm (1.29.0); the datamesh namespace is deliberately left unlabeled for auto-injection — sidecar membership is opted in per Deployment.",
-  notes: "scripts/setup-istio.sh installs istio-base + istiod via helm upgrade --install, then gates on kubectl rollout status deployment/istiod actually reaching Available — not just trusting Helm's own --wait. The script's own header explains the selective-injection decision: namespace-wide injection breaks Job pods (the sidecar never exits, the job hangs at 1/2 forever) and collides with CloudNativePG's own Postgres TLS. Inject per-Deployment instead, via the sidecar.istio.io/inject: \"true\" pod annotation — and remember that mutation happens at pod admission time, not kubectl apply time, so an existing running pod needs a rollout restart to pick it up." });
+  caption: "The Istio control plane is installed cluster-wide through Helm (1.29.0). The datamesh namespace is left unlabeled for auto-injection; sidecar membership is opted in per Deployment.",
+  notes: "scripts/setup-istio.sh installs istio-base and istiod with helm upgrade --install, then waits for kubectl rollout status deployment/istiod to reach Available instead of trusting Helm's --wait. Injection is selective: namespace-wide injection breaks Job pods (the sidecar never exits, so the job hangs at 1/2) and collides with CloudNativePG's own Postgres TLS. Each Deployment opts in through the sidecar.istio.io/inject: \"true\" label on its pod template. Mutation happens at pod admission, not at kubectl apply, so a running pod needs a rollout restart to pick it up." });
 
-diagramSlide({ eyebrow: "Governance, mesh, observability", title: "mTLS between meshed services — and what stays outside",
+diagramSlide({ eyebrow: "Governance, mesh, observability", title: "mTLS between meshed services, and what stays outside",
   image: "06-service-mesh",
-  caption: "Meshed data-mesh services communicate over automatic mutual TLS between Istio sidecars; Postgres and batch jobs deliberately remain outside the mesh.",
-  notes: "Canary / progressive-delivery traffic-splitting is substrate-only in this repo, not a runnable demo. Istio and Kiali are installed cluster-wide; order-service's Deployment carries no sidecar-inject annotation by default (the default here is out of the mesh for every app Deployment, to keep the substrate simple); a v2 build of order-service and the DestinationRule/VirtualService pair that would actually split traffic do not exist yet in this tree. The canary mechanism is real and documented conceptually against the real install, but there is no demo-canary.sh and none should be implied." });
+  caption: "Meshed data-mesh services communicate over automatic mutual TLS between Istio sidecars; Postgres and batch jobs stay outside the mesh.",
+  notes: "Progressive delivery manifests exist and are verified. The k8s/istio directory holds order-service-v2.yaml and the DestinationRule and VirtualService pair that split traffic by weight between v1 and v2 of order-service, and the split was checked on the cluster. There is no demo-canary.sh; the canary is a manifest-level capability and not a scripted demo. Istio and Kiali install cluster-wide. Application Deployments are outside the mesh unless they opt in: order-service, notification-service, and graphql-gateway opt in through the k8s/istio patches, and inventory-service stays out. Postgres and batch jobs stay outside for the reasons on the Istio slide." });
 
 diagramSlide({ eyebrow: "Governance, mesh, observability", title: "The LGTM stack: four backends, one Collector",
   image: "08-observability-stack",
-  caption: "Loki, Tempo, Mimir, and Grafana — filesystem-backed, single-replica, fed by one shared OpenTelemetry Collector (grafana/otel-lgtm:0.8.1).",
-  notes: "LGTM observability is an always-on baseline in this build's compose stack, deliberately not profile-gated (unlike the lgtm-docker-stack skill's own default template) — docker compose up -d with no flag already brings it up. The whole platform's automatic behavior (autoscaling, mesh routing, retries) is only reassuring if you can watch it happen; this is what makes it visible." });
+  caption: "Loki, Tempo, Mimir, and Grafana, filesystem-backed and single-replica, fed by one shared OpenTelemetry Collector (grafana/otel-lgtm:0.8.1).",
+  notes: "LGTM is part of the always-on compose baseline and is not profile-gated, unlike the lgtm-docker-stack skill's default template: docker compose up -d with no flag brings it up. Automatic platform behavior (autoscaling, mesh routing, retries) is only reassuring if you can watch it happen, and this stack makes it visible." });
 
 diagramSlide({ eyebrow: "Governance, mesh, observability", title: "Three signals, correlated across a domain",
   image: "08-three-signals",
-  caption: "Metrics, traces, and logs — what each answers for a request crossing graphql-gateway, order-service, and inventory-service.",
-  notes: "Metrics say something is wrong and roughly when; traces say where across product boundaries; logs say exactly what happened. A request touching three independently-owned products is one user-facing operation spread across three services — understanding it means correlating signals no single product owns in full. That's the argument for needing all three, together, not any one alone." });
+  caption: "Metrics, traces, and logs: what each answers for a request crossing graphql-gateway, order-service, and inventory-service.",
+  notes: "Metrics show that something is wrong and roughly when. Traces show where, across product boundaries. Logs show exactly what happened. A request that touches three independently owned products is one user-facing operation spread over three services, and understanding it means correlating signals that no single product owns in full. That is the argument for needing all three." });
 
-contentSlide({ eyebrow: "Governance, mesh, observability", title: "demo-tracing.sh — one request, a real multi-service trace",
+contentSlide({ eyebrow: "Governance, mesh, observability", title: "One request, one distributed trace",
+  subtitle: "REST, gRPC, and Postgres spans in Tempo",
+  demoRef: "demos/demo-tracing.sh",
   bullets: [
-    { text: "POST /orders on order-service calls inventory-service over gRPC (CheckStock) — the same cross-service hop demo-order.sh exercises for Panache." },
-    { text: "This demo rides that same request and proves it produces one real, queryable, multi-service trace in Tempo: order-service's REST span is the trace root, with a CheckStock gRPC span plus Postgres spans from both services as children.", lvl: 1 },
-    { text: "Proven against the real compose otel-lgtm stack's Tempo backend — the always-on observability baseline means this infra is already up with no profile flag.", lvl: 1 },
+    { lead: "POST /orders", text: "on order-service calls inventory-service over gRPC (CheckStock), the same hop demo-order.sh exercises for Panache." },
+    { text: "The demo checks that this request yields one multi-service trace in Tempo: order-service's REST span is the root, with a CheckStock gRPC span and Postgres spans from both services as children.", lvl: 1 },
+    { text: "It runs against the compose otel-lgtm stack, which is always on, so no profile flag is needed.", lvl: 1 },
   ],
-  notes: "DEMO 16 of 18. What it does: rides the order-to-inventory gRPC hop and proves it produces one real, queryable, multi-service trace in Tempo. What to show: the span tree — root span plus the gRPC child and two Postgres children. Infra: compose (baseline — LGTM is always on). Fallback: recorded span-tree dump showing root + gRPC child + two Postgres children. The one observability demo in this build that was run against a real backend and produced a verified cross-service trace — the proof that 'the platform does things automatically' is actually visible, not just asserted." });
+  notes: "DEMO 17 of 19. What it does: follows the order-to-inventory gRPC hop and checks that it produces one queryable, multi-service trace in Tempo. What to show: the span tree, with the root span, the gRPC child, and two Postgres children. Infra: compose baseline (LGTM is always on). Fallback: a recorded span-tree dump with the same shape. It is the one observability demo that has been run against a real backend and produced a verified cross-service trace, which shows that the platform's automatic behavior is visible." });
 
 diagramSlide({ eyebrow: "Governance, mesh, observability", title: "The trusted supply chain",
   image: "10-trusted-supply-chain",
   caption: "The trust path from a contract defined once, through registration and wire-format verification, to runtime observability.",
-  notes: "Closes the loop between the contract work in section 02, the mesh's admission-time enforcement, and the observability this section just built out: a thread of trust runs from 'the schema is registered' through 'the wire format is verified' to 'the running system is observable end to end.'" });
+  notes: "This closes the loop between the contract work in the data-as-a-product section, the mesh's admission-time enforcement, and the observability just covered. Trust runs from 'the schema is registered' through 'the wire format is verified' to 'the running system is observable end to end'." });
 
 /* ====================== 08 · SECURITY ====================== */
 (() => {
-  const s = divider({ num: "08", title: "Security", sub: "quarkus-oidc, attempted live on the smallest module in this build." });
-  s.addNotes("The rule for this section: attempt a live demo of OIDC; defer only if the laptop-scale budget can't support it. It could — review-service is the smallest module in this build (three plain REST endpoints, Postgres as its only other Dev Services dependency, no cross-service calls), so this is the smallest viable OIDC demo rather than a deferred one.");
+  const s = divider({ num: "08", title: "Security", sub: "quarkus-oidc, run live against Keycloak on the smallest module in this project." });
+  s.addNotes("The rule for this section was to attempt a live OIDC demo and defer only if the laptop-scale budget could not support it. It could. review-service is the smallest module (three REST endpoints, Postgres as the only other Dev Services dependency, no cross-service calls), which makes this the smallest viable OIDC demo.");
 })();
 
-contentSlide({ eyebrow: "Security", title: "demo-oidc.sh — live bearer tokens, not a mocked header",
+diagramSlide({ eyebrow: "Security", title: "How OIDC protects review-service",
+  image: "11-oidc-token-flow",
+  caption: "Dev Services starts Keycloak; the client obtains a JWT and calls DELETE /reviews/{id}; quarkus-oidc verifies it and @RolesAllowed(\"admin\") decides.",
+  notes: "Dev Services starts Keycloak with realm quarkus (alice has admin and user roles; bob has user only) and sets auth-server-url, so review-service needs no quarkus.oidc configuration. Flow: the client POSTs to the token endpoint (password grant, client quarkus-app), receives a JWT access token, and calls DELETE /reviews/{id} with an Authorization: Bearer header. quarkus-oidc verifies the signature against Keycloak's JWKS, the issuer, and expiry, and then @RolesAllowed(\"admin\") applies. Outcomes: no token gives 401, bob gives 403, alice gives 204 and a follow-up GET gives 404. The password grant is for the demo only; browser applications use the authorization code flow." });
+
+contentSlide({ eyebrow: "Security", title: "OIDC with live bearer tokens",
+  subtitle: "401, 403, and 204 against a Dev Services Keycloak",
+  demoRef: "demos/demo-oidc.sh",
   bullets: [
-    { text: "review-service added quarkus-oidc with zero quarkus.oidc.* configuration — Dev Services auto-provisions a disposable Keycloak container (realm quarkus, client quarkus-app/secret, two builtin accounts: alice with admin+user roles, bob with only user)." },
-    { text: "One endpoint, DELETE /reviews/{id}, is annotated @RolesAllowed(\"admin\"); every other endpoint is untouched.", lvl: 1 },
-    { text: "Three real password-grant token requests against the live, randomly-ported Keycloak Dev Service prove three outcomes: no token → 401; Bob's token (valid, no admin role) → 403, a genuine RBAC check, not just 'has a token'; Alice's token → 204, and a follow-up GET on the same id returns 404.", lvl: 1 },
+    { lead: "review-service", text: "added quarkus-oidc with no quarkus.oidc.* configuration. Dev Services starts a disposable Keycloak: realm quarkus, client quarkus-app, accounts alice (admin, user) and bob (user)." },
+    { lead: "DELETE /reviews/{id}", text: "is the only endpoint annotated @RolesAllowed(\"admin\"); the others are untouched.", lvl: 1 },
+    { text: "Three password-grant token requests show the outcomes: no token gives 401; Bob's valid token without the admin role gives 403; Alice's token gives 204, and a follow-up GET returns 404.", lvl: 1 },
   ],
-  notes: "DEMO 17 of 18. What it does: a live bearer-token exchange against a real Dev-Services-provisioned Keycloak, proving three outcomes (401 / 403 / 204-then-404) rather than a mocked header. What to show: the three token requests and their responses. Infra: compose; feasibility-gated — conditional/skippable if the environment can't run a live Keycloak Dev Service. Fallback: conceptual — narrate the three outcomes without a live token exchange. Token port discovery uses docker port against the Keycloak Dev Service container id, since Testcontainers binds it to a random host port — the one piece of plumbing most likely to be environment-sensitive, which is exactly why this demo is marked conditional/skippable rather than hard-required." });
+  notes: "DEMO 18 of 19. What it does: a bearer-token exchange against a Dev Services Keycloak, with three outcomes (401, 403, 204 then 404) in place of a mocked header. The 403 for Bob is an RBAC check: the token is valid and the role is missing. What to show: the three token requests and their responses. Infra: compose; feasibility-gated, so the demo may be skipped when the environment cannot run a live Keycloak Dev Service. Fallback: narrate the three outcomes without a live token exchange. The token port is found with docker port against the Keycloak Dev Service container, because Testcontainers binds a random host port; that is the plumbing most sensitive to the environment, which is why the demo is marked skippable." });
 
 /* ====================== 09 · NATIVE ====================== */
 (() => {
-  const s = divider({ num: "09", title: "Native", sub: "A separate axis from the JVM-only Spring Boot comparison — Quarkus with no JVM in the process at all." });
-  s.addNotes("Deliberately kept out of section 05's comparison table so that table compares like with like (JVM to JVM). No native build was run for this project — the commonly cited native figures (sub-100ms startup, tens of MB of RSS) are general Quarkus numbers, not something measured here. Native is covered as an opt-in, long-running demo (demo-native.sh) rather than folded into the Spring Boot numbers.");
+  const s = divider({ num: "09", title: "Native", sub: "A separate axis from the JVM comparison: Quarkus with no JVM in the process." });
+  s.addNotes("Native stays out of the Spring Boot comparison table so that table compares JVM to JVM. No native build has been run for the comparison numbers, and the commonly cited native figures (sub-100 ms startup, tens of MB of RSS) are general Quarkus numbers and not measured here. Native is covered by an opt-in, long-running demo (demo-native.sh).");
 })();
 
-contentSlide({ eyebrow: "Native", title: "demo-native.sh — no JVM at all",
+contentSlide({ eyebrow: "Native", title: "Native executable: no JVM",
+  subtitle: "order-service compiled ahead of time with Mandrel",
+  demoRef: "demos/demo-native.sh",
   bullets: [
-    { text: "Compiles order-service — the smallest clean REST+Panache service in this build — to a native executable: checks for a local GraalVM/Mandrel native-image first, falls back to a Docker-based Mandrel builder image, and fails loudly rather than silently building a JVM jar and calling it native if neither toolchain is available." },
-    { text: "Runs the produced *-runner binary directly — no java, no quarkus-run.jar — against a real throwaway Postgres container (native mode gets no Dev Services; %prod expects a real, reachable database).", lvl: 1 },
-    { text: "Asserts GET /orders returns a real JSON array through the full REST + Hibernate ORM + Panache stack with zero JVM in the process.", lvl: 1 },
-    { text: "Deliberately separate from the Spring Boot comparison (section 05): that chapter is JVM-only by design, and this is the only place native compilation appears.", color: C.ink },
+    { lead: "demo-native.sh", text: "compiles order-service to a native executable, using a local GraalVM or Mandrel native-image or a Docker-based Mandrel builder. It fails if neither exists; it never builds a JVM jar and calls it native." },
+    { text: "It runs the *-runner binary directly, with no java and no quarkus-run.jar, against a throwaway Postgres container. Native mode gets no Dev Services, so %prod needs a reachable database.", lvl: 1 },
+    { text: "Asserted: GET /orders returns a JSON array through the REST, Hibernate ORM, and Panache stack with no JVM in the process.", lvl: 1 },
   ],
-  notes: "DEMO 18 of 18 — all eighteen demos in the matrix now covered. What it does: compiles and runs order-service as a native executable with zero JVM in the process. What to show: the native-binary boot log and a real GET /orders response. Infra: opt-in, bare native toolchain + one throwaway Postgres container — long-running (several minutes; longer the first time a 1-2 GB builder image has to be pulled). Fallback: recorded native-binary boot log and a real GET /orders response. This is the only demo not wired into walkthrough.sh's default acts, specifically because of its runtime cost." });
+  notes: "DEMO 19 of 19, so all nineteen demos in the matrix are now covered. What it does: compiles and runs order-service as a native executable with no JVM in the process. What to show: the native binary's boot log and a GET /orders response. Infra: opt-in, with a native toolchain and one throwaway Postgres container. It is long-running: several minutes, and longer the first time a 1 to 2 GB builder image is pulled. Fallback: the recorded boot log and GET /orders response. It is the only demo outside walkthrough.sh's default acts, because of its runtime cost. It sits apart from the Spring Boot comparison, which is JVM-only; this is the only place native compilation appears." });
 
 /* ====================== 10 · THE WHOLE PICTURE ====================== */
 (() => {
-  const s = divider({ num: "10", title: "The whole picture", sub: "The reference architecture, assembled — and the four principles' value, realized on Quarkus and Kubernetes." });
-  s.addNotes("Synthesis. Return to the reference architecture now that every box has had a demo behind it; show the four value-closer diagrams from the 101 deck's vocabulary, now backed by real code; walk demos/walkthrough.sh as the five-act presenter script; close with plain adoption guidance.");
+  const s = divider({ num: "10", title: "The whole picture", sub: "The reference architecture assembled, and the four principles in practice on Quarkus and Kubernetes." });
+  s.addNotes("Synthesis. Return to the reference architecture now that each box has a demo or verified manifest behind it, show the four value diagrams from the 101 deck backed by running code, walk demos/walkthrough.sh as the five-act presenter script, and close with adoption guidance.");
 })();
 
 diagramSlide({ eyebrow: "The whole picture", title: "The reference architecture, assembled",
   image: "08-reference-architecture",
-  caption: "Every piece in its place: data products behind the Istio mesh, KEDA-driven autoscaling, and every signal flowing through the Collector into Grafana LGTM and Kiali — the mesh, complete.",
-  notes: "Callback to section 00. The audience has now seen a real demo behind nearly every box in this picture — the eighteen demos, the three orchestration engines, the AI+rules showcase, the Spring Boot comparison, the KEDA scalers, the mesh, the tracing. The promise from the start is kept." });
+  caption: "Data products behind the Istio mesh, KEDA-driven autoscaling, and every signal flowing through the Collector into Grafana LGTM and Kiali.",
+  notes: "A callback to the first section. The audience has now seen a demo or verified manifest behind nearly every box: the nineteen demos, the three orchestration engines, the AI and rules showcase, the Spring Boot comparison with and without the AOT cache, the KEDA scalers, the mesh, and tracing." });
 
-diagramSlide({ eyebrow: "The whole picture", title: "Domain ownership, realized",
+diagramSlide({ eyebrow: "The whole picture", title: "Domain ownership in practice",
   image: "10-value-domain-ownership",
-  caption: "Each domain owning its own service, data, and contract boundary end to end, with no central team in the path.",
-  notes: "order-service, inventory-service, payment-service, shipping-service, notification-service, review-service — six services, six owners, each a Quarkus module with its own storage, its own API, its own contract. No central team sits in the path of any of them shipping a change." });
+  caption: "Each domain owns its service, data, and contract boundary end to end, with no central team in the path.",
+  notes: "order-service, inventory-service, payment-service, shipping-service, notification-service, and review-service: six services with six owners. Each is a Quarkus module with its own storage, API, and contract. No central team sits in the path of any of them shipping a change." });
 
-diagramSlide({ eyebrow: "The whole picture", title: "Data as a product, realized",
+diagramSlide({ eyebrow: "The whole picture", title: "Data as a product in practice",
   image: "10-value-data-product",
-  caption: "A data product as discoverable, addressable, trustworthy, and self-describing, backed by a versioned Avro contract and the Apicurio Schema Registry.",
-  notes: "Every event in this build is Avro against Apicurio from day one — not a retrofit. demo-kafka.sh verifies the wire format at the byte level, not just by configuration review." });
+  caption: "A data product is discoverable, addressable, trustworthy, and self-describing, backed by a versioned Avro contract and the Apicurio Schema Registry.",
+  notes: "Every event in this project is Avro against Apicurio from the start; it was not retrofitted. demo-kafka.sh verifies the wire format at the byte level, beyond a configuration review." });
 
-diagramSlide({ eyebrow: "The whole picture", title: "Self-serve platform, realized",
+diagramSlide({ eyebrow: "The whole picture", title: "Self-serve platform in practice",
   image: "10-value-self-serve",
-  caption: "Domains declaring their infrastructure needs — topics, databases, scaling policies — and the platform's operators fulfilling them automatically.",
-  notes: "Strimzi, CloudNativePG, and KEDA are the operators doing the fulfilling; notification-service and graphql-gateway both scale to zero and back without either service's own code knowing anything about autoscaling." });
+  caption: "Domains declare their infrastructure needs (topics, databases, scaling policies) and the platform's operators fulfil them.",
+  notes: "Strimzi, CloudNativePG, and KEDA are the operators doing the fulfilling. notification-service and graphql-gateway both scale to zero and back without any autoscaling code in either service." });
 
-diagramSlide({ eyebrow: "The whole picture", title: "Federated computational governance, realized",
+diagramSlide({ eyebrow: "The whole picture", title: "Federated governance in practice",
   image: "10-value-governance",
-  caption: "Global rules — contract format, security, observability — enforced automatically at the platform boundary while domains keep independent ownership.",
-  notes: "The registry enforces contract compatibility computationally; the mesh enforces mTLS automatically between meshed services; the Collector makes every signal observable without per-service instrumentation effort. None of these required a review board." });
+  caption: "Global rules for contract format, security, and observability are enforced at the platform boundary while domains keep ownership.",
+  notes: "The registry enforces contract compatibility computationally, the mesh enforces mTLS between meshed services, and the Collector makes every signal observable without per-service instrumentation effort. None of these needed a review board." });
 
-contentSlide({ eyebrow: "The whole picture", title: "demos/walkthrough.sh — the five-act presenter script",
+contentSlide({ eyebrow: "The whole picture", title: "The five-act walkthrough",
+  subtitle: "One presenter script runs every demo",
+  demoRef: "demos/walkthrough.sh",
   bullets: [
-    { text: "ACT 1 — Data products & protocols (default): order, grpc, graphql, kafka, tracing, websocket, reactive-vertx, oidc." },
-    { text: "ACT 2 — Three orchestration styles (gated): orchestration-styles." },
-    { text: "ACT 3 — AI / Camel / Drools / MCP (gated): ai-classify, ai-mcp, camel-integration, ai-triage." },
-    { text: "ACT 4 — Developer experience & native: jbang-prototype, continuous-testing (default), native (gated)." },
-    { text: "ACT 5 — Platform autoscaling (gated): keda-kafka, keda-http." },
-    { head: true, text: "How it runs" },
-    { text: "Each demo runs as its own child process via run_act — the orchestrator never double-manages a demo's own compose_up/compose_down. Gated acts are gated per demo, not per act, behind --with-ollama/--with-native/--with-minikube — cleanly skipped, not failed, when a flag is absent. Supports --only/--skip, --no-preflight, --no-pause/--auto, and prints a final pass-fail-skip tally.", color: C.ink },
+    { lead: "ACT 1 — Data products & protocols (default):", text: "order, grpc, graphql, kafka, tracing, websocket, reactive-vertx, oidc." },
+    { lead: "ACT 2 — Three orchestration styles (gated):", text: "orchestration-styles." },
+    { lead: "ACT 3 — AI / Camel / Drools / MCP (gated):", text: "ai-classify, ai-mcp, camel-integration, ai-triage." },
+    { lead: "ACT 4 — Developer experience & native:", text: "jbang-prototype, panama, continuous-testing (default); native (gated)." },
+    { lead: "ACT 5 — Platform autoscaling (gated):", text: "keda-kafka, keda-http." },
   ],
-  notes: "This is the orchestrator over all eighteen demos just covered. It's the single script a presenter actually runs end to end, with Enter-to-advance pauses for a live audience or --auto for CI/self-test." });
+  notes: "The orchestrator over all nineteen demos. It is the one script a presenter runs end to end, with Enter-to-advance pauses for a live audience or --auto for CI and self-test. Each demo runs as its own child process through run_act, so the orchestrator never double-manages a demo's own compose_up and compose_down. Gating is per demo, not per act, behind --with-ollama, --with-native, and --with-minikube; a missing flag skips the demo cleanly and does not fail it. It supports --only and --skip, --no-preflight, and --no-pause or --auto, and prints a final pass, fail, and skip tally." });
 
 contentSlide({ eyebrow: "The whole picture", title: "Adoption: start small",
   bullets: [
-    { text: "You don't adopt a mesh — or this build's full stack — all at once. The principles are independent enough to land incrementally." },
-    { text: "Start with one domain and one product — order-service's shape (entity, REST resource, one synchronous call out, one event published) is the template to copy first.", lvl: 1 },
-    { text: "Add self-serve platform pieces (Kafka, the registry, KEDA) as later products need them, then introduce computational governance once there are products to govern — the registry before the catalog, mTLS before admission policy.", lvl: 1 },
-    { head: true, text: "Let the architecture correct against reality" },
-    { text: "Each piece in this deck is independently verifiable — stand one up, confirm it with its own demo, then add the next. That's the same incremental discipline this project itself was built with, verification status footers and all.", color: C.ink },
+    { lead: "Start with one domain and one product.", text: "order-service's shape (entity, REST resource, one synchronous call out, one event published) is the template to copy first." },
+    { lead: "Add platform pieces as products need them:", text: "Kafka, the registry, and KEDA first; then governance once there are products to govern. The registry comes before the catalog, and mTLS before admission policy." },
+    { head: true, text: "Verify each piece before adding the next" },
+    { text: "Each piece in this deck can be verified on its own: stand it up, confirm it with its own demo, then add the next. The project was built that way, and each chapter ends with a verification status footer.", color: C.ink },
   ],
-  notes: "Practical close. The practical answer to 'where do I start' is: not all at once, and not by copying the whole appendix on day one. One domain, one product, one demo proving each piece before the next is added." });
+  notes: "A practical close. A mesh, or this project's full stack, is not adopted all at once; the principles are independent enough to land incrementally. The answer to where to start is one domain, one product, and one demo that proves each piece before the next is added, and not the whole appendix on day one." });
 
 (() => {
   const s = pres.addSlide();
   s.addImage({ path: L.ILLUS, x: 0, y: 0, w: PW, h: PH, sizing: { type: "cover", w: PW, h: PH } });
   const rx = PW * 0.42, rw = PW - rx - 0.7;
-  s.addText("Eighteen demos, three orchestration engines,", { x: rx, y: 2.5, w: rw, h: 0.9, fontSize: 27, color: "FFFFFF", fontFace: F.head, bold: true, valign: "top", margin: 0 });
-  s.addText("one clear account of what works and what doesn't.", { x: rx, y: 3.3, w: rw, h: 1.2, fontSize: 27, color: "FFD9D9", fontFace: F.head, bold: true, valign: "top", margin: 0 });
-  s.addText("Quarkus and Kubernetes are where the four principles find a home.", { x: rx, y: 4.85, w: rw, h: 0.6, fontSize: 14.5, color: "FFFFFF", fontFace: F.body, italic: true, valign: "top", margin: 0 });
+  s.addText("Nineteen demos. Three orchestration engines.", { x: rx, y: 2.5, w: rw, h: 1.4, fontSize: 27, color: "FFFFFF", fontFace: F.head, bold: true, valign: "top", margin: 0 });
+  s.addText("Every capability backed by running code.", { x: rx, y: 3.9, w: rw, h: 0.9, fontSize: 27, color: "FFD9D9", fontFace: F.head, bold: true, valign: "top", margin: 0 });
+  s.addText("Quarkus and Kubernetes give the four principles a working platform.", { x: rx, y: 5.0, w: rw, h: 0.6, fontSize: 14.5, color: "FFFFFF", fontFace: F.body, italic: true, valign: "top", margin: 0 });
   const lw = 1.25, lh = lw / L.LOGO_AR;
   s.addImage({ path: L.LOGO_LIGHT, x: PW - 0.6 - lw, y: PH - 0.3 - lh, w: lw, h: lh });
   L.pageNumOnly(s, { dark: true });
-  s.addNotes("Closing slide before the appendix. The one-sentence summary: eighteen real demos, three coordination engines over one domain, and a clear accounting of what works (the MCP server path) and what doesn't yet (in-process tool-calling) rather than a glossed-over success story. Open for questions here if this is the end of the live session — the appendix that follows is reference material, not more narrative.");
+  s.addNotes("Closing slide before the appendix. Summary: nineteen demos, three coordination engines over one domain, and a status for each capability, with the MCP server path working and in-process tool calling still open upstream. Open for questions here if this is the end of the live session. The appendix that follows is reference material, not more narrative.");
 })();
 
 /* ====================== 11 · APPENDICES ====================== */
 (() => {
-  const s = divider({ num: "11", title: "Appendices", sub: "Six optional deep-dives — reference material that goes further than the main narrative on one topic each." });
-  s.addNotes("These mirror the six appendix chapters on the site (16-21). They're reference depth, not part of the main arc: scaling the WebSocket push, the gotchas, agentic-development recommendations, testing detail, in-memory vs Kafka messaging, and the three engines compared. Pull up whichever one a question lands on.");
+  const s = divider({ num: "11", title: "Appendices", sub: "Six optional deep-dives, one topic each." });
+  s.addNotes("These mirror the six appendix chapters on the site. They are reference depth outside the main arc: scaling the WebSocket push, the gotchas, agentic-development recommendations, testing detail, in-memory versus Kafka messaging, and the three engines compared. Pull up whichever one a question lands on.");
 })();
 
-diagramSlide({ eyebrow: "Appendices", title: "A1 — Scaling WebSocket push with Kafka",
+diagramSlide({ eyebrow: "Appendix A1", title: "Scaling WebSocket push with Kafka",
   image: "16-websocket-scaling",
-  caption: "What the single-instance push does today, and the Kafka fan-out a multi-replica deployment would need — every replica consuming the topic and pushing to its own local sockets.",
-  notes: "The repo runs single-instance push today. Across replicas a socket pins to one replica while a shared consumer group splits partitions — backwards for a push that needs every replica to see every event. The fix is a per-replica unique group.id (broadcast) feeding each replica's own local connection registry, with KEDA scale-to-zero made socket-aware. All of that is recommended, not deployed." });
+  caption: "A shared consumer group persists notifications; each replica also consumes the topic under its own group and pushes to its local sockets.",
+  notes: "Per-replica fan-out is implemented and verified. OrderPlacedConsumer (a shared consumer group) persists notifications, with one replica per partition. OrderPlacedPushConsumer uses a per-replica group, so every replica receives every event and pushes to the sockets connected to that replica through OpenConnections. This was checked with two replicas on Kubernetes. A shared group alone would split partitions across replicas, which is backwards for a push that needs every replica to see every event, because a socket stays pinned to one replica. Making KEDA scale-to-zero socket-aware remains a recommendation and is not built." });
 
-diagramSlide({ eyebrow: "Appendices", title: "A2 — Gotchas",
+diagramSlide({ eyebrow: "Appendix A1", title: "Surviving a replica failure",
+  image: "16-websocket-failover",
+  caption: "The socket closes, the client backs off with jitter, and a reconnect lands on a replica that already receives every event.",
+  notes: "Three panels. Normal: the client is connected to replica 2. Replica 2 fails: the socket closes and the client retries with backoff and jitter (1 s, 2 s, 4 s, and so on). Recovery: the Service routes the reconnect to replica 1 or 3, which already receives every event through its own push group, and the client fetches missed events with GET /notifications. Status: client reconnect and backoff is a recommended pattern. WsNotificationClient does not implement it, and it has not been verified." });
+
+diagramSlide({ eyebrow: "Appendix A2", title: "Gotchas",
   image: "17-gotchas",
-  caption: "Eight real pitfalls hit building this project — timezone, Avro, gRPC ports, integration-test wiring, serde autodetection — each with its symptom and the fix that landed.",
-  notes: "Every cell maps to a committed fix: postgres:18's Olson-timezone rejection, Avro 1.12's ClassSecurityValidator, the gRPC 9001/9000 mismatch, @QuarkusIntegrationTest's separate-process timezone, import.sql skipped in %prod, @Consumes 415 on bodyless GET plus RestAssured's false pass, the Avro serde JSON fallback, and the stale-volume reset. One of these deserves a caveat: the last one is a general operating caution, investigated and ruled out as an actual defect, not a build-specific incident." });
+  caption: "Eight pitfalls hit while building this project, each with its symptom and the fix that landed.",
+  notes: "Every cell maps to a committed fix: postgres:18's rejection of Olson timezone ids, Avro 1.12's ClassSecurityValidator, the gRPC 9001 and 9000 port mismatch, @QuarkusIntegrationTest's separate-process timezone, import.sql skipped in %prod, @Consumes returning 415 on a bodyless GET plus RestAssured's false pass, the Avro serde falling back to JSON, and the stale-volume reset. The last one is a general operating caution; it was investigated and ruled out as a defect." });
 
-diagramSlide({ eyebrow: "Appendices", title: "A3 — Agentic recommendations",
+diagramSlide({ eyebrow: "Appendix A3", title: "Agentic recommendations",
   image: "18-agentic-recommendations",
-  caption: "A plan / execute / validate relay — strong model plans and validates, fast model executes — grounded in MCP tooling, with the diff verified independently.",
-  notes: "Non-hype guidance: agentic help works for bounded, well-specified changes grounded in real code and MCP tooling (camel-mcp, quarkus-agent); it does not substitute for architecture decisions or for verification. A subagent's report is a claim, not evidence." });
+  caption: "A plan, execute, validate relay: a stronger model plans and validates, a faster model executes, and the diff is verified independently.",
+  notes: "Agentic help works for bounded, well-specified changes grounded in the real code and MCP tooling (camel-mcp, quarkus-agent). It does not replace architecture decisions or verification. A subagent's report is a claim, not evidence, so the diff is checked independently." });
 
-diagramSlide({ eyebrow: "Appendices", title: "A4 — Testing, in detail",
+diagramSlide({ eyebrow: "Appendix A4", title: "Testing in detail",
   image: "19-testing-pyramid",
-  caption: "The test pyramid — unit @QuarkusTest at the base, failsafe integration tests above, functional (Newman) and load (hey/ghz) at the top — and the phases run-all-tests.sh walks.",
-  notes: "Unit tests run under surefire with Dev Services auto-provisioning infra; failsafe *IT tests (OrderPlacedAvroWireIT's byte-level Avro assertion, InventoryCheckStockWireIT's self-seed-then-gRPC) self-provision Testcontainers; functional and load sit on top. scripts/run-all-tests.sh walks the whole pyramid, with flags to select tiers. Ollama-gated ITs are skipped unless their flag is set." });
+  caption: "Unit @QuarkusTest at the base, failsafe integration tests above, functional (Newman) and load (hey, ghz) at the top, and the phases run-all-tests.sh walks.",
+  notes: "Unit tests run under surefire with Dev Services provisioning the infrastructure. Failsafe *IT tests provision their own Testcontainers: OrderPlacedAvroWireIT's byte-level Avro assertion, and InventoryCheckStockWireIT, which seeds data and then calls gRPC. Functional and load tests sit on top. scripts/run-all-tests.sh walks the pyramid with flags to select tiers. Ollama-gated tests are skipped unless their flag is set." });
 
-diagramSlide({ eyebrow: "Appendices", title: "A5 — In-memory vs. Kafka messaging",
+diagramSlide({ eyebrow: "Appendix A5", title: "Vert.x in-memory messaging",
+  image: "20-vertx-in-memory",
+  caption: "Producers and consumers inside one JVM, over Vert.x's event bus, scaling up with cores. Illustrative; this project uses the in-memory connector in shipping-service tests.",
+  notes: "One JVM: event-loop threads (about twice the core count) and a worker pool, with the Vert.x event bus offering send, publish, and request-reply. Producers use Emitter or @Outgoing and consumers use @Incoming or @ConsumeEvent. It scales up with cores, has no network hop or wire serialization, and gets back-pressure from Mutiny. Limits: one JVM, not durable, no replay. This project uses the in-memory connector in shipping-service tests; the event-bus usage on the diagram is illustrative." });
+
+diagramSlide({ eyebrow: "Appendix A5", title: "Kafka messaging",
+  image: "20-kafka-messaging",
+  caption: "Producers write to partitions; consumer groups read independently, with retention and offsets giving replay and Apicurio holding the schemas.",
+  notes: "Producers write to topic partitions P0 to P3. Consumer group A has replicas that each own partitions; group B reads the same topic independently, which is how fan-out works. Retention and consumer offsets allow replay. Apicurio holds the schemas. To scale out, add consumers up to the partition count; KEDA scales on lag." });
+
+diagramSlide({ eyebrow: "Appendix A5", title: "In-memory vs. Kafka, side by side",
   image: "20-inmemory-vs-kafka",
-  caption: "The same @Incoming/@Outgoing code over two connectors: in-memory Vert.x for fast, deterministic tests, and Kafka for the durable, partitioned production transport.",
-  notes: "Only the connector configuration changes between the two — the application code is identical. In-memory is for proving messaging logic in tests without a broker; it is not a production transport. The trade-offs are across latency, durability, coupling, ordering, back-pressure, and testing ergonomics." });
+  caption: "The same @Incoming and @Outgoing code over two connectors: in-memory Vert.x for fast, deterministic tests and Kafka for the durable, partitioned production transport.",
+  notes: "Only the connector configuration changes between the two; the application code is identical. In-memory proves messaging logic in tests without a broker and is not a production transport. The comparison covers scope, durability, ordering, how each scales (up across cores versus out across partitions and replicas), failure behavior (lost on crash versus replay from an offset), and where each is used here (tests versus %prod)." });
 
-diagramSlide({ eyebrow: "Appendices", title: "A6 — The three engines, compared",
+diagramSlide({ eyebrow: "Appendix A6", title: "The three engines, compared",
   image: "21-three-engines-compare",
-  caption: "Kafka choreography versus two shapes of orchestration (a Camel route, a Quarkus Flow document), compared across who owns the sequence, coupling, failure handling, debuggability, and where the logic lives.",
-  notes: "Deeper than section 03's tour. Terminology stays exact: Kafka is choreography (no central coordinator, each participant reacts to events); Camel and Quarkus Flow are both orchestration (a single component sequences the steps). Failure handling in the repo today is idempotency and exception propagation, not saga compensation — stated plainly rather than implied." });
+  caption: "Kafka choreography against two shapes of orchestration (a Camel route and a Quarkus Flow document), compared by sequence ownership, coupling, failure handling, debugging, and where the logic lives.",
+  notes: "More detail than the three-engines section. Terminology stays exact: Kafka is choreography, with no central coordinator and each participant reacting to events; Camel and Quarkus Flow are both orchestration, with one component sequencing the steps. Failure handling in this project today is idempotent redelivery and exception propagation, not saga compensation." });
 
 /* ====================== APPENDIX ====================== */
 (() => {
-  const s = divider({ num: "—", title: "Appendix", sub: "The full demo matrix, the decision ledger, a known limitation in full, wiring detail, and a home for every diagram." });
-  s.addNotes("Reference material, not more narrative. This is where a reader goes after the talk to check a specific demo's infra tier, a specific decision's rationale, or the exact root cause behind the known tool-calling limitation — and where diagrams that didn't fit the main story (but still deserve a home) are parked.");
+  const s = divider({ num: "—", title: "Appendix", sub: "The full demo matrix, a known limitation in detail, infrastructure reference, a glossary, and background diagrams." });
+  s.addNotes("Reference material, not more narrative. Use it after the talk to check a demo's infrastructure tier, the root cause behind the tool-calling limitation, or a term in the glossary. The background diagrams are the 101 deck's figures.");
 })();
 
-contentSlide({ eyebrow: "Appendix · demo matrix", title: "All 18 demos, by infra tier (1 of 2): bare & compose",
+contentSlide({ eyebrow: "Appendix · demo matrix", title: "All 19 demos by infra tier (1 of 2): bare and compose",
   bullets: [
-    { head: true, text: "bare — JVM / Dev Services only, no compose, no cluster" },
-    { text: "demo-jbang-prototype.sh — JBang/Camel CLI prototyping, no Maven module." },
-    { text: "demo-continuous-testing.sh — quarkus:dev continuous testing + Dev Services." },
-    { text: "demo-native.sh (opt-in, native) — GraalVM/Mandrel native build + boot." },
-    { head: true, text: "compose — infra baseline (docker compose up -d)" },
-    { text: "demo-order.sh · demo-grpc.sh · demo-graphql.sh · demo-kafka.sh · demo-tracing.sh · demo-websocket.sh · demo-reactive-vertx.sh." },
-    { text: "demo-oidc.sh (feasibility-gated — may be skipped).", color: C.ink },
+    { head: true, text: "bare: JVM or Dev Services only, no compose, no cluster" },
+    { lead: "demo-jbang-prototype.sh", sep: " — ", text: "JBang and Camel CLI prototyping, no Maven module." },
+    { lead: "demo-panama.sh", sep: " — ", text: "Panama FFM calls to libc from a JBang script." },
+    { lead: "demo-continuous-testing.sh", sep: " — ", text: "quarkus:dev continuous testing with Dev Services." },
+    { lead: "demo-native.sh", sep: " — ", text: "GraalVM or Mandrel native build and boot (opt-in)." },
+    { head: true, text: "compose: infra baseline (docker compose up -d)" },
+    { text: "demo-order.sh · demo-grpc.sh · demo-graphql.sh · demo-kafka.sh · demo-tracing.sh · demo-websocket.sh · demo-reactive-vertx.sh" },
+    { lead: "demo-oidc.sh", sep: " — ", text: "feasibility-gated; may be skipped." },
   ],
-  notes: "Mirrors demos/README.md's own matrix exactly. 'bare' needs JDK 25, Maven 3.9.x, jbang on PATH, and GraalVM/Mandrel for native — no docker compose at all. 'compose' needs docker + the Compose v2 plugin, cp .env.example .env, and docker compose up -d from the repo root (postgres, kafka-native, apicurio, otel-lgtm — no profile flag needed)." });
+  notes: "Mirrors the matrix in demos/README.md. 'bare' needs JDK 25, Maven 3.9.x, and jbang on PATH, plus GraalVM or Mandrel for native; no docker compose. 'compose' needs docker and the Compose v2 plugin, cp .env.example .env, and docker compose up -d from the repo root (postgres, kafka-native, apicurio, otel-lgtm; no profile flag)." });
 
-contentSlide({ eyebrow: "Appendix · demo matrix", title: "All 18 demos, by infra tier (2 of 2): ollama, minikube, orchestrator",
+contentSlide({ eyebrow: "Appendix · demo matrix", title: "All 19 demos by infra tier (2 of 2): ollama, Kubernetes",
   bullets: [
-    { head: true, text: "compose + --profile ollama — opt-in, heaviest infra (8g mem budget)" },
-    { text: "demo-ai-classify.sh · demo-ai-mcp.sh · demo-camel-integration.sh · demo-ai-triage.sh (showcase)." },
-    { head: true, text: "minikube — reuses the step-9 Kubernetes substrate" },
-    { text: "demo-keda-kafka.sh (opt-in) · demo-keda-http.sh (opt-in)." },
+    { head: true, text: "compose + --profile ollama: opt-in, heaviest infra (8g memory budget)" },
+    { text: "demo-ai-classify.sh · demo-ai-mcp.sh · demo-camel-integration.sh · demo-ai-triage.sh" },
+    { head: true, text: "Kubernetes: the local cluster from scripts/bootstrap.sh (opt-in)" },
+    { text: "demo-keda-kafka.sh · demo-keda-http.sh" },
     { head: true, text: "Orchestrator" },
-    { text: "walkthrough.sh — five-act presenter script over all 18 demos; gated per demo via --with-ollama/--with-native/--with-minikube; --only/--skip/--no-preflight/--no-pause/--auto; final pass-fail-skip tally." },
-    { text: "Opt-in summary: ollama → classify/mcp/camel-integration/triage; native → demo-native.sh; minikube → keda-kafka/keda-http; feasibility-gated → demo-oidc.sh.", color: C.ink },
+    { lead: "walkthrough.sh", sep: " — ", text: "five acts over all 19 demos, gated per demo by --with-ollama, --with-native, and --with-minikube." },
+    { text: "Opt-in summary: ollama gates the four AI demos; native gates demo-native.sh; Kubernetes gates the two KEDA demos; demo-oidc.sh is feasibility-gated.", color: C.ink },
   ],
-  notes: "Everything not in this opt-in summary (bare and compose minus demo-oidc.sh) is the default, always-runnable demo set — the core of a laptop-scale run with no extra flags." });
+  notes: "Everything outside the opt-in summary (bare and compose, minus demo-oidc.sh) is the default, always-runnable set: the core of a laptop-scale run with no extra flags. walkthrough.sh also supports --only and --skip, --no-preflight, --no-pause and --auto, and prints a pass, fail, and skip tally." });
 
-contentSlide({ eyebrow: "Appendix · known limitation", title: "Known limitation: in-process LLM tool-calling",
+contentSlide({ eyebrow: "Appendix · known limitation", title: "Known limitation: in-process LLM tool calling",
   bullets: [
     { head: true, text: "Symptom" },
-    { text: "OrderAssistantRouteIT sends a chat message asking for an order's status and asserts the agent invoked the order-status tool. It fails: the model answers in one round trip, the tool route is never invoked, the tool-executions header is absent." },
-    { head: true, text: "Root cause (upstream, not this project's code)" },
-    { text: "camel-quarkus-support-langchain4j's enforceJaxRsHttpClient() unconditionally sets the global system property langchain4j.http.clientBuilderFactory to a Quarkiverse JAX-RS client factory for every dev.langchain4j model on the classpath — no toggle exists. The hand-built OllamaChatModel's own base-url is never honored by the transport that sends the request." },
-    { head: true, text: "Ruled out by diagnosis" },
-    { text: "Model capability (a direct Ollama /api/chat call with a tools array does return tool_calls for qwen2.5:3b and qwen2.5:7b-instruct); tool registration/tag matching (tags line up correctly); langchain4j version (reproduces across every combination tried, including the seed-matched classpath)." },
-    { text: "Two levers a caller actually has — a hand-built OllamaChatModel with an explicit base-url, and an explicit httpClientBuilder(new JdkHttpClientBuilder()) override — were both tried and neither changed the outcome, because the global system property is set before either bean is constructed.", color: C.ink },
+    { text: "OrderAssistantRouteIT asks for an order's status and asserts the agent invoked the order-status tool. It fails: the model answers in one round trip and the tool route is never invoked." },
+    { head: true, text: "Root cause (upstream)" },
+    { text: "camel-quarkus-support-langchain4j's enforceJaxRsHttpClient() sets the global property langchain4j.http.clientBuilderFactory for every dev.langchain4j model, with no toggle. A hand-built OllamaChatModel's base-url is never honored.", color: C.ink },
+    { head: true, text: "Ruled out" },
+    { text: "Model capability, tool registration and tag matching, and the langchain4j version, including the seed-matched classpath.", color: C.ink },
   ],
-  notes: "Classpath side is resolved: quarkus-langchain4j-bom:1.7.4 is imported first so the whole dev.langchain4j family converges at 1.11.0 with no manual pin — the behavioral defect is independent of that cleanup. Does not block the build: the IT is named *IT (Surefire skips it), gated behind -Dollama.tests.enabled=true, and failsafe isn't bound in ai-mcp-service, so mvn verify never needs Ollama. Options to revisit: a newer camel-quarkus/quarkus-langchain4j train where the enforcement differs; filing upstream against camel-quarkus-support-langchain4j; continuing to demonstrate tool-calling via the embedded MCP server path instead (which is what this deck does)." });
-
-contentSlide({ eyebrow: "Appendix · decision ledger", title: "Key design decisions",
-  bullets: [
-    { text: "Spring Boot comparison: ship one runnable Spring Boot twin for real side-by-side startup/memory numbers (section 05), not a hand-waved comparison." },
-    { text: "Event serialization: all Kafka events use Avro + Apicurio from the start, never JSON, so there is no later retrofit (section 02)." },
-    { text: "AI + rules showcase: Ollama classifies, Drools decides, deliberately sidestepping the tool-calling limitation (no in-process tool-calling round trip required). Engine choice: plain embedded Drools (drools-core/drools-compiler, a KieContainer in a CDI bean) — explicitly not the Kogito/KIE Quarkus extension; KIE is not a roadmap item." },
-    { text: "Quarkus Flow as the second orchestration shape: the CNCF Open/Serverless Workflow spec, low-dependency, native-friendly, and crucially does not pull in Kogito/KIE/Drools." },
-    { text: "Three engines, different orchestration styles is a required narrative (docs + deck), with exact terminology discipline: Kafka is choreography; Camel and Quarkus Flow are both orchestration.", color: C.ink },
-  ],
-  notes: "These five decisions are the backbone of sections 02–05 of this deck. This slide is the condensed, presenter-facing version." });
-
-contentSlide({ eyebrow: "Appendix · wiring detail", title: "Avro / Apicurio wiring, in detail",
-  bullets: [
-    { text: "AvroKafkaSerializer is pinned explicitly in application.properties on the producer side, on both the Quarkus order-service and the Spring Boot twin — autodetection was proven unreliable with two Avro serdes on the classpath, in both frameworks, for different underlying reasons." },
-    { text: "Already fixed: OrderPlacedAvroWireIT (Testcontainers Kafka apache/kafka-native:4.2.0 + Apicurio apicurio-registry:3.1.7) produces a real OrderPlaced with AvroKafkaSerializer, consumes with a vanilla byte-level KafkaConsumer, and asserts value[0]==0x00 (Avro magic byte) and value[0]!=0x7B (not JSON) plus a schema id — proven to fail loudly if the serde regresses to JSON.", lvl: 1 },
-    { text: "Runs in the default mvn verify (self-provisioning; no compose needed), failsafe-bound in order-service.", lvl: 1 },
-    { text: "Avro 1.12.x's ClassSecurityValidator required org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 on the IT's failsafe execution — plain JUnit has no Quarkus bootstrap to auto-trust the package.", color: C.ink },
-  ],
-  notes: "This is the wire-compat crux behind demo-kafka.sh's byte-level assertion in section 02 — the same magic-byte check the demo does live, first proven in an automated integration test." });
-
-contentSlide({ eyebrow: "Appendix · wiring detail", title: "KEDA HTTP add-on — the 0.15.0 pin, in detail",
-  bullets: [
-    { text: "KEDA core pinned to 2.19.0; the HTTP add-on pinned to 0.15.0 — both installed via helm upgrade --install in scripts/setup-keda.sh." },
-    { text: "Why 0.15.0 specifically: v0.14.0 shipped a panic (upstream issue #1668) that 0.15.0 fixes; 0.15.0 also adds HTTP/2 and gRPC support.", lvl: 1 },
-    { text: "interceptor.replicas.waitTimeout is raised to 180s from the add-on's 20s default — the default is shorter than a cold JVM boot (image pull + Quarkus startup + startupProbe), so without the override a wake-up request 502s with 'context deadline exceeded' before a replica is ready, starving KEDA of the pending-request pressure it needs to activate promptly.", lvl: 1 },
-    { text: "The Kafka-lag scaler targets notification-service; the HTTP scaler targets graphql-gateway — never order-service, which carries the (substrate-only) canary.", color: C.ink },
-  ],
-  notes: "This slide is the detail behind section 06's two KEDA demos — the exact version pins and the one non-default override that makes the HTTP add-on viable against a JVM workload's real cold-start time." });
+  notes: "Symptom detail: the tool-executions header is absent. Root cause detail: the property is set before any model bean is constructed, so the two levers a caller has (a hand-built OllamaChatModel with an explicit base-url, and an explicit httpClientBuilder(new JdkHttpClientBuilder()) override) were both tried and neither changed the outcome. Ruled out: a direct Ollama /api/chat call with a tools array returns tool_calls for qwen2.5:3b and qwen2.5:7b-instruct; the tags line up; the defect reproduces across every langchain4j combination tried. The classpath side is resolved: quarkus-langchain4j-bom:1.7.4 is imported first, so the dev.langchain4j family converges at 1.11.0 with no manual pin. The limitation does not block the build: the test is named *IT (surefire skips it), gated behind -Dollama.tests.enabled=true, and failsafe is not bound in ai-mcp-service, so mvn verify never needs Ollama. Options to revisit: a newer camel-quarkus and quarkus-langchain4j train where the enforcement differs, an upstream issue against camel-quarkus-support-langchain4j, and continuing to demonstrate tool calling through the embedded MCP server, which this deck does." });
 
 contentSlide({ eyebrow: "Appendix · infra", title: "compose.yaml services and .env image tags",
   bullets: [
-    { head: true, text: "Baseline services (no --profile flag needed)" },
-    { text: "postgres (postgres:18, TZ=UTC/PGTZ=UTC) · kafka (apache/kafka-native:4.2.0, KRaft mode, PLAINTEXT + INTERNAL listeners) · apicurio (apicurio-registry:3.1.7) · lgtm (grafana/otel-lgtm:0.8.1, always-on)." },
+    { head: true, text: "Baseline services (no --profile flag)" },
+    { text: "postgres (postgres:18, TZ=UTC) · kafka (apache/kafka-native:4.2.0, KRaft) · apicurio (apicurio-registry:3.1.7) · lgtm (grafana/otel-lgtm:0.8.1, always on)." },
     { head: true, text: "Opt-in profiles" },
-    { text: "--profile tools → kafka-ui (provectuslabs/kafka-ui) · --profile ollama → ollama (ollama/ollama)." },
-    { head: true, text: "The wire-compat crux" },
-    { text: "Every image tag in .env must equal the exact tag Quarkus 3.39.5 Dev Services pulls by default, confirmed by inspecting the build-time config classes inside the cached deployment jars — so behavior never drifts between quarkus:dev/mvn verify (Dev Services) and this standalone compose stack.", color: C.ink },
-    { text: "postgres:18 rejects legacy Olson timezone ids (e.g. US/Eastern) forwarded from a non-UTC host — TZ=UTC/PGTZ=UTC on the container, plus -Duser.timezone=UTC on every JVM, is what keeps mvn verify green on any host.", color: C.ink },
+    { text: "--profile tools: kafka-ui (provectuslabs/kafka-ui) · --profile ollama: ollama (ollama/ollama)." },
+    { head: true, text: "Image tags" },
+    { text: "Each tag in .env equals the tag Quarkus 3.39.5 Dev Services pulls by default, so quarkus:dev, mvn verify, and this compose stack behave the same.", color: C.ink },
+    { text: "postgres:18 rejects legacy Olson timezone ids such as US/Eastern from a non-UTC host; TZ=UTC on the container and -Duser.timezone=UTC on every JVM keep mvn verify green.", color: C.ink },
   ],
-  notes: "This is the exact standing-infra picture behind every 'compose' tier demo in this deck. docker compose up -d from the repo root, after cp .env.example .env, is the one command that brings up the whole baseline." });
+  notes: "The standing infrastructure behind every compose-tier demo. docker compose up -d from the repo root, after cp .env.example .env, brings up the whole baseline. The Kafka listeners are PLAINTEXT and INTERNAL. The tag match was confirmed by inspecting the build-time config classes inside the cached Dev Services deployment jars." });
 
 contentSlide({ eyebrow: "Appendix · determinism", title: "ai-rules-service: how determinism was established",
   bullets: [
-    { text: "ai-rules-service's pom.xml was missing the quarkus-maven-plugin <build> binding its sibling modules have — without it, mvn quarkus:dev silently no-ops and mvn package produces only a thin jar, not a runnable quarkus-run.jar. Fixed for ai-rules-service specifically (the same gap exists, unfixed, in ai-mcp-service, notification-service, and payment-service)." },
-    { text: "This module has no health/actuator endpoint, so the shared demo harness's wait_http (which needs a 2xx/3xx) can't be used — the demo waits for any HTTP response (connection-refused → connected) as its readiness signal instead.", lvl: 1 },
-    { text: "The three demo-ai-triage.sh inputs were chosen by sampling the live qwen2.5:3b classification repeatedly against the exact TriageService prompt, until riskSignal/amount combinations classified stably (not just plausibly) across trials.", lvl: 1 },
-    { text: "Because Drools' decision is a deterministic function of the classified fields (not of the LLM's prose), a stable classification guarantees a stable decision — so the demo asserts the exact expected decision on every call, stronger than the module's own opt-in integration tests, which only assert membership.", color: C.ink },
+    { lead: "ai-rules-service's pom.xml", text: "lacked the quarkus-maven-plugin <build> binding its siblings have, so mvn quarkus:dev did nothing and mvn package produced only a thin jar. Fixed here; the same gap remains in ai-mcp-service, notification-service, and payment-service." },
+    { lead: "The module", text: "has no health endpoint, so the demo waits for any HTTP response as its readiness signal.", lvl: 1 },
+    { lead: "The three demo-ai-triage.sh inputs", text: "were sampled against the live qwen2.5:3b model, using the TriageService prompt, until riskSignal and amount classified stably.", lvl: 1 },
+    { text: "Drools' decision is a deterministic function of the classified fields, so a stable classification gives a stable decision and the demo asserts the exact decision.", color: C.ink },
   ],
-  notes: "Re-running the demo twice in a row against the live model reproduced the same three decisions on both endpoints both times — the empirical basis for trusting the strict assertion in section 04's showcase demo." });
+  notes: "Detail: the shared demo harness's wait_http needs a 2xx or 3xx response, which this module cannot give, so readiness is connection-refused to connected. The strict assertion is stronger than the module's own opt-in integration tests, which assert membership in the set of valid decisions. Re-running the demo twice in a row against the live model produced the same three decisions on both endpoints both times, which is the empirical basis for the strict assertion." });
 
-contentSlide({ eyebrow: "Appendix · glossary", title: "Glossary (1 of 2)",
-  bullets: [
-    { text: "Choreography — every participant reacts to events on its own terms; no central process knows the whole sequence." },
-    { text: "Orchestration — a single process explicitly sequences the steps; this build shows two shapes (imperative Camel route, declarative Quarkus Flow document)." },
-    { text: "Data product / architectural quantum — the smallest independently deployable unit carrying everything it needs: input/output ports, transformation, metadata, and a governance control port." },
-    { text: "Panache — Hibernate ORM's active-record style; the entity is its own repository (static finders, instance persist())." },
-    { text: "Avro / Apicurio Registry — Avro is the binary, schema-based runtime event format; Apicurio is the registry that stores and enforces compatibility on it." },
-    { text: "Dev Services — Quarkus's automatic Testcontainers provisioning for dev/test, with zero manual docker compose." },
-    { text: "KEDA / HPA — KEDA drives a standard HorizontalPodAutoscaler from external signals (Kafka lag, HTTP rate) and adds the zero-to-one activation the HPA alone cannot do." },
+glossarySlide({ eyebrow: "Appendix · glossary", title: "Glossary (1 of 3): data mesh and architecture",
+  terms: [
+    { term: "Data product", def: "A dataset or service a domain team publishes for other teams, with an owner, a contract, and quality commitments." },
+    { term: "Choreography", def: "Services react to events independently; no central process knows the whole sequence." },
+    { term: "Orchestration", def: "One component sequences the steps and knows the whole flow, as a Camel route or a Quarkus Flow document." },
+    { term: "CNCF Serverless Workflow", def: "An open specification for declaring workflow tasks and their order as a document. Quarkus Flow implements it." },
+    { term: "Avro / Apicurio Registry", def: "Avro is the binary, schema-based event format; Apicurio stores the schemas and enforces compatibility." },
+    { term: "MCP", def: "Model Context Protocol: a JSON-RPC protocol for a client to discover and call tools that a server exposes." },
+    { term: "OIDC", def: "OpenID Connect: token-based authentication on OAuth 2.0. Here, bearer tokens issued by Keycloak." },
   ],
-  notes: "First half of the glossary, grouped by the sections that introduce each term: orchestration styles (03), data products and Panache (01/02), and self-serve platform (06)." });
+  notes: "First of three glossary slides: data-mesh and architecture terms, grouped by where they appear (data as a product, the three engines, AI and rules, security). Definitions are short; the chapters carry the detail." });
 
-contentSlide({ eyebrow: "Appendix · glossary", title: "Glossary (2 of 2)",
-  bullets: [
-    { text: "Istio / sidecar / mTLS — the service mesh; a sidecar is the Envoy proxy injected beside an app container; mTLS is the mutual-certificate encryption the mesh establishes automatically between sidecars." },
-    { text: "OTLP / OpenTelemetry — the wire protocol and SDK standard for exporting metrics and traces to a collector." },
-    { text: "MCP (Model Context Protocol) — a wire protocol (Streamable HTTP, JSON-RPC 2.0) for an external client to discover and call tools exposed by a server; structurally separate from in-process LLM agent tool-calling." },
-    { text: "langchain4j — the Java LLM-integration library this build uses for both single-shot chat (classify) and agent tool-calling (the known-limitation path)." },
-    { text: "Drools / KieSession / KieBase — the embedded rules engine; a KieBase is the compiled rule set (built once, reused); a KieSession is per-request working memory (minted and disposed each call)." },
-    { text: "CNCF Serverless Workflow — the open workflow specification Quarkus Flow implements; a workflow document declares tasks and their dependencies rather than imperative call order." },
-    { text: "OIDC — OpenID Connect; bearer-token authentication, demonstrated here against a live Dev-Services-provisioned Keycloak." },
-    { text: "UBI (Universal Base Image) — Red Hat's freely redistributable, enterprise-maintained container base image used for every multi-stage build in this project." },
+glossarySlide({ eyebrow: "Appendix · glossary", title: "Glossary (2 of 3): Quarkus and the JDK",
+  terms: [
+    { term: "Panache", def: "A Hibernate ORM layer that removes boilerplate. This project uses active record: the entity carries its own finders and persist()." },
+    { term: "Dev Services", def: "Quarkus starts containers (database, Kafka, Keycloak) automatically in dev and test, with no compose file." },
+    { term: "Mutiny Uni", def: "Mutiny's lazy single-value asynchronous type; it runs when something subscribes." },
+    { term: "WebSockets.Next", def: "The Vert.x-based Quarkus WebSocket extension: annotated endpoints, injectable OpenConnections, and a client API." },
+    { term: "JBang", def: "Runs a single Java file with inline dependencies; no project or pom.xml." },
+    { term: "Native image (GraalVM / Mandrel)", def: "Compiles the application ahead of time into an executable with no JVM. The build takes minutes." },
+    { term: "AOT cache (Project Leyden)", def: "A JDK 25 cache of loaded and linked classes from a training run, used to speed JVM startup." },
+    { term: "Panama FFM", def: "The JDK's foreign function and memory API: calls native libraries from Java without JNI." },
   ],
-  notes: "Second half of the glossary, covering the mesh/observability vocabulary (07), the AI/rules vocabulary (04), and the base-image convention referenced throughout the infra appendix slides." });
+  notes: "Second of three: the Quarkus and JDK terms from the capability tour and the Spring Boot comparison. The AOT cache and native image are different startup strategies: the cache keeps a full JVM with the JIT, and native image removes the JVM." });
 
-twoUpDiagramSlide({ eyebrow: "Appendix · parked diagrams", title: "From pipelines to warehouses: the earlier architectures",
+glossarySlide({ eyebrow: "Appendix · glossary", title: "Glossary (3 of 3): platform and AI",
+  terms: [
+    { term: "KEDA / HPA", def: "The HPA scales pods on CPU or memory. KEDA drives an HPA from external signals and adds scale to zero." },
+    { term: "Istio, sidecar, mTLS", def: "Istio is a service mesh. A sidecar Envoy proxy sits beside each pod; mTLS authenticates and encrypts calls between sidecars." },
+    { term: "OTLP / OpenTelemetry", def: "A vendor-neutral standard and wire protocol for exporting metrics, traces, and logs." },
+    { term: "langchain4j", def: "A Java library for LLM integration: chat calls, prompts, and tool calling." },
+    { term: "Drools KieBase / KieSession", def: "A KieBase is the compiled rule set, built once. A KieSession is per-request working memory." },
+    { term: "UBI", def: "Universal Base Image: Red Hat's redistributable container base image, used by every multi-stage build here." },
+  ],
+  notes: "Third of three: platform and AI terms from the platform, governance, and AI and rules sections, plus the base-image convention used across the infrastructure slides." });
+
+twoUpDiagramSlide({ eyebrow: "Appendix · background diagrams", title: "From pipelines to warehouses: the earlier architectures",
   images: ["01-data-pipeline-architecture", "01-data-warehouse-architecture"],
-  captions: ["A linear ETL/ELT pipeline moving data from an operational source through transformation to an analytical destination.", "Multiple operational sources feeding a centralized, schema-on-write warehouse owned by a central team."],
-  note: "101-deck context diagrams, parked here so every diagram has a home — not referenced in the 201 main narrative.",
-  notes: "These two diagrams set up the architectural history the 101 deck argues against. They aren't needed again here because this deck assumes that argument is already won and goes straight to building the mesh — but they're parked here rather than discarded, since every one of the 36 shipped diagrams should have a home somewhere in this deck." });
+  captions: ["A linear ETL or ELT pipeline moving data from an operational source through transformation to an analytical destination.", "Multiple operational sources feeding a centralized, schema-on-write warehouse owned by a central team."],
+  note: "Figures from the 101 deck; not part of the 201 narrative.",
+  notes: "These two diagrams set up the architectural history the 101 deck argues against. The 201 deck assumes that argument is settled and goes straight to building the mesh, so the figures are kept here for reference." });
 
-twoUpDiagramSlide({ eyebrow: "Appendix · parked diagrams", title: "The data lake, and the shift to decentralization",
+twoUpDiagramSlide({ eyebrow: "Appendix · background diagrams", title: "The data lake, and the shift to decentralization",
   images: ["01-data-lake-architecture", "01-data-mesh-decentralized"],
   captions: ["A data lake organized into raw, curated, and refined zones, accepting structured, semi-structured, and unstructured data.", "Multiple domain teams each owning a data product, connected by a shared self-serve platform instead of a central team."],
-  note: "101-deck context diagrams, parked here so every diagram has a home — not referenced in the 201 main narrative.",
-  notes: "The data lake diagram is the third centralized architecture the 101 deck walks through before introducing the mesh; the decentralized diagram is the conceptual target this entire 201 deck then builds, piece by piece, in Quarkus." });
+  note: "Figures from the 101 deck; not part of the 201 narrative.",
+  notes: "The data lake is the third centralized architecture the 101 deck walks through before introducing the mesh. The decentralized diagram is the target that this deck builds piece by piece in Quarkus." });
 
-twoUpDiagramSlide({ eyebrow: "Appendix · parked diagrams", title: "The monolith-to-mesh refactor, and its timeline",
+twoUpDiagramSlide({ eyebrow: "Appendix · background diagrams", title: "The monolith-to-mesh refactor, and its timeline",
   images: ["01-monolith-to-mesh", "01-architecture-evolution"],
   captions: ["A monolithic application and its monolithic data platform both decomposing into domain-owned services and domain-owned data products.", "The progression from pipelines to warehouses to lakes to mesh, with the problem each pattern solved."],
-  note: "101-deck context diagrams, parked here so every diagram has a home — not referenced in the 201 main narrative.",
-  notes: "The monolith-to-mesh analogy (the same refactor microservices applied to applications, applied to data) does a lot of work in the 101 deck; the evolution timeline is the one-slide history of why each prior architecture eventually hit a wall. Both are assumed knowledge by the time this 201 deck starts." });
+  note: "Figures from the 101 deck; not part of the 201 narrative.",
+  notes: "The monolith-to-mesh analogy (the refactor microservices applied to applications, applied to data) carries a lot of the 101 deck. The evolution timeline is the one-slide history of why each earlier architecture hit a wall. Both are assumed knowledge by the time the 201 starts." });
 
-twoUpDiagramSlide({ eyebrow: "Appendix · parked diagrams", title: "Operational vs. analytical, and the full minikube capstone",
-  images: ["01-operational-vs-analytical", "02-capstone-data-mesh"],
-  captions: ["Operational and analytical data shown first as separate layers joined by pipelines, then reorganized so each domain owns both planes.", "The complete data mesh reference architecture running on minikube — domain services, the service mesh, and the self-serve platform tier underneath."],
-  note: "101-deck context diagram (left) and the Python sibling repo's capstone (right) — parked here; this deck's own capstone is section 10's reference-architecture diagram.",
-  notes: "02-capstone-data-mesh is the Python sibling repository's own minikube capstone illustration; it's visually similar to but not identical to this repo's 08-reference-architecture (section 10's closer), so it's parked here rather than presented as this deck's own capstone." });
+diagramSlide({ eyebrow: "Appendix · background diagrams", title: "The full project example on Kubernetes",
+  image: "02-capstone-data-mesh",
+  caption: "The complete data mesh reference architecture on Kubernetes: domain services, the service mesh, and the self-serve platform tier underneath.",
+  notes: "This illustration comes from the Python sibling repository's reference architecture. It is similar to, but not identical to, this project's own reference-architecture diagram shown earlier, so it sits here as background and is not presented as this deck's architecture. The image file keeps its original name, 02-capstone-data-mesh." });
 
-diagramSlide({ eyebrow: "Appendix · parked diagrams", title: "How analytical data is composed (conceptual)",
+diagramSlide({ eyebrow: "Appendix · background diagrams", title: "Operational vs. analytical data",
+  image: "01-operational-vs-analytical",
+  caption: "The operational plane runs the business; the analytical plane informs decisions. Pipelines have traditionally bridged them; a mesh keeps both owned by the domain.",
+  notes: "The 101 deck's version of the seam a mesh addresses. Traditionally the operational and analytical layers are separate technology stacks joined by pipelines. A mesh keeps the distinction but organizes it by domain: each domain owns its operational systems and the analytical products derived from them. The final slide of the deck covers the analytical half in more detail." });
+
+diagramBulletsSlide({ eyebrow: "Appendix · analytical data", title: "Analytical data: what it is and why it matters",
   image: "05-analytical-data-composition",
-  caption: "Operational data refined through events and entities into a published data product that analytics consumes — conceptual in this build, not built.",
-  notes: "The last of the 36 shipped diagrams. Paired conceptually with section 02's ingestion-streaming-sourcing diagram — together they sketch the analytical half of 'data as a product' that this build documents but does not implement, since the built demos here are all operational-domain services." });
+  bullets: [
+    { lead: "What it is:", text: "historical, integrated, read-optimized views across domains, used for decisions and models." },
+    { lead: "How a mesh produces it:", text: "domain-owned analytical data products derived from operational events and published with contracts." },
+    { lead: "Value:", text: "trusted, discoverable data for decisions, ML features, and compliance, reused by many consumers without a central bottleneck." },
+    { lead: "Here:", text: "the operational half is built; the analytical half is designed (sourcing and composition) and not built." },
+  ],
+  notes: "The last slide, tying back to the data-as-a-product principle. Analytical data is the historical, integrated, read-optimized view that analysts and models use, in contrast to the current-state rows behind running services. A mesh produces it as domain-owned analytical data products, derived from operational events and published with the same contract discipline as the operational ones, so consumers find and trust them without a central team. The diagram shows operational data refined through events and entities into a published data product that analytics consumes. Status: the operational services, contracts, and events in this project are built and demonstrated. The analytical sourcing and composition shown here, and the ingestion and streaming picture earlier in the deck, are designed and not built; there is no CDC layer and no catalog ingesting lineage yet." });
 
 /* ============================ WRITE ============================ */
-pres.writeFile({ fileName: "Datamesh-201-Quarkus-r1.0.pptx" }).then((f) => console.log("WROTE", f));
+L.writeDeck("Datamesh-201-Quarkus-r1.1.pptx").then((f) => console.log("WROTE", f));

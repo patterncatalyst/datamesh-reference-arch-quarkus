@@ -115,58 +115,82 @@ function divider({ num, title, sub }) {
 }
 
 // ---- eyebrow + title block for a content slide ----
-function head(s, eyebrow, title, { titleH = 0.95 } = {}) {
+// With a subtitle the title box shrinks to 0.6in and the subtitle sits at y 1.36.
+function head(s, eyebrow, title, { titleH = 0.95, subtitle } = {}) {
   s.addText(eyebrow.toUpperCase(), { x: 0.7, y: 0.45, w: PW - 1.4, h: 0.32, fontSize: 12, color: C.red, fontFace: F.head, bold: true, charSpacing: 2, margin: 0 });
-  s.addText(title, { x: 0.7, y: 0.78, w: PW - 1.4, h: titleH, fontSize: 30, color: C.ink, fontFace: F.head, bold: true, valign: "top", margin: 0 });
+  s.addText(title, { x: 0.7, y: 0.78, w: PW - 1.4, h: subtitle ? 0.6 : titleH, fontSize: 30, color: C.ink, fontFace: F.head, bold: true, valign: "top", margin: 0 });
+  if (subtitle) s.addText(subtitle, { x: 0.7, y: 1.36, w: PW - 1.4, h: 0.4, fontSize: 17, color: C.gray, fontFace: F.body, valign: "top", margin: 0 });
+}
+
+// ---- 8pt reference to the demo script, bottom of the slide ----
+function addDemoRef(s, ref) {
+  if (!ref) return;
+  s.addText("Demo script: " + ref, { x: 1.6, y: PH - 0.47, w: 7.5, h: 0.25, fontSize: 8, color: C.gray2, fontFace: F.mono, align: "left", valign: "middle", margin: 0 });
 }
 
 // ---- CONTENT slide ----
-function contentSlide({ eyebrow, title, bullets, bulletsX = 0.7, bulletsW = PW - 1.4, bulletsY = 1.95, notes }) {
+function contentSlide({ eyebrow, title, subtitle, demoRef, bullets, bulletsX = 0.7, bulletsW = PW - 1.4, bulletsY, notes }) {
   const s = pres.addSlide();
   s.background = { color: C.white };
-  head(s, eyebrow, title);
-  if (bullets) addBullets(s, bullets, { x: bulletsX, y: bulletsY, w: bulletsW });
+  head(s, eyebrow, title, { subtitle });
+  const by = bulletsY !== undefined ? bulletsY : (subtitle ? 2.15 : 1.95);
+  if (bullets) addBullets(s, bullets, { x: bulletsX, y: by, w: bulletsW, h: subtitle ? 4.5 : 4.6 });
+  addDemoRef(s, demoRef);
   footer(s);
   if (notes) s.addNotes(notes);
   return s;
 }
 
+// Bullet items: { text, lvl, color, head, lead }. `lead` is a bold subject run
+// (C.ink) at the start of the same paragraph, followed by `text`.
 function addBullets(s, bullets, { x, y, w, h = 4.6, fontSize = 16 }) {
   const runs = [];
   bullets.forEach((b, i) => {
     const lvl = b.lvl || 0;
     if (b.head) {
-      runs.push({ text: b.text, options: { bold: true, color: C.ink, fontFace: F.head, fontSize: fontSize + 1, bullet: false, breakLine: true, paraSpaceBefore: i ? 8 : 0, paraSpaceAfter: 3 } });
+      runs.push({ text: b.text, options: { bold: true, color: C.ink, fontFace: F.head, fontSize: fontSize + 1, bullet: false, breakLine: true, paraSpaceBefore: i ? 8 : 0, paraSpaceAfter: 4 } });
+      return;
+    }
+    const para = {
+      fontFace: F.body, fontSize: lvl ? fontSize - 1 : fontSize,
+      bullet: { indent: 18 }, indentLevel: lvl,
+      paraSpaceBefore: lvl ? 0 : 4, paraSpaceAfter: lvl ? 8 : 14,
+    };
+    const color = b.color || (lvl ? C.gray : C.body);
+    if (b.lead) {
+      runs.push({ text: b.lead, options: { ...para, bold: true, color: C.ink } });
+      runs.push({ text: (b.sep === undefined ? " " : b.sep) + b.text, options: { fontFace: F.body, fontSize: para.fontSize, color, breakLine: true } });
     } else {
-      runs.push({ text: b.text, options: { color: b.color || (lvl ? C.gray : C.body), fontFace: F.body, fontSize: lvl ? fontSize - 1 : fontSize, bullet: { indent: 18 }, indentLevel: lvl, breakLine: true, paraSpaceAfter: 6 } });
+      runs.push({ text: b.text, options: { ...para, color, breakLine: true } });
     }
   });
   s.addText(runs, { x, y, w, h, valign: "top", margin: 0 });
 }
 
 // ---- DIAGRAM slide ----
-function diagramSlide({ eyebrow, title, image, caption, notes }) {
+function diagramSlide({ eyebrow, title, subtitle, demoRef, image, caption, notes }) {
   const s = pres.addSlide();
   s.background = { color: C.white };
-  head(s, eyebrow, title);
+  head(s, eyebrow, title, { subtitle });
   const d = DIMS[image];
-  const maxH = 4.3, maxW = PW - 1.6;
+  const maxH = subtitle ? 4.05 : 4.3, maxW = PW - 1.6;
   let w = maxW, h = w * (d.h / d.w);
   if (h > maxH) { h = maxH; w = h * (d.w / d.h); }
-  const x = (PW - w) / 2, y = 1.8 + (maxH - h) / 2;
+  const x = (PW - w) / 2, y = (subtitle ? 2.05 : 1.8) + (maxH - h) / 2;
   s.addImage({ path: IMG(image), x, y, w, h });
   if (caption) s.addText(caption, { x: 0.8, y: PH - 1.0, w: PW - 1.6, h: 0.5, fontSize: 12.5, color: C.gray, fontFace: F.body, italic: true, align: "center", valign: "top", margin: 0 });
+  addDemoRef(s, demoRef);
   footer(s);
   if (notes) s.addNotes(notes);
   return s;
 }
 
 // ---- CODE slide: full-width rounded dark panel, explanation in caption below ----
-function codeSlide({ eyebrow, title, lang, code, note, notes }) {
+function codeSlide({ eyebrow, title, subtitle, demoRef, lang, code, note, notes }) {
   const s = pres.addSlide();
   s.background = { color: C.white };
-  head(s, eyebrow, title);
-  const px = 0.7, py = 1.85, pw = PW - 1.4, ph = note ? 4.1 : 4.55;
+  head(s, eyebrow, title, { subtitle });
+  const px = 0.7, py = subtitle ? 2.1 : 1.85, pw = PW - 1.4, ph = (note ? 4.1 : 4.55) - (subtitle ? 0.25 : 0);
   s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: px, y: py, w: pw, h: ph, rectRadius: 0.12, fill: { color: C.codebg }, line: { type: "none" }, shadow: shadow() });
   if (lang) s.addText(lang, { x: px + pw - 3.2, y: py + 0.14, w: 3.0, h: 0.28, fontSize: 11, color: C.codemut, fontFace: F.mono, align: "right", margin: 0 });
   // colorize and auto-size font to fit panel height
@@ -180,17 +204,18 @@ function codeSlide({ eyebrow, title, lang, code, note, notes }) {
   runs.forEach((r) => { r.options.fontSize = fs; });
   s.addText(runs, { x: px + 0.35, y: py + topPad, w: pw - 0.7, h: avail, valign: "top", margin: 0, lineSpacingMultiple: 1.12 });
   if (note) s.addText(note, { x: px, y: py + ph + 0.18, w: pw, h: 0.8, fontSize: 13, color: C.gray, fontFace: F.body, italic: true, valign: "top", margin: 0 });
+  addDemoRef(s, demoRef);
   footer(s);
   if (notes) s.addNotes(notes);
   return s;
 }
 
 // ---- TABLE slide: titled slide with a pptxgenjs table in house style ----
-function tableSlide({ eyebrow, title, headers, rows, note, notes }) {
+function tableSlide({ eyebrow, title, subtitle, demoRef, headers, rows, note, notes }) {
   const s = pres.addSlide();
   s.background = { color: C.white };
-  head(s, eyebrow, title);
-  const tx = 0.7, ty = 1.95, tw = PW - 1.4;
+  head(s, eyebrow, title, { subtitle });
+  const tx = 0.7, ty = subtitle ? 2.15 : 1.95, tw = PW - 1.4;
   const colCount = (headers && headers.length) || (rows && rows[0] && rows[0].length) || 1;
   const colW = Array(colCount).fill(tw / colCount);
   const cellOpts = { fontFace: F.body, fontSize: 13, align: "left", valign: "middle" };
@@ -216,6 +241,28 @@ function tableSlide({ eyebrow, title, headers, rows, note, notes }) {
     margin: [4, 8, 4, 8],
   });
   if (note) s.addText(note, { x: tx, y: PH - 1.05, w: tw, h: 0.45, fontSize: 13, color: C.gray, fontFace: F.body, italic: true, valign: "top", margin: 0 });
+  addDemoRef(s, demoRef);
+  footer(s);
+  if (notes) s.addNotes(notes);
+  return s;
+}
+
+// ---- GLOSSARY slide: two columns of bold term + short definition ----
+function glossarySlide({ eyebrow, title, terms, notes }) {
+  const s = pres.addSlide();
+  s.background = { color: C.white };
+  head(s, eyebrow, title);
+  const nLeft = Math.ceil(terms.length / 2);
+  const cols = [terms.slice(0, nLeft), terms.slice(nLeft)];
+  const xs = [0.7, 6.85];
+  cols.forEach((col, ci) => {
+    const runs = [];
+    col.forEach((t) => {
+      runs.push({ text: t.term, options: { bold: true, color: C.ink, fontFace: F.head, fontSize: 15, breakLine: true, paraSpaceAfter: 2 } });
+      runs.push({ text: t.def, options: { color: C.body, fontFace: F.body, fontSize: 13, breakLine: true, paraSpaceAfter: 14 } });
+    });
+    s.addText(runs, { x: xs[ci], y: 1.85, w: 5.8, h: 4.9, valign: "top", margin: 0 });
+  });
   footer(s);
   if (notes) s.addNotes(notes);
   return s;
@@ -254,4 +301,26 @@ function findComment(ln) {
   return -1;
 }
 
-module.exports = { pres, C, F, PW, PH, titleSlide, agendaSlide, divider, contentSlide, diagramSlide, codeSlide, tableSlide, head, addBullets, footer, pageNumOnly, DIMS, IMG, LOGO_DARK, LOGO_LIGHT, LOGO_AR, ILLUS };
+// pptxgenjs emits a paragraph-properties block for every run; a second block in
+// the same paragraph (the text run after a bold lead) overrides the first and
+// drops the bullet. Keep only the first <a:pPr> in each paragraph, then write.
+async function writeDeck(fileName) {
+  const JSZip = require("jszip");
+  const buf = await pres.write({ outputType: "nodebuffer" });
+  const zip = await JSZip.loadAsync(buf);
+  const re = /<a:pPr\b[^>]*>[\s\S]*?<\/a:pPr>/g;
+  for (const name of Object.keys(zip.files)) {
+    if (!/^ppt\/slides\/slide\d+\.xml$/.test(name)) continue;
+    const xml = await zip.file(name).async("string");
+    const out = xml.split("<a:p>").map((chunk, i) => {
+      if (i === 0) return chunk;
+      let n = 0;
+      return chunk.replace(re, (m) => (n++ === 0 ? m : ""));
+    }).join("<a:p>");
+    zip.file(name, out);
+  }
+  fs.writeFileSync(fileName, await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
+  return fileName;
+}
+
+module.exports = { writeDeck, pres, C, F, PW, PH, titleSlide, agendaSlide, divider, contentSlide, diagramSlide, codeSlide, tableSlide, glossarySlide, addDemoRef, head, addBullets, footer, pageNumOnly, DIMS, IMG, LOGO_DARK, LOGO_LIGHT, LOGO_AR, ILLUS };
