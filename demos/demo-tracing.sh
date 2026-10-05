@@ -89,7 +89,7 @@ narrate "service boundary (order-service -> inventory-service gRPC CheckStock)."
 narrate "This demo attaches the upstream OTel Java agent to both packaged"
 narrate "services (zero source/pom changes) and queries Tempo's HTTP API in"
 narrate "the compose otel-lgtm stack for a parsed, multi-service trace --"
-narrate "not just 'the app logged something'."
+narrate "which shows span propagation, which a log line alone does not."
 
 # ─── OTel Java agent: download once, cache outside the repo ────────────────
 step "preflight: OpenTelemetry Java auto-instrumentation agent"

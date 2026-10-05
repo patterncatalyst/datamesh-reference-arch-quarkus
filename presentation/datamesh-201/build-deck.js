@@ -77,7 +77,7 @@ agendaSlide({
     { text: "09 · Native" },
     { text: "10 · The whole picture" },
     { text: "11 · Appendices" },
-    { text: "Appendix", italic: true },
+    { text: "Appendix: reference material", italic: true },
   ],
   notes: "Twelve numbered sections (00 to 11) plus a reference appendix. The thread is the four data-mesh principles from the 101 deck, and every section is tied to Quarkus code and a runnable demo script. The three-engines section is the main addition over the Python sibling: three coordination engines over one domain. The AI and rules section is the second: LLM classification feeding a deterministic rules engine, with the known limitation stated. The Quarkus section covers twelve capabilities, including the JDK 25 AOT cache and the Panama foreign function API. The appendix holds the full demo matrix, a glossary, and the background diagrams.",
 });
@@ -446,7 +446,7 @@ tableSlide({ eyebrow: "Quarkus vs. Spring Boot", title: "The numbers on the plai
     ["Persistence idiom", "Panache active record", "Spring Data JPA"],
   ],
   note: "Quarkus starts in about half the time and uses about 60% of the memory of the Spring Boot service on the same REST, JPA, Kafka/Avro, and gRPC surface.",
-  notes: "One run (Temurin 25.0.3, 2026-10-05; the JVM columns of the AOT comparison that follows) with both services under their packaged profile. Scope: JVM to JVM, with no native image on either side (native is a separate axis, covered in its own section). Treat the numbers as indicative: a single run on one developer machine through scripts/compare-quarkus-springboot.sh, unverified, with no averaging across runs, so absolute numbers will differ. The measurement boots the real wiring: the gRPC channel and the Kafka producer both initialize. Each framework's own self-reported 'boot complete' log line is the signal, because the script points KAFKA_BOOTSTRAP_SERVERS at a dead port for both services, so a health-based wait would time out on both. A cell the script cannot measure prints the placeholder <measured-on-run> in place of a number. The next slide adds the JDK 25 AOT cache to both services and brings startup to parity. Reach for Quarkus's footprint where it is paid repeatedly: scale to zero, dense multi-tenant deployments, serverless. Spring Boot's ecosystem and team familiarity are real advantages." });
+  notes: "One run (Temurin 25.0.3, 2026-10-05; the JVM columns of the AOT comparison that follows) with both services under their packaged profile. Scope: JVM to JVM, with no native image on either side (native is a separate axis, covered in its own section). Treat the numbers as indicative: a single run on one developer machine through scripts/compare-quarkus-springboot.sh (measured, single run, indicative), with no averaging across runs, so absolute numbers will differ. The measurement boots the real wiring: the gRPC channel and the Kafka producer both initialize. Each framework's own self-reported 'boot complete' log line is the signal, because the script points KAFKA_BOOTSTRAP_SERVERS at a dead port for both services, so a health-based wait would time out on both. A cell the script cannot measure prints the placeholder <measured-on-run> in place of a number. The next slide adds the JDK 25 AOT cache to both services and brings startup to parity. Reach for Quarkus's footprint where it is paid repeatedly: scale to zero, dense multi-tenant deployments, serverless. Spring Boot's ecosystem and team familiarity are real advantages." });
 
 tableSlide({ eyebrow: "Quarkus vs. Spring Boot", title: "With the JDK 25 AOT cache on both",
   demoRef: "scripts/compare-quarkus-springboot.sh --aot",
@@ -638,14 +638,42 @@ contentSlide({ eyebrow: "The whole picture", title: "Adoption: start small",
     { head: true, text: "Verify each piece before adding the next" },
     { text: "Each piece in this deck can be verified on its own: stand it up, confirm it with its own demo, then add the next. The project was built that way, and each chapter ends with a verification status footer.", color: C.ink },
   ],
-  notes: "A practical close. A mesh, or this project's full stack, is not adopted all at once; the principles are independent enough to land incrementally. The answer to where to start is one domain, one product, and one demo that proves each piece before the next is added, and not the whole appendix on day one." });
+  notes: "A practical step before the wrap-up. A mesh, or this project's full stack, is not adopted all at once; the principles are independent enough to land incrementally. The answer to where to start is one domain, one product, and one demo that proves each piece before the next is added, and not the whole appendix on day one." });
+
+// ---- local: wide diagram on top, four bold-lead bullets in two columns below ----
+function wideDiagramSlide({ eyebrow, title, image, bullets, notes }) {
+  const s = pres.addSlide();
+  s.background = { color: C.white };
+  L.head(s, eyebrow, title);
+  const d = L.DIMS[image];
+  const maxW = PW - 1.4, maxH = 4.0;
+  let w = maxW, h = w * (d.h / d.w);
+  if (h > maxH) { h = maxH; w = h * (d.w / d.h); }
+  s.addImage({ path: L.IMG(image), x: (PW - w) / 2, y: 1.45, w, h });
+  const by = 1.45 + h + 0.1, colW = (PW - 1.4 - 0.4) / 2;
+  L.addBullets(s, bullets.slice(0, 2), { x: 0.7, y: by, w: colW, h: 6.75 - by, fontSize: 12 });
+  L.addBullets(s, bullets.slice(2), { x: 0.7 + colW + 0.4, y: by, w: colW - 0.3, h: 6.75 - by, fontSize: 12 });
+  L.footer(s);
+  if (notes) s.addNotes(notes);
+  return s;
+}
+
+wideDiagramSlide({ eyebrow: "The whole picture", title: "Analytical data: what it is and why it matters",
+  image: "05-analytical-data-composition",
+  bullets: [
+    { lead: "What it is:", text: "historical, integrated, read-optimized views across domains, used for decisions and models." },
+    { lead: "How a mesh produces it:", text: "domain-owned analytical data products derived from operational events and published with contracts." },
+    { lead: "Value:", text: "trusted, discoverable data for decisions, ML features, and compliance, reused by many consumers without a central bottleneck." },
+    { lead: "Here:", text: "the operational half is built; the analytical half is designed (sourcing and composition) and not built." },
+  ],
+  notes: "Analytical data is the point of the whole exercise, so it closes the main talk. It is the historical, integrated, read-optimized view that analysts and models use, in contrast to the current-state rows behind running services. A mesh produces it as domain-owned analytical data products, derived from operational events and published with the same contract discipline as the operational ones, so consumers find and trust them without a central team. For the organization this is the payoff: trusted, discoverable data for decisions, ML features, and compliance, reused by many consumers without a central bottleneck, which is the data-as-a-product principle applied to analytics. The diagram shows operational data refined through events and entities into a published data product that analytics consumes. Status: the operational services, contracts, and events in this project are built and demonstrated. The analytical sourcing and composition shown here, and the ingestion and streaming picture earlier in the deck, are designed and not built; there is no CDC layer and no catalog ingesting lineage yet." });
 
 (() => {
   const s = pres.addSlide();
   s.addImage({ path: L.ILLUS, x: 0, y: 0, w: PW, h: PH, sizing: { type: "cover", w: PW, h: PH } });
   const rx = PW * 0.42, rw = PW - rx - 0.7;
   s.addText("Nineteen demos. Three orchestration engines.", { x: rx, y: 2.5, w: rw, h: 1.4, fontSize: 27, color: "FFFFFF", fontFace: F.head, bold: true, valign: "top", margin: 0 });
-  s.addText("Every capability backed by running code.", { x: rx, y: 3.9, w: rw, h: 0.9, fontSize: 27, color: "FFD9D9", fontFace: F.head, bold: true, valign: "top", margin: 0 });
+  s.addText("Every capability backed by code in this project.", { x: rx, y: 3.9, w: rw, h: 0.9, fontSize: 27, color: "FFD9D9", fontFace: F.head, bold: true, valign: "top", margin: 0 });
   s.addText("Quarkus and Kubernetes give the four principles a working platform.", { x: rx, y: 5.0, w: rw, h: 0.6, fontSize: 14.5, color: "FFFFFF", fontFace: F.body, italic: true, valign: "top", margin: 0 });
   const lw = 1.25, lh = lw / L.LOGO_AR;
   s.addImage({ path: L.LOGO_LIGHT, x: PW - 0.6 - lw, y: PH - 0.3 - lh, w: lw, h: lh });
@@ -806,19 +834,19 @@ glossarySlide({ eyebrow: "Appendix · glossary", title: "Glossary (3 of 3): plat
 twoUpDiagramSlide({ eyebrow: "Appendix · background diagrams", title: "From pipelines to warehouses: the earlier architectures",
   images: ["01-data-pipeline-architecture", "01-data-warehouse-architecture"],
   captions: ["A linear ETL or ELT pipeline moving data from an operational source through transformation to an analytical destination.", "Multiple operational sources feeding a centralized, schema-on-write warehouse owned by a central team."],
-  note: "Figures from the 101 deck; not part of the 201 narrative.",
+  note: "Background: earlier data architectures, from pipelines to warehouses.",
   notes: "These two diagrams set up the architectural history the 101 deck argues against. The 201 deck assumes that argument is settled and goes straight to building the mesh, so the figures are kept here for reference." });
 
 twoUpDiagramSlide({ eyebrow: "Appendix · background diagrams", title: "The data lake, and the shift to decentralization",
   images: ["01-data-lake-architecture", "01-data-mesh-decentralized"],
   captions: ["A data lake organized into raw, curated, and refined zones, accepting structured, semi-structured, and unstructured data.", "Multiple domain teams each owning a data product, connected by a shared self-serve platform instead of a central team."],
-  note: "Figures from the 101 deck; not part of the 201 narrative.",
+  note: "Background: the data lake and the shift to decentralization.",
   notes: "The data lake is the third centralized architecture the 101 deck walks through before introducing the mesh. The decentralized diagram is the target that this deck builds piece by piece in Quarkus." });
 
 twoUpDiagramSlide({ eyebrow: "Appendix · background diagrams", title: "The monolith-to-mesh refactor, and its timeline",
   images: ["01-monolith-to-mesh", "01-architecture-evolution"],
   captions: ["A monolithic application and its monolithic data platform both decomposing into domain-owned services and domain-owned data products.", "The progression from pipelines to warehouses to lakes to mesh, with the problem each pattern solved."],
-  note: "Figures from the 101 deck; not part of the 201 narrative.",
+  note: "Background: the monolith-to-mesh refactor and the evolution of data architectures.",
   notes: "The monolith-to-mesh analogy (the refactor microservices applied to applications, applied to data) carries a lot of the 101 deck. The evolution timeline is the one-slide history of why each earlier architecture hit a wall. Both are assumed knowledge by the time the 201 starts." });
 
 diagramSlide({ eyebrow: "Appendix · background diagrams", title: "The full project example on Kubernetes",
@@ -830,16 +858,6 @@ diagramSlide({ eyebrow: "Appendix · background diagrams", title: "Operational v
   image: "01-operational-vs-analytical",
   caption: "The operational plane runs the business; the analytical plane informs decisions. Pipelines have traditionally bridged them; a mesh keeps both owned by the domain.",
   notes: "The 101 deck's version of the seam a mesh addresses. Traditionally the operational and analytical layers are separate technology stacks joined by pipelines. A mesh keeps the distinction but organizes it by domain: each domain owns its operational systems and the analytical products derived from them. The final slide of the deck covers the analytical half in more detail." });
-
-diagramBulletsSlide({ eyebrow: "Appendix · analytical data", title: "Analytical data: what it is and why it matters",
-  image: "05-analytical-data-composition",
-  bullets: [
-    { lead: "What it is:", text: "historical, integrated, read-optimized views across domains, used for decisions and models." },
-    { lead: "How a mesh produces it:", text: "domain-owned analytical data products derived from operational events and published with contracts." },
-    { lead: "Value:", text: "trusted, discoverable data for decisions, ML features, and compliance, reused by many consumers without a central bottleneck." },
-    { lead: "Here:", text: "the operational half is built; the analytical half is designed (sourcing and composition) and not built." },
-  ],
-  notes: "The last slide, tying back to the data-as-a-product principle. Analytical data is the historical, integrated, read-optimized view that analysts and models use, in contrast to the current-state rows behind running services. A mesh produces it as domain-owned analytical data products, derived from operational events and published with the same contract discipline as the operational ones, so consumers find and trust them without a central team. The diagram shows operational data refined through events and entities into a published data product that analytics consumes. Status: the operational services, contracts, and events in this project are built and demonstrated. The analytical sourcing and composition shown here, and the ingestion and streaming picture earlier in the deck, are designed and not built; there is no CDC layer and no catalog ingesting lineage yet." });
 
 /* ============================ WRITE ============================ */
 L.writeDeck("Datamesh-201-Quarkus-r1.1.pptx").then((f) => console.log("WROTE", f));

@@ -80,7 +80,7 @@ between each tier so a failure in one doesn't cascade silently into the next:
 ./scripts/bootstrap.sh
 ```
 
-The script is intentionally linear and idempotent — every step is `helm upgrade
+The script is linear and idempotent — every step is `helm upgrade
 --install`, `kubectl apply`, or `kubectl wait`, so re-running it after an interrupted run
 resumes rather than fails. Reading top to bottom, it builds the platform tier in
 dependency order:
@@ -216,7 +216,7 @@ products through stable contracts (data as a product), the domain services each 
 their slice of the mesh (domain ownership), the platform tier underneath is shared and
 consumed by declaration (self-serve platform), and the mesh and registry enforce the
 rules on the traffic and the contracts between everything (federated governance). The
-rest of the tutorial elaborates this picture.
+later chapters elaborate this picture.
 
 ## A note on single-node clusters
 

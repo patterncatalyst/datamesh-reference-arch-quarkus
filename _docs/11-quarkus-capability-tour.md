@@ -373,8 +373,9 @@ picks the thread from the signature:
 
 `checkStock` returns `Uni` because the gRPC interface is generated in Mutiny
 form, and it calls Panache's blocking API, so it carries `@Blocking`. Without
-the annotation the JDBC call would run on the event loop and Quarkus would
-log a blocked-thread warning, then stall other connections under load.
+the annotation the Panache call would run on the event loop, and Quarkus
+rejects it with `BlockingOperationNotAllowedException`; this project hit
+exactly that before adding `@Blocking`.
 `StockResource.get` needs no annotation: a plain return type already selects a
 worker thread.
 

@@ -53,7 +53,7 @@
 #
 # ── order.placed publish silently fails in packaged/%prod mode without an
 # Avro security system property (found wiring this demo -- a real, previously
-# undetected production-readiness gap, not just a demo-script wrinkle) ──────
+# undetected production-readiness gap) ──────
 # A packaged order-service boots and serves POST /orders fine (the publish
 # is fire-and-forget -- OrderEventProducer's failure path only logs, see
 # OrderResource.placeOrder's `.exceptionally(...)`), but EVERY order.placed

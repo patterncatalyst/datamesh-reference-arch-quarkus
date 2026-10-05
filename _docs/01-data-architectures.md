@@ -164,7 +164,7 @@ might store its refined data in a Parquet-based lakehouse. The reorganization is
 The mesh is an answer to the question "how does this organization scale its data
 architecture?" — not "which database should this team pick?"
 
-The mesh earns its complexity in organizations with many domains, many data consumers,
+The mesh pays off in organizations with many domains, many data consumers,
 and the operational maturity to sustain federated ownership. For smaller teams, simpler
 data flows, or organizations where the central team is not yet the bottleneck, a
 well-run warehouse or a governed lake may be exactly the right answer. The mesh is not

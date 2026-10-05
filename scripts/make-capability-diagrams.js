@@ -113,7 +113,7 @@ const lbl = (s, x, y, t, o = {}) => T(s, x, y, t, { size: 14, fill: MUT, italic:
   box(s, 50, 110, 500, 56, "white", null, [{ t: "StockDto get(String sku)", mono: true }]);
   arrow(s, 300, 166, 300, 206);
   box(s, 150, 206, 300, 80, "blue", "Worker thread", ["Blocking calls are fine"]);
-  box(s, 50, 316, 500, 72, "gray", null, ["A plain return type runs on a worker thread", "by default in Quarkus REST and gRPC"]);
+  box(s, 50, 316, 500, 72, "gray", null, ["A plain return type runs on a worker thread", "by default in Quarkus REST"]);
 
   frame(s, 590, 64, 560, 340, "Reactive: InventoryGrpcService", "orange");
   box(s, 610, 110, 520, 56, "white", null, [{ t: "Uni<CheckStockResponse> checkStock(req)", mono: true }]);

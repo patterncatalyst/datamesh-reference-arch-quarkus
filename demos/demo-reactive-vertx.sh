@@ -27,7 +27,7 @@
 # failure, non-blocking I/O and classic imperative code sharing one app.
 #
 # ── Why CheckStock's gRPC answer and the REST GET /stock/{sku} answer are
-# NOT the same computation (the point of running both, not just one) ───────
+# NOT the same computation (the point of running both) ───────
 # REST's `available` is a static snapshot: `quantityOnHand > 0`. The gRPC
 # path's `available` is REQUEST-DEPENDENT: `quantity > 0 && onHand >=
 # quantity` (see InventoryGrpcService.checkStock) — asking for more than is
@@ -35,8 +35,8 @@
 # the SKU as "available" (nonzero stock). This demo's WIDGET-2 case (3 on
 # hand) asserts exactly that divergence: REST says available=true,
 # qty=3; gRPC asked for 100 says available=false, qty=3 — proving the
-# gRPC path is a real, independently-computed reactive endpoint, not just a
-# thin pass-through of the same REST logic.
+# gRPC path is an independently-computed reactive endpoint, with its own
+# logic rather than a pass-through of the REST logic.
 #
 # ── Why grpcurl with -proto (not server reflection) ─────────────────────────
 # Quarkus's dev-mode gRPC server happens to answer `grpcurl list` via

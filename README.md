@@ -17,11 +17,13 @@ It serves two purposes at once:
    as a product, self-serve platform, federated computational governance)
    — as a running system, with contracts, a catalog, progressive delivery,
    event-driven autoscaling, and full observability.
-2. **A Quarkus showroom.** The same services exercise Panache, gRPC,
-   GraphQL, Reactive Messaging, Camel-on-Quarkus, langchain4j/MCP,
-   WebSockets.Next, OIDC, and Vert.x reactive execution — with a
+2. **Quarkus capabilities in practice.** The same services exercise Panache,
+   gRPC, GraphQL, Reactive Messaging, Camel-on-Quarkus, langchain4j/MCP,
+   WebSockets.Next, Vert.x reactive and imperative execution, continuous
+   testing and Dev Services, native image, the JDK AOT cache (Leyden), OIDC,
+   JBang, and Panama FFM — with a
    runnable Spring Boot twin service (`examples/spring-boot-compare`) for
-   a real side-by-side JVM comparison.
+   a side-by-side JVM comparison.
 
 ## Architecture at a glance
 

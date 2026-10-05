@@ -187,7 +187,7 @@ exists for exactly one reason, documented in its own Javadoc: Spring Boot's
 Kafka auto-configuration only exposes a raw `KafkaTemplate<Object, Object>`,
 and that generic type does not satisfy the type-aware autowire `@Autowired
 KafkaTemplate<String, OrderPlaced>` would need in `OrderEventProducer` — left
-unaddressed, the application context simply fails to start. The fix is not
+unaddressed, the application context fails to start. The fix is not
 to hand-write the whole producer configuration (bootstrap servers,
 serializers, the `apicurio.registry.*` passthrough already correctly derived
 from [application.properties]({{ site.repo_blob }}/examples/spring-boot-compare/src/main/resources/application.properties)'s `spring.kafka.*` keys) a second time; it's
@@ -254,21 +254,21 @@ it never invents a result, and a boot failure within the 90-second budget is
 a hard failure (`fail()`, with the last 60 log lines dumped), not a silently
 blank cell.
 
-{% include excalidraw.html file="12-quarkus-vs-spring-boot" alt="Side-by-side startup diagram: order-service (Quarkus, built-time metaprogramming) and spring-boot-compare (Spring Boot 4.0.8, classpath scanning and reflection at startup) both booting against the same throwaway postgres:18 container under identical JVM flags, each measured via its own self-reported started log line rather than an aggregate health check, ending in the 1.54s/314MB versus 3.21s/494MB comparison" caption="Figure 12.1 — Same workload, same JVM, two startup paths measured identically" %}
+{% include excalidraw.html file="12-quarkus-vs-spring-boot" alt="Side-by-side startup diagram: order-service (Quarkus, built-time metaprogramming) and spring-boot-compare (Spring Boot 4.0.8, classpath scanning and reflection at startup) both booting against the same throwaway postgres:18 container under identical JVM flags, each measured via its own self-reported started log line rather than an aggregate health check, ending in the 2.05 s / 337 MB versus 4.02 s / 548 MB comparison" caption="Figure 12.1 — Same workload, same JVM, two startup paths measured identically" %}
 
-With the methodology out of the way, here is what one run produced.
+Results from one run follow.
 
 ## The numbers
 
-Both services were built under their packaged/`prod` profile:
+Both services were built under their packaged/`prod` profile. Single run on JDK 25.0.3 (Temurin), 2026-10-05:
 
 | Service | Startup (self-reported) | Startup (wall-clock) | Resident memory (RSS) |
 |---|---|---|---|
-| **order-service** (Quarkus) | **1.54 s** | 1.63 s | **314 MB** |
-| **spring-boot-compare** (Spring Boot) | 3.21 s | 3.66 s | 494 MB |
+| **order-service** (Quarkus) | **2.05 s** | 2.22 s | **337 MB** |
+| **spring-boot-compare** (Spring Boot) | 4.02 s | 4.45 s | 548 MB |
 
 On this run, the Quarkus service starts in roughly **half the time** and
-boots into roughly **two-thirds the resident memory** of the Spring Boot twin
+boots into roughly **60% of the resident memory** of the Spring Boot twin
 carrying the same REST + JPA + Kafka/Avro + gRPC surface. That gap is the
 practical payoff of Quarkus's build-time metaprogramming: work that Spring
 does by classpath scanning and reflection at startup, Quarkus does once at
@@ -335,9 +335,8 @@ Caveats:
   touched at startup count toward resident memory. Quarkus's RSS rose with
   the cache for that reason, and the RSS comparison is not a heap comparison.
 - **Single run.** One run per cell on one machine, no averaging. The JVM
-  rows here differ from the first table (Quarkus 2.05 s against 1.54 s)
-  because they come from a separate run, which shows the run-to-run spread.
-  Compare the ratios within a table, not numbers across runs.
+  rows repeat the main table; absolute numbers vary between runs, so compare
+  ratios.
 - **Training coverage.** The training run only boots the service against a
   database and an unreachable Kafka. A longer training run that exercises
   request paths would cache more classes, and was not measured.
@@ -386,4 +385,4 @@ Quarkus starts faster and uses less memory* — weigh that against everything
 else you already know about both frameworks.
 
 ---
-*Verification status: <span class="status status--verified">verified</span>. Both services build and boot, the twin's `mvn verify` passed (OrderControllerTest 4/4), and `scripts/compare-quarkus-springboot.sh` was run on JDK 25.0.3 (Temurin) on 2026-10-05 in default JVM mode and with `--aot`: both exited 0, the default run gave Quarkus 1.99 s / 336 MB against Spring Boot 3.94 s / 539 MB, and the `--aot` run produced the AOT table above with `-XX:AOTMode=on`. Each figure is a single run; the main-table figures come from an earlier capture, and the ratio is what reproduces. Native image was not run.*
+*Verification status: <span class="status status--verified">verified</span>. Both services build and boot, the twin's `mvn verify` passed (OrderControllerTest 4/4), and `scripts/compare-quarkus-springboot.sh` was run on JDK 25.0.3 (Temurin) on 2026-10-05 in default JVM mode and with `--aot`: both exited 0, the default JVM table and the AOT table above come from that single run (Quarkus 2.05 s / 337 MB against Spring Boot 4.02 s / 548 MB on the plain JVM), and the `--aot` run used `-XX:AOTMode=on`. Each figure is a single run. Native image was not run.*

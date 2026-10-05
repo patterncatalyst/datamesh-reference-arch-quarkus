@@ -23,9 +23,9 @@
 # ── What this demo proves ────────────────────────────────────────────────
 #   1. DELETE with NO bearer token  -> 401 (unauthenticated)
 #   2. DELETE with bob's token (user role, no admin) -> 403 (unauthorized —
-#      an RBAC check, not just "has a token")
+#      an RBAC check: a token alone is insufficient)
 #   3. DELETE with alice's token (admin role) -> 204, and the review is
-#      gone (follow-up GET -> 404) — not just "the call didn't 401"
+#      gone (follow-up GET -> 404), which confirms the delete took effect
 # All three tokens are obtained from the REAL Keycloak Dev Service via the
 # password grant (same idiom as the Quarkus bearer-token-auth-tutorial), not
 # faked/mocked — this is a live OIDC round trip end to end.
@@ -175,7 +175,7 @@ CODE_FORBIDDEN="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X DELETE
 info "DELETE /reviews/${REVIEW_ID} (bob token) -> HTTP $CODE_FORBIDDEN"
 [[ "$CODE_FORBIDDEN" == "403" ]] \
     || fail "expected 403 for DELETE with a valid-but-insufficient-role token, got $CODE_FORBIDDEN"
-narrate "confirmed: a valid token without the admin role -> 403, this is RBAC, not just token-presence checking"
+narrate "confirmed: a valid token without the admin role -> 403, this is RBAC: a valid token alone is insufficient"
 
 step "3/3 -- DELETE with alice's token (admin role): expect 204, then confirm the review is gone"
 CODE_AUTHORIZED="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X DELETE "${BASE_URL}/reviews/${REVIEW_ID}" \
@@ -189,7 +189,7 @@ CODE_GONE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "${BASE_URL}/r
 info "GET /reviews/${REVIEW_ID} after delete -> HTTP $CODE_GONE"
 [[ "$CODE_GONE" == "404" ]] \
     || fail "expected 404 after the authorized delete, got $CODE_GONE -- the DELETE did not take effect"
-narrate "confirmed: the review row is gone, not just a 204 that did nothing"
+narrate "confirmed: the review row is gone (follow-up GET returned 404)"
 
 step "live OIDC + Keycloak Dev Service demo confirmed"
 narrate "Three real password-grant tokens from a disposable Keycloak Dev Service"

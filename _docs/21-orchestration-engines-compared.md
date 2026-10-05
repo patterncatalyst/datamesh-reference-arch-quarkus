@@ -45,7 +45,7 @@ in
 is annotated the
 mirror image, `@Incoming(Topics.PAYMENT_CAPTURED_CHANNEL)` /
 `@Outgoing(Topics.SHIPMENT_DISPATCHED_CHANNEL)`. Each method's own code is
-a complete description of what *it* does; the fact that these two methods
+a complete description of what *it* does; that these two methods
 happen to chain into a three-hop saga is a fact about the system, not a
 fact recorded in either method, or in `OrderEventProducer` (which only
 knows it publishes `order.placed` after an order commits), or anywhere

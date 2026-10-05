@@ -197,7 +197,7 @@ wait_http "${ORDER_BASE}/q/health/live" 60 \
 info "order-service is up"
 
 # ─── Baseline Apicurio artifact count (so the post-produce check is a real
-# delta, not just "something, somewhere, was already registered") ──────────
+# delta against this baseline, so artifacts registered earlier do not count) ──────────
 BASELINE_COUNT="$(curl -fsS --max-time 10 "${APICURIO_BASE}/search/artifacts?limit=1" \
     | jq -r '.count // 0')"
 info "Apicurio artifact count before producing: ${BASELINE_COUNT}"

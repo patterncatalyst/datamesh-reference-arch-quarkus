@@ -25,7 +25,7 @@ generalizes.
 
 ## Where it helps
 
-Agentic assistance earns its keep on work that is **bounded and
+Agentic assistance pays off on work that is **bounded and
 well-specified**, even when it spans many files. Three shapes recur in this
 repo:
 

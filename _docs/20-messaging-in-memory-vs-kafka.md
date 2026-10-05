@@ -64,7 +64,7 @@ public class GreetingService {
 
 This repository reaches the same in-memory machinery through the
 Reactive Messaging API: `smallrye-in-memory` is a connector that swaps in
-for Kafka on a channel, which is what the rest of this chapter uses.
+for Kafka on a channel, which is what this chapter uses.
 
 ## Kafka messaging on its own
 
@@ -85,7 +85,7 @@ network hop, serialization, and operating a broker. Chapter 16 shows the same
 mechanism used the other way: a per-replica group gives every replica every
 event.
 
-{% include excalidraw.html file="20-inmemory-vs-kafka" alt="Two columns side by side. Left column, labeled 'In-memory (Vert.x) connector — tests': a single JVM box containing an InMemorySource, the ShipmentProcessor.process method annotated @Incoming/@Outgoing, and an InMemorySink, all connected by in-process method calls with no network hop and no broker. Right column, labeled 'Kafka connector — %prod': two separate JVM boxes (payment-service and shipping-service) each talking over the network to a Kafka broker box in the middle holding the payment.captured and shipment.dispatched topics with partitions and an Apicurio Schema Registry box beside it for Avro schemas. Below both columns, a trade-off table with rows for latency, coupling, durability, ordering guarantees, back-pressure, and testing ergonomics, with the in-memory column marked fast/tightly-coupled/non-durable/single-JVM-only and the Kafka column marked network-latency/decoupled/durable/partition-ordered/broker-mediated-back-pressure." caption="Figure A5.3 — In-memory vs. Kafka: same code, different connector" %}
+{% include excalidraw.html file="20-inmemory-vs-kafka" alt="A two-column comparison table, In-memory (Vert.x, one JVM) versus Kafka (cluster), with rows for scope, durability, ordering, how it scales, failure, and use in this project. A band at the bottom reads: Same @Incoming/@Outgoing code; only connector config changes." caption="Figure A5.3 — In-memory vs. Kafka: same code, different connector" %}
 
 ## The code that doesn't change
 
@@ -215,8 +215,8 @@ mp.messaging.outgoing.payment-captured.apicurio.registry.auto-register=true
 `payment-service` and `shipping-service` are two separate Quarkus
 applications, each with its own JVM, each independently deployable, that
 agree on nothing except the topic name, the Avro schema registered in
-Apicurio, and the fact that both point `kafka.bootstrap.servers` at the
-same broker. In dev and test mode, neither service sets
+Apicurio, and the broker: both point `kafka.bootstrap.servers` at the
+same address. In dev and test mode, neither service sets
 `kafka.bootstrap.servers` or `apicurio.registry.url` at all — Quarkus Dev
 Services starts an ephemeral `apache/kafka-native:4.2.0` broker and an
 `apicurio/apicurio-registry:3.1.7` container automatically and wires both

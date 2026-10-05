@@ -133,13 +133,13 @@ const band = (s, x, y, w, h, t, size = 14) => {
 
   // panel 1: startup time
   s.text(295, 128, "STARTUP TIME (self-reported, seconds)", { size: 11, anchor: "middle", weight: 600, fill: "#8a7a5a" });
-  bar(150, 110, 1.54, 3.21, ["order-service", "(Quarkus)"], "1.54 s", QUARKUS);
-  bar(360, 110, 3.21, 3.21, ["spring-boot-compare", "(Spring Boot)"], "3.21 s", SPRING);
+  bar(150, 110, 2.045, 4.018, ["order-service", "(Quarkus)"], "2.05 s", QUARKUS);
+  bar(360, 110, 4.018, 4.018, ["spring-boot-compare", "(Spring Boot)"], "4.02 s", SPRING);
 
   // panel 2: resident memory
   s.text(880, 128, "RESIDENT MEMORY (RSS, MB)", { size: 11, anchor: "middle", weight: 600, fill: "#8a7a5a" });
-  bar(735, 110, 314, 494, ["order-service", "(Quarkus)"], "314 MB", QUARKUS);
-  bar(945, 110, 494, 494, ["spring-boot-compare", "(Spring Boot)"], "494 MB", SPRING);
+  bar(735, 110, 337, 548, ["order-service", "(Quarkus)"], "337 MB", QUARKUS);
+  bar(945, 110, 548, 548, ["spring-boot-compare", "(Spring Boot)"], "548 MB", SPRING);
 
   // baseline axis lines
   s.parts.push(`<line x1="90" y1="${baseline}" x2="520" y2="${baseline}" stroke="#9a9a9a" stroke-width="1.5"/>`);
@@ -150,7 +150,7 @@ const band = (s, x, y, w, h, t, size = 14) => {
 
   // callout band
   s.rect(90, 535, 1000, 48, "tan");
-  s.text(110, 557, "On this run: Quarkus starts in roughly half the time and boots into roughly two-thirds the resident memory —", {
+  s.text(110, 557, "On this run: Quarkus starts in roughly half the time and boots into roughly 60% of the resident memory —", {
     size: 11, fill: "#5a3a0a", weight: 700,
   });
   s.text(110, 575, "same REST + Panache/JPA + Kafka/Avro + gRPC surface on both sides. JVM only — no native image either side (see chapter 11).", {

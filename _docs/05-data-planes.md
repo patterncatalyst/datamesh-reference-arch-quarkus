@@ -21,8 +21,7 @@ in the first chapter of this part), [notification-service]({{ site.repo_tree }}/
 and [demo-grpc.sh]({{ site.repo_blob }}/demos/demo-grpc.sh) exercise each piece; [demo-camel-integration.sh]({{ site.repo_blob }}/demos/demo-camel-integration.sh)
 exercises the Camel route this chapter closes with.
 
-Figure 5.1 previews the chapter: four protocols, each chosen for the job it fits
-rather than by house-wide mandate.
+Four protocols, each chosen for the job it fits (Figure 5.1).
 
 | Protocol | Job it fits | Contract type | Quarkus extension |
 |---|---|---|---|
@@ -31,9 +30,8 @@ rather than by house-wide mandate.
 | GraphQL | composing reads across domains | GraphQL SDL | `quarkus-smallrye-graphql` |
 | Events | asynchronous reactions | Avro | Reactive Messaging |
 
-The rest of this chapter builds the async and sync halves in running code, returns to
-the fitness argument, and closes with Camel's EIPs for the routing logic inside either
-half.
+This chapter builds the async and sync halves in running code, returns to the fitness
+argument, and closes with Camel's EIPs for the routing logic inside either half.
 
 {% include excalidraw.html file="05-api-implementations" alt="Diagram of four protocols — REST, gRPC, GraphQL, and events — each matched to the job it fits best, its contract type, and the Quarkus extension that implements it" caption="Figure 5.1 — Four protocols, four contracts, each by fitness" %}
 
