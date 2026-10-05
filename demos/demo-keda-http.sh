@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 #
-# demos/demo-keda-http.sh — "minikube" group demo, opt-in.
+# demos/demo-keda-http.sh — Kubernetes group demo, opt-in (`--with-minikube`).
 #
 # KEDA HTTP add-on scaling graphql-gateway from zero on inbound HTTP request
-# rate, using the real minikube substrate already brought up by this repo's
-# bootstrap — nothing here is invented:
+# rate, using the local Kubernetes cluster already brought up by this repo's
+# bootstrap:
 #
 #   k8s/base/graphql-gateway.yaml          — the Deployment/Service KEDA scales
 #   k8s/keda/gateway-httpscaledobject.yaml — the HTTPScaledObject
 #                                             (http.keda.sh/v1alpha1, KEDA HTTP
 #                                             add-on 0.15.0)
 #   k8s/overlays/minikube/                 — the app overlay (images ->
-#                                             minikube docker daemon)
-#   scripts/bootstrap.sh                   — brings up the minikube profile
+#                                             the cluster's docker daemon)
+#   scripts/bootstrap.sh                   — brings up the cluster (`minikube` profile)
 #                                             ("datamesh") + the KEDA tier
 #                                             (scripts/setup-keda.sh, pins the
 #                                             HTTP add-on to 0.15.0 — matches the
@@ -37,15 +37,13 @@
 # by the scaler or wake a scaled-to-zero Deployment — this demo deliberately
 # routes through the interceptor, not the Service, for that reason.
 #
-# ── AUTHOR-ONLY / no live cluster here ───────────────────────────────────────
-# This environment has no "datamesh" minikube profile (confirmed:
-# `minikube status -p datamesh` -> "Profile \"datamesh\" not found") and no
-# kubectl context at all (`kubectl config current-context` -> "current-
-# context is not set"). This script is written to be CORRECT for an author
-# running it against a real step-9 substrate, but it is only ever exercised
-# here up through static manifest validation (no cluster needed for that —
-# see below) before gating LOUDLY on cluster reachability. It never starts
-# minikube itself.
+# ── Requires a running cluster ───────────────────────────────────────────────
+# Needs the local Kubernetes platform from ./scripts/bootstrap.sh (`minikube`
+# profile "datamesh") with kubectl pointed at it. Manifests are validated
+# statically first (no cluster needed); the demo then gates on cluster
+# reachability and never starts the cluster itself.
+# The HTTP add-on scale-from-zero path has not yet been confirmed on a live
+# cluster (unverified).
 #
 # ── Static validation vs. standalone `kustomize` ─────────────────────────────
 # Same reasoning as demo-keda-kafka.sh's header: this environment has no
@@ -70,13 +68,13 @@
 # way, the request still counts toward requestRate and still demonstrates
 # scale-from-zero. This demo does not assert on the HTTP status code it gets
 # back, only on the resulting replica count (a real, positive-content
-# jsonpath assertion), which is the thing this demo is actually about.
+# jsonpath assertion), which is what this demo is about.
 #
 # ── Cleanup ──────────────────────────────────────────────────────────────────
 # The only resource this demo itself CREATES is a single throwaway load-
 # generator Pod (`kubectl run ... --restart=Never`) in the datamesh
 # namespace; it is deleted in the EXIT trap. The app Deployment / KEDA
-# HTTPScaledObject applied via `kubectl apply -k` are the standing step-9
+# HTTPScaledObject applied via `kubectl apply -k` are part of the standing
 # substrate and are intentionally left in place, not torn down.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -94,7 +92,7 @@ SCALED_HOST="graphql-gateway.${NS}.svc.cluster.local"
 
 narrate "KEDA HTTP add-on scaling graphql-gateway 0 -> N on inbound request"
 narrate "rate through the interceptor proxy, exactly as k8s/keda/README.md"
-narrate "documents. Targets the real step-9 substrate manifests — see this"
+narrate "documents. Targets the platform manifests — see this"
 narrate "script's header for exact file references."
 
 # ─── Static manifest validation (no cluster required) ───────────────────────
@@ -139,10 +137,10 @@ rm -f "$APP_RENDER_LOG" "$KEDA_RENDER_LOG"
 if (( _DEMO_CHECK_FAILURES > 0 )); then
     fail "${_DEMO_CHECK_FAILURES} static manifest validation check(s) failed (see above) — fix the manifest(s) before retrying"
 fi
-info "all static manifest checks passed — k8s/overlays/minikube and k8s/keda both render the expected real resources"
+info "all static manifest checks passed — k8s/overlays/minikube and k8s/keda both render the expected resources"
 
 # ─── Cluster reachability gate ───────────────────────────────────────────────
-step "preflight: live '${PROFILE}' minikube cluster reachable?"
+step "preflight: live '${PROFILE}' Kubernetes cluster reachable?"
 
 CLUSTER_REACHABLE=1
 if ! minikube status -p "$PROFILE" >/dev/null 2>&1; then
@@ -155,7 +153,7 @@ if ! kubectl cluster-info >/dev/null 2>&1; then
 fi
 
 if (( CLUSTER_REACHABLE == 0 )); then
-    fail "no live '${PROFILE}' minikube cluster reachable. Bring up the step-9 substrate first: ./scripts/bootstrap.sh (verify afterwards with ./scripts/cluster-status.sh), then re-run this demo. This is expected in an author-only environment with no minikube node running — see this script's header comment."
+    fail "no live '${PROFILE}' Kubernetes cluster reachable. Bring up the platform first: ./scripts/bootstrap.sh (verify afterwards with ./scripts/cluster-status.sh), then re-run this demo."
 fi
 info "minikube profile '${PROFILE}' is running and kubectl can reach the API server"
 
@@ -248,7 +246,7 @@ for (( i = 0; i < SCALE_UP_BUDGET; i += 5 )); do
 done
 
 if (( SCALED_UP == 0 )); then
-    fail "graphql-gateway replicas did not increase above baseline (${BASELINE_REPLICAS}) within ${SCALE_UP_BUDGET}s of the load burst (last observed: ${CURRENT_REPLICAS}). Check: requests actually reached the interceptor (kubectl logs -n ${KEDA_NS} -l app=keda-add-ons-http-interceptor), the Host header matched spec.hosts exactly (${SCALED_HOST}), and the HTTPScaledObject's status: kubectl get httpscaledobject graphql-gateway-httpscaledobject -n ${NS} -o yaml."
+    fail "graphql-gateway replicas did not increase above baseline (${BASELINE_REPLICAS}) within ${SCALE_UP_BUDGET}s of the load burst (last observed: ${CURRENT_REPLICAS}). Check: requests reached the interceptor (kubectl logs -n ${KEDA_NS} -l app=keda-add-ons-http-interceptor), the Host header matched spec.hosts exactly (${SCALED_HOST}), and the HTTPScaledObject's status: kubectl get httpscaledobject graphql-gateway-httpscaledobject -n ${NS} -o yaml."
 fi
 info "graphql-gateway scaled from ${BASELINE_REPLICAS} to ${CURRENT_REPLICAS} replicas"
 

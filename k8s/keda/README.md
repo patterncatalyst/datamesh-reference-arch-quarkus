@@ -1,13 +1,12 @@
 # k8s/keda — KEDA scalers
 
-Part of the minikube substrate. This directory holds the two KEDA scaler manifests that turn the
-platform installed by step 9a (`scripts/setup-keda.sh`) into actual
-autoscaling behavior for the Deployments step 9b shipped
-(`k8s/base/notification-service.yaml`, `k8s/base/graphql-gateway.yaml`).
+Part of the local Kubernetes platform. This directory holds the two KEDA scaler manifests that turn the
+platform installed by `scripts/setup-keda.sh` into autoscaling for the
+Deployments in `k8s/base/notification-service.yaml` and
+`k8s/base/graphql-gateway.yaml`.
 
-**This step lands the scalers only.** The load-generating demos that
-exercise them (`demo-keda-kafka.sh`, `demo-keda-http.sh`) are a later
-step's job — these manifests are the substrate those demos will target.
+This directory contains the scalers only. The load-generating demos that
+exercise them are `demos/demo-keda-kafka.sh` and `demos/demo-keda-http.sh`.
 
 ## Files
 
@@ -19,13 +18,21 @@ step's job — these manifests are the substrate those demos will target.
 
 ## Prerequisites
 
-Both KEDA core and the HTTP add-on must already be installed
-(`./scripts/setup-keda.sh`, which pins the HTTP add-on to `0.15.0`, matching
-the datamesh-reference-arch-python reference and enabling HTTP/REST
-request-rate scaling. The v0.14.0 interceptor panic — kedacore/http-add-on#1668
-— is closed and fixed before 0.15.0; 0.15.0 also adds HTTP/2 + gRPC scaling).
+Both KEDA core and the HTTP add-on must already be installed with
+`./scripts/setup-keda.sh`, which installs both with helm:
+
+- KEDA core **2.19.0**.
+- KEDA HTTP add-on **0.15.0**. v0.14.0 shipped an interceptor panic on
+  POST forwarding (kedacore/http-add-on#1668, "invalid concurrent Body.Read
+  call"); 0.15.0 fixes it and adds HTTP/2 and gRPC scaling.
+- `interceptor.replicas.waitTimeout` is raised from the 20s default to 180s.
+  The interceptor holds a request while a scaled-from-zero workload gets a
+  Ready replica, and a cold JVM boot (KEDA activation, image pull, Quarkus
+  start, startupProbe) exceeds 20s. With the default, requests fail with
+  502 "context deadline exceeded" before a backend exists.
+
 The target Deployments/Services must already exist
-(`kubectl apply -k k8s/overlays/minikube`, step 9b).
+(`kubectl apply -k k8s/overlays/minikube`).
 
 ## Apply
 
@@ -47,7 +54,7 @@ Values used (see the comment block in the file for full sourcing):
 - `lagThreshold: "5"`, `minReplicaCount: 0`, `maxReplicaCount: 10`,
   `pollingInterval: 15`, `cooldownPeriod: 120`
 
-To observe scale-from-zero once that demo exists, or manually:
+To observe scale-from-zero, run `demos/demo-keda-kafka.sh` or watch manually:
 
 ```bash
 # Watch replica count
@@ -60,7 +67,7 @@ kubectl get hpa -n datamesh -w
 kubectl describe scaledobject notification-service-scaledobject -n datamesh
 
 # Produce order.placed records faster than notification-service can consume
-# them (demo-keda-kafka.sh automates this, once it exists) and watch replicas
+# them (demo-keda-kafka.sh automates this) and watch replicas
 # climb from 0 as lag exceeds lagThreshold=5, then fall back to 0 after
 # cooldownPeriod=120s of lag staying below threshold.
 ```
@@ -78,7 +85,7 @@ Values used:
 - `scalingMetric.requestRate.targetValue: 50` (per-pod requests/window
   before KEDA scales up), `window: 1m`, `granularity: 1s`
 
-To observe scale-from-zero once that demo exists, or manually:
+To observe scale-from-zero, run `demos/demo-keda-http.sh` or watch manually:
 
 ```bash
 # Watch replica count
@@ -89,22 +96,21 @@ kubectl get httpscaledobject graphql-gateway-httpscaledobject -n datamesh
 
 # Requests must go through the KEDA HTTP add-on's interceptor proxy Service
 # in the keda namespace, with the Host header set to the hosts entry above
-# (demo-keda-http.sh automates this, once it exists), e.g.:
+# (demo-keda-http.sh automates this), e.g.:
 kubectl run -n datamesh curl-test --rm -it --image=curlimages/curl --restart=Never -- \
   curl -H "Host: graphql-gateway.datamesh.svc.cluster.local" \
   http://keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local/graphql
 ```
 
-## Validation performed for this step
+## Static validation
 
-No live cluster was available in this environment (`kubectl config
+These checks ran without a live cluster (`kubectl config
 current-context` reported no context, and both `kubectl apply
 --dry-run=client -f .` and `kubectl create --dry-run=client
 --validate=false -f .` failed with `dial tcp [::1]:8080: connect:
 connection refused` — kubectl needs API-server discovery even for
-`--dry-run=client` to recognize a CRD kind, so this environment can't
-exercise that check at all, independent of whether these manifests are
-correct). Three checks were actually run:
+`--dry-run=client` to recognize a CRD kind, so that check cannot run
+without a cluster). Four checks were run:
 
 1. **YAML well-formedness**: both files parse as valid YAML
    (`python3 -c "import yaml; yaml.safe_load(open(...))"`, no errors).
@@ -112,8 +118,8 @@ correct). Three checks were actually run:
    correctly (pure manifest templating, no cluster required) — confirms
    `kustomization.yaml` and both resource files are structurally sound
    enough for kustomize to merge/emit.
-3. **Schema correctness against the actual CRDs**: cross-checked every
-   field against the real CRD definitions —
+3. **Schema correctness against the actual CRDs**: every field was
+   checked against the CRD definitions —
    `keda.sh_scaledobjects.yaml` from the `kedacore/keda` `v2.19.0` tag
    (the version `scripts/setup-keda.sh` installs) and
    `http.keda.sh_httpscaledobjects.yaml` from the `kedacore/http-add-on`
@@ -121,10 +127,9 @@ correct). Three checks were actually run:
    GitHub. `scaleTargetRef.service` is required for `HTTPScaledObject`,
    and exactly one of `port`/`portName` must be set, both satisfied here.
 4. Names/namespace/ports were copied verbatim from `k8s/base/*.yaml`
-   (step 9b), not invented.
+   (`k8s/base/*.yaml`).
 
-If a real cluster with the KEDA CRDs installed is available later, the
-stronger check is:
+With a cluster that has the KEDA CRDs installed, the stronger check is:
 
 ```bash
 kubectl apply --dry-run=server -k k8s/keda
@@ -134,8 +139,7 @@ kubectl apply --dry-run=server -k k8s/keda
 
 - The `notification-service` default consumer-group-id claim
   (`quarkus.application.name`) is documented behavior (Quarkus Kafka
-  reference guide) but was not confirmed by inspecting a live consumer's
-  actual group membership on a running broker — no cluster was available.
+  reference guide); it was not confirmed by inspecting a live consumer's
+  group membership on a running broker.
 - `lagThreshold: "5"` and `scalingMetric.requestRate.targetValue: 50` are
-  reasonable demo defaults, not load-tested; future demos may need to
-  tune them once real throughput numbers are available.
+  demo defaults, not load-tested; tune them against measured throughput.

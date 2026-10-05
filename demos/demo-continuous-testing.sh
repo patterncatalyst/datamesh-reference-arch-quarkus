@@ -10,22 +10,20 @@
 # Postgres + Kafka + Apicurio Testcontainers with zero compose/.env needed.
 #
 # What's asserted (primary, strong): the dev-mode console log contains the
-# continuous-testing pass banner Quarkus 3.39.5 actually prints —
+# continuous-testing pass banner Quarkus 3.39.5 prints —
 #     "All N tests are passing (M skipped), N tests were run in ...ms."
 # — parsed for the passing/run counts, asserting run>=1 and passing==run
-# (i.e. zero failures). This was confirmed against a real run (see below);
-# it is NOT scraped from docs, it's the literal string this Quarkus version
-# emits.
+# (i.e. zero failures). This string was captured from a run of this Quarkus version,
+# not taken from the docs.
 #
-# Honest fallback (per this step's acceptance criteria, "if reliable parsing
-# isn't achievable"): if that banner never appears within the budget — e.g. a
+# Fallback (if reliable parsing isn't achievable): if that banner never appears within the budget — e.g. a
 # future Quarkus version rewords it — this demo does NOT silently downgrade
-# to a pass. It still asserts dev mode actually started (HTTP 200 + a real
+# to a pass. It still asserts dev mode started (HTTP 200 + a real
 # JSON array from Dev-Services-backed Postgres via GET /orders) but reports
 # the missing continuous-testing banner as a clearly labeled, non-fatal
-# DEGRADED result rather than hiding the gap, then still fails the demo
+# DEGRADED result, then still fails the demo
 # (continuous testing is the capability under test — "the app came up" alone
-# is not suffient to call this demo a pass). See the final branch below.
+# is not sufficient to call this demo a pass). See the final branch below.
 #
 # ── Known environment gotcha this script works around ──────────────────────
 # postgres:18 (this repo's pinned Dev Services image, see
@@ -97,7 +95,7 @@ info "dev mode is up and healthy"
 
 # Corroborating positive-content check regardless of how the continuous
 # testing parse below goes: Dev-Services-backed Postgres is really serving
-# real requests through the full REST+Panache stack, not just a bare
+# requests through the full REST+Panache stack, not a bare
 # liveness probe.
 ORDERS_JSON="$(curl -fsS --max-time 10 "${BASE_URL}/orders")" \
     || fail "GET ${BASE_URL}/orders failed against the Dev-Services-backed app"
@@ -133,7 +131,7 @@ if [[ -n "$FOUND_LINE" ]]; then
     narrate "continuous testing auto-ran and reported ${PASSING_COUNT}/${RUN_COUNT} tests passing"
     demo_ok
 else
-    # Honest degraded path -- see header comment. The capability under test
+    # Degraded path -- see header comment. The capability under test
     # (continuous testing reporting a pass) was not observed; app-came-up is
     # real but is not what this demo exists to prove, so it still fails,
     # loudly, with every diagnostic needed to tell a real regression from a

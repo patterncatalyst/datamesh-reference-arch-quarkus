@@ -2,7 +2,7 @@
 
 The order data product for the Quarkus DataMesh reference architecture --
 the Quarkus counterpart to the Python reference's
-`services/order-service` (r21 REST + Postgres, r23 gRPC stock check, r25
+`services/order-service` (REST + Postgres, gRPC stock check,
 `order.placed` event emission).
 
 order-service owns the `Order` aggregate exclusively (CAP-003 per-service
@@ -37,15 +37,15 @@ checks with zero extra config).
 - **`OrderEventProducer`** -- `@Channel("order-placed") Emitter<OrderPlaced>`
   publishing the Avro `OrderPlaced` record (generated in the `contracts`
   module from `order-placed.avsc`) to the `order.placed` Kafka topic via the
-  Apicurio Schema Registry serializer (Avro from the start, never
-  JSON).
+  Apicurio Schema Registry serializer (Avro on the wire,
+  never JSON).
 - **`OrderResource`** -- wires the above: check stock, persist, emit,
   respond.
 
 ## Verified Quarkus 3.39.5 configuration
 
-Confirmed via `quarkus_searchDocs` against this project's pinned Quarkus
-version (not guessed):
+Checked with `quarkus_searchDocs` against this project's pinned Quarkus
+version:
 
 ```properties
 # gRPC stub generation from a dependency jar's packaged .proto
@@ -65,18 +65,18 @@ mp.messaging.outgoing.order-placed.apicurio.registry.auto-register=true
 ```
 
 The Avro serializer itself
-(`io.apicurio.registry.serde.avro.AvroKafkaSerializer`) **is set explicitly**
+(`io.apicurio.registry.serde.avro.AvroKafkaSerializer`) is set explicitly
 as `mp.messaging.outgoing.order-placed.value.serializer` in
-`application.properties` -- it is not left to autodetection here. This build
+`application.properties` instead of relying on autodetection. This build
 pulls an older `apicurio-registry-serdes-avro-serde` transitively alongside
-the expected serde (confirmed via the build's own
-`io.quarkus.arc.deployment.SplitPackageProcessor` warning for
+the expected serde (the build's
+`io.quarkus.arc.deployment.SplitPackageProcessor` warns about
 `io.apicurio.registry.serde.avro`), which makes Quarkus's serializer
 autodetection (`kafka-schema-registry-avro.adoc`,
-"serialization-autodetection") ambiguous; verified empirically, the
-unconfigured build logged "Generating Jackson serializer for type
-capstone.order.v1.OrderPlaced" -- a silent fallback to JSON that would
-violate the Avro-only contract. Setting `value.serializer` explicitly avoids that fallback.
+"serialization-autodetection") unreliable. The unconfigured build logged
+"Generating Jackson serializer for type capstone.order.v1.OrderPlaced",
+a silent fallback to JSON that breaks the Avro-only contract. Setting
+`value.serializer` explicitly avoids the fallback.
 
 Kafka and the Apicurio Schema Registry are both provided by Quarkus Dev
 Services (Testcontainers) automatically in dev/test; inventory-service must
@@ -98,7 +98,35 @@ mvn -pl order-service quarkus:dev -f examples/pom.xml
 
 `OrderResourceTest` is a `@QuarkusTest` (Dev Services provides Postgres;
 `InventoryClient` is mocked with `@InjectMock` so the test doesn't require a
-running inventory-service). It is **not** run as part of this module's own
-build (`-DskipTests`); `@QuarkusTest` suites across the reactor are run
-serially in a later batch to avoid Dev Services / Testcontainers resource
-contention between concurrently building sibling modules.
+running inventory-service). `@QuarkusTest` suites are not run by this
+module's own `-DskipTests` build; run them serially across the project to
+avoid Dev Services / Testcontainers resource contention between sibling
+modules built concurrently.
+
+### Avro wire-format check: `OrderPlacedAvroWireIT`
+
+`OrderPlacedAvroWireIT` is a plain JUnit integration test that verifies
+`order.placed` is Avro on the wire and not JSON. It starts its own
+Testcontainers Kafka (`apache/kafka-native:4.2.0`) and Apicurio Registry
+(`quay.io/apicurio/apicurio-registry:3.1.7`), so it does not need
+`docker compose up`.
+
+- It produces a real `capstone.order.v1.OrderPlaced` with
+  `AvroKafkaSerializer`, the serializer the application configures.
+- It reads the record back with a byte-level `KafkaConsumer<byte[], byte[]>`
+  that has no Avro deserializer, and asserts `value[0] == 0x00` (the Avro
+  magic byte), `value[0] != 0x7B` (`{`, which would indicate JSON), and room
+  for the schema id that follows.
+- It runs in the default `mvn verify` through the failsafe plugin.
+
+Avro 1.12's `ClassSecurityValidator` refuses to build a writer for any
+generated record class whose package is not trusted, unless a Quarkus
+application is running. Because this test bootstraps no Quarkus runtime, the
+failsafe execution in `pom.xml` sets
+`org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1`. Without it the
+test fails with `SecurityException: Forbidden capstone.order.v1.OrderPlaced!`.
+The setting is scoped to this module's test JVM.
+
+The serializer is pinned explicitly (see above) because autodetection was
+unreliable with two Avro serdes on the classpath; this test fails if that
+pinning regresses to the JSON fallback.

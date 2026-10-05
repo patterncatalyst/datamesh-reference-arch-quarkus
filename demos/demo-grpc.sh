@@ -9,10 +9,9 @@
 # (order-service dials this same RPC before placing an order; see
 # demo-order.sh). This demo talks to it DIRECTLY with grpcurl -- a real gRPC
 # client issuing a real unary RPC over HTTP/2 -- not through order-service's
-# REST facade, so there is no ambiguity about which protocol is actually
-# being exercised.
+# REST facade, so the protocol under test is unambiguous.
 #
-# ── Why grpcurl, not just "REST worked so gRPC must be fine" ───────────────
+# ── Why grpcurl, not "REST worked so gRPC must be fine" ───────────────────
 # grpcurl -plaintext against the server's reflection service lists
 # capstone.inventory.v1.InventoryService (proof Quarkus gRPC's reflection
 # support is live), then invokes CheckStock with a real protobuf request and

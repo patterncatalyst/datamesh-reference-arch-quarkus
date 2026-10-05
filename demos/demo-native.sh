@@ -9,7 +9,7 @@
 # container-build builder image has to be pulled, which can be 1-2GB).
 #
 # Builds ONE service — order-service, the smallest clean REST+Panache
-# service in the reactor — to a native executable, then boots the produced
+# service in the project — to a native executable, then boots the produced
 # binary directly (bypassing the JVM entirely: no `java`, no quarkus-run.jar)
 # and asserts it serves real HTTP 200 traffic through the full
 # REST+Hibernate ORM+Panache stack.
@@ -43,8 +43,7 @@
 # host, and an unresolvable bootstrap host can make some Kafka client paths
 # fail fast at startup (unlike a resolvable-but-refused address, which the
 # reactive-messaging Kafka connector retries lazily in the background — a
-# real limitation of running order-service "bare" that's being worked around
-# deliberately, not hidden).
+# real limitation of running order-service "bare" that's being worked around here).
 #
 # ── Known environment gotcha ─────────────────────────────────────────────────
 # postgres:18 rejects legacy Olson timezone IDs like "US/Eastern" that pgjdbc
@@ -52,7 +51,7 @@
 # empirically on this host -- including against the native binary itself:
 # a native executable still reads the host's TZ the same way a JVM does).
 # The throwaway Postgres container's own TZ=UTC/PGTZ=UTC does NOT fix this --
-# postgres:18's image simply has no "US/Eastern" zoneinfo entry at all, no
+# postgres:18's image has no "US/Eastern" zoneinfo entry at all, no
 # matter what timezone the server itself runs in -- so the fix has to be on
 # the client side: TZ=UTC is set on the native runner process below, same
 # fix (and same root cause) as demo-continuous-testing.sh's TZ=UTC export,

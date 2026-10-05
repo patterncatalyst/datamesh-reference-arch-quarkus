@@ -36,7 +36,7 @@
 #
 # The agent jar is cached at ~/.cache/datamesh-demos/opentelemetry-javaagent.jar
 # (NOT inside this repo — it's a large, independently-versioned binary, not
-# reactor source) and downloaded once from the upstream GitHub release if
+# project source) and downloaded once from the upstream GitHub release if
 # missing. If the download fails (offline host), this demo fails loudly with
 # the exact manual-download command rather than silently skipping tracing.
 #
@@ -280,7 +280,7 @@ narrate "confirmed: trace ${TRACE_ID} contains spans from both order-service and
 narrate "W3C trace-context propagated across the real gRPC call, exported to Tempo, and queried back"
 
 jq -e --arg t "$TRACE_ID" '[.batches[]? | (.scopeSpans[]?.spans[]?, .instrumentationLibrarySpans[]?.spans[]?) | select(.name == "capstone.inventory.v1.InventoryService/CheckStock")] | length >= 1' <<<"$TRACE_JSON" >/dev/null \
-    || fail "trace ${TRACE_ID} has no CheckStock gRPC span -- expected the cross-service hop to be captured by name"
-narrate "confirmed: the CheckStock gRPC span is present by name in the parsed trace"
+    || fail "trace ${TRACE_ID} has no CheckStock gRPC span -- expected the cross-service hop to be captured"
+narrate "confirmed: the CheckStock gRPC span is present in the parsed trace"
 
 demo_ok

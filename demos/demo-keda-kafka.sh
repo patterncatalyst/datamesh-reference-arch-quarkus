@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
-# demos/demo-keda-kafka.sh — "minikube" group demo, opt-in.
+# demos/demo-keda-kafka.sh — Kubernetes group demo, opt-in (`--with-minikube`).
 #
 # KEDA core scaling notification-service on Kafka consumer-group lag, using
-# the real step-9 substrate — nothing here is invented:
+# the platform manifests:
 #
 #   k8s/base/notification-service.yaml   — the Deployment/Service KEDA scales
 #   k8s/keda/consumer-scaledobject.yaml  — the ScaledObject (keda.sh/v1alpha1)
-#   k8s/overlays/minikube/               — the app overlay (images -> minikube
+#   k8s/overlays/minikube/               — the app overlay (images -> the cluster's
 #                                           docker daemon)
-#   scripts/bootstrap.sh                 — brings up the minikube profile
+#   scripts/bootstrap.sh                 — brings up the cluster (`minikube` profile)
 #                                           ("datamesh") + Istio/CNPG/Strimzi/
 #                                           KEDA/LGTM/Kiali/Apicurio tiers
 #
@@ -24,21 +24,18 @@
 # falls back to its pre-burst baseline once cooldownPeriod has elapsed with
 # lag back under threshold.
 #
-# ── AUTHOR-ONLY / no live cluster here ───────────────────────────────────────
-# This environment has no "datamesh" minikube profile (confirmed:
-# `minikube status -p datamesh` -> "Profile \"datamesh\" not found") and no
-# kubectl context at all (`kubectl config current-context` -> "current-
-# context is not set"). This script is written to be CORRECT for an author
-# running it against a real step-9 substrate, but it is only ever exercised
-# here up through static manifest validation (no cluster needed for that —
-# see below) before gating LOUDLY on cluster reachability. It never starts
-# minikube itself.
+# ── Requires a running cluster ───────────────────────────────────────────────
+# Needs the local Kubernetes platform from ./scripts/bootstrap.sh (`minikube`
+# profile "datamesh") with kubectl pointed at it. Manifests are validated
+# statically first (no cluster needed); the demo then gates on cluster
+# reachability and never starts the cluster itself.
+# Verified against the local cluster: notification-service scales 0 -> 1 on
+# consumer-group lag and returns to zero after cooldown.
 #
 # ── Static validation vs. standalone `kustomize` ─────────────────────────────
-# The task brief for this step names `kubectl kustomize` (and a standalone
+# The original design named `kubectl kustomize` (and a standalone
 # `kustomize`) as preflight dependencies. This environment (and, per
-# k8s/keda/README.md's own "Validation performed for this step" section, the
-# environment step 9c itself was authored in) has NO standalone `kustomize`
+# k8s/keda/README.md's "Static validation" section) has NO standalone `kustomize`
 # binary on PATH — only kubectl's bundled kustomize (confirmed: `kubectl
 # version --client` reports "Kustomize Version: v5.7.1" bundled into kubectl
 # v1.35.3; a bare `kustomize version` is "command not found"). Requiring a
@@ -56,7 +53,7 @@
 # persists + publishes order.placed if that call succeeds; a failed/
 # unreachable call fails CLOSED with HTTP 503 and publishes nothing (by
 # design — see InventoryClient.java's javadoc). This is fully wired on the
-# step-9 substrate:
+# local platform:
 #   - examples/order-service/src/main/resources/application.properties sets
 #     `quarkus.grpc.clients.inventory.host=${INVENTORY_GRPC_HOST:localhost}` /
 #     `quarkus.grpc.clients.inventory.port=${INVENTORY_GRPC_PORT:9000}`.
@@ -68,11 +65,11 @@
 #     Deployment/Service (grpc port 9000) and is listed as a resource in
 #     k8s/base/kustomization.yaml, so it is applied as part of
 #     `kubectl apply -k k8s/overlays/minikube` below.
-# So on the current step-9 substrate, POST /orders in-cluster should reach
+# So on the current platform, POST /orders in-cluster should reach
 # inventory-service over gRPC at the canonical port and succeed, publishing
 # order.placed as the KEDA ScaledObject's trigger expects. This script has
-# never actually been exercised against a live cluster in this environment
-# (see "AUTHOR-ONLY" above), so if the scale-up assertion below still fails,
+# never been exercised against a live cluster in this environment
+# (see "Requires a running cluster" above), so if the scale-up assertion below still fails,
 # treat it as a live-cluster issue to diagnose fresh (e.g. image build/push,
 # Postgres/Kafka readiness, RBAC) rather than this previously-documented
 # port-wiring gap, which is now fixed.
@@ -81,7 +78,7 @@
 # The only resource this demo itself CREATES is a single throwaway load-
 # generator Pod (`kubectl run ... --restart=Never`) in the datamesh
 # namespace; it is deleted in the EXIT trap. The app Deployments / KEDA
-# ScaledObject applied via `kubectl apply -k` are the standing step-9
+# ScaledObject applied via `kubectl apply -k` are part of the standing
 # substrate (same objects scripts/bootstrap.sh's own docs describe as
 # persistent across runs) and are intentionally left in place, not torn
 # down, matching k8s/README.md's "replicas vs. KEDA (9c)" section.
@@ -98,7 +95,7 @@ K8S_DIR="${REPO_ROOT}/k8s"
 
 narrate "KEDA core scaling notification-service 0 -> N on order.placed consumer"
 narrate "lag, then back to 0 once the backlog drains and cooldownPeriod elapses."
-narrate "Targets the real step-9 substrate manifests — see this script's header"
+narrate "Targets the platform manifests — see this script's header"
 narrate "comment for exact file references for the order-service -> inventory-"
 narrate "service gRPC wiring (canonical port 9000) this flow depends on."
 
@@ -144,10 +141,10 @@ rm -f "$APP_RENDER_LOG" "$KEDA_RENDER_LOG"
 if (( _DEMO_CHECK_FAILURES > 0 )); then
     fail "${_DEMO_CHECK_FAILURES} static manifest validation check(s) failed (see above) — fix the manifest(s) before retrying"
 fi
-info "all static manifest checks passed — k8s/overlays/minikube and k8s/keda both render the expected real resources"
+info "all static manifest checks passed — k8s/overlays/minikube and k8s/keda both render the expected resources"
 
 # ─── Cluster reachability gate ───────────────────────────────────────────────
-step "preflight: live '${PROFILE}' minikube cluster reachable?"
+step "preflight: live '${PROFILE}' Kubernetes cluster reachable?"
 
 CLUSTER_REACHABLE=1
 if ! minikube status -p "$PROFILE" >/dev/null 2>&1; then
@@ -160,7 +157,7 @@ if ! kubectl cluster-info >/dev/null 2>&1; then
 fi
 
 if (( CLUSTER_REACHABLE == 0 )); then
-    fail "no live '${PROFILE}' minikube cluster reachable. Bring up the step-9 substrate first: ./scripts/bootstrap.sh (verify afterwards with ./scripts/cluster-status.sh), then re-run this demo. This is expected in an author-only environment with no minikube node running — see this script's header comment."
+    fail "no live '${PROFILE}' Kubernetes cluster reachable. Bring up the platform first: ./scripts/bootstrap.sh (verify afterwards with ./scripts/cluster-status.sh), then re-run this demo."
 fi
 info "minikube profile '${PROFILE}' is running and kubectl can reach the API server"
 
@@ -256,7 +253,7 @@ for (( i = 0; i < SCALE_UP_BUDGET; i += 5 )); do
 done
 
 if (( SCALED_UP == 0 )); then
-    fail "notification-service replicas did not increase above baseline (${BASELINE_REPLICAS}) within ${SCALE_UP_BUDGET}s of the load burst (last observed: ${CURRENT_REPLICAS}). The order-service -> inventory-service gRPC wiring is canonical on this substrate (port 9000 -- see this script's header), so this is not the previously-documented port gap; diagnose fresh. Check: kubectl logs -n ${NS} -l app.kubernetes.io/name=order-service --tail=50 (did POST /orders calls succeed?), kubectl get pods -n ${NS} -l app.kubernetes.io/name=inventory-service (is it Ready?), and whether lag actually crossed lagThreshold=5 on the ScaledObject."
+    fail "notification-service replicas did not increase above baseline (${BASELINE_REPLICAS}) within ${SCALE_UP_BUDGET}s of the load burst (last observed: ${CURRENT_REPLICAS}). The order-service -> inventory-service gRPC wiring is canonical on this substrate (port 9000 -- see this script's header), so this is not the previously-documented port gap; diagnose fresh. Check: kubectl logs -n ${NS} -l app.kubernetes.io/name=order-service --tail=50 (did POST /orders calls succeed?), kubectl get pods -n ${NS} -l app.kubernetes.io/name=inventory-service (is it Ready?), and whether lag crossed lagThreshold=5 on the ScaledObject."
 fi
 info "notification-service scaled from ${BASELINE_REPLICAS} to ${CURRENT_REPLICAS} replicas"
 

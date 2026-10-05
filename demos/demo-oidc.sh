@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
 # demos/demo-oidc.sh — Quarkus OIDC bearer-token security, via the Keycloak
-# Dev Service. review-service is the smallest module in the reactor (three
+# Dev Service. review-service is the smallest module in the project (three
 # plain REST endpoints, Postgres as its only other Dev Services dependency,
 # no cross-service calls), which made it the right place to add ONE real
 # protected endpoint rather than faking the capability.
 #
-# ── What review-service got, and why it's genuinely minimal ─────────────────
+# ── What review-service got, and why the change is minimal ─────────────────
 # `quarkus-oidc` was added to review-service's pom.xml with ZERO
 # `quarkus.oidc.*` application.properties — with no `auth-server-url`
 # configured, Quarkus Dev Services auto-provisions a disposable Keycloak
@@ -23,9 +23,9 @@
 # ── What this demo proves ────────────────────────────────────────────────
 #   1. DELETE with NO bearer token  -> 401 (unauthenticated)
 #   2. DELETE with bob's token (user role, no admin) -> 403 (unauthorized —
-#      a REAL RBAC check, not just "has a token")
+#      an RBAC check, not just "has a token")
 #   3. DELETE with alice's token (admin role) -> 204, and the review is
-#      actually gone (follow-up GET -> 404) — not just "the call didn't 401"
+#      gone (follow-up GET -> 404) — not just "the call didn't 401"
 # All three tokens are obtained from the REAL Keycloak Dev Service via the
 # password grant (same idiom as the Quarkus bearer-token-auth-tutorial), not
 # faked/mocked — this is a live OIDC round trip end to end.
@@ -56,7 +56,7 @@ MODULE_DIR="${EXAMPLES_DIR}/review-service"
 HTTP_PORT=8098
 BASE_URL="http://localhost:${HTTP_PORT}"
 
-narrate "review-service's DELETE /reviews/{id} is the reactor's one live OIDC"
+narrate "review-service's DELETE /reviews/{id} is the project's one live OIDC"
 narrate "capability demo: a Keycloak Dev Service-backed bearer-token"
 narrate "+ @RolesAllowed(\"admin\") check, proven with real tokens end to end."
 
@@ -167,7 +167,7 @@ CODE_NOAUTH="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X DELETE "$
 info "DELETE /reviews/${REVIEW_ID} (no token) -> HTTP $CODE_NOAUTH"
 [[ "$CODE_NOAUTH" == "401" ]] \
     || fail "expected 401 for DELETE with no bearer token, got $CODE_NOAUTH"
-narrate "confirmed: no token -> 401, the endpoint genuinely requires authentication"
+narrate "confirmed: no token -> 401, the endpoint requires authentication"
 
 step "2/3 -- DELETE with bob's token (user role, not admin): expect 403 (unauthorized)"
 CODE_FORBIDDEN="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X DELETE "${BASE_URL}/reviews/${REVIEW_ID}" \
@@ -175,9 +175,9 @@ CODE_FORBIDDEN="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X DELETE
 info "DELETE /reviews/${REVIEW_ID} (bob token) -> HTTP $CODE_FORBIDDEN"
 [[ "$CODE_FORBIDDEN" == "403" ]] \
     || fail "expected 403 for DELETE with a valid-but-insufficient-role token, got $CODE_FORBIDDEN"
-narrate "confirmed: a valid token without the admin role -> 403, this is real RBAC, not just token-presence checking"
+narrate "confirmed: a valid token without the admin role -> 403, this is RBAC, not just token-presence checking"
 
-step "3/3 -- DELETE with alice's token (admin role): expect 204, then confirm the review is actually gone"
+step "3/3 -- DELETE with alice's token (admin role): expect 204, then confirm the review is gone"
 CODE_AUTHORIZED="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X DELETE "${BASE_URL}/reviews/${REVIEW_ID}" \
     -H "Authorization: Bearer ${ALICE_TOKEN}")"
 info "DELETE /reviews/${REVIEW_ID} (alice token) -> HTTP $CODE_AUTHORIZED"
@@ -188,8 +188,8 @@ narrate "confirmed: a token with the admin role -> 204, the DELETE was accepted"
 CODE_GONE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "${BASE_URL}/reviews/${REVIEW_ID}")"
 info "GET /reviews/${REVIEW_ID} after delete -> HTTP $CODE_GONE"
 [[ "$CODE_GONE" == "404" ]] \
-    || fail "expected 404 after the authorized delete, got $CODE_GONE -- the DELETE did not actually take effect"
-narrate "confirmed: the review row is genuinely gone, not just a 204 that did nothing"
+    || fail "expected 404 after the authorized delete, got $CODE_GONE -- the DELETE did not take effect"
+narrate "confirmed: the review row is gone, not just a 204 that did nothing"
 
 step "live OIDC + Keycloak Dev Service demo confirmed"
 narrate "Three real password-grant tokens from a disposable Keycloak Dev Service"

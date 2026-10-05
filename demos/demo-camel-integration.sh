@@ -13,7 +13,7 @@
 # branches, including the .otherwise() fallback for an order id none of the
 # .when() predicates match — a branch demo-ai-mcp.sh does not exercise
 # (that demo only smoke-tests ORD-001/002/003 as part of proving the MCP
-# server surface works; this demo is the one that actually proves the
+# server surface works; this demo is the one that proves the
 # Content-Based Router EIP itself transforms/routes correctly end to end,
 # including the negative case).
 #
@@ -24,8 +24,8 @@
 # tool-calling limitation, see demo-ai-mcp.sh's caveat banner) and the
 # embedded Camel MCP server (camel-quarkus-mcp-server). The MCP server's
 # tools/call JSON-RPC method is therefore the only HTTP-reachable way to
-# actually invoke this route from outside the JVM, and crucially it is a
-# structurally separate code path from the broken in-process agent (no
+# invoke this route from outside the JVM, and it is a
+# separate code path from the broken in-process agent (no
 # langchain4j-agent, no in-process tool calling anywhere in this demo) —
 # so routing a message through it here carries no regression risk from that
 # limitation.

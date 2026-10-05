@@ -26,7 +26,7 @@
 # ║ Consequence for this demo: it never calls POST /api/assistant/chat and    ║
 # ║ never treats a non-empty chat response as evidence of tool calling (that  ║
 # ║ would be a misleading claim over a known-broken path). Instead it         ║
-# ║ demonstrates the one part of this stack that genuinely works end to end:  ║
+# ║ demonstrates the one part of this stack that works end to end:            ║
 # ║ the embedded Camel MCP server (camel-quarkus-mcp-server, which wraps the  ║
 # ║ Quarkiverse quarkus-mcp-server-http extension) publishing the shipping-   ║
 # ║ tagged order-status ai-tool to external MCP clients speaking the real MCP ║
@@ -38,7 +38,7 @@
 #   1. POST /mcp {method:"initialize"} succeeds and returns a protocolVersion
 #      + an Mcp-Session-Id header (real MCP Streamable HTTP handshake).
 #   2. POST /mcp {method:"tools/list"} (with that session) lists a tool
-#      literally named "order-status".
+#      named "order-status".
 #   3. POST /mcp {method:"tools/call", params:{name:"order-status", ...}}
 #      for ORD-001/ORD-002/ORD-003 returns the exact deterministic fake
 #      lookup body OrderLookupToolRoute hardcodes for each id (status field
