@@ -104,7 +104,7 @@ Chapter 13.
 
 ## Failure handling and compensation
 
-This dimension is easy to overclaim, so the sections below describe what
+The sections below describe what
 this repo implements, not what the engines can do. Each engine can do more
 than this repo exercises (Camel's EIPs, Flow's spec-level retry and
 compensation), but engine capability is not behavior in this code.

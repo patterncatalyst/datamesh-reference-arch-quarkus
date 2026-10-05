@@ -7,7 +7,7 @@ description: "The conceptual and organizational ways data-mesh efforts go wrong,
 duration: 15 minutes
 ---
 
-The rest of this set covers what to build and how. This chapter covers what goes
+Earlier chapters cover what to build and how. This chapter covers what goes
 wrong: not implementation gaps in this build (a shared namespace instead of one per
 domain, no automated schema compatibility gate yet, an Istio control plane installed
 but not injected by default), but the *conceptual and organizational* failure modes
@@ -201,7 +201,7 @@ a full mesh is not the right fit, or that only some of its principles are.
 
 *In this build:* this project is a *learning* implementation: a
 small, runnable mesh across six services and a GraphQL gateway, sized to
-show the shape on a laptop. The Quarkus-vs-Spring-Boot comparison in
+show the shape on one workstation. The Quarkus-vs-Spring-Boot comparison in
 [The Quarkus deep-dive]({{ '/parts/quarkus-deep-dive/' | relative_url }})
 sits alongside it. One reference implementation is not an argument for running a mesh, or
 Quarkus, in production.
@@ -212,12 +212,11 @@ None of these are exotic. They follow from taking a
 paradigm about ownership, autonomy, and feedback and
 implementing only its visible technical surface. The recurring lesson in
 accounts of failed efforts is that the architecture
-diagram is the easy part. What is not on the diagram (who
+diagram is the smallest part of the work. What is not on the diagram (who
 owns what, how governance is enforced, whether the loop is closed, whether
 the organization needed a mesh at all) decides whether efforts succeed.
 
-The final chapter in this part turns from what goes wrong to what
-was built: the four principles, each matched against
+The final chapter in this part matches each of the four principles against
 the pieces in this repo that implement it.
 
 ---

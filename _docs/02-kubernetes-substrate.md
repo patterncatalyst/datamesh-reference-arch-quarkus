@@ -110,7 +110,7 @@ dependency order:
 
 Every tier is gated behind a boolean (`ENABLE_ISTIO`, `ENABLE_KAFKA`, and so on, each
 defaulting to `true`), so a narrower run — say, skipping Istio to save resources on a
-smaller laptop — is one environment variable, not a script edit:
+smaller machine — is one environment variable, not a script edit:
 
 ```bash
 ENABLE_ISTIO=false ENABLE_KIALI=false ./scripts/bootstrap.sh
@@ -147,7 +147,7 @@ k8s/keda/
 ```
 
 The `base` layer declares the resources; the `minikube` overlay holds the
-environment-specific decision, which is easy to get wrong: there is **no image registry**
+environment-specific decision, a frequent source of errors: there is **no image registry**
 in this stack. Images are built directly into the cluster's own Docker daemon —
 
 ```bash
@@ -222,7 +222,7 @@ later chapters elaborate this picture.
 
 This build runs on `minikube`, a single-node Kubernetes cluster, which suits learning the
 pattern and not production. A single node means every tier shares one machine's
-resources, which keeps the whole mesh runnable on a laptop but concentrates failure modes
+resources, which keeps the whole mesh runnable on one workstation but concentrates failure modes
 that a multi-node cluster would spread out. [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh)'s own header documents the resource budget this concentration
 demands: 32 GB of host RAM recommended (the `minikube` profile itself is sized at 24 GB /
 16 vCPUs / 80 GB disk) with roughly 2.9 GiB of idle in-cluster footprint once every tier

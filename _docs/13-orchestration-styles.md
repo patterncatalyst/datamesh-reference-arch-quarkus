@@ -198,11 +198,11 @@ function, which is why the Quarkus Flow leg is included.
 
 | | Kafka choreography | Camel orchestration | Quarkus Flow orchestration |
 |---|---|---|---|
-| Who knows the whole sequence | No one — each service knows only its own reaction | The route — read top to bottom | The workflow document — read declaratively |
+| Who knows the whole sequence | No one; each service knows only its own reaction | The route, read top to bottom | The workflow document, read declaratively |
 | Adding a new participant | Zero changes to existing services (just subscribe) | Edit the route to add a step | Edit the workflow document to add a task |
 | Where to look when something's wrong | Every subscriber's own logs/topic | One route's log output | One workflow instance's task history |
 | Best fit | Independent reactions to a domain event, unknown/growing set of subscribers, no step needs to wait on another's result before proceeding | A fixed, code-reviewed business process where the sequence itself is the valuable artifact, and you want full imperative control (branching, error handling, EIPs) | The same kind of fixed business process, but you want the sequence expressed as data (a workflow document) rather than code — useful when the process itself needs to be inspected, versioned, or edited independently of a Java release |
-| Coupling | Loosest — publishers and subscribers never reference each other | Tighter — the route references every participant bean directly | Tighter, same as Camel — but the reference is a task graph, not imperative calls |
+| Coupling | Loosest: publishers and subscribers never reference each other | Tighter: the route references every participant bean directly | Tighter, as with Camel, but the reference is a task graph, not imperative calls |
 
 The rule of thumb: reach for **choreography** when you
 have a domain event other parts of the system might react to today or in
@@ -270,7 +270,7 @@ the three mechanisms side by side.
 - The three legs of the demo share a domain and a comparison, not one order
   flowing through all three.
 
-The next chapter goes deeper into the AI-assisted triage behind both
+Chapter 14 covers the AI-assisted triage behind both
 orchestration legs, including where in-process LLM tool-calling works and
 where it does not.
 

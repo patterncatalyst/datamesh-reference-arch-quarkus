@@ -196,7 +196,7 @@ database write at all, separates "exactly one writer per partition" from
 "every replica sees everything" — the reason this is an architectural split
 into two consumers rather than a one-line `group.id` edit.
 
-Note that `OpenConnections` itself doesn't need to become distributed for
+`OpenConnections` itself doesn't need to become distributed for
 this to work: each replica keeps owning only its own sockets, and the
 pattern centralizes the *event stream* rather than the connection registry —
 no shared Redis set of "who's connected where," no cross-replica RPC to ask
@@ -213,8 +213,8 @@ HTTP. A WebSocket gets the same effect for its own lifetime without that
 configuration: the upgrade handshake picks one backend once, and the TCP
 connection that follows stays pinned there for as long as it's open, sticky
 rule or not. So the "client pinned to one replica" half of the scaling
-problem isn't a configuration choice — it's a property of what a WebSocket
-is.
+problem is a property of what a WebSocket
+is, not a configuration choice.
 
 Sticky-session thinking would otherwise matter for **reconnects**: if a
 client drops and reconnects, should the load balancer land it back on the

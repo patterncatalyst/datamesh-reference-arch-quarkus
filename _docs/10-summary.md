@@ -81,7 +81,7 @@ haven't been given Deployment/Service manifests yet. That is a gap in coverage, 
 require every domain to be deployed the same way at the start, but a reference
 with seven independent services should eventually show seven independent
 Deployments, and it currently shows four. Both gaps are simplifications for a
-laptop-scoped reference; production would want namespace isolation and
+single-machine reference; production would want namespace isolation and
 full-fleet deployment parity.
 
 Without this principle: fuzzy boundaries and ownership vacuums. Data that
@@ -137,8 +137,8 @@ asserting the Avro magic byte (`0x00`) is present and the JSON marker
 (`0x7B`, an opening brace) is not.
 
 This build does not run a dedicated catalog product
-(the kind of discoverability/lineage tool the Python sibling reference
-pairs with OpenMetadata) alongside Apicurio — the registry is the one
+(a discoverability and lineage tool, such as the OpenMetadata instance the Python sibling reference
+runs) alongside Apicurio — the registry is the one
 discovery surface here, and it covers schemas, not lineage or ownership
 metadata. Nothing in this build answers "which
 products exist, who owns them, and what feeds into what" the way a catalog
@@ -155,7 +155,7 @@ consumer finds out in production instead of at build time.
 
 Domains consume the platform's capabilities — streaming, databases, scaling
 — *by declaration*. They don't operate the substrate themselves. The
-platform's job is to make the right things easy; the domain's job is to
+platform's job is to make the right choices the default; the domain's job is to
 declare what its product needs and let the platform deliver it, the same
 way a developer declares a dependency in a `pom.xml` instead of vendoring
 the library's source.

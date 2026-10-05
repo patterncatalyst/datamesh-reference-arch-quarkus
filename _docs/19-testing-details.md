@@ -155,7 +155,7 @@ and assert a `PaymentCaptured` record appears on `payment.captured`
 followed by a `ShipmentDispatched` record on `shipment.dispatched` — but it
 is annotated `@Disabled`. Its own Javadoc explains why: proving that full
 choreography chain needs `payment-service`'s and `shipping-service`'s real
-Reactive Messaging consumers actually running and consuming/producing
+Reactive Messaging consumers running and consuming/producing
 against the same broker, and neither module currently has a container
 image or any other independently-launchable artifact in this project. The
 class is kept fully written so that re-enabling it is a one-line
@@ -238,7 +238,7 @@ guarantee.
 `load-checkstock.sh` targets `capstone.inventory.v1.InventoryService/CheckStock`
 over plaintext HTTP/2 gRPC (`ghz --insecure`, since inventory-service never
 terminates TLS here) at inventory-service's canonical gRPC port,
-`localhost:9000`. Because gRPC has no easy `curl` probe, the script
+`localhost:9000`. Because gRPC has no `curl`-style probe, the script
 health-gates on inventory-service's HTTP `/q/health` instead, reasoning
 that a live health endpoint on the same process is strong evidence the
 gRPC server started in the same Quarkus boot is also up.

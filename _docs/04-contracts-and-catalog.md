@@ -231,9 +231,8 @@ but not yet built here, so this section stays conceptual and cites no catalog de
 It belongs in this chapter because of the argument: a mesh's premise is that domains own their data independently
 and other domains consume it *without* a central team brokering access.
 That premise only holds if products are discoverable and their contracts
-are trustworthy. Without a registry — which this project does have —
-contracts drift and consumers break silently. Without a catalog — which it
-doesn't yet have — nobody can find products or see lineage across the whole
+are trustworthy. Without a registry (this project has one), contracts drift and consumers
+break silently. Without a catalog (it does not yet have one), nobody can find products or see lineage across the whole
 mesh, so in practice teams fall back to asking around, which reintroduces
 exactly the bottleneck a mesh exists to remove. Discovery infrastructure
 is a precondition for federated governance to be computational, checked at

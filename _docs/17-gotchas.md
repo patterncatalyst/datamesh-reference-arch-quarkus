@@ -222,8 +222,8 @@ starts cleanly, but every stock lookup reports unavailable — the demo SKUs
 loading (which only fires alongside `create`/`drop-and-create`) never runs
 outside dev/test. This is intended behavior, not a bug: auto-seeding `%prod`
 from a static SQL file would require schema-destructive generation modes,
-exactly the kind of default a secure-by-design, data-loss-averse deployment
-should refuse — an empty inventory on a fresh production deploy is the
+a default a secure-by-design, data-loss-averse deployment
+should refuse. An empty inventory on a fresh production deploy is the
 *correct* behavior, not a gap to patch over.
 
 **Fix.** Anything that needs data in a `%prod`-mode service — a demo
@@ -267,7 +267,7 @@ body to parse. Second, and worse: the *first* regression test written for
 this used RestAssured, and it passed even with the bug present, because
 RestAssured's underlying Apache HttpClient **silently drops a
 `Content-Type` header on a bodyless request** — the header was never
-actually sent, so the test could never have caught the 415 it was written to
+sent, so the test could never have caught the 415 it was written to
 catch. The commit message for the fix says: *"Rewrote
 OrderResourceTest's regression case to use java.net.http.HttpClient (which
 actually sends the header on a bodyless GET; RestAssured strips it, making
@@ -396,7 +396,7 @@ environment.
   other two.
 - A security validator or a serializer silently falling back can leave an
   endpoint returning `201`/`200` while the actual side effect (an event
-  publish, an Avro-encoded record) quietly fails or degrades — a fine HTTP
+  publish, an Avro-encoded record) fails or degrades; a fine HTTP
   response is not evidence the whole request succeeded.
 - A port, topic name, or any value repeated across file-disjoint config
   needs one authoritative source, not N copies kept in sync by hand — this

@@ -61,7 +61,7 @@ destination — a single place where data from every operational system arrives,
 cleaned, modeled into a consistent schema, and becomes queryable by anyone with the right
 access. The intellectual heritage runs through Kimball's dimensional modeling and Inmon's
 enterprise data warehouse: **star schemas**, **fact tables** and **dimension tables**,
-all optimized for the kind of aggregations and joins that business intelligence tools
+all optimized for the aggregations and joins that business intelligence tools
 need.
 
 The warehouse's defining characteristic is **schema-on-write**. Data is modeled and
@@ -108,7 +108,7 @@ stores. The progression from raw to curated to refined represents increasing lev
 transformation and decreasing levels of generality.
 
 The lake solved the warehouse's most visible problem: format inflexibility. The
-warehouse can't easily accommodate a Kafka topic full of JSON events, a directory of
+warehouse struggles to accommodate a Kafka topic full of JSON events, a directory of
 Parquet files from a data science experiment, or a bucket of images for a computer
 vision model. The lake can. At massive scale and with cheap object storage, the lake
 makes it economically feasible to keep *everything* and decide later what's worth
@@ -214,9 +214,9 @@ the organization's scale, its data landscape, and where the bottleneck sits:
   a product, a platform team that can provide self-serve infrastructure, and a
   governance model that works through automation rather than approvals.
 
-With this landscape in place, the next chapter defines data mesh precisely — what
-Dehghani's four principles are, how they interlock, and why implementing one without the
-others produces a distributed mess rather than a mesh.
+The next chapter defines data mesh precisely: Dehghani's four principles, how they
+interlock, and why implementing one without the others produces a distributed mess
+rather than a mesh.
 
 [Concepts & principles]({{ '/docs/01-concepts/' | relative_url }}).
 

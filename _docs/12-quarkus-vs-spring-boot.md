@@ -30,7 +30,7 @@ the repo targets. It is intentionally kept out of the Quarkus Maven build
 `ai-rules-service` and does not mention `spring-boot-compare` anywhere) —
 Spring Boot wants its own `spring-boot-starter-parent`, so mixing the two
 parents in one module would only create dependency-management friction, and
-more importantly would mean the comparison measures a Spring Boot project
+the comparison would measure a Spring Boot project
 bent to fit Quarkus's BOM and plugin wiring rather than an idiomatic,
 unmodified Spring Boot build. The project's own [pom.xml]({{ site.repo_blob }}/examples/spring-boot-compare/pom.xml) says as much in a
 comment at the top of the file: the project ships one runnable twin so the
@@ -248,7 +248,7 @@ Resident memory is sampled the instant that line appears, reading
 `/proc/<pid>/status`'s `VmRSS` field (falling back to `ps -o rss=` if `/proc`
 isn't readable), and wall-clock time is `date +%s%3N` bracketing the
 process launch and the started-line detection. Every cell the script could
-not actually measure prints the placeholder `<measured-on-run>`
+not measure prints the placeholder `<measured-on-run>`
 rather than a fabricated number — the script's own header is explicit that
 it never invents a result, and a boot failure within the 90-second budget is
 a hard failure (`fail()`, with the last 60 log lines dumped), not a silently

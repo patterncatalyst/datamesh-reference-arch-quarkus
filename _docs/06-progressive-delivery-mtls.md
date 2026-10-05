@@ -40,9 +40,8 @@ Istio and Kiali are installed cluster-wide, but the `datamesh` namespace is
 default — the [istio]({{ site.repo_tree }}/k8s/istio) overlay is what brings them in, and it does so without
 editing [base]({{ site.repo_tree }}/k8s/base) itself. Istio and Kiali stay installed, and
 mesh membership is a per-service opt-in; the mesh is neither removed nor applied to
-every workload by default. This chapter covers what changes, and what doesn't,
-the day a team decides a specific product is ready to opt in, and what the opt-in
-requires to work.
+every workload by default. When a team decides a specific product is ready to opt in, this chapter covers what
+changes, what doesn't, and what the opt-in requires.
 
 ## Installing the mesh: [setup-istio.sh]({{ site.repo_blob }}/scripts/setup-istio.sh)
 
