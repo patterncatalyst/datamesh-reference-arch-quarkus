@@ -7,15 +7,13 @@ duration: 30 minutes
 marker: "06"
 ---
 
-Services expose contracts, and the previous chapter covered how those
-contracts are registered and enforced. This chapter is about how data
-actually *moves* between services — the planes the mesh runs on. There are
+The previous chapter covered how service contracts are registered and enforced. This
+chapter covers how data moves between services — the planes the mesh runs on. There are
 two: an **asynchronous event backbone** on Kafka, and a **synchronous read
 layer** where a GraphQL gateway composes REST and gRPC calls into one
-response. Both are real, running code in this project, and both can be read
-through the same lens — Apache Camel's enterprise integration patterns
-(EIPs) — which is also where this project's Camel-on-Quarkus work actually
-shows up.
+response. Both are running code in this project, and both can be read
+through Apache Camel's enterprise integration patterns (EIPs), which is where this
+project's Camel-on-Quarkus work appears.
 
 The code is in [order-service]({{ site.repo_tree }}/examples/order-service) (the producer side, already built
 in the first chapter of this part), [notification-service]({{ site.repo_tree }}/examples/notification-service), and
@@ -23,9 +21,8 @@ in the first chapter of this part), [notification-service]({{ site.repo_tree }}/
 and [demo-grpc.sh]({{ site.repo_blob }}/demos/demo-grpc.sh) exercise each piece; [demo-camel-integration.sh]({{ site.repo_blob }}/demos/demo-camel-integration.sh)
 exercises the Camel route this chapter closes with.
 
-Figure 5.1 previews the shape the rest of the chapter fills in: four
-protocols, each earning its place by fitness to a job rather than by
-house-wide mandate.
+Figure 5.1 previews the chapter: four protocols, each chosen for the job it fits
+rather than by house-wide mandate.
 
 | Protocol | Job it fits | Contract type | Quarkus extension |
 |---|---|---|---|
@@ -34,9 +31,9 @@ house-wide mandate.
 | GraphQL | composing reads across domains | GraphQL SDL | `quarkus-smallrye-graphql` |
 | Events | asynchronous reactions | Avro | Reactive Messaging |
 
-The rest of this chapter builds the async and sync halves of that picture in
-running code, then returns to the fitness argument explicitly before closing
-with Camel's EIPs as the lens for the routing logic inside either half.
+The rest of this chapter builds the async and sync halves in running code, returns to
+the fitness argument, and closes with Camel's EIPs for the routing logic inside either
+half.
 
 {% include excalidraw.html file="05-api-implementations" alt="Diagram of four protocols — REST, gRPC, GraphQL, and events — each matched to the job it fits best, its contract type, and the Quarkus extension that implements it" caption="Figure 5.1 — Four protocols, four contracts, each by fitness" %}
 
@@ -44,10 +41,10 @@ with Camel's EIPs as the lens for the routing logic inside either half.
 
 The read layer, covered below, is request-and-response: a consumer asks, a
 service answers, the caller waits. The event backbone is the opposite shape,
-and it's what lets order-service avoid calling every interested domain
+and it lets order-service avoid calling every interested domain
 synchronously. `order-service`'s `OrderEventProducer` (built in the previous
-chapter) publishes `order.placed` after an order is committed; it doesn't
-know or care who's listening. `notification-service` is a consumer with no
+chapter) publishes `order.placed` after an order is committed and does not
+know who is listening. `notification-service` is a consumer with no
 inbound API of its own:
 
 ```java
@@ -86,11 +83,11 @@ public class OrderPlacedConsumer {
 `OrderEventProducer`'s `@Channel("order-placed")` — the same logical channel
 name, mapped in each service's own `application.properties` to the same
 physical `order.placed` Kafka topic, with each side free to use a different
-local channel-to-topic mapping if it needed to. `@Transactional` here does
-double duty: it gives the Hibernate write a real transaction boundary, and —
-per SmallRye Reactive Messaging's own rule that a `@Transactional` message
-handler is automatically treated as blocking — it's what lets this method
-safely do a blocking Panache write without a separate `@Blocking`
+local channel-to-topic mapping if it needed to. `@Transactional` does
+double duty: it gives the Hibernate write a transaction boundary, and, because
+SmallRye Reactive Messaging treats a `@Transactional` message
+handler as blocking, it lets this method
+do a blocking Panache write without a separate `@Blocking`
 annotation, the same concern `InventoryGrpcService.checkStock` addressed
 explicitly with `@Blocking` in the previous chapter.
 
@@ -99,34 +96,29 @@ there because Kafka's delivery guarantee here is **at-least-once**: the same
 `order.placed` message can be redelivered (after a consumer restart mid-batch,
 for instance), and without this guard a redelivery would create a duplicate
 notification. Checking for an existing row first and returning early makes
-the write **idempotent** — the Javadoc on this class is explicit that this
-mirrors the Python reference's `ON CONFLICT DO NOTHING` behavior for the
-same reason, just expressed as an application-level check here instead of a
-database constraint.
+the write **idempotent** — the Javadoc on this class notes that this
+mirrors the Python reference's `ON CONFLICT DO NOTHING` behavior, expressed as an
+application-level check instead of a database constraint.
 
 The last line — pushing the freshly persisted `Notification` to every open
-WebSocket connection via `OpenConnections` (Quarkus WebSockets.Next) — is
-what turns this from "a consumer that writes rows" into a live notification
-feed: a client connected to `/ws/notifications` sees the notification the
-moment this method commits it, not on the next poll. It's explicitly
-best-effort — a client that isn't connected right now simply misses the
-push, with no retry or queued delivery — which is the right semantics for a
-live feed and the wrong semantics for anything that needs guaranteed
-delivery (that guarantee, if needed, belongs to the Kafka topic itself, not
-this fan-out).
+WebSocket connection via `OpenConnections` (Quarkus WebSockets.Next) — turns
+this from a consumer that writes rows into a live notification
+feed: a client connected to `/ws/notifications` sees the notification when
+this method commits it, not on the next poll. The push is
+best-effort: a client that isn't connected misses it, with no retry or queued
+delivery. That suits a live feed and not anything needing guaranteed
+delivery, which belongs to the Kafka topic, not this fan-out.
 
-Figure 5.2 puts a data-mesh name on the seam `OrderPlacedConsumer` crosses
-every time it runs: `OrderPlaced` is an immutable event — a fact that an
-order *was* placed, which never changes after the fact — and the
-`Notification` row it's turned into is a stateful entity, queryable and
-updatable going forward. That's the same refinement the diagram draws one
-step further, into aggregates and a published analytical view; this project
-stops at the entity step. Nothing here aggregates or republishes
+Figure 5.2 names the seam `OrderPlacedConsumer` crosses on every message:
+`OrderPlaced` is an immutable event — a fact that an order *was* placed — and the
+`Notification` row it becomes is a stateful entity, queryable and updatable. The
+diagram continues the refinement into aggregates and a published analytical view; this
+project stops at the entity step. Nothing here aggregates or republishes
 notifications for analytical consumption, and no CDC or streaming ingestion
-layer — Figure 5.3's territory — exists in this repository to pick raw
-change data back up off `orders` or `notifications` for that purpose; both
-diagrams describe the target shape of an analytical plane this project's
-operational services feed, not code that runs today.
+layer — Figure 5.3's territory — exists in this repository to pick up raw
+change data from `orders` or `notifications`; both diagrams describe the target shape
+of an analytical plane that this project's operational services would feed, not code
+that runs today.
 
 {% include excalidraw.html file="05-analytical-data-composition" alt="Diagram showing operational data refined through events and entities into a published data product that analytics consumes" caption="Figure 5.2 — How analytical data is composed from operational events and entities" %}
 
@@ -182,19 +174,17 @@ hard-coded to a host — see its `configKey = "order-service"`), and maps the
 shared `OrderDto` wire shape onto the gateway's own `OrderView` GraphQL type
 via `OrderView.from(dto)`.
 
-`stock(@Source OrderView order)` is the federated field, and `@Source` is
-the mechanism that makes it federated rather than eager: this method only
-runs when a client's query actually selects `order { stock { ... } } }` —
+`stock(@Source OrderView order)` is the federated field, and `@Source` makes it lazy:
+this method runs only when a client's query selects `order { stock { ... } } }` —
 MicroProfile GraphQL treats any method taking `@Source T` as a resolver for
 a field named after the method on type `T`, invoked lazily per-field. A
 query for `order(id: "...") { id customerId }` alone never calls
 inventory-service at all; the gRPC call only happens when `stock` is
-selected. That's what makes "one query, two protocols" a real optimization
-rather than always paying for both backends regardless of what the client
-asked for.
+selected. This makes "one query, two protocols" an optimization: the
+gateway does not pay for both backends regardless of what the client asked for.
 
-The actual shape sent over the wire, from [demo-graphql.sh]({{ site.repo_blob }}/demos/demo-graphql.sh), makes the
-composition concrete:
+The query sent over the wire by [demo-graphql.sh]({{ site.repo_blob }}/demos/demo-graphql.sh) shows the
+composition:
 
 ```graphql
 { order(id: "ORDER_ID") { id customerId itemSku quantity status stock { sku quantityOnHand available } } }
@@ -204,43 +194,39 @@ One `POST /graphql` request; `order` resolves over REST, `stock` resolves
 over gRPC, and SmallRye GraphQL assembles both into one JSON response under
 `.data.order`.
 
-This project deliberately uses **gateway orchestration** rather than true
-GraphQL subgraph federation: one stateless gateway owns the whole schema and
+This project uses **gateway orchestration** rather than GraphQL
+subgraph federation: one stateless gateway owns the whole schema and
 its resolvers call each domain's *existing* REST/gRPC interface directly,
-with zero GraphQL added to order-service or inventory-service themselves.
-True federation — where each domain exposes its own GraphQL subgraph and a
-gateway plans queries across them — is the production-scale pattern because
-it preserves each domain's ownership of its own slice of the graph; here,
-the gateway has to know how to reach each domain directly. Orchestration is
-the right call for demonstrating the value GraphQL adds (one client query,
+with no GraphQL added to order-service or inventory-service.
+Federation, where each domain exposes its own GraphQL subgraph and a
+gateway plans queries across them, is the production-scale pattern because
+it preserves each domain's ownership of its slice of the graph; here,
+the gateway must know how to reach each domain directly. Orchestration
+demonstrates what GraphQL adds (one client query,
 multiple backends, a response shaped by the caller) with one new service and
-no changes to the domain services it composes — which is also why
-`graphql-gateway` doesn't appear as a data product in the service table from
-the first chapter of this part: it's a read-layer convenience composing
-products it doesn't own, not a domain with data of its own.
+no changes to the domain services. It is also why
+`graphql-gateway` is not a data product in the service table from
+the first chapter of this part: it composes
+products it doesn't own and has no data of its own.
 
 ## Protocols by fitness, not by hierarchy
 
-Across both planes, this project deliberately uses four different
-protocols rather than picking one and forcing every interaction through it,
-because each is best suited to a different job: REST at the edge (clients
+Across both planes, this project uses four protocols rather than forcing every
+interaction through one, because each suits a different job: REST at the edge (clients
 calling `order-service`, universal and cacheable); gRPC between services
 internally (`InventoryClient` → `InventoryGrpcService`, fast and strongly
 typed from the shared proto); GraphQL for composing reads across domains
 (`GatewayApi`, one query shaped by the caller); and events for everything
 asynchronous (`OrderEventProducer` → `OrderPlacedConsumer`, so a producer
-never blocks on, or even knows about, its consumers). `GatewayApi` makes
-this concrete in one place: its resolvers call REST and gRPC side by side in
-the same class, so the comparison is visible in running code rather than
-asserted in prose.
+never blocks on, or even knows about, its consumers). `GatewayApi` shows
+the contrast in one class: its resolvers call REST and gRPC side by side.
 
 ## Camel's EIPs: the lens for the routing logic inside either plane
 
-Both planes above move data without any *conditional routing logic* inside
-them — order-service always publishes to the same topic, the gateway always
-calls the same two backends. Where this project's data flow does branch on
-content, it's modeled as a textbook Camel enterprise integration pattern:
-the **Content-Based Router**. [ai-mcp-service]({{ site.repo_tree }}/examples/ai-mcp-service)'s
+Neither plane above contains *conditional routing logic*: order-service always
+publishes to the same topic, and the gateway always calls the same two backends. Where
+this project's data flow branches on content, it uses the Camel enterprise integration
+pattern **Content-Based Router**. [ai-mcp-service]({{ site.repo_tree }}/examples/ai-mcp-service)'s
 `OrderLookupToolRoute` is reached through Camel's `ai-tool:` component (the
 only HTTP-reachable path into it is the embedded MCP server's `tools/call`
 method — see [demo-camel-integration.sh]({{ site.repo_blob }}/demos/demo-camel-integration.sh)'s header comment for why),
@@ -309,32 +295,28 @@ from("ai-tool:order-status"
             message: "Tool response: {% raw %}${body}{% endraw %}"
 ```
 
-The two are equivalent route definitions, not two different behaviors: the
-Java DSL version is the one actually running in [ai-mcp-service]({{ site.repo_tree }}/examples/ai-mcp-service)
+The two are equivalent route definitions. The Java DSL version is the one running in [ai-mcp-service]({{ site.repo_tree }}/examples/ai-mcp-service)
 (it's what [demo-camel-integration.sh]({{ site.repo_blob }}/demos/demo-camel-integration.sh) exercises, asserting all four
 branches including the `.otherwise()` fallback), and the YAML DSL block is
-the same route expressed in Camel's YAML route syntax, which this project
-does not currently ship as a running example — it's shown here because the
-Content-Based Router pattern reads identically either way: a `.choice()` (or
+the same route in Camel's YAML syntax, which this project does not ship as a running
+example. The Content-Based Router pattern reads identically either way: a `.choice()` (or
 `choice:` step) evaluates its `.when()` predicates (here, Camel's `simple`
 expression language comparing `${header.orderId}` against each known order
 id) in order, routes to the first match's steps, and falls through to
-`.otherwise()` only if none match. That's the same EIP vocabulary this
-chapter's Kafka and GraphQL flows could be described in, too — a Content-
-Based Router choosing a branch is the conditional-routing cousin of a
-`@Incoming` consumer always taking the same path, and GraphQL's `@Source`
-resolution is itself a lazy routing decision (fetch from inventory-service,
-or don't) made per field rather than per message.
+`.otherwise()` only if none match. The same EIP terms describe this
+chapter's Kafka and GraphQL flows: a Content-Based Router choosing a branch is the
+conditional counterpart of a `@Incoming` consumer that always takes the same path, and
+GraphQL's `@Source` resolution is a lazy routing decision (fetch from inventory-service
+or not) made per field rather than per message.
 
 ## Two planes, one mesh
 
-The synchronous and asynchronous planes aren't competitors; they're
-complementary. `GatewayApi` composes *current* state on demand, the moment a
+The synchronous and asynchronous planes are complementary. `GatewayApi` composes *current* state on demand, the moment a
 client asks. `OrderPlacedConsumer` and its siblings propagate *change* as it
 happens, so downstream consumers attach to the live operational flow rather
 than a stale snapshot. Where routing logic needs to branch on content inside
-either plane, Camel's EIPs are the pattern vocabulary this project reaches
-for, with a real Content-Based Router already running in
+either plane, Camel's EIPs are the pattern language this project uses,
+with a Content-Based Router running in
 [ai-mcp-service]({{ site.repo_tree }}/examples/ai-mcp-service).
 
 ## Build, run, observe
@@ -346,8 +328,8 @@ cd demos && ./demo-grpc.sh       # CheckStock called directly with grpcurl
 cd demos && ./demo-camel-integration.sh   # the Content-Based Router, all 4 branches
 ```
 
-`demo-graphql.sh` is the one to watch most closely for this chapter: it
-places a real order, issues the `{ order(id: ...) { ... stock { ... } } }`
+`demo-graphql.sh` is the main demo for this chapter: it
+places an order, issues the `{ order(id: ...) { ... stock { ... } } }`
 query shown above against the gateway, and asserts the response contains
 *both* the REST-sourced order fields and the gRPC-sourced `stock` fields in
 one `.data.order` payload with no `.errors` — then repeats the query for a
@@ -362,21 +344,18 @@ does not cover.
 
 - The async backbone (`OrderEventProducer` → `OrderPlacedConsumer`) and the
   sync read layer (`GatewayApi` composing `OrderRestClient` + a gRPC stub)
-  are both real, running planes in this project, each suited to a different
+  are both running planes in this project, each suited to a different
   job — propagating change versus composing current state on demand.
 - `@Source`-annotated GraphQL resolvers are lazy: the federated `stock`
   field only triggers inventory-service's gRPC call when a client's query
-  actually selects it, which is what makes gateway composition a real
-  optimization rather than an always-pay-for-both call.
-- Camel's Content-Based Router EIP is the right lens for conditional routing
-  logic in this project, and it's not hypothetical — `OrderLookupToolRoute`
-  is a real `.choice()/.when()/.otherwise()` route reachable through the
-  embedded MCP server, with an equivalent YAML DSL expression of the same
-  route shown here for comparison.
+  selects it, so gateway composition does not always pay for both calls.
+- Camel's Content-Based Router EIP describes the conditional routing
+  logic in this project: `OrderLookupToolRoute`
+  is a `.choice()/.when()/.otherwise()` route reachable through the
+  embedded MCP server, shown here with an equivalent YAML DSL expression.
 
-Part 1 has now built the data products themselves, their contracts, and the
-planes that move data between them — the full shape of "data as a product"
-made real in running Quarkus code.
+Part 1 has built the data products, their contracts, and the planes that move data
+between them: "data as a product" in running Quarkus code.
 
 ---
 

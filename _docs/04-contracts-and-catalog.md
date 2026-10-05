@@ -7,22 +7,19 @@ duration: 35 minutes
 marker: "05"
 ---
 
-The previous chapter established that each service is a data product. A
-data product is only useful to *other* domains, though, if they can find it,
-understand its shape, and trust it won't change out from under them without
-warning. This chapter covers the two mechanisms this project uses for that:
+Each service is a data product, but other domains can use it only if they can find
+it, understand its shape, and trust that it won't change without warning. This chapter covers the two mechanisms this project uses for that:
 a shared `contracts` module holding every service's Avro and Protobuf
 definitions as its single source of truth, and Apicurio Schema Registry
-enforcing those Avro contracts at runtime. It closes by being direct about
-what's still missing — a discovery catalog — and why that gap matters more
-than it might look.
+enforcing those Avro contracts at runtime. It closes with what is not yet
+built, a discovery catalog, and why that gap matters.
 
 The code is in [contracts]({{ site.repo_tree }}/examples/contracts). There's no standalone demo script for
 the registry itself; [demo-kafka.sh]({{ site.repo_blob }}/demos/demo-kafka.sh) exercises it as part of proving
-the Kafka data plane, and that's where this chapter's cross-check comes from.
+the Kafka data plane, and this chapter's cross-check comes from there.
 
-Figure 4.1 is the shape of this whole chapter before the detail. Every
-protocol surface in the mesh carries its own contract:
+Figure 4.1 shows the chapter's scope. Every protocol surface in the mesh carries its
+own contract:
 
 | Protocol | Contract type |
 |---|---|
@@ -34,10 +31,9 @@ protocol surface in the mesh carries its own contract:
 Apicurio Registry is the one home for all of them regardless of format, with
 OpenMetadata sitting downstream to turn those contracts plus the running
 Postgres schemas and Kafka topics into a lineage graph. That target picture
-is wider than what this chapter's code actually wires up today, and the
-sections below are deliberately precise about which pieces of it are real,
-running enforcement and which are still the conceptual target — starting
-with the two contract types `contracts` itself owns.
+is wider than what this chapter's code wires up today; the sections below separate
+running enforcement from the conceptual target, starting with the two contract types
+`contracts` owns.
 
 {% include excalidraw.html file="04-capstone-contracts" alt="Diagram showing every protocol's contract type feeding into Apicurio Registry, with OpenMetadata downstream building a lineage graph from the registry and the running data stores" caption="Figure 4.1 — Contracts, the registry, and the catalog across the mesh" %}
 
@@ -82,14 +78,11 @@ full:
 
 `name` + `namespace` together give every record a fully qualified identity
 (`capstone.order.v1.OrderPlaced`) that doubles as its Apicurio artifact
-identity and its generated Java package — the three stay in lockstep by
-construction, not by convention someone has to remember. Note `amount` is a
-`string`, not Avro's `decimal` logical type: the schema's own `doc` field
-calls this out plainly as "a first-slice simplification," naming the Avro
-decimal logical type as the refinement a later iteration would make. That's
-the kind of fragile-but-documented choice worth leaving visible rather than
-hiding — a reader extending this contract needs to know it was a deliberate
-shortcut, not an oversight.
+identity and its generated Java package, so the three stay in lockstep by
+construction. `amount` is a `string`, not Avro's `decimal` logical type: the schema's
+`doc` field calls this "a first-slice simplification" and names the decimal logical type
+as the later refinement. Anyone extending this contract should treat it as a known
+shortcut.
 
 The `org.apache.avro:avro-maven-plugin`'s `schema` goal, bound to Maven's
 `generate-sources` phase, turns each `.avsc` into a generated
@@ -141,16 +134,15 @@ from the one proto this module owns, never copy-pasted between services.
 
 ## Two jobs the registry does: runtime vs. discovery
 
-The distinction worth being precise about is that these two contract types
-are enforced completely differently once a service is actually running.
+These two contract types are enforced differently once a service is running.
 
-A **runtime contract** is load-bearing on the hot path. The Avro event
+A **runtime contract** sits on the hot path. The Avro event
 schemas are this project's example: `OrderEventProducer`'s
 `emitter.send(event)` only works at all because Apicurio's Avro serializer
 and deserializer agree on the schema, fetched from the registry at
-publish/consume time — the event literally will not encode or decode
-correctly if the schema is wrong or missing. Because it's load-bearing,
-Apicurio can enforce real governance on it: a compatibility rule configured
+publish/consume time; the event will not encode or decode
+if the schema is wrong or missing. Because of that, Apicurio can enforce governance
+on it: a compatibility rule configured
 on the artifact can reject a schema change that would break existing
 consumers, at publish time, before it ever reaches one.
 
@@ -161,20 +153,18 @@ single, versioned home (so a consumer can always find the exact shape a
 gRPC service expects), but the coupling is loose and offline rather than
 tight and online.
 
-Figure 4.2 walks that distinction as two numbered paths through the same
-registry. The runtime path is exactly the four steps this project runs: ①
+Figure 4.2 shows the distinction as two numbered paths through the same
+registry. The runtime path is the four steps this project runs: ①
 `OrderEventProducer` serializes `OrderPlaced` and registers (or fetches) its
 schema against Apicurio, ② the Avro bytes plus a 4-byte schema id land on the
 `order-placed` Kafka topic, ③ `OrderPlacedConsumer` in notification-service
 fetches that same schema by id, and ④ it deserializes the bytes back into an
-`OrderPlaced` record before persisting a `Notification` — the exact round
+`OrderPlaced` record before persisting a `Notification` — the round
 trip the previous chapter's `OrderEventProducer`/`OrderPlacedConsumer` pair
-walks through in code. The discovery path (⑤–⑧) is where the diagram gets
-ahead of what's actually wired up: it shows all four services publishing
+walks through in code. The discovery path (⑤–⑧) goes beyond what is wired up: it shows all four services publishing
 contracts — OpenAPI, Protobuf, GraphQL SDL, and Avro again — into the same
 registry, with OpenMetadata ingesting them alongside the Postgres schemas and
-Kafka topics to build a lineage graph. Of those four, only Protobuf is a real,
-checked-in discovery contract in this project (`inventory.proto`, packaged
+Kafka topics to build a lineage graph. Of those four, only Protobuf is a checked-in discovery contract in this project (`inventory.proto`, packaged
 into the `contracts` jar as covered above); `order-service` and
 `inventory-service` don't add the `quarkus-smallrye-openapi` extension, so
 there's no `/openapi.json` document generated today for REST to publish
@@ -187,69 +177,58 @@ shape, not code that runs today.
 {% include excalidraw.html file="04-contract-flow" alt="Diagram contrasting the Avro runtime path (serialize, publish, fetch schema, deserialize) with the discovery path where services publish OpenAPI, Protobuf, GraphQL SDL and Avro contracts for a catalog to ingest" caption="Figure 4.2 — How a contract flows: runtime path vs. discovery path" %}
 
 Conflating the two is how teams get surprised in both directions: treating
-the Avro schema as "just documentation" would miss that a bad change breaks
-every consumer immediately; treating the proto as if it were enforced like
-the Avro schema would overstate what compiling against a checked-in `.proto`
-file actually guarantees at runtime.
+the Avro schema as documentation misses that a bad change breaks every consumer
+immediately, and treating the proto as if it were enforced like the Avro schema
+overstates what compiling against a checked-in `.proto` guarantees at runtime.
 
 ## What's registered, and how to see it
 
 `application.properties` in each producing/consuming service configures the
 Apicurio Avro serde explicitly (see the previous chapter's note on why
 `value.serializer` is pinned rather than autodetected), pointing at the
-compose stack's Apicurio instance. [demo-kafka.sh]({{ site.repo_blob }}/demos/demo-kafka.sh) is the place this
-project actually proves the registry is doing real work, not just sitting
-there configured: it places a real order (triggering
-`OrderEventProducer.publish`), reads the **raw bytes** back off the real
-Kafka topic with `kcat` — deliberately bypassing any Avro deserializer — and
+compose stack's Apicurio instance. [demo-kafka.sh]({{ site.repo_blob }}/demos/demo-kafka.sh) is where this
+project shows the registry doing work: it places an order (triggering
+`OrderEventProducer.publish`), reads the **raw bytes** back off the Kafka topic with
+`kcat`, bypassing any Avro deserializer, and
 asserts the first byte of the record value is `0x00`, the Apicurio/Confluent
 wire-format magic byte that precedes a 4-byte schema id and the Avro-encoded
 payload. It also asserts the value does *not* start with `0x7b` (`{`), which
 would mean the serializer had silently regressed to plain JSON. Then it
 confirms Apicurio's own artifact count went up after the publish, and that a
 matching artifact exists under either the topic name or the record's fully
-qualified name `capstone.order.v1.OrderPlaced` — corroborating from the
-registry's side that a schema really was registered for this run, not just
-that *some* bytes arrived.
+qualified name `capstone.order.v1.OrderPlaced` — confirming from the
+registry's side that a schema was registered for this run, not just that bytes
+arrived.
 
-That combination — raw-byte wire-format proof plus registry-side
-corroboration — is the strongest cheap evidence that the contract is real
-and enforced, rather than declared in a `.avsc` file and quietly ignored at
-runtime.
+Raw-byte wire-format proof plus registry-side confirmation is cheap evidence that the
+contract is enforced and not merely declared in a `.avsc` file and ignored at runtime.
 
 ## Why a catalog is a requirement, not an add-on — and why it isn't built yet
 
-A registry tells you the *shape* of one contract at a time. It doesn't, on
-its own, tell you which products exist across the whole mesh, who owns each
+A registry tells you the *shape* of one contract at a time. It does not tell you which products exist across the whole mesh, who owns each
 one, who consumes whom, or where a given piece of data ultimately came
 from. That's a catalog's job — ingesting from the registry, the databases,
 and the event backbone to assemble a discoverable picture with lineage: the
 producer-and-consumer graph across domains, so a change's downstream blast
 radius is something you can look up rather than reverse-engineer from code.
 
-Figure 4.3 is the same picture as Figure 4.1, but with each contract marked
-by which job it actually does: a filled dot for the one **runtime** contract
+Figure 4.3 repeats Figure 4.1 with each contract marked
+by its job: a filled dot for the one **runtime** contract
 (Avro, enforced live against Apicurio) and hollow dots for the three
-**discovery** contracts (OpenAPI, Protobuf, GraphQL SDL). That marking is the
-payoff of the distinction this chapter draws — it's also exactly why the
-OpenMetadata box belongs on the far side of a gap: everything to its left is
-either running code or a checked-in artifact in this repository today, and
-everything inside it is not.
+**discovery** contracts (OpenAPI, Protobuf, GraphQL SDL). That marking is also why the
+OpenMetadata box sits across a gap: everything to its left is running code or a
+checked-in artifact in this repository, and everything inside it is not.
 
 {% include excalidraw.html file="04-contracts-registry-catalog" alt="Diagram marking each protocol's contract as either a runtime contract (Avro, filled dot) or a discovery contract (OpenAPI, Protobuf, GraphQL SDL, hollow dots), all registered in Apicurio, with OpenMetadata downstream ingesting contracts and data sources into a lineage graph" caption="Figure 4.3 — Runtime vs. discovery contracts, and the catalog gap" %}
 
-This project does not build that catalog yet. This is a current limitation,
-not just something a diagram gestures at and leaves implied: there is no
+This project does not build that catalog yet: there is no
 OpenMetadata deployment, no ingestion job, and no `demo-discovery.sh` or
 `demo-om-lineage.sh` in this repository today. The sibling Python reference
 architecture layers OpenMetadata on top of the same kind of registry this
 chapter describes. The OpenMetadata ingestion and lineage work is planned
-but not yet built here. Citing a catalog demo that doesn't exist here would
-misrepresent what this chapter's code actually proves, so this section
-stays conceptual.
+but not yet built here, so this section stays conceptual and cites no catalog demo.
 
-The reason it still belongs in this chapter, unbuilt, is the argument
-itself: a mesh's entire premise is that domains own their data independently
+It belongs in this chapter because of the argument: a mesh's premise is that domains own their data independently
 and other domains consume it *without* a central team brokering access.
 That premise only holds if products are discoverable and their contracts
 are trustworthy. Without a registry — which this project does have —
@@ -257,12 +236,10 @@ contracts drift and consumers break silently. Without a catalog — which it
 doesn't yet have — nobody can find products or see lineage across the whole
 mesh, so in practice teams fall back to asking around, which reintroduces
 exactly the bottleneck a mesh exists to remove. Discovery infrastructure
-isn't decoration bolted on once the "real" system works; it's load-bearing
-structure for federated governance to be computational — checked at
-publish time and recorded automatically — rather than enforced manually
-through team coordination. This project proves the registry half of that
-claim with real, running code; the catalog half is named plainly as future
-work rather than glossed over.
+is a precondition for federated governance to be computational, checked at
+publish time and recorded automatically, rather than enforced through team
+coordination. This project demonstrates the registry half of that claim in running
+code; the catalog half is future work.
 
 ## Build, run, observe
 
@@ -270,12 +247,11 @@ work rather than glossed over.
 cd demos && ./demo-kafka.sh
 ```
 
-This is the same demo the next chapter's data-planes discussion returns to
-for the event-backbone side; here, watch specifically for the two assertion
-steps that speak to contracts: the raw first-byte check (`0x00`, not `{`)
+The next chapter's data-planes discussion returns to this demo for the event backbone.
+Here, the two assertion steps that concern contracts are the raw first-byte check (`0x00`, not `{`)
 right after the order is placed, and the Apicurio artifact-count delta and
-artifact-id match that follow it. Together they're the chapter's concrete
-proof that this project's Avro contracts hold up at runtime.
+artifact-id match that follow it. Together they show that this project's Avro
+contracts hold at runtime.
 
 ## What you learned
 
@@ -284,18 +260,15 @@ proof that this project's Avro contracts hold up at runtime.
   `SpecificRecord`s, and a `.proto` for the one gRPC call, scanned out of the
   module's jar by each consuming service's own build.
 - Runtime contracts (Avro, fetched/enforced live against Apicurio) and
-  discovery contracts (the proto, compiled ahead of time) have fundamentally
-  different coupling — conflating them is how teams get surprised about what
-  a contract actually guarantees.
+  discovery contracts (the proto, compiled ahead of time) have different
+  coupling; conflating them leads to surprises about what a contract guarantees.
 - A catalog is a mesh requirement in principle — without one, discovery
   degrades back into a central team being asked where things are — but this
-  project is explicit that it isn't built yet, rather than implying it with
-  an unbuilt demo.
+  project has not built one yet.
 
-With a registry proving contracts are real, the next question is how data
-actually moves across the mesh on top of them — the synchronous read layer
+The next question is how data moves across the mesh on top of them — the synchronous read layer
 and the asynchronous event backbone.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `demo-kafka.sh`'s raw-byte magic-byte assertion passed and `OrderPlacedAvroWireIT` is green. One item remains unexercised: a deliberately incompatible Avro schema change being rejected by Apicurio at publish time is still not covered by any demo.*
+*Verification status: <span class="status status--verified">verified</span>. `demo-kafka.sh`'s raw-byte magic-byte assertion passed and `OrderPlacedAvroWireIT` is green. One item remains unexercised: an intentionally incompatible Avro schema change being rejected by Apicurio at publish time is still not covered by any demo.*

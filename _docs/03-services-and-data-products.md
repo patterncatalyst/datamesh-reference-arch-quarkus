@@ -18,9 +18,9 @@ reuse the same shape while varying the protocol surface to fit their role.
 
 The code is in [order-service]({{ site.repo_tree }}/examples/order-service), [inventory-service]({{ site.repo_tree }}/examples/inventory-service), and
 [review-service]({{ site.repo_tree }}/examples/review-service). [demo-order.sh]({{ site.repo_blob }}/demos/demo-order.sh) builds and runs
-order-service and inventory-service together and drives a real order through
-them; its narration in the script header covers what it proves and the
-sharp edges hit wiring it up.
+order-service and inventory-service together and drives an order through
+them; the script header describes what it proves and the sharp edges hit
+wiring it up.
 
 ## What a data product looks like here
 
@@ -31,7 +31,7 @@ serves data out, the transformation between them, and enough self-description
 that another domain can find it, understand its shape, and depend on it
 safely.
 
-Figure 3.1 draws that quantum exactly as the data mesh literature does: input
+Figure 3.1 draws that quantum as the data mesh literature does: input
 and output ports where data crosses the product's boundary, three structural
 pieces doing the work inside — code (pipelines, APIs, policy-as-code), data &
 metadata (polyglot storage, schema, SLOs), and infrastructure (build, deploy,
@@ -48,8 +48,7 @@ data through its REST/gRPC endpoints (output ports), optionally accepts
 synchronous calls or Kafka events as input, and — from the next chapter on —
 publishes a versioned contract so other domains can depend on its shape
 without reading its source. The service boundary and the data-product
-boundary are the same boundary, which is what keeps domain ownership real
-instead of aspirational.
+boundary are the same boundary, which keeps domain ownership enforceable.
 
 | Service | Owns | Surface |
 |---|---|---|
@@ -60,7 +59,7 @@ instead of aspirational.
 | `payment-service` / `shipping-service` | payments / shipments | Kafka consumer → processor → Kafka producer, no externally callable API at all |
 | `graphql-gateway` | nothing of its own | GraphQL only, composing REST + gRPC from other services |
 
-The variation is deliberate, not accidental: **a service exposes the
+The variation follows from role: **a service exposes the
 protocols its role needs, not a uniform surface.** `notification-service`
 and the payment/shipping pair are event-only because their job is to react,
 not to be called; `review-service` is REST-only because it has no
@@ -72,15 +71,14 @@ two chapters — contracts, then the data planes themselves.
 Each service owns its own Postgres schema/database in the shared compose
 stack (`orderdb`, `inventorydb`, and so on — see [init]({{ site.repo_tree }}/infra/db/init) and each
 service's `application.properties`). One cluster, one database per service
-is what makes "per-service data ownership" real without running a fleet of
-database instances for a learning project.
+gives per-service data ownership without running a fleet of
+database instances.
 
 ## order-service: the template, built end to end
 
-Rather than build all the services a layer at a time, the template is built
-all the way through first: entity → persistence → a synchronous dependency
-on another service → an event publish. Once that spine is proven, the
-remaining services are the same shape with different payloads.
+The template is built end to end first: entity → persistence → a synchronous
+dependency on another service → an event publish. The remaining services
+repeat that shape with different payloads.
 
 ### The entity: `Order`
 
@@ -130,19 +128,17 @@ This is Hibernate ORM with Panache in its **active-record** style: the
 entity extends `PanacheEntityBase` and carries its own persistence
 operations (`persist()`, `findById()`, `listAll()`) rather than routing
 through a separate repository class. `PanacheEntityBase` (not the shorter
-`PanacheEntity`) is the right base here because the primary key is a
-`String` UUID the application assigns itself (`UUID.randomUUID()`), not the
-auto-generated `Long id` that `PanacheEntity` bakes in — order-service needs
-control over its own id generation so the id can be returned to the client
-immediately, before any round trip, and so it can later travel unchanged
-into the `order.placed` event as `order_id`.
+`PanacheEntity`) is the right base because the primary key is a
+`String` UUID the application assigns (`UUID.randomUUID()`), not the
+auto-generated `Long id` that `PanacheEntity` defines. order-service controls
+its id generation so the id can be returned to the client immediately and
+travel unchanged into the `order.placed` event as `order_id`.
 
 `status` is a Java enum (`OrderStatus`) persisted with
 `@Enumerated(EnumType.STRING)` rather than `ORDINAL`. Storing the name
 (`"PLACED"`) instead of the ordinal position (`0`) means adding a new status
 later, or reordering the enum, can't silently reinterpret existing rows as
-the wrong status — a real risk with `ORDINAL` that costs nothing to avoid up
-front.
+the wrong status, a risk with `ORDINAL` that costs nothing to avoid.
 
 The `create(...)` static factory is the one place an `Order` gets built: it
 assigns the id, defaults `status` to `PLACED`, and stamps `createdAt` —
@@ -214,14 +210,14 @@ public class OrderResource {
 ```
 
 `placeOrder` is the whole data-product transformation in one method, and
-the order of its three steps is load-bearing, not incidental:
+the order of its three steps matters:
 
 1. **Check stock first, over gRPC, before touching Postgres.** `checkStock`
    is a blocking call into `InventoryClient` (covered next), and a failure
    there — `StatusRuntimeException`, meaning inventory-service is
    unreachable or erroring — returns `503` immediately. No row is written.
-   This is a deliberate **fail-closed** choice: the method would rather
-   refuse an order it can't validate than persist one it isn't sure about.
+   This is **fail-closed**: the method refuses an order it can't validate
+   rather than persisting one it isn't sure about.
    If stock comes back but isn't `available`, that's a `409 Conflict`, not a
    `503` — the dependency answered, it just said no.
 2. **Persist only after the gRPC call succeeds.** `Order.create(...)` builds
@@ -238,9 +234,8 @@ the order of its three steps is load-bearing, not incidental:
    a broker outage must not turn into a failed `POST` for work that already
    succeeded. The cost of that choice — a window where the order is
    committed but the event never arrives — is the **dual-write gap**, and
-   the comment in `OrderEventProducer` names its production answer plainly:
-   the outbox pattern, which this template does not implement. That's a
-   fragile edge worth seeing clearly.
+   the comment in `OrderEventProducer` names the production answer: the
+   outbox pattern, which this template does not implement.
 
 `listOrders` and `getOrder` are the read side: `listAll(Sort.by(...))` is
 Panache's query builder returning rows newest-first, and `findById` returns
@@ -271,8 +266,8 @@ public class InventoryClient {
 
 `@GrpcClient("inventory")` wires `quarkus-grpc` to inject a client stub for
 the channel named `inventory` (configured in `application.properties`,
-pointed at inventory-service's gRPC port). `InventoryService` here is not
-hand-written — it's the **Mutiny-flavored service interface quarkus-grpc
+pointed at inventory-service's gRPC port). `InventoryService` is not
+hand-written; it is the **Mutiny-flavored service interface quarkus-grpc
 generates at build time** from [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto),
 which order-service never defines itself; it's scanned out of the
 `contracts` module's packaged jar (more on that mechanism in the next
@@ -313,14 +308,14 @@ public class OrderEventProducer {
 
 `@Channel("order-placed")` binds this `Emitter<OrderPlaced>` to the outgoing
 channel configured in `application.properties`, which maps `order-placed` to
-the real `order.placed` Kafka topic and — critically — pins
-`value.serializer` **explicitly** to Apicurio's Avro serializer rather than
-leaving Quarkus to autodetect one. The code comment on this class documents
-exactly why that explicitness matters: two Apicurio artifacts share the
+the `order.placed` Kafka topic and pins
+`value.serializer` explicitly to Apicurio's Avro serializer rather than
+leaving Quarkus to autodetect one. The code comment on this class explains
+why: two Apicurio artifacts share the
 `io.apicurio.registry.serde.avro` package, a split-package situation that
-was proven to defeat Quarkus's autodetection and silently fall back to a
-JSON serializer instead — which would quietly break the Avro-on-the-wire
-guarantee the next chapter depends on. `OrderPlaced` itself is a generated
+defeats Quarkus's autodetection, which silently falls back to a
+JSON serializer and breaks the Avro-on-the-wire guarantee the next chapter
+depends on. `OrderPlaced` itself is a generated
 Avro `SpecificRecord`, not hand-written either; it comes from the
 `contracts` module, which is where the next chapter picks up. `emitter.send`
 returns the `CompletionStage<Void>` that `OrderResource` treats as
@@ -329,7 +324,7 @@ above.
 
 ## Further products: inventory-service and review-service
 
-`inventory-service` and `review-service` repeat the exact same shape —
+`inventory-service` and `review-service` repeat the same shape —
 Panache entity, REST (and here, gRPC) resource — while exposing a different
 surface because their role is different.
 
@@ -394,12 +389,9 @@ direction.
 
 `inventory-service` also exposes a small REST surface, `StockResource`
 (`POST /stock` to seed, `GET /stock` / `GET /stock/{sku}` to inspect) — but
-its own Javadoc is explicit that this is **not part of the cross-service
-contract**; it's a demo/test convenience, and the real inter-service
-dependency is the gRPC call above. That distinction — a demo-facing REST
-endpoint existing beside the real production surface — matters precisely
-because it would be easy to mistake a convenience endpoint for
-the contract.
+its Javadoc states that this is **not part of the cross-service
+contract**; it is a demo and test convenience, and the inter-service
+dependency is the gRPC call above.
 
 `review-service` goes the other direction: REST-only, because it has no
 synchronous cross-service dependency to satisfy, plus one endpoint that
@@ -423,13 +415,11 @@ public Response delete(@PathParam("id") Long id) {
 `@RolesAllowed("admin")` is Jakarta's standard role-based access-control
 annotation; Quarkus's OIDC extension wires it to the bearer token's roles
 claim, so a request with no token gets `401`, and one with a token lacking
-the `admin` role gets `403` — all before this method body ever runs. It's
-the smallest possible illustration that a data product's surface can carry
-its own authorization policy, scoped to exactly the operation that needs it
+the `admin` role gets `403` — all before this method body ever runs. It
+shows that a data product's surface can carry its own authorization policy, scoped to exactly the operation that needs it
 (creating and reading reviews stays open; moderating them doesn't). This is
-Figure 3.1's control port made literal: the governance layer the diagram
-draws wrapping the product isn't a separate component bolted on here — it's
-a single annotation on the one method that needs it.
+Figure 3.1's control port: the governance layer the diagram draws around the
+product is, here, a single annotation on the one method that needs it.
 
 ## Build, run, observe
 
@@ -439,9 +429,9 @@ cd demos && ./demo-order.sh
 
 The script brings up the compose baseline (Postgres, Kafka, Apicurio) and
 packages and starts `inventory-service` and `order-service` as packaged JVM
-processes against that real infrastructure — deliberately not
+processes against that infrastructure, not
 `quarkus:dev`, so the `%prod`-profiled config pointing at the compose stack
-is what actually runs. It then drives a real order through the stack:
+is what runs. It then drives an order through the stack:
 
 1. Seed a SKU via `POST /stock`.
 2. Place an order: `POST /orders` for two `WIDGET-1` units, and confirm
@@ -451,34 +441,33 @@ is what actually runs. It then drives a real order through the stack:
 5. Query the `orders` table directly with `psql` to confirm the row exists
    independent of the REST layer.
 
-The template also handles two real production-readiness edges that only
-surface in a packaged (non-dev) deployment, both wired in by default: the
+The template also handles two production-readiness edges that surface only
+in a packaged (non-dev) deployment, both wired in by default: the
 order-service→inventory-service gRPC call targets a single canonical port
 (`9000`, env-overridable on both sides via `INVENTORY_GRPC_HOST` /
 `INVENTORY_GRPC_PORT`), and the packaged JVM trusts the Avro event package
 via `org.apache.avro.SERIALIZABLE_PACKAGES` set in the container image's
 `JAVA_TOOL_OPTIONS` — without which Avro's `ClassSecurityValidator` would
-silently drop every `order.placed` publish from a non-dev JVM. Both matter
-for any real deployment of this template.
+silently drop every `order.placed` publish from a non-dev JVM.
 
 ## What you learned
 
 - A data product in this project is a service: its own Postgres schema, its
   own REST/gRPC surface, its own Kafka publish — the service boundary *is*
   the data-product boundary.
-- `order-service`'s `placeOrder` shows the load-bearing ordering a data
+- `order-service`'s `placeOrder` shows the ordering a data
   product's write path needs: validate a synchronous dependency first
   (fail closed), persist only after that succeeds, and publish only after
   persistence — with a publish failure never undoing or failing the
   already-committed write.
 - Each service's protocol surface matches its role rather than a
   house-wide template: `inventory-service` is gRPC-first because that's
-  what its one real consumer needs; `review-service` is REST-only with
+  what its one consumer needs; `review-service` is REST-only with
   endpoint-scoped OIDC authorization because it has no synchronous
   dependency to satisfy.
 
-With real services shipping real data, the next question is how other
-domains find them, trust their shape, and know it won't change without
+The next question is how other
+domains find these services, trust their shape, and know it won't change without
 warning — contracts and the catalog.
 
 ---

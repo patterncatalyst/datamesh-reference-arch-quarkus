@@ -7,14 +7,11 @@ duration: "20 min"
 marker: "01"
 ---
 
-Before defining data mesh precisely, it helps to see the landscape it lives in. The mesh
-did not appear out of nowhere — it's a response to specific organizational scaling
-problems that earlier data architectures left unsolved. Each of those earlier patterns
-solved a real problem, and each is still the right answer when that problem is the
-dominant one. Understanding what came before, and what each pattern does well, makes the
-mesh's value proposition concrete rather than abstract. Figure 1.5, at the end of
-this chapter, lays the whole progression out side by side once each pattern has
-been introduced on its own.
+Data mesh responds to organizational scaling problems that earlier data architectures
+left unsolved, so the landscape comes first. Each earlier pattern solved a real problem
+and remains the right answer when that problem dominates. Knowing what each does well
+makes the mesh's value proposition concrete. Figure 1.5, at the end of this chapter,
+lays the progression out side by side.
 
 ## Data pipelines
 
@@ -124,7 +121,7 @@ lake. Undocumented datasets accumulate. Nobody knows which version of the custom
 is authoritative, which datasets are stale, which ones duplicate each other under
 different names. The curation effort needed to keep a lake useful re-creates much of the
 warehouse's modeling and governance work, just without the warehouse's enforcement
-mechanisms. And critically, the organizational problem is unchanged: a central team
+mechanisms. The organizational problem is unchanged: a central team
 still owns the lake, still cannot understand every domain's data, and still bottlenecks
 on the same requests. The technology changed — from rigid schema to flexible storage —
 but the shape of the organization did not.
@@ -156,16 +153,14 @@ observability, schema registries) so that domain teams don't each build their ow
 interoperable — not through review boards and policy documents, but through standards
 enforced automatically by the platform itself.
 
-This is a different kind of answer because it changes the organizational shape, not just
-the technology. A domain team that understands its own data curates it, models it,
+The mesh changes the organizational shape, not just the technology. A domain team that understands its own data curates it, models it,
 documents it, and stands behind it the way a product team stands behind a product. The
 central team's role shifts from owning every dataset to providing the platform and
-enforcing the standards — a fundamentally different scaling model.
+enforcing the standards, a different scaling model.
 
-An important clarification: the mesh is not a replacement for warehouses or lakes. A
+The mesh does not replace warehouses or lakes. A
 domain may still use a warehouse or a lake internally — the order-analytics domain
-might store its refined data in a Parquet-based lakehouse, and that's fine. The
-reorganization is about *who owns the data*, not about which storage technology to use.
+might store its refined data in a Parquet-based lakehouse. The reorganization is about *who owns the data*, not about which storage technology to use.
 The mesh is an answer to the question "how does this organization scale its data
 architecture?" — not "which database should this team pick?"
 
@@ -173,13 +168,13 @@ The mesh earns its complexity in organizations with many domains, many data cons
 and the operational maturity to sustain federated ownership. For smaller teams, simpler
 data flows, or organizations where the central team is not yet the bottleneck, a
 well-run warehouse or a governed lake may be exactly the right answer. The mesh is not
-an upgrade in a linear progression — it's a different tool for a different problem.
+the next step in a linear progression; it addresses a different problem.
 
 ## The evolution — and when each pattern fits
 
 Figure 1.5 lays the four patterns out in one sequence, from the earliest, most
 point-to-point pattern to the most decentralized — the progression the rest of this
-section walks through in terms of the problem each one actually solved.
+section walks through in terms of the problem each one solved.
 
 {% include excalidraw.html file="01-architecture-evolution" alt="Timeline showing the progression from data pipelines to data warehouses to data lakes to data mesh, with the problem each pattern solved" caption="Figure 1.5 — The evolution from pipelines to mesh" %}
 
@@ -194,7 +189,7 @@ restructuring ownership so that the central team is no longer the bottleneck on 
 domain's data needs.
 
 Each pattern is still valid when its problem is the dominant one. The choice depends on
-the organization's scale, its data landscape, and where the bottleneck actually sits:
+the organization's scale, its data landscape, and where the bottleneck sits:
 
 - **Pipelines** are the right answer when you have a small number of well-understood
   integrations, the data flows are stable, and there is no pressing need for
@@ -229,6 +224,6 @@ others produces a distributed mess rather than a mesh.
 
 *Status: <span class="status status--conceptual">conceptual</span>. This
 chapter is stack-agnostic conceptual framing with no code or commands to run; the
-highest-risk thing to confirm is that the terminology here (pipeline sprawl, schema-on-write
+main item to confirm is that the terminology here (pipeline sprawl, schema-on-write
 vs. schema-on-read, data swamp) stays consistent with how later, hands-on chapters use the
 same terms once they're written.*

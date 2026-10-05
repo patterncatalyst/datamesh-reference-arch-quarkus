@@ -9,10 +9,9 @@ marker: "02"
 
 The [previous chapter]({{ '/docs/01-data-architectures/' | relative_url }}) covered the
 landscape of data architectures — pipelines, warehouses, and lakes — and where the mesh
-sits in relation to all of them. This chapter defines what a data mesh actually is,
-precisely, since the term gets attached to a lot of things it isn't, and works through
-the four principles it rests on. It's deliberately brief: enough vocabulary to build on
-for the rest of the tutorial, not the full history of the pattern.
+sits in relation to all of them. This chapter defines a data mesh, since the term gets
+attached to many things it isn't, and works through the four principles it rests on. It
+stays brief: enough terminology to build on, not the full history of the pattern.
 
 ## What a data mesh is
 
@@ -73,7 +72,7 @@ on the right.
 This build models the **operational** side concretely — Quarkus services that own their
 data and emit events over Kafka as Avro records — and shows how analytical consumers
 attach to that operational flow through the event backbone, rather than through a
-nightly extract. That's the loop the mesh is meant to keep closed.
+nightly extract. That is the loop the mesh is meant to keep closed.
 
 Concretely, each domain service's operational plane is a Panache entity backed by its
 own Postgres database — `order-service`'s `Order` entity, for instance, persisted with
@@ -104,8 +103,8 @@ the detail below takes each one in turn.
 There is no central team that "owns the warehouse." Each domain owns its data's schema,
 its lifecycle, and its evolution. In this build, each domain service owns its data
 outright — the order domain owns orders, inventory owns stock — and nothing reaches
-across that boundary to mutate another domain's data directly. This is realized very
-literally at the persistence layer: `order-service`, `inventory-service`,
+across that boundary to mutate another domain's data directly. The persistence layer
+enforces this: `order-service`, `inventory-service`,
 `payment-service`, and `shipping-service` each get their own Panache entities and their
 own schema, never a shared table another service reaches into directly. When
 `order-service` needs to know whether an item is in stock, it doesn't query inventory's
@@ -133,8 +132,7 @@ into typed `SpecificRecord` Java classes
 (`OrderPlaced`, `PaymentCaptured`, `ShipmentDispatched`) rather than hand-maintained
 POJOs that could silently drift from the wire format. A consumer doesn't guess at
 `order-service`'s event shape from documentation — it depends on the `contracts` jar and
-gets the exact shape the compiler enforces. That's "self-describing" made literal: the
-schema *is* the description, and it travels with the artifact rather than living in a
+gets the exact shape the compiler enforces. The schema is the description, and it travels with the artifact instead of living in a
 wiki page that goes stale.
 
 **Self-serve data platform.** Domain teams should not each build their own event
@@ -143,8 +141,7 @@ infrastructure that every domain consumes, so a domain team can stand up a data 
 without first becoming experts in running Kafka or Prometheus. In this build, the event
 backbone, the observability stack, the schema registry, the catalog, and autoscaling are
 all platform infrastructure shared by the services —
-[Kubernetes as the substrate]({{ '/docs/02-kubernetes-substrate/' | relative_url }}) is
-about exactly how Kubernetes makes that self-serve layer real. Concretely, a domain team
+[Kubernetes as the substrate]({{ '/docs/02-kubernetes-substrate/' | relative_url }}) covers how Kubernetes provides that self-serve layer. A domain team
 adding a new service to this mesh does not stand up its own Kafka cluster or its own
 schema registry — it points `mp.messaging.outgoing.<channel>.connector` at the Strimzi
 cluster [setup-kafka-operator.sh]({{ site.repo_blob }}/scripts/setup-kafka-operator.sh)
@@ -164,7 +161,7 @@ small set of global rules keeps independent products interoperable; the platform
 enforces them. In this build, the Istio service mesh is built to establish mutual TLS
 automatically between any two services that opt into it — the mechanism the
 [progressive delivery & mTLS chapter]({{ '/docs/06-progressive-delivery-mtls/' | relative_url }})
-walks in full, including the deliberate choice to mesh selectively, per Deployment,
+walks in full, including the choice to mesh selectively, per Deployment,
 rather than label the whole `datamesh` namespace for injection. And on the contract side,
 Apicurio can enforce a compatibility rule on a registered Avro artifact that rejects an
 incompatible schema change at publish time, before it ever reaches a consumer — the
@@ -180,20 +177,17 @@ approval bottleneck.
 
 ## The pattern is not the tools
 
-A data mesh isn't a product, a tool, or a vendor offering — it's an organizational and
-architectural pattern. The tools this build uses — Quarkus, Kafka with Avro and
-Apicurio, Istio, KEDA — are *expressions* of the pattern, chosen because each one makes
-a principle concrete and runnable, not because any of them *is* the mesh. That
-distinction matters enough that it's the first
-[anti-pattern]({{ '/docs/09-anti-patterns/' | relative_url }}): the most common way these
-efforts fail is mistaking the tooling for the transformation. This tutorial additionally
-builds the same domain on Quarkus specifically — and ships one Spring Boot twin service
-for comparison — precisely to keep that distinction visible: the mesh's principles hold
-regardless of which runtime implements them, and
+A data mesh is an organizational and architectural pattern, not a product or vendor
+offering. The tools this build uses — Quarkus, Kafka with Avro and Apicurio, Istio,
+KEDA — implement the pattern, each making a principle concrete and runnable; none of
+them is the mesh. Mistaking the tooling for the transformation is the first
+[anti-pattern]({{ '/docs/09-anti-patterns/' | relative_url }}) and the most common way
+these efforts fail. The build ships one Spring Boot twin service alongside the Quarkus
+services to keep that distinction visible: the principles hold regardless of runtime, and
 [Part 4]({{ '/docs/11-quarkus-capability-tour/' | relative_url }}) is where the runtime
 choice itself gets examined.
 
-With the vocabulary in place, the next chapter looks at why Kubernetes is a natural
+The next chapter looks at why Kubernetes is a natural
 substrate for all of this — and how each of the four principles maps onto concrete
 Kubernetes primitives.
 
@@ -203,5 +197,5 @@ Kubernetes primitives.
 conceptual framing with no code or commands to run. The
 mapping of each principle to a specific piece of this build (Apicurio for the registry,
 Istio for mTLS, KEDA for autoscaling) describes the intended architecture; confirm each
-claim against the chapter that actually implements it (04, 06, 07) once those land, since
+claim against the chapter that implements it (04, 06, 07), since
 this chapter asserts them ahead of the hands-on chapters that prove them out.*
