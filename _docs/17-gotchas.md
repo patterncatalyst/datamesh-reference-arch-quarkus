@@ -2,21 +2,18 @@
 title: "Gotchas and things to look out for"
 order: 17
 part: Appendices
-description: "The real, specific pitfalls hit while building this reactor — each with the symptom that surfaced it, the root cause once traced, and the fix actually applied in this repo's code, not a hypothetical one."
+description: "Eight pitfalls hit while building this project, each with its symptom, root cause, and the fix applied in this repository's code."
 duration: 30 minutes
 marker: "17"
 ---
 
-Every other chapter in this tutorial describes a pattern working. This
-appendix describes the opposite: eight concrete failures this project
-actually hit — timezone rejections, a security validator throwing from a
-packaged JVM, a port that silently didn't match between two services, a
-test framework lying about what it sent on the wire — along with the fix
-sitting in the code today, not a sketch of one. Each entry follows the same
-shape: **Symptom** (what you'd actually see), **Root cause** (why), and
-**Fix** (the exact change, with the real file and config key). Every claim
-below is backed by a file path, a `git log` entry, or a code comment in this
-repository, and the verification footer says which is which.
+This appendix covers eight failures this project hit: timezone rejections,
+a security validator throwing from a packaged JVM, a port that did not match
+between two services, and a test client that dropped a header it was told to
+send. Each entry gives the **Symptom** (what you see), the **Root cause**,
+and the **Fix** (the change, with the file and config key). Each claim is
+backed by a file path, a `git log` entry, or a code comment in this
+repository; the verification footer says which fixes are covered by tests.
 
 {% include excalidraw.html file="17-gotchas" alt="A grid of eight gotcha cards, each showing a symptom on top (an error message or a silent false pass) and a fix below it (a one-line config key or code change): postgres:18 rejecting a legacy Olson timezone id fixed by -Duser.timezone=UTC and TZ=UTC/PGTZ=UTC; Avro 1.12's ClassSecurityValidator throwing SecurityException fixed by org.apache.avro.SERIALIZABLE_PACKAGES on both producer and consumer JVMs; a gRPC port mismatch (9001 vs 9000) between order-service and inventory-service fixed by converging on canonical port 9000; a @QuarkusIntegrationTest's separate process not inheriting the test JVM's timezone fixed by quarkus.test.arg-line; import.sql silently not loading under %prod fixed by self-seeding over REST; a class-level @Consumes(APPLICATION_JSON) 415ing a bodyless GET fixed by an explicit @Consumes(WILDCARD), paired with RestAssured silently dropping a Content-Type header on a bodyless GET and masking the bug, fixed by switching the regression test to java.net.http.HttpClient; Avro serde autodetection falling back to silent JSON because two Apicurio artifacts share a package, fixed by pinning value.serializer explicitly; and a general caution card about a persisted postgres named volume surviving a Hibernate DDL change, fixed by docker compose down -v" caption="Figure A2.1 — Gotchas, their symptoms, and their fixes" %}
 
@@ -51,9 +48,9 @@ Postgres Dev Services/Testcontainers instance from the *test JVM*, which
 forwards whatever timezone it resolved from the host — the container's own
 `TZ` env var doesn't change what the client sends.
 
-**Fix.** The parent reactor POM ([pom.xml]({{ site.repo_blob }}/examples/pom.xml)) pins `user.timezone`
+**Fix.** The parent POM ([pom.xml]({{ site.repo_blob }}/examples/pom.xml)) pins `user.timezone`
 on both `maven-surefire-plugin` and `maven-failsafe-plugin` so every test
-JVM in the reactor connects as UTC regardless of host locale:
+JVM in the project connects as UTC regardless of host locale:
 
 ```xml
 <plugin>
@@ -73,7 +70,7 @@ JVM in the reactor connects as UTC regardless of host locale:
 The same block is repeated for `maven-failsafe-plugin`. Belt-and-suspenders:
 the container is forced to UTC
 ([compose.yaml]({{ site.repo_blob }}/compose.yaml)), the test JVM is forced to
-UTC (reactor `pom.xml`, above), and the server itself is told `timezone=UTC` via
+UTC (parent `pom.xml`, above), and the server itself is told `timezone=UTC` via
 its own `-c` flag — three independent layers, since any one being wrong
 reproduces the failure on a host whose locale differs from the author's.
 
@@ -135,8 +132,7 @@ isolation — health checks pass, nothing logs an error — but
 503 inventory-service unreachable: UNAVAILABLE: io exception
 ```
 
-**Root cause.** This was a genuine wiring mismatch, not a hypothetical
-one: `order-service` pinned `quarkus.grpc.clients.inventory.port=9001`
+**Root cause.** This was a wiring mismatch between two services: `order-service` pinned `quarkus.grpc.clients.inventory.port=9001`
 while `inventory-service`'s gRPC server defaulted to port `9000`, and the
 [base]({{ site.repo_tree }}/k8s/base) manifests set no explicit inventory
 `Service`/env to reconcile the two.
@@ -157,7 +153,7 @@ quarkus.grpc.clients.inventory.port=${INVENTORY_GRPC_PORT:9000}
 
 [config.yaml]({{ site.repo_blob }}/k8s/base/config.yaml) sets `INVENTORY_GRPC_PORT: "9000"` once, and
 [inventory-service.yaml]({{ site.repo_blob }}/k8s/base/inventory-service.yaml) exposes `containerPort: 9000` under the
-same name — a single source of truth both sides read, rather than two
+same name — a single source of truth both sides read, instead of two
 numbers kept in sync by hand. The lesson generalizes past gRPC: any value
 repeated across file-disjoint config (a port, a topic name, a package)
 needs one authoritative source, since file-disjointness alone doesn't
@@ -218,7 +214,7 @@ run under `mvn verify`, a quieter failure mode than a thrown exception.
 
 **Symptom.** A freshly packaged `inventory-service` running under `%prod`
 starts cleanly, but every stock lookup reports unavailable — the demo SKUs
-(`WIDGET-1`, `WIDGET-2`, `GADGET-1`) that exist in dev simply aren't there.
+(`WIDGET-1`, `WIDGET-2`, `GADGET-1`) that exist in dev are not there.
 
 **Root cause.** `inventory-service`'s `%prod` profile sets
 `quarkus.hibernate-orm.database.generation=update` rather than
@@ -272,13 +268,13 @@ this used RestAssured, and it passed even with the bug present, because
 RestAssured's underlying Apache HttpClient **silently drops a
 `Content-Type` header on a bodyless request** — the header was never
 actually sent, so the test could never have caught the 415 it was written to
-catch. The commit message for the fix is blunt about it: *"Rewrote
+catch. The commit message for the fix says: *"Rewrote
 OrderResourceTest's regression case to use java.net.http.HttpClient (which
 actually sends the header on a bodyless GET; RestAssured strips it, making
 the prior test a false pass)."*
 
 **Fix.** Declare `@Consumes(MediaType.WILDCARD)` explicitly on every
-bodyless `GET`/`DELETE` method, not just the one that happened to trigger
+bodyless `GET`/`DELETE` method, not only the one that triggered
 the bug:
 
 ```java
@@ -316,8 +312,8 @@ The same `@Consumes(WILDCARD)` fix was applied identically to
 and
 [ReviewResource]({{ site.repo_blob }}/examples/review-service/src/main/java/com/patterncatalyst/datamesh/review/ReviewResource.java)'s
 bodyless methods in the same commit
-— the pattern, once found once, was searched for and fixed everywhere it
-appeared, not just at the one call site that happened to surface it.
+— the pattern was searched for and fixed everywhere it appeared, not only
+at the call site that surfaced it.
 
 ## 7. Avro serde autodetection silently falls back to JSON
 
@@ -346,14 +342,13 @@ autodetection:
 mp.messaging.outgoing.order-placed.value.serializer=io.apicurio.registry.serde.avro.AvroKafkaSerializer
 ```
 
-`OrderPlacedAvroWireIT` is the test that would actually catch a regression
+`OrderPlacedAvroWireIT` catches a regression
 here: it produces through the real application serializer, then reads the
 raw bytes back with a vanilla `KafkaConsumer<byte[], byte[]>` with no Avro
 deserializer configured at all, and asserts the first byte is the Avro
-wire-format magic byte `0x0` and explicitly **not** `0x7B` (`{`) — a
-byte-level check specifically chosen because any test that deserializes
-through a tolerant reader wouldn't distinguish "real Avro" from "Avro
-schema coincidentally matching a JSON fallback."
+wire-format magic byte `0x0` and explicitly **not** `0x7B` (`{`). The check is at byte level because any test that deserializes
+through a tolerant reader wouldn't distinguish Avro from a JSON fallback that happens to match the
+schema.
 
 ## 8. A persisted Postgres volume can outlive the schema you think it has
 
@@ -361,9 +356,8 @@ Unlike the seven gotchas above, this one is presented as general operating
 advice rather than a specific incident. A review of this repo's history
 found one related concern — a possible stale postgres-data volume — which
 was investigated and ruled out: a fresh `%prod` database worked correctly,
-not that a stale volume had actually caused drift. That's evidence of due
-diligence, not evidence of an incident, so it isn't presented here as
-"here's the schema-drift bug this reactor hit."
+and no stale volume was found to have caused drift. It is therefore not
+counted as an incident.
 
 The general caution still stands, though, and it's grounded in how this
 compose stack is built. `compose.yaml` mounts a **named volume**
@@ -406,10 +400,10 @@ environment.
   response is not evidence the whole request succeeded.
 - A port, topic name, or any value repeated across file-disjoint config
   needs one authoritative source, not N copies kept in sync by hand — this
-  repo's own `git log` has a real instance of that drift (gRPC 9001 vs
+  repo's own `git log` has an instance of that drift (gRPC 9001 vs
   9000).
 - A regression test is only as good as the client it uses: RestAssured
-  silently dropping a `Content-Type` header on a bodyless GET turned a real
+  dropping a `Content-Type` header on a bodyless GET turned a
   regression test into a false pass until it was rewritten against
   `java.net.http.HttpClient`.
 - Not every surprising behavior is a bug — `import.sql` not loading in
