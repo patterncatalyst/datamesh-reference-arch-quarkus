@@ -47,7 +47,7 @@
   </defs>
 
   <!-- Title -->
-  <text x="600" y="28" text-anchor="middle" class="section-title">Capstone — a data mesh on minikube</text>
+  <text x="600" y="28" text-anchor="middle" class="section-title">Full project example — a data mesh on Kubernetes</text>
 
   <!-- ========== EXTERNAL CLIENTS lane ========== -->
   <rect x="20" y="50" width="1160" height="80" class="lane-bg"/>

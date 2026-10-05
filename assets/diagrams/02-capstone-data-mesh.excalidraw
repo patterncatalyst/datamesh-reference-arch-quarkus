@@ -8,7 +8,7 @@
       "type": "text",
       "x": 460,
       "y": 20,
-      "width": 480,
+      "width": 520,
       "height": 25,
       "angle": 0,
       "strokeColor": "#1e1e1e",
@@ -31,11 +31,11 @@
       "locked": false,
       "fontSize": 20,
       "fontFamily": 1,
-      "text": "Capstone — a data mesh on minikube",
+      "text": "Full project example — a data mesh on Kubernetes",
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Capstone — a data mesh on minikube",
+      "originalText": "Full project example — a data mesh on Kubernetes",
       "lineHeight": 1.25
     },
     {
