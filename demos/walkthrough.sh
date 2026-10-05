@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # demos/walkthrough.sh — the five-act presenter orchestrator that ties the
-# 18 demo-*.sh scripts together for a live talk.
+# 19 demo-*.sh scripts together for a live talk.
 #
 # This script does NOT reimplement any demo's logic and does NOT manage
 # compose/Dev Services/cluster lifecycle itself — every demo-*.sh already
@@ -16,7 +16,7 @@
 # parallel; that is both a presenter-pacing choice and a hard requirement
 # (fixed host ports + a single compose.yaml baseline).
 #
-# ── The five acts (18 demos total) ──────────────────────────────────────────
+# ── The five acts (19 demos total) ──────────────────────────────────────────
 #   ACT 1 — Data products & protocols (8): demo-order, demo-grpc,
 #           demo-graphql, demo-kafka, demo-tracing, demo-websocket,
 #           demo-reactive-vertx, demo-oidc. The core compose-baseline
@@ -27,20 +27,20 @@
 #           --with-ollama.
 #   ACT 3 — AI, Camel EIPs & embedded Drools (4): demo-ai-classify,
 #           demo-ai-mcp, demo-camel-integration, demo-ai-triage. The AI
-#           showcase, with a clear account of the tool-calling limitation
+#           showcase, including the known tool-calling limitation
 #           (langchain4j classify + Drools decide + Camel EIPs + the MCP
 #           tool-server surface). Also needs the `ollama` profile — gated
 #           behind --with-ollama.
-#   ACT 4 — Developer experience & native (3): demo-jbang-prototype and
-#           demo-continuous-testing run by default (cheap, no compose, no
-#           cluster); demo-native (a real GraalVM/Mandrel compile, several
-#           minutes) is gated behind --with-native.
+#   ACT 4 — Developer experience & native (4): demo-jbang-prototype,
+#           demo-continuous-testing and demo-panama run by default (cheap,
+#           no compose, no cluster); demo-native (a GraalVM/Mandrel
+#           compile, several minutes) is gated behind --with-native.
 #   ACT 5 — Platform: event-driven autoscaling (2): demo-keda-kafka,
-#           demo-keda-http. Both need the step-9 minikube substrate — this
-#           environment has no live cluster (author-only), so both are
-#           gated behind --with-minikube and SKIPPED by default.
+#           demo-keda-http. Both need the local Kubernetes cluster
+#           (scripts/bootstrap.sh), so both are gated behind
+#           --with-minikube and SKIPPED by default.
 #
-# Gating is per-DEMO, not per-act — ACT 4 is the clearest example: its two
+# Gating is per-DEMO, not per-act — ACT 4 is the clearest example: its three
 # default demos run unconditionally while its native demo is independently
 # gated. An act is reported SKIPPED only when every demo selected into it
 # was gate-skipped; otherwise it is PASSED/FAILED on its executed demos.
@@ -77,26 +77,26 @@ ACT_LEDE=(
     ""
     "The core data-mesh surface against the same compose baseline (Postgres/Kafka/Apicurio/otel-lgtm): REST+Panache, gRPC, GraphQL federation, Kafka/Avro wire format, OpenTelemetry tracing, WebSockets.Next, Vert.x reactive, and an OIDC-secured endpoint."
     "The identical shipping/order domain, coordinated three different ways: Kafka choreography (decentralized, no coordinator) vs a Camel route vs a Quarkus Flow workflow (two differently-shaped centralized orchestration engines). Needs --with-ollama."
-    "langchain4j single-shot classification, an embedded Drools rules engine deciding FRAUD_HOLD/EXPEDITE/ROUTE_TO_WAREHOUSE, Camel EIPs, and the MCP tool-server surface -- with a clear account of the tool-calling limitation throughout. Needs --with-ollama."
-    "JBang single-file Camel prototyping and Quarkus continuous testing run every time (no compose, no cluster); a real GraalVM/Mandrel native compile is opt-in behind --with-native (several minutes, pulls a builder image on first run)."
-    "KEDA autoscaling on Kafka consumer-group lag and on inbound HTTP (scale-to-zero), against the step-9 minikube substrate. Author-only in this environment (no live cluster) -- needs --with-minikube."
+    "langchain4j single-shot classification, an embedded Drools rules engine deciding FRAUD_HOLD/EXPEDITE/ROUTE_TO_WAREHOUSE, Camel EIPs, and the MCP tool-server surface -- including the known tool-calling limitation. Needs --with-ollama."
+    "JBang single-file Camel prototyping, Quarkus continuous testing and Panama FFM native calls run every time (no compose, no cluster); a GraalVM/Mandrel native compile is opt-in behind --with-native (several minutes, pulls a builder image on first run)."
+    "KEDA autoscaling on Kafka consumer-group lag and on inbound HTTP (scale-to-zero), on the local Kubernetes cluster (scripts/bootstrap.sh). Needs --with-minikube."
 )
 
 # DEMO_ACT[i] / DEMO_NAMES[i] / DEMO_GATE[i] — one entry per demo, in act
 # order. DEMO_GATE is "" (always eligible) or one of ollama/native/minikube.
-DEMO_ACT=(1 1 1 1 1 1 1 1   2   3 3 3 3   4 4 4   5 5)
+DEMO_ACT=(1 1 1 1 1 1 1 1   2   3 3 3 3   4 4 4 4   5 5)
 DEMO_NAMES=(
     demo-order demo-grpc demo-graphql demo-kafka demo-tracing demo-websocket demo-reactive-vertx demo-oidc
     demo-orchestration-styles
     demo-ai-classify demo-ai-mcp demo-camel-integration demo-ai-triage
-    demo-jbang-prototype demo-continuous-testing demo-native
+    demo-jbang-prototype demo-continuous-testing demo-panama demo-native
     demo-keda-kafka demo-keda-http
 )
 DEMO_GATE=(
     "" "" "" "" "" "" "" ""
     ollama
     ollama ollama ollama ollama
-    "" "" native
+    "" "" "" native
     minikube minikube
 )
 DEMO_COUNT=${#DEMO_NAMES[@]}
@@ -118,7 +118,7 @@ _demo_required_cmds() {
             echo "curl jq docker mvn java jbang" ;;
         demo-ai-triage)
             echo "curl jq mvn java" ;;
-        demo-jbang-prototype)
+        demo-jbang-prototype|demo-panama)
             echo "jbang" ;;
         demo-continuous-testing|demo-native)
             echo "mvn curl jq docker" ;;
@@ -130,7 +130,7 @@ _demo_required_cmds() {
 print_help() {
     cat <<EOF
 ${BOLD}demos/walkthrough.sh${RST} — five-act presenter orchestrator for the
-datamesh-reference-arch-quarkus demo suite (18 demos, 5 acts).
+datamesh-reference-arch-quarkus demo suite (19 demos, 5 acts).
 
 ${BOLD}Usage:${RST}
   ./demos/walkthrough.sh [flags]
@@ -263,7 +263,7 @@ for (( n = 1; n <= 5; n++ )); do
     done
 done
 
-step "walkthrough: 5 acts, 18 demos"
+step "walkthrough: 5 acts, 19 demos"
 narrate "selected acts: ${ACTIVE_ACTS[*]:-none}"
 (( WITH_OLLAMA ))   && narrate "--with-ollama enabled (ACT2/ACT3 ollama-profile demos in scope)"
 (( WITH_NATIVE ))   && narrate "--with-native enabled (ACT4 native compile in scope)"
@@ -332,7 +332,7 @@ else
         if command -v minikube >/dev/null 2>&1 && minikube status -p datamesh >/dev/null 2>&1; then
             info "minikube profile 'datamesh' appears to be running"
         else
-            warn "minikube profile 'datamesh' not detected -- ACT5 needs the step-9 substrate (./scripts/bootstrap.sh); its demos will fail loud rather than fake success"
+            warn "minikube profile 'datamesh' not detected -- ACT5 needs the local Kubernetes cluster (./scripts/bootstrap.sh); its demos will fail loudly if it is missing"
         fi
     fi
 fi

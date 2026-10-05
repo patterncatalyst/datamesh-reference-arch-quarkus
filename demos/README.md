@@ -7,10 +7,9 @@ wrapper over an already-built service — it asserts *positive content*
 (a parsed field, an exact status code, a decision enum, a replica count),
 never just "exit code was zero".
 
-This step (10.0) ships only the shared harness: `lib/_demo.sh` (sourced by
-every demo) and this README. The `demo-*.sh` scripts themselves land in
-later steps (10.1–10.9); `walkthrough.sh` (10.10) is the five-act presenter
-orchestrator that ties them together.
+The shared harness is `lib/_demo.sh` (sourced by every demo).
+`walkthrough.sh` is the five-act presenter orchestrator that ties the
+demos together.
 
 ## Harness
 
@@ -42,10 +41,11 @@ silently. See the header comment in `lib/_demo.sh` for the full helper list
 | Demo | Capability | What it asserts |
 |------|-----------|------------------|
 | `demo-jbang-prototype.sh` | JBang scripting / Camel CLI prototyping | A JBang-run script produces the expected output without a full Maven build |
+| `demo-panama.sh` | Panama FFM API (JEP 454), JBang script | libc `getpid()` and `strlen()` called from Java through `Linker.nativeLinker()`; the results equal the JVM's own pid and the UTF-8 byte length (Linux/macOS) |
 | `demo-continuous-testing.sh` | Quarkus continuous testing + Dev Services | `quarkus:dev` continuous testing reruns and turns green after a code edit, with Dev Services bringing up its own backing container automatically |
 | `demo-native.sh` *(opt-in — native)* | Native compilation (GraalVM/Mandrel) | A native binary builds, boots, and serves HTTP 200 on a real endpoint |
 
-Prereqs: JDK 25, Maven 3.9.x, `jbang` on PATH (jbang-prototype), GraalVM/Mandrel
+Prereqs: JDK 25, Maven 3.9.x, `jbang` on PATH (jbang-prototype, panama), GraalVM/Mandrel
 for native (`-Pnative` or `quarkus build --native`) — no `docker compose`
 needed for this group.
 
@@ -116,15 +116,15 @@ only need the core service matrix.
   the demo twice in a row against the live model reproduced the same three
   decisions on both endpoints both times.
 
-### minikube — reuses the step-9 Kubernetes substrate
+### minikube — local Kubernetes cluster
 
 | Demo | Capability | What it asserts |
 |------|-----------|------------------|
 | `demo-keda-kafka.sh` *(opt-in — minikube)* | KEDA autoscaling on Kafka consumer lag | Replica count scales 0 → N on a lag burst and back to 0 as the backlog drains |
 | `demo-keda-http.sh` *(opt-in — minikube)* | KEDA autoscaling on HTTP (scale-to-zero) | A scaled-to-zero deployment wakes to ≥1 replica in response to an inbound HTTP request through the interceptor |
 
-Prereqs: the `lgtm-minikube-stack` substrate from step 9
-(minikube cluster with Istio, KEDA, Strimzi, CloudNativePG bootstrapped),
+Prereqs: the local Kubernetes cluster from `scripts/bootstrap.sh`
+(a `minikube` cluster with Istio, KEDA, Strimzi, CloudNativePG bootstrapped),
 `kubectl` context pointed at it. **Opt-in** — not required for the core
 compose-based demo set.
 
@@ -132,7 +132,7 @@ compose-based demo set.
 
 | Script | What it does |
 |--------|--------------|
-| `walkthrough.sh` | Five-act presenter orchestrator over all 18 demos above: **ACT1** data products & protocols (order/grpc/graphql/kafka/tracing/websocket/reactive-vertx/oidc, default), **ACT2** three orchestration styles (orchestration-styles, gated), **ACT3** AI/Camel/Drools/MCP (ai-classify/ai-mcp/camel-integration/ai-triage, gated), **ACT4** developer experience & native (jbang-prototype/continuous-testing default, native gated), **ACT5** platform autoscaling (keda-kafka/keda-http, gated). Each demo is invoked as its own child process via `run_act` — the orchestrator never double-manages a demo's own `compose_up`/`compose_down`. Gated acts are gated **per demo**, not per act, behind `--with-ollama`/`--with-native`/`--with-minikube` (cleanly SKIPPED, not failed, when the flag is absent). Also supports `--only <demo[,demo...]>`/`--skip <demo[,demo...]>` (exact demo names, mutually exclusive), `--no-preflight` (skip the toolchain/docker sweep), `--no-pause`/`--auto` (no Enter-to-advance pauses, for CI/self-test), and `-h`/`--help`. Prints a final acts/demos pass-fail-skip tally and exits non-zero if any non-skipped act failed. |
+| `walkthrough.sh` | Five-act presenter orchestrator over all 19 demos above: **ACT1** data products & protocols (order/grpc/graphql/kafka/tracing/websocket/reactive-vertx/oidc, default), **ACT2** three orchestration styles (orchestration-styles, gated), **ACT3** AI/Camel/Drools/MCP (ai-classify/ai-mcp/camel-integration/ai-triage, gated), **ACT4** developer experience & native (jbang-prototype/continuous-testing/panama default, native gated), **ACT5** platform autoscaling (keda-kafka/keda-http, gated). Each demo is invoked as its own child process via `run_act` — the orchestrator never double-manages a demo's own `compose_up`/`compose_down`. Gated acts are gated **per demo**, not per act, behind `--with-ollama`/`--with-native`/`--with-minikube` (cleanly SKIPPED, not failed, when the flag is absent). Also supports `--only <demo[,demo...]>`/`--skip <demo[,demo...]>` (exact demo names, mutually exclusive), `--no-preflight` (skip the toolchain/docker sweep), `--no-pause`/`--auto` (no Enter-to-advance pauses, for CI/self-test), and `-h`/`--help`. Prints a final acts/demos pass-fail-skip tally and exits non-zero if any non-skipped act failed. |
 
 ## Opt-in summary
 
@@ -141,7 +141,7 @@ compose-based demo set.
 - **native**: `demo-native.sh` — requires a GraalVM/Mandrel native build
   (slow; CI-grade machine recommended).
 - **minikube**: `demo-keda-kafka.sh`, `demo-keda-http.sh` — require the
-  step-9 minikube substrate, not just `docker compose`.
+  local Kubernetes cluster (`scripts/bootstrap.sh`), not just `docker compose`.
 - **feasibility-gated**: `demo-oidc.sh` — ships only if `quarkus-oidc`
   wiring is confirmed in scope; otherwise this row is dropped.
 
