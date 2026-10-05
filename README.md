@@ -44,7 +44,7 @@ cluster with Istio, KEDA, Strimzi (Kafka operator), and CloudNativePG
 (Postgres operator) for the Kubernetes-native demos — see `k8s/` and
 `scripts/bootstrap.sh`.
 
-![Capstone data mesh architecture](assets/diagrams/02-capstone-data-mesh.svg)
+![Data mesh reference architecture](assets/diagrams/02-capstone-data-mesh.svg)
 
 ## Quickstart
 

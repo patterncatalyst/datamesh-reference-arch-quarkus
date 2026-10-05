@@ -55,7 +55,7 @@ directly with a constructed `OrderPlaced` record — this verifies the
 Avro-to-`Notification` mapping and the idempotent-write behavior for
 redelivery without needing a live Kafka broker in the test. The declarative
 Reactive Messaging wiring (topic ↔ channel ↔ Apicurio deserializer) is
-exercised against a live Dev Services broker when the service actually runs.
+exercised against a live Dev Services broker when the service runs.
 
 ## Running
 

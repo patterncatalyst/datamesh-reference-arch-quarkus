@@ -40,7 +40,7 @@ type StockView {
 ```
 
 `stock` is a `@Source`-resolved field (`GatewayApi.stock(OrderView)`) — it is
-only fetched from inventory-service when a client's query actually selects
+only fetched from inventory-service when a client's query selects
 it, not on every `order` lookup.
 
 GraphiQL is enabled by default in dev/test at `/q/graphql-ui`
@@ -66,10 +66,10 @@ No `.proto` file is duplicated in this module — see `contracts/README.md`.
 
 ## order-service contract
 
-order-service is a fully implemented module in this reactor (real Panache
+order-service is a fully implemented module in this reactor (Panache
 persistence, gRPC stock check, `order.placed` Avro event emission — see
 `examples/order-service/README.md`). `OrderRestClient` and
-`GatewayApi.order(id)` federate against its real `GET /orders/{id}`
+`GatewayApi.order(id)` federate against its `GET /orders/{id}`
 endpoint, which returns:
 
 - `200` with a JSON body whose fields match
@@ -103,5 +103,5 @@ mvn -pl graphql-gateway -am quarkus:dev -f examples/pom.xml
 (`@InjectMock @RestClient`) and the `inventory` gRPC blocking stub
 (`@InjectMock @GrpcClient("inventory")`) and asserts the federated response
 via REST Assured against `/graphql` — it exercises the gateway's own
-stitching logic in isolation, with the real order-service/inventory-service
-calls mocked out rather than run against live downstream services.
+stitching logic in isolation, with the order-service and inventory-service
+calls mocked rather than run against live downstream services.

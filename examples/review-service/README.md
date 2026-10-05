@@ -1,7 +1,7 @@
 # review-service
 
 A DataMesh reference architecture data product: product reviews/ratings.
-Mirrors the Python capstone's `review-service` one-for-one (see
+Mirrors the `review-service` of the Python reference architecture one-for-one (see
 `datamesh-reference-arch-python/examples/lgtm-datamesh/services/review-service`),
 rebuilt on Quarkus + Panache.
 
@@ -57,7 +57,7 @@ container id Testcontainers logs).
 Postgres via Hibernate ORM with Panache (active record). In dev and test
 mode, Quarkus Dev Services starts a disposable Postgres container
 automatically -- no local Postgres or connection config needed. Schema is
-created via `drop-and-create` in dev/test and `create` in `%prod` (a real
+created via `drop-and-create` in dev/test and `create` in `%prod` (a production
 deployment would use Flyway/Liquibase instead; out of scope for this
 example).
 

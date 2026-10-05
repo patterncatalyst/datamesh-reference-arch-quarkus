@@ -1,8 +1,8 @@
 # payment-service
 
-Real event-driven choreography processor for the DataMesh reference
-architecture (Avro + Apicurio Schema Registry from the start,
-not JSON; this module's runtime contract is choreography, not direct calls). It is the choreography
+Event-driven choreography processor for the DataMesh reference
+architecture (Avro + Apicurio Schema Registry rather than JSON;
+the runtime contract is choreography, not direct calls). It is the choreography
 counterpart to `order-service`: it never receives a direct call from
 `order-service`, it reacts to the event `order-service` publishes.
 
@@ -20,12 +20,12 @@ public PaymentCaptured process(OrderPlaced orderPlaced) { ... }
   `order.placed` Kafka topic.
 - For every order, **captures a payment** with simple, deterministic logic: a
   freshly generated `pay-<uuid>` payment id, status always `CAPTURED`,
-  amount/customer mirrored from the order. (A real gateway integration and a
-  decline/retry path are out of scope for this capstone slice.)
+  amount/customer mirrored from the order. (Payment gateway integration and a
+  decline/retry path are out of scope for this example.)
 - **Produces** `PaymentCaptured` (Avro, namespace `capstone.payment.v1`) to
   the `payment.captured` Kafka topic.
 - Records each capture in `PaymentStore`, a minimal in-memory
-  (`ConcurrentHashMap`) bookkeeping structure -- real, but intentionally not a
+  (`ConcurrentHashMap`) bookkeeping structure, not a
   database. The choreography (Kafka in/out) is the required part of this
   module's runtime contract; this store just gives the module something to
   inspect beyond the outgoing event.
@@ -69,7 +69,7 @@ mp.messaging.outgoing.payment-captured.apicurio.registry.auto-register=true
   `quarkus-messaging-kafka`) and Dev Services for Apicurio Registry
   (`quarkus-apicurio-registry-avro`) both auto-start in dev/test mode and
   wire themselves together, per the `apicurio-registry-dev-services.adoc`
-  and `kafka-dev-services.adoc` guides. A real deployment sets these
+  and `kafka-dev-services.adoc` guides. A production deployment sets these
   per-channel or via `mp.messaging.connector.smallrye-kafka.*`.
 
 ## Health
@@ -84,7 +84,7 @@ directly as a plain CDI method invocation -- a fast, broker-free unit test of
 the transform (build an `OrderPlaced`, assert the returned
 `PaymentCaptured`'s fields and status, assert the record lands in
 `PaymentStore`). It does not exercise the Kafka/Apicurio wiring itself; that
-end-to-end path is what Dev Services stand up when the module is actually run
+end-to-end path is what Dev Services stand up when the module is run
 (`mvn quarkus:dev`, `mvn quarkus:test`, or a future integration-test module).
 This test is **written, not run**, as part of this build batch.
 
