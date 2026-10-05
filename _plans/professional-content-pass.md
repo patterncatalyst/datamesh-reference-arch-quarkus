@@ -22,10 +22,11 @@ Branch: `docs/professional-content-pass`. Relay: Opus plan → Sonnet execute �
 | S2 | `_docs/06`–`10`, `_parts/operating-the-mesh.md`, `_parts/lessons-and-close.md` | 1 | done (70b76ce) |
 | S3 | `_docs/16`–`21`, `_parts/appendices.md` | 1 | done (3ae8545) |
 | S4 | `index.html`, `setup.html`, `_includes/*`, `demos/demo-*.sh` (except panama), `examples/order-service/README.md`, `k8s/keda/README.md` | 1 | done (c3133d1, 5ae441a) |
-| S5 | `_docs/11`, `_docs/13`, `_docs/14`, `_parts/quarkus-deep-dive.md`, `_plans/reconciliation.md` | 2 | in progress |
-| F1 | both `deck-lib.js` (identical), `build-deck.js`, `build-101.js`, `presentation/README.md`, pptx r1.1 | 2 | in progress |
-| F2 | build + visual QA + acceptance checks + PR | 3 | pending |
-| V  | Opus validation against acceptance criteria | 3 | pending |
+| S5 | `_docs/11`, `_docs/13`, `_docs/14`, `_parts/quarkus-deep-dive.md`, `_plans/reconciliation.md` | 2 | done |
+| F1 | both `deck-lib.js` (identical), `build-deck.js`, `build-101.js`, `presentation/README.md`, pptx r1.1 | 2 | done |
+| S6 | `examples/*/README.md`, `k8s/README.md`, `k8s/istio/README.md`, `10-trusted-supply-chain` | 2 | done |
+| F2 | build + visual QA + acceptance checks + PR | 3 | done |
+| V  | Opus validation against acceptance criteria | 3 | done — 1 repair round (10 defects fixed) |
 
 ## Findings that shape the plan
 
@@ -232,3 +233,7 @@ Run from repo root inside `bash -c`.
 - AOT results (Temurin 25.0.3, 2026-10-05, single run, `--aot`): startup self-reported Quarkus 2.045 s → 0.992 s, Spring 4.018 s → 1.021 s; wall 2.22 → 1.21 s, 4.45 → 1.21 s; RSS Quarkus 337 → 372 MB, Spring 548 → 446 MB; cache 103 MB / 123 MB.
 - Coordinator touch-ups: capability-tour band no longer claims "one JVM" (native is in the set); fig 15/18 "real diff/real build" wording; fig 18 canvas trimmed.
 - KEDA demo headers: stale AUTHOR-ONLY block replaced; kafka-lag marked verified (5885b28), HTTP add-on unverified.
+
+## Validation outcome
+
+Opus validation found 2 unmet counts and 10 defects (wrong @Blocking failure mode in ch11; inconsistent plain-JVM numbers across fig 12 / ch12 / deck; gRPC threading overclaim in the Uni figure; stale A5.3 alt; "showroom"/"simply"; too many "not just"; meta-narration; agenda duplication; closing-slide overclaim; analytical-data slide buried in the appendix). All fixed in one repair round and re-checked: R1 = 0, `not (just|merely)` = 9, `actually` = 17, `deliberately` = 2; 201 deck 100 slides / 100 notes, 101 deck 17 / 17; deck-lib copies identical; all .excalidraw parse, all .svg well-formed; `bash -n` clean; Jekyll build exits 0. The analytical-data slide now closes the main talk (just before the closing statement).
