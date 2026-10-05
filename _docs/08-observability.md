@@ -29,8 +29,8 @@ observable together only through this stack.
 
 Observability conventionally rests on three kinds of signal, and a mesh of
 independently-owned products has a distinct use for each. **Metrics** are aggregate
-numbers over time — request rates, error rates, consumer lag, replica counts — the
-kind of signal that shows the [KEDA](/docs/07-elastic-and-resilient/) scaler
+numbers over time — request rates, error rates, consumer lag, replica counts, including the
+signal that shows the [KEDA](/docs/07-elastic-and-resilient/) scaler
 waking a replica. **Traces** follow one request as it crosses product boundaries, which
 is the only way to see that a slow GraphQL query was slow because the gRPC call it made
 downstream was slow — no single product's own logs would reveal that. **Logs** are the

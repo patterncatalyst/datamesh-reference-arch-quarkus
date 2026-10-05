@@ -66,7 +66,7 @@ The failure modes cluster just as predictably.
   in-process `langchain4j-agent` tool-calling path in `ai-mcp-service` does
   not fire on this stack — a known upstream defect in
   `camel-quarkus-support-langchain4j`'s HTTP client wiring — and a less
-  careful pass could easily have shipped a demo claiming it works, because a
+  careful pass could have shipped a demo claiming it works, because a
   non-empty chat response looks like success without exercising the tool
   call. The correct chapter carries a banner saying the path is known broken and
   showing that the model is not the cause, rather than avoiding the broken
@@ -124,11 +124,11 @@ pass's summary.
 
 ## Grounding agents in tooling
 
-The single highest-leverage habit for working with Camel and Quarkus
-specifically is not letting an agent guess at component URIs,
+The most valuable habit for working with Camel and Quarkus
+is not letting an agent guess at component URIs,
 configuration option names, or extension APIs it hasn't looked up. General
 LLM knowledge about Camel is stale the moment a version shifts, and small
-syntax mistakes compile and run — they just fail quietly or wrong, worse
+syntax mistakes compile and run — they fail wrong or without an error, which is worse
 than failing loudly. This repo's
 [CLAUDE.md]({{ site.repo_blob }}/CLAUDE.md) names two MCP servers for
 exactly this reason:
@@ -158,7 +158,7 @@ than one reasoning from training-data memory of what a similar-looking API
 probably looks like. Wiring up that grounding is a small, one-time cost
 (see `camel-mcp-setup` for the Camel side); not wiring it up costs a slow
 trickle of configuration bugs that compile cleanly and fail at runtime —
-exactly the kind of defect that's expensive to trace back to its source.
+defects that are expensive to trace back to their source.
 
 ## Verification-status discipline
 

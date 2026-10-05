@@ -8,7 +8,7 @@ marker: "15"
 ---
 
 The previous chapter used `ai-rules-service`'s two triage endpoints as the
-example for orchestration *shape*. This chapter covers what they do: an LLM is good at reading a loosely-structured description and pulling
+example for orchestration *shape*. This chapter covers what they do. An LLM is good at reading a loosely-structured description and pulling
 out a few categorical fields, but it is a poor choice to make a business
 decision you need to audit, replay deterministically, or explain to a
 compliance reviewer. This project's answer is a strict division of labor —
