@@ -29,50 +29,82 @@ const wrap = (t, n) => {
   return out;
 };
 
+// ---- local helpers (copied small; svglib.js is not edited) ----
+const ARROW_HEX = { arr: "#5a5a5a", arrR: "#c14a3a", arrB: "#2c5aa0", arrG: "#5a8a3a" };
+// cubic bezier arrow: SVG path + excalidraw arrow with 5 sampled points
+const curveArrow = (s, [x1, y1], [c1x, c1y], [c2x, c2y], [x2, y2], { marker = "arrR", w = 1.6, dash = null } = {}) => {
+  const c = ARROW_HEX[marker];
+  s.parts.push(`<path d="M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}" fill="none" stroke="${c}" stroke-width="${w}"${dash ? ` stroke-dasharray="${dash}"` : ""} marker-end="url(#${marker})"/>`);
+  const bz = (t) => {
+    const u = 1 - t;
+    return [u*u*u*x1 + 3*u*u*t*c1x + 3*u*t*t*c2x + t*t*t*x2, u*u*u*y1 + 3*u*u*t*c1y + 3*u*t*t*c2y + t*t*t*y2];
+  };
+  const pts = [0, 0.25, 0.5, 0.75, 1].map(bz).map(([px, py]) => [Math.round((px - x1) * 10) / 10, Math.round((py - y1) * 10) / 10]);
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  s.els.push(s._base({
+    type: "arrow", x: x1, y: y1, width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys),
+    strokeColor: c, backgroundColor: "transparent", strokeWidth: w, strokeStyle: dash ? "dashed" : "solid",
+    roundness: { type: 2 }, points: pts, lastCommittedPoint: null,
+    startBinding: null, endBinding: null, startArrowhead: null, endArrowhead: "arrow",
+  }));
+};
+// pill with a legible font size
+const pillL = (s, x, y, w, t, fam, { h = 28, size = 14 } = {}) => {
+  const f = FAM[fam] || fam;
+  s._rect(x, y, w, h, f.fill, f.stroke, { rx: h / 2 });
+  s.text(x + w / 2, y + h / 2 + size * 0.35, t, { size, fill: f.head, anchor: "middle", weight: 700 });
+};
+// titled box: bold heading + body lines, all >= 14px
+const boxL = (s, x, y, w, h, fam, head, lines = [], { hs = 15, ls = 14, lh = 19 } = {}) => {
+  const f = FAM[fam];
+  s.rect(x, y, w, h, fam);
+  s.text(x + 14, y + 25, head, { size: hs, fill: f.head, weight: 700 });
+  if (lines.length) s.lines(x + 14, y + 25 + 22, lines, { size: ls, fill: "#3a3a3a", lh });
+};
+// dark call-out band
+const band = (s, x, y, w, h, t, size = 14) => {
+  s.plainRect(x, y, w, h, "#151515", "#151515", { rx: 8 });
+  s.text(x + w / 2, y + h / 2 + size * 0.35, t, { size, anchor: "middle", weight: 700, fill: "#ffffff" });
+};
+
 /* ========== 11. QUARKUS CAPABILITY TOUR ========== */
 (() => {
-  const s = new SVG(1180, 630);
+  const s = new SVG(1180, 476);
   s.title(
-    "A Quarkus capability tour — ten capabilities, one JVM",
-    "Each one demonstrated by a real endpoint or demo already running in this reactor"
+    "Twelve Quarkus and JDK 25 capabilities, demonstrated",
+    "Each one runs in an endpoint, demo script or example in this project"
   );
 
   const cards = [
-    { name: "Panache", fam: "blue", desc: ["entity IS the repository", "(active record)"], anchor: "order-service — Order" },
-    { name: "quarkus-grpc", fam: "green", desc: ["typed contract, generated", "from .proto at build time"], anchor: "inventory-service — CheckStock" },
-    { name: "SmallRye GraphQL", fam: "orange", desc: ["one query composes", "REST + gRPC downstream"], anchor: "graphql-gateway — /graphql" },
-    { name: "Reactive Messaging", fam: "red", desc: ["Avro events via Apicurio,", "not raw JSON"], anchor: "order-service — OrderEventProducer" },
-    { name: "WebSockets.Next", fam: "tan", desc: ["pushes an already-", "committed event, no polling"], anchor: "notification-service — /ws/notifications" },
-    { name: "Vert.x: reactive + imperative", fam: "blue", desc: ["Uni<> and classic JAX-RS,", "one reactor, same JVM"], anchor: "inventory-service — gRPC + REST" },
-    { name: "Continuous testing + Dev Services", fam: "green", desc: ["tests re-run on save;", "Testcontainers auto-provisioned"], anchor: "order-service — mvn quarkus:dev" },
-    { name: "Native compilation", fam: "orange", desc: ["ahead-of-time to a", "JVM-free binary"], anchor: "order-service — demo-native.sh" },
-    { name: "OIDC", fam: "red", desc: ["Dev Services Keycloak,", "zero quarkus.oidc.* config"], anchor: "review-service — DELETE /reviews/{id}" },
-    { name: "JBang", fam: "tan", desc: ["prototype a route with", "no pom.xml, no module"], anchor: "demos/jbang/HelloRoute.java" },
+    { name: ["Panache"], fam: "blue", desc: ["Entity is its own", "repository", "(active record)"], anchor: ["order-service"] },
+    { name: ["gRPC"], fam: "green", desc: ["Typed contract", "generated from .proto", "at build time"], anchor: ["inventory-service"] },
+    { name: ["GraphQL"], fam: "orange", desc: ["One query composes", "REST and gRPC", "downstream calls"], anchor: ["graphql-gateway"] },
+    { name: ["Reactive Messaging"], fam: "red", desc: ["Avro events via", "Apicurio registry,", "not raw JSON"], anchor: ["order-service"] },
+    { name: ["WebSockets.Next"], fam: "tan", desc: ["Pushes committed", "events to clients,", "no polling"], anchor: ["notification-service"] },
+    { name: ["Vert.x: Uni +", "imperative"], fam: "blue", desc: ["Reactive Uni<> and", "classic JAX-RS side", "by side"], anchor: ["inventory-service"] },
+    { name: ["Continuous testing", "+ Dev Services"], fam: "green", desc: ["Tests re-run on save;", "Testcontainers", "started for you"], anchor: ["order-service"] },
+    { name: ["Native image"], fam: "orange", desc: ["Ahead-of-time compile", "to a JVM-free", "binary"], anchor: ["demo-native.sh"] },
+    { name: ["JDK AOT cache", "(Leyden)"], fam: "red", desc: ["Class loading and", "linking cached from", "a training run"], anchor: ["compare-quarkus-", "springboot.sh --aot"] },
+    { name: ["OIDC"], fam: "tan", desc: ["Dev Services Keycloak,", "no quarkus.oidc.*", "config needed"], anchor: ["review-service"] },
+    { name: ["JBang"], fam: "blue", desc: ["Prototype a route", "with no pom.xml", "or module"], anchor: ["demos/jbang"] },
+    { name: ["Panama FFM"], fam: "green", desc: ["Call libc from Java", "without JNI", "glue code"], anchor: ["demo-panama.sh"] },
   ];
 
-  const cols = 5, gap = 16, marginX = 40;
+  const cols = 6, gap = 12, marginX = 20;
   const cw = (1180 - 2 * marginX - (cols - 1) * gap) / cols;
-  const rowY = [112, 112 + 190 + 20];
-  const ch = 190;
+  const ch = 160, rowY = [64, 64 + 160 + 14];
 
   cards.forEach((c, i) => {
     const row = Math.floor(i / cols), col = i % cols;
-    const x = marginX + col * (cw + gap);
-    const y = rowY[row];
+    const x = marginX + col * (cw + gap), y = rowY[row];
     const f = FAM[c.fam];
     s.rect(x, y, cw, ch, c.fam);
-    s.lines(x + 14, y + 26, [c.name], { size: 12.5, fill: f.head, weight: 700, lh: 15 });
-    s.lines(x + 14, y + 60, c.desc, { size: 10.5, fill: "#3a3a3a", lh: 15 });
-    s.text(x + 14, y + ch - 34, "ANCHORED TO", { size: 8.5, weight: 600, fill: "#8a7a5a" });
-    s.lines(x + 14, y + ch - 16, [c.anchor], { size: 9.5, fill: f.head, weight: 700, lh: 13 });
+    s.lines(x + 12, y + 24, c.name, { size: 15, fill: f.head, weight: 700, lh: 18 });
+    s.lines(x + 12, y + 70, c.desc, { size: 13, fill: "#3a3a3a", lh: 17 });
+    s.lines(x + 12, y + ch - 10 - (c.anchor.length - 1) * 14, c.anchor, { size: 12, fill: f.head, weight: 700, lh: 14 });
   });
 
-  s.plainRect(marginX, rowY[1] + ch + 20, 1180 - 2 * marginX, 46, "#151515", "#151515", { rx: 8 });
-  s.text(590, rowY[1] + ch + 48, "ONE JVM — the Quarkus / Vert.x reactor underneath every capability above", {
-    size: 13, anchor: "middle", weight: 700, fill: "#ffffff",
-  });
-
-  s.footer("Breadth, not a toy snippet: every box above is a real endpoint or route already running somewhere in this reactor.");
+  band(s, marginX, rowY[1] + ch + 12, 1180 - 2 * marginX, 38, "Quarkus 3.39 on JDK 25: one codebase, JVM or native");
   save("11-capability-tour", s);
 })();
 
@@ -288,7 +320,7 @@ const wrap = (t, n) => {
     s.lines(colX[i] + 10, 650, [t], { size: 10.5, fill: "#3a3a3a", lh: 15, anchor: "start" });
   });
 
-  s.footer("The three legs share a domain and a comparison, not one literal order flowing end to end through all three — see the chapter's honest-limits section.");
+  s.footer("The three legs share a domain and a comparison; one order does not flow end to end through all three.");
   save("13-orchestration-styles", s);
 })();
 
@@ -359,10 +391,10 @@ const wrap = (t, n) => {
 
 /* ========== 15. AGENTIC RELAY: PLAN (OPUS) -> EXECUTE (SONNET, FAN-OUT) -> VALIDATE (OPUS) ========== */
 (() => {
-  const s = new SVG(1180, 700);
+  const s = new SVG(1180, 716);
   s.title(
     "The agentic relay — Plan (Opus) → Execute (Sonnet, fan-out) → Validate (Opus)",
-    "A subagent's report is a claim, not evidence — validation reads the real diff and runs the real build, independent of the executor's own summary"
+    "A subagent's report is a claim, not evidence — validation reads the diff and runs the build itself, independent of the executor's summary"
   );
 
   const marginX = 40;
@@ -413,12 +445,13 @@ const wrap = (t, n) => {
 
   s.rect(valX, valY, valW, valH, "red");
   s.text(valX + valW / 2, valY + 26, "VALIDATE — Opus", { size: 13, anchor: "middle", weight: 700, fill: "#a8331f" });
-  s.lines(valX + 16, valY + 48, ["reads the real diff, runs the", "real build — not the report"], { size: 10, fill: "#3a3a3a", lh: 15 });
+  s.lines(valX + 16, valY + 48, ["reads the diff and runs the", "build itself, not the report"], { size: 10, fill: "#3a3a3a", lh: 15 });
 
-  // repair loop feedback edge (capped at 2)
-  const repairY = valY + valH + 40;
-  s.parts.push(`<path d="M ${valX + valW / 2} ${valY + valH} C ${valX + valW / 2} ${repairY + 20}, ${execColX + execColW / 2} ${repairY + 20}, ${execColX + execColW / 2} ${execTop + execRows.length * (execH + execGap)}" fill="none" stroke="#c14a3a" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#arrR)"/>`);
-  s.text((valX + execColX + execColW) / 2, repairY + 36, "repair round (capped at 2) — a 3rd failure means the PLAN was wrong", {
+  // repair loop feedback edge (capped at 2): VALIDATE bottom -> last EXECUTE row bottom edge
+  const lastRowBottom = execTop + execRows.length * (execH + execGap) - execGap;
+  const execMidX = execColX + execColW / 2, valMidX = valX + valW / 2;
+  curveArrow(s, [valMidX, valY + valH], [valMidX, lastRowBottom + 90], [execMidX, lastRowBottom + 90], [execMidX, lastRowBottom], { marker: "arrR", w: 1.6, dash: "5 3" });
+  s.text((valMidX + execMidX) / 2, lastRowBottom + 90, "repair round (capped at 2): a 3rd failure means the PLAN was wrong", {
     size: 10, anchor: "middle", italic: true, fill: "#a8331f", weight: 700,
   });
 
@@ -426,7 +459,7 @@ const wrap = (t, n) => {
   const railY = 560, railH = 54;
   s.rect(marginX, railY, 1180 - 2 * marginX, railH, "tan");
   s.text(marginX + 20, railY + 23, "EVERY PHASE RIDES THE SAME RAIL:", { size: 9.5, weight: 700, fill: "#8a7a5a" });
-  s.text(marginX + 20, railY + 41, "branch → checkpoint commits → PR → squash-merge to main  (this build: 14 PRs, #1–#14, Phases A–E)", {
+  s.text(marginX + 20, railY + 41, "branch → checkpoint commits → PR → squash-merge to main", {
     size: 11, fill: "#5a3a0a", weight: 700,
   });
 
@@ -442,42 +475,47 @@ const wrap = (t, n) => {
 
 /* ========== 16. SCALING WEBSOCKETS WITH KAFKA ========== */
 (() => {
-  const s = new SVG(1180, 660);
-  s.title(
-    "Scaling WebSocket push across replicas — Kafka as the fan-out bus",
-    "A socket pins a client to one replica; every replica must still see every event"
-  );
+  const s = new SVG(1180, 516);
+  s.title("Scaling WebSocket push across replicas: Kafka as the fan-out bus");
 
-  const marginX = 40;
-  const busX = 340, busW = 500, busY = 80, busH = 54;
-  s.rect(busX, busY, busW, busH, "red");
-  s.text(busX + busW / 2, busY + 24, "orders topic (Kafka)", { size: 13, anchor: "middle", weight: 700, fill: "#a8331f" });
-  s.text(busX + busW / 2, busY + 42, "unique group.id per replica = broadcast (NOT a shared load-balanced group)", { size: 10, anchor: "middle", italic: true, fill: "#7a3a2a" });
+  const midY = 106;
+  // row 1: order-service -> topic -> persistence consumer
+  s.rect(40, 74, 160, 64, "tan");
+  s.text(120, 112, "order-service", { size: 15, anchor: "middle", weight: 700, fill: "#5a3a0a" });
+  s.rect(320, 74, 520, 64, "red");
+  s.text(580, 102, "order.placed", { size: 15, anchor: "middle", weight: 700, fill: "#a8331f" });
+  s.text(580, 124, "Kafka topic", { size: 14, anchor: "middle", fill: "#7a3a2a" });
+  s.rect(900, 52, 240, 108, "blue");
+  s.text(914, 77, "Persistence consumer", { size: 15, weight: 700, fill: "#1a3a6a" });
+  s.lines(914, 99, ["shared group", "notification-service,", "one replica per partition", "writes to Postgres"], { size: 14, fill: "#3a3a3a", lh: 17 });
+  s.arrow(200, midY, 320, midY, { marker: "arr", w: 1.8 });
+  s.label(260, midY - 8, "publish (Avro)", { size: 14 });
+  s.arrow(840, midY, 900, midY, { marker: "arrR", w: 1.8 });
 
-  const cols = 3, gap = 40, repW = (1180 - 2 * marginX - (cols - 1) * gap) / cols;
-  const repY = 220, repH = 190;
-  for (let i = 0; i < cols; i++) {
-    const x = marginX + i * (repW + gap);
+  // row 2: three push replicas
+  const repW = 350, repGap = 25, repY = 224, repH = 120;
+  const arrowX = [400, 590, 780];
+  for (let i = 0; i < 3; i++) {
+    const x = 40 + i * (repW + repGap);
     s.rect(x, repY, repW, repH, "green");
-    s.text(x + 16, repY + 26, `notification-service · replica ${i + 1}`, { size: 12, fill: "#2a5a1a", weight: 700 });
-    s.lines(x + 16, repY + 50, ["local OpenConnections registry", "(this replica's sockets only)"], { size: 10.5, fill: "#3a3a3a", lh: 15 });
-    const cy = repY + 96, pw = (repW - 48) / 2;
-    s.pill(x + 16, cy, pw, "client", "white");
-    s.pill(x + 16 + pw + 16, cy, pw, "client", "white");
-    s.pill(x + 16, cy + 36, pw, "client", "white");
-    s.arrow(busX + busW / 2, busY + busH, x + repW / 2, repY, { marker: "arrG", w: 1.4 });
-    s.text(x + 16, repY + repH - 8, "push only to local sockets", { size: 9, italic: true, fill: "#5a8a3a" });
+    s.text(x + 14, repY + 26, `notification-service, replica ${i + 1}`, { size: 15, fill: "#2a5a1a", weight: 700 });
+    s.lines(x + 14, repY + 52, ["push consumer, group notification-push-<pod>", "OpenConnections (this JVM)"], { size: 14, fill: "#3a3a3a", lh: 20 });
+    s.arrow(arrowX[i], 138, x + repW / 2, repY, { marker: "arrG", w: 1.6 });
+
+    // two clients per replica, arrows DOWN (replica -> client)
+    const cx = x + repW / 2;
+    [-85, 85].forEach((dx) => {
+      s.arrow(cx + dx, repY + repH, cx + dx, 404, { marker: "arrG", w: 1.6 });
+      pillL(s, cx + dx - 65, 404, 130, "client", "white");
+    });
+    s.label(cx, repY + repH + 36, "push", { size: 14 });
   }
+  s.text(604, 186, "every replica receives every event", { size: 14, italic: true, fill: "#5a8a3a" });
 
-  const kX = marginX, kY = 450, kW = 1180 - 2 * marginX;
-  s.rect(kX, kY, kW, 56, "tan");
-  s.text(kX + 16, kY + 23, "KEDA scales on consumer lag (minReplicaCount: 0)", { size: 11, weight: 700, fill: "#5a3a0a" });
-  s.text(kX + 16, kY + 43, "a replica holding live sockets but zero lag can scale to zero and drop clients — use a connection-aware trigger, graceful drain, or minReplicaCount: 1 (not implemented here).", { size: 10, fill: "#5a3a0a" });
+  s.rect(40, 450, 1100, 38, "tan");
+  s.text(590, 475, "Each client connects once through the Service and stays on that replica.", { size: 14, anchor: "middle", weight: 700, fill: "#5a3a0a" });
 
-  s.plainRect(marginX, 530, 1180 - 2 * marginX, 46, "#151515", "#151515", { rx: 8 });
-  s.text(590, 558, "Kafka is the fan-out bus — any instance can serve any client; no distributed connection registry needed", { size: 12.5, anchor: "middle", weight: 700, fill: "#ffffff" });
-
-  s.footer("What the repo runs today is single-instance; the per-replica broadcast fan-out above is the recommended scaled pattern, not deployed.");
+  s.footer("Implemented: OrderPlacedConsumer (shared group) + OrderPlacedPushConsumer (per-replica group); verified with two replicas on Kubernetes.");
   save("16-websocket-scaling", s);
 })();
 
@@ -485,8 +523,8 @@ const wrap = (t, n) => {
 (() => {
   const s = new SVG(1180, 700);
   s.title(
-    "Gotchas — symptoms and the fixes that actually landed",
-    "Each one cost real debugging time while building this reactor"
+    "Gotchas: symptoms and the fixes that landed",
+    "Each one cost debugging time while building this project"
   );
   const items = [
     { fam: "red", h: "postgres:18 TimeZone", sym: "'invalid value for parameter TimeZone'", fix: "-Duser.timezone=UTC + TZ/PGTZ=UTC" },
@@ -520,7 +558,7 @@ const wrap = (t, n) => {
 
 /* ========== 18. AGENTIC RECOMMENDATIONS ========== */
 (() => {
-  const s = new SVG(1180, 620);
+  const s = new SVG(1180, 575);
   s.title(
     "A plan / execute / validate relay, grounded in MCP tooling",
     "Route each phase to the model tier that fits it — and verify the result independently"
@@ -530,17 +568,17 @@ const wrap = (t, n) => {
   const xs = [marginX, marginX + boxW + gap, marginX + 2 * (boxW + gap)];
   s.card(xs[0], boxY, boxW, boxH, "red", "PLAN — Opus", ["decompose the work,", "pick the approach,", "define acceptance criteria"]);
   s.card(xs[1], boxY, boxW, boxH, "green", "EXECUTE — Sonnet", ["one agent per file-disjoint", "step, fanned out in parallel,", "checkpoint-commit each"]);
-  s.card(xs[2], boxY, boxW, boxH, "red", "VALIDATE — Opus", ["reads the real diff, runs", "the real build — not the", "executor's self-report"]);
+  s.card(xs[2], boxY, boxW, boxH, "red", "VALIDATE — Opus", ["reads the diff and runs", "the build itself; ignores", "the executor's self-report"]);
   s.arrow(xs[0] + boxW, boxY + boxH / 2, xs[1], boxY + boxH / 2, { marker: "arr", w: 1.8 });
   s.arrow(xs[1] + boxW, boxY + boxH / 2, xs[2], boxY + boxH / 2, { marker: "arr", w: 1.8 });
-  const ry = boxY + boxH + 36;
-  s.arrow(xs[2] + boxW / 2, boxY + boxH, xs[1] + boxW / 2, ry, { marker: "arrR", w: 1.5, dash: "5 3" });
-  s.text(xs[2], ry + 16, "repair round (capped at 2)", { size: 10, anchor: "middle", italic: true, fill: "#a8331f", weight: 700 });
+  const by = boxY + boxH, vx = xs[2] + boxW / 2, ex = xs[1] + boxW / 2;
+  curveArrow(s, [vx, by], [vx, by + 80], [ex, by + 80], [ex, by], { marker: "arrR", w: 1.5, dash: "5 3" });
+  s.text((vx + ex) / 2, by + 80, "repair round (capped at 2)", { size: 10, anchor: "middle", italic: true, fill: "#a8331f", weight: 700 });
   const mY = 360, mW = 480, mH = 90;
   const mXs = [marginX, 1180 - marginX - mW];
   s.card(mXs[0], mY, mW, mH, "blue", "camel-mcp", ["catalog lookups, route validation, runtime introspection", "— don't guess Camel component/EIP syntax"]);
   s.card(mXs[1], mY, mW, mH, "orange", "quarkus-agent", ["quarkus_searchDocs / quarkus_skills / quarkus_logs", "— version-matched patterns, not recalled guesses"]);
-  s.text(590, mY - 14, "GROUND EVERY EXECUTOR IN REAL TOOLING", { size: 10, anchor: "middle", weight: 700, fill: "#8a7a5a" });
+  s.text(590, mY - 14, "GROUND EVERY EXECUTOR IN MCP TOOLING", { size: 10, anchor: "middle", weight: 700, fill: "#8a7a5a" });
   s.plainRect(marginX, 480, 1180 - 2 * marginX, 46, "#151515", "#151515", { rx: 8 });
   s.text(590, 508, "A subagent's report is a claim, not evidence — the value is the independent verification", { size: 12.5, anchor: "middle", weight: 700, fill: "#ffffff" });
   s.footer("Guardrails: Conventional Commits, no attribution trailers, scope discipline, explicit model tier on every nested agent call.");
@@ -583,78 +621,77 @@ const wrap = (t, n) => {
 
 /* ========== 20. IN-MEMORY VS KAFKA ========== */
 (() => {
-  const s = new SVG(1180, 600);
-  s.title(
-    "In-memory connector vs. Kafka — same code, different transport",
-    "The @Incoming/@Outgoing methods never change; only the connector config does"
-  );
-  const lX = 60, lW = 460, topY = 100;
-  s.rect(lX, topY, lW, 220, "green");
-  s.text(lX + 16, topY + 26, "In-memory connector (tests)", { size: 13, weight: 700, fill: "#2a5a1a" });
-  s.plainRect(lX + 30, topY + 50, lW - 60, 140, "#ffffff", "#5a8a3a", { rx: 6 });
-  s.text(lX + lW / 2, topY + 74, "one JVM", { size: 11, anchor: "middle", italic: true, fill: "#5a8a3a" });
-  s.pill(lX + 60, topY + 92, lW - 120, "@Outgoing producer", "white");
-  s.pill(lX + 60, topY + 140, lW - 120, "@Incoming consumer", "white");
-  s.arrow(lX + lW / 2, topY + 118, lX + lW / 2, topY + 140, { marker: "arrG", w: 1.4 });
-  s.text(lX + lW / 2, topY + 212, "fast · deterministic · no broker · not durable", { size: 10, anchor: "middle", italic: true, fill: "#2a5a1a" });
-  const rX = 660, rW = 460;
-  s.rect(rX, topY, rW, 220, "red");
-  s.text(rX + 16, topY + 26, "Kafka connector (%prod)", { size: 13, weight: 700, fill: "#a8331f" });
-  s.pill(rX + 24, topY + 66, 150, "producer JVM", "white");
-  s.pill(rX + rW - 174, topY + 66, 150, "consumer JVM", "white");
-  s.plainRect(rX + rW / 2 - 70, topY + 120, 140, 48, "#fdf0ec", "#c14a3a", { rx: 6 });
-  s.text(rX + rW / 2, topY + 149, "Kafka broker", { size: 11, anchor: "middle", weight: 700, fill: "#a8331f" });
-  s.arrow(rX + 99, topY + 92, rX + rW / 2 - 50, topY + 122, { marker: "arrR", w: 1.4 });
-  s.arrow(rX + rW / 2 + 50, topY + 122, rX + rW - 99, topY + 92, { marker: "arrR", w: 1.4 });
-  s.text(rX + rW / 2, topY + 212, "durable · partitioned · ordered per partition · back-pressure", { size: 10, anchor: "middle", italic: true, fill: "#a8331f" });
-  s.text(590, topY + 258, "same @Incoming / @Outgoing code — only the connector config changes", { size: 12, anchor: "middle", weight: 700, fill: "#5a3a0a" });
-  s.plainRect(60, 470, 1180 - 120, 46, "#151515", "#151515", { rx: 8 });
-  s.text(590, 498, "In-memory proves the messaging logic in tests; Kafka is the real transport in %prod", { size: 12.5, anchor: "middle", weight: 700, fill: "#ffffff" });
-  s.footer("Reflects how this reactor wires each connector; trade-off notes are qualitative, not benchmarked.");
+  const s = new SVG(1180, 500);
+  s.title("In-memory (Vert.x) vs. Kafka: same code, different transport");
+  const lblX = 40, lblW = 190, c1X = 240, cW = 445, c2X = 695;
+  const hy = 54, hh = 42;
+  s.rect(c1X, hy, cW, hh, "green");
+  s.text(c1X + cW / 2, hy + 27, "In-memory / Vert.x (one JVM)", { size: 16, anchor: "middle", weight: 700, fill: "#2a5a1a" });
+  s.rect(c2X, hy, cW, hh, "red");
+  s.text(c2X + cW / 2, hy + 27, "Kafka (cluster)", { size: 16, anchor: "middle", weight: 700, fill: "#a8331f" });
+  const rows = [
+    ["Scope", "One JVM, in-process", "Across services, over the network"],
+    ["Durability", "Memory only, no retention", "Retained on disk, replicated"],
+    ["Ordering", "Emission order, single stream", "Per partition, by record key"],
+    ["How it scales", "Up: across cores in one JVM", "Out: partitions and replicas"],
+    ["Failure", "Messages lost with the process", "Consumer replays from its offset"],
+    ["Use here", "Tests", "%prod"],
+  ];
+  const rh = 46, rg = 5;
+  rows.forEach((r, i) => {
+    const y = 104 + i * (rh + rg), ty = y + rh / 2 + 5;
+    s.plainRect(lblX, y, lblW, rh, "#f4f3f0", "#9a9a9a", { rx: 6 });
+    s.text(lblX + 12, ty, r[0], { size: 15, weight: 700, fill: "#4a4a4a" });
+    s.plainRect(c1X, y, cW, rh, "#ffffff", "#c0c0c0", { rx: 6 });
+    s.text(c1X + 14, ty, r[1], { size: 14, fill: "#3a3a3a" });
+    s.plainRect(c2X, y, cW, rh, "#ffffff", "#c0c0c0", { rx: 6 });
+    s.text(c2X + 14, ty, r[2], { size: 14, fill: "#3a3a3a" });
+  });
+  band(s, 40, 104 + 6 * (rh + rg) + 6, 1100, 40, "Same @Incoming/@Outgoing code; only the connector config changes.");
+  s.footer("Qualitative comparison of how this project wires each connector; not benchmarked.");
   save("20-inmemory-vs-kafka", s);
 })();
 
 /* ========== 21. THREE ENGINES COMPARED ========== */
 (() => {
-  const s = new SVG(1180, 640);
+  const s = new SVG(1180, 484);
   s.title(
-    "Choreography is not orchestration — pick by who owns the sequence",
+    "Choreography is not orchestration: pick by who owns the sequence",
     "The same order-to-shipment domain, coordinated three ways"
   );
-  const marginX = 40, labelW = 210;
+  const marginX = 40, labelW = 230;
   const engW = (1180 - 2 * marginX - labelW) / 3;
   const engines = [
-    { fam: "red", name: "Kafka choreography", sub: "no central coordinator" },
-    { fam: "blue", name: "Camel orchestration", sub: "OrderTriageRoute" },
-    { fam: "green", name: "Quarkus Flow", sub: "OrderTriageWorkflow" },
+    { fam: "red", name: "Kafka choreography" },
+    { fam: "blue", name: "Camel orchestration" },
+    { fam: "green", name: "Quarkus Flow" },
   ];
-  const headY = 90, headH = 56;
+  const headY = 62, headH = 46;
   engines.forEach((e, i) => {
     const x = marginX + labelW + i * engW;
     s.rect(x, headY, engW, headH, e.fam);
-    s.text(x + engW / 2, headY + 24, e.name, { size: 12, anchor: "middle", weight: 700, fill: FAM[e.fam].head });
-    s.text(x + engW / 2, headY + 42, e.sub, { size: 9.5, anchor: "middle", italic: true, fill: FAM[e.fam].head });
+    s.text(x + engW / 2, headY + 30, e.name, { size: 18, anchor: "middle", weight: 700, fill: FAM[e.fam].head });
   });
   const rows = [
-    { k: "who knows the sequence", v: ["no one — each reacts to events", "the route, start to finish", "the workflow document"] },
-    { k: "coupling", v: ["loose (via topics)", "centralized in the route", "centralized in the doc"] },
-    { k: "failure / compensation", v: ["idempotent redelivery", "exception propagation (no saga)", "task-level, declarative"] },
-    { k: "debuggability", v: ["trace across services", "one route, one log", "inspect the task graph"] },
-    { k: "where logic lives", v: ["spread over consumers", "in Java route code", "in the task declaration"] },
+    ["Who owns the sequence", "No one", "The route", "The workflow document"],
+    ["Coupling", "Loose, via topics", "Central, in Java", "Central, in a document"],
+    ["Failure handling", "Idempotent redelivery", "Exceptions propagate", "Task-level, declarative"],
+    ["Debugging", "Trace across services", "One route, one log", "Inspect the task graph"],
+    ["Logic lives in", "Each consumer", "Route code", "Workflow definition"],
   ];
   let ry = headY + headH + 8;
-  const rh = 70;
+  const rh = 52;
   rows.forEach((r) => {
     s.plainRect(marginX, ry, labelW, rh, "#f4f3f0", "#9a9a9a", { rx: 6 });
-    s.lines(marginX + 12, ry + rh / 2 - 4, wrap(r.k, 22), { size: 10.5, weight: 700, fill: "#4a4a4a", lh: 14 });
-    r.v.forEach((v, i) => {
+    s.text(marginX + 14, ry + rh / 2 + 6, r[0], { size: 16, weight: 700, fill: "#4a4a4a" });
+    for (let i = 0; i < 3; i++) {
       const x = marginX + labelW + i * engW;
       s.plainRect(x, ry, engW, rh, "#ffffff", "#c0c0c0", { rx: 6 });
-      s.lines(x + 12, ry + rh / 2 - 4, wrap(v, 34), { size: 10, fill: "#3a3a3a", lh: 14 });
-    });
+      s.text(x + 14, ry + rh / 2 + 6, r[i + 1], { size: 16, fill: "#3a3a3a" });
+    }
     ry += rh + 6;
   });
-  s.footer("Grounded in the three real implementations; terminology kept exact — Kafka is choreography, Camel and Flow are orchestration.");
+  s.footer("Kafka is choreography; Camel and Quarkus Flow are orchestration.");
   save("21-three-engines-compare", s);
 })();
 
