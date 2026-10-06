@@ -152,7 +152,7 @@ content is explanatory or conceptual and was not run.
 
 | Artifact | Counterpart | Status | Notes |
 |---|---|---|---|
-| _(none — new)_ | `_docs/11-quarkus-capability-tour.md`: twelve-capability tour (was nine; ten in practice) | verified (adapted) | Adds JDK AOT cache (Leyden), Panama FFM, Panache patterns, Uni and imperative subsection. Native image still not exercised in this pass |
+| _(none — new)_ | `_docs/11-quarkus-capability-tour.md`: twelve-capability tour (was nine; ten in practice) | verified (adapted) | Adds JDK AOT cache (Leyden), Panama FFM, Panache patterns, Uni and imperative subsection. Native image verified 2026-10-06 via `demo-native.sh` (Mandrel builder container: 136 s build, 141 MB binary, 0.081 s startup, single run); Figures 11.6 and 11.7 draw the native and AOT cache build pipelines |
 | _(none — new)_ | `demos/demo-panama.sh`, `demos/jbang/PanamaFfm.java` | verified | Ran on JDK 25.0.3 with JBang 0.138.0: `PANAMA_GETPID` equals `JVM_PID`, `PANAMA_STRLEN` equals `JAVA_LENGTH` (31). Linux and macOS only (libc default lookup) |
 | _(none — new)_ | JDK 25 AOT cache comparison: `scripts/compare-quarkus-springboot.sh --aot`, `_docs/12-quarkus-vs-spring-boot.md` | measured | Temurin 25.0.3, 2026-10-05, single run; startup, RSS, and cache size recorded in chapter 12. Not a benchmark |
 | _(none — new)_ | Figure `11-panache-patterns` | unverified | Explanatory; the `PanacheRepository` example in chapter 11 is illustrative and not run |
