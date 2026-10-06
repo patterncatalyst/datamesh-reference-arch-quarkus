@@ -21,7 +21,7 @@ titleSlide({
   title: "Building a Datamesh using Quarkus and Kubernetes",
   subtitle: "From data-mesh principles to a running platform on Quarkus and Kubernetes — no Quarkus experience assumed",
   breadcrumb: "Data Mesh · 101 · r1.1",
-  notes: "Welcome. This talk teaches the data-mesh principles from first principles and uses Quarkus to demonstrate them. No prior Quarkus experience is needed. The destination is a data mesh running on Kubernetes, and the principles we cover apply regardless of runtime. We'll start with the landscape of data architectures that came before the mesh, define the mesh through its four principles, then show why Quarkus and Kubernetes are a natural pairing for building one. By the end you should be able to explain what a data mesh is, when it's the right answer, and where to go deeper if you want to see one actually running.",
+  notes: "Welcome. This talk teaches the data-mesh principles from first principles and uses Quarkus to demonstrate them. No prior Quarkus experience is needed. The destination is a data mesh running on Kubernetes, and the principles we cover apply regardless of runtime. We'll start with the landscape of data architectures that came before the mesh, define the mesh through its four principles, then show why Quarkus and Kubernetes are a natural pairing for building one. By the end you should be able to explain what a data mesh is, when it's the right answer, and where to go deeper to see one running.",
 });
 
 /* ============================ 2 · DIVIDER 01 ============================ */
@@ -56,7 +56,7 @@ diagramSlide({
   title: "Data lakes — flexible on the way in, swamp risk on the way out",
   image: "01-data-lake-architecture",
   caption: "Raw, curated, refined zones accept any format — but without governance the lake becomes a swamp, and the central-team bottleneck remains.",
-  notes: "The lake solved the warehouse's format rigidity — it accepts structured, semi-structured, unstructured, and streaming data, and defers schema decisions to the point of consumption, schema-on-read instead of schema-on-write. Zone-based organization — raw, curated, refined — is how well-run lakes stay usable. But without active curation, the lake becomes a data swamp: undocumented, stale, duplicated datasets nobody trusts. And notice what didn't change — a central team still owns the bucket. The lake fixed the format problem, not the organizational one.",
+  notes: "The lake solved the warehouse's format rigidity — it accepts structured, semi-structured, unstructured, and streaming data, and defers schema decisions to the point of consumption, schema-on-read instead of schema-on-write. Zone-based organization (raw, curated, refined) is how well-run lakes stay usable. But without active curation, the lake becomes a data swamp: undocumented, stale, duplicated datasets nobody trusts. And notice what didn't change — a central team still owns the bucket. The lake fixed the format problem, not the organizational one.",
 });
 
 /* ---- Operational vs analytical ---- */
@@ -74,7 +74,7 @@ diagramSlide({
   title: "The mesh — decentralized, domain-owned data products",
   image: "01-data-mesh-decentralized",
   caption: "Each domain owns its data as a product, on a shared platform under federated governance — the organizational answer.",
-  notes: "This is the pivot. All three prior patterns — pipelines, warehouses, lakes — centralize data and hand ownership to a single team; the technology improves generation by generation but the organizational shape stays the same. The mesh changes the axis: instead of building a better center, decentralize ownership to the domains that produce the data. Each domain owns its data as a product — discoverable, addressable, trustworthy, self-describing — talking to other domains directly. A shared self-serve platform provides the infrastructure underneath, and federated computational governance keeps the independently-owned products interoperable. Notice there's no 'central data team' card on this diagram at all — that's the point.",
+  notes: "This is the pivot. All three prior patterns (pipelines, warehouses, lakes) centralize data and hand ownership to a single team; the technology improves generation by generation but the organizational shape stays the same. The mesh changes the axis: instead of building a better center, decentralize ownership to the domains that produce the data. Each domain owns its data as a product that is discoverable, addressable, trustworthy, and self-describing, and talks to other domains directly. A shared self-serve platform provides the infrastructure underneath, and federated computational governance keeps the independently-owned products interoperable. Notice there's no 'central data team' card on this diagram at all — that's the point.",
 });
 
 /* ---- Evolution ---- */
@@ -83,7 +83,7 @@ diagramSlide({
   title: "The evolution — from pipelines to mesh",
   image: "01-architecture-evolution",
   caption: "Each pattern solved the problem the previous one left; the mesh solves the organizational scaling problem they all share.",
-  notes: "The synthesis slide. Pipelines solved the movement problem but left sprawl and no ownership model. Warehouses solved the truth problem but left a central-team bottleneck. Lakes solved the flexibility problem but left swamp risk and the same organizational bottleneck. The mesh solves the organizational scaling problem directly — decentralized ownership — but it requires organizational maturity to pull off. This isn't 'each is strictly better than the last' — it's 'each solves a different problem.' A pipeline is still the right answer when movement is the problem. The mesh is the right answer when the bottleneck is organizational.",
+  notes: "The synthesis slide. Pipelines solved the movement problem but left sprawl and no ownership model. Warehouses solved the truth problem but left a central-team bottleneck. Lakes solved the flexibility problem but left swamp risk and the same organizational bottleneck. The mesh solves the organizational scaling problem directly through decentralized ownership, but it requires organizational maturity to pull off. Each pattern solves a different problem; none is strictly better than the last. A pipeline is still the right answer when movement is the problem. The mesh is the right answer when the bottleneck is organizational.",
 });
 
 /* ============================ 9 · DIVIDER 02 ============================ */
@@ -100,7 +100,7 @@ diagramSlide({
   title: "Domain ownership, data as a product, self-serve platform, federated governance",
   image: "01-data-mesh-four-principles",
   caption: "The four principles depend on each other — implement one without the others and you get a distributed mess, not a mesh.",
-  notes: "Domain ownership: data is owned end to end by the domain team that produces it — no central team 'owns the warehouse.' Data as a product: a data product is held to the same bar as any software product — discoverable, addressable, trustworthy, self-describing — not a renamed table. Self-serve data platform: domain teams shouldn't each build their own event streaming, observability, or registry; the platform provides that as shared infrastructure. Federated computational governance: standards are enforced computationally, by the platform, automatically — not by review meetings. All four together are what make a mesh a mesh rather than just a lot of disconnected microservices each hoarding their own data.",
+  notes: "Domain ownership: data is owned end to end by the domain team that produces it; no central team 'owns the warehouse.' Data as a product: a data product is held to the same bar as any software product: discoverable, addressable, trustworthy, self-describing. It is not a renamed table. Self-serve data platform: domain teams shouldn't each build their own event streaming, observability, or registry; the platform provides that as shared infrastructure. Federated computational governance: standards are enforced computationally, by the platform, automatically — not by review meetings. All four together are what make a mesh a mesh rather than just a lot of disconnected microservices each hoarding their own data.",
 });
 
 /* ---- Monolith to mesh ---- */
@@ -109,7 +109,7 @@ diagramSlide({
   title: "Domain ownership: from monolith to mesh",
   image: "01-monolith-to-mesh",
   caption: "The same monolith-to-microservices transition most engineers have lived through, applied to data ownership instead of application code.",
-  notes: "The analogy for anyone who has been through a monolith-to-microservices transition. Just as a monolithic application gets refactored into bounded contexts owned by domain teams — the microservices transition many engineers have already lived through — a monolithic data platform gets refactored into bounded data products owned by those same domain teams. The mesh is the network of those products plus the platform and standards that let them interoperate. The hard part was never drawing the boxes; it was deciding where one bounded context ends and the next begins, and then living with the contract at that boundary. Decomposing a data platform into data products is the identical exercise, one layer up — the boundary is now a versioned data contract instead of a REST endpoint.",
+  notes: "The analogy for anyone who has been through a monolith-to-microservices transition. Just as a monolithic application gets refactored into bounded contexts owned by domain teams (the microservices transition many engineers have already lived through), a monolithic data platform gets refactored into bounded data products owned by those same domain teams. The mesh is the network of those products plus the platform and standards that let them interoperate. The hard part was never drawing the boxes; it was deciding where one bounded context ends and the next begins, and then living with the contract at that boundary. Decomposing a data platform into data products is the identical exercise, one layer up — the boundary is now a versioned data contract instead of a REST endpoint.",
 });
 
 /* ============================ 12 · DIVIDER 03 ============================ */
@@ -117,7 +117,7 @@ dividerWithNotes({
   num: "03",
   title: "Why Quarkus, why Kubernetes",
   sub: "Quarkus as the developer lens on the four principles; Kubernetes as the substrate underneath them.",
-  notes: "Now let's bring this back to the room. Why build a data mesh on Quarkus and Kubernetes specifically? Because Quarkus gives a single, coherent developer experience across every protocol a domain service needs — REST, gRPC, GraphQL, Kafka — without ten disconnected quickstarts, and Kubernetes's primitives map onto the four principles unusually cleanly: namespaces for domain ownership, Deployments and CRDs for data as a product, operators for the self-serve platform, and mesh/admission policy for federated governance. This section is a fast teaser — the depth lives in the 201.",
+  notes: "Now let's bring this back to the room. Why build a data mesh on Quarkus and Kubernetes specifically? Because Quarkus gives a single, coherent developer experience across every protocol a domain service needs (REST, gRPC, GraphQL, Kafka) without ten disconnected quickstarts, and Kubernetes's primitives map onto the four principles unusually cleanly: namespaces for domain ownership, Deployments and CRDs for data as a product, operators for the self-serve platform, and mesh/admission policy for federated governance. This section is a fast teaser — the depth lives in the 201.",
 });
 
 /* ---- Capability tour teaser ---- */
@@ -162,7 +162,7 @@ contentSlide({
     { head: true, text: "Mesh" },
     { text: "Many domains, many consumers, and a central team has become the constraint — and the organization has the maturity to operate federated ownership.", lvl: 1, color: C.ink },
   ],
-  notes: "Not every organization needs a mesh, and telling people when not to use one builds more credibility than pitching it unconditionally. The question to ask is whether the bottleneck is technical — better tools solve it — or organizational — who owns what. Pipelines still fit when the plumbing is simple. A warehouse still fits when the real need is a single governed source of truth and a central team can keep up. A lake still fits when the problem is format flexibility, not ownership. The mesh fits specifically when the organization has outgrown centralized ownership — many domains, many consumers, a central team as the constraint — and has the organizational maturity to operate domain teams that treat data as a product and a platform team that can run self-serve infrastructure. Pick the pattern that matches your actual bottleneck.",
+  notes: "Not every organization needs a mesh, and telling people when not to use one builds more credibility than pitching it unconditionally. The question to ask is whether the bottleneck is technical (better tools solve it) or organizational (who owns what). Pipelines still fit when the plumbing is simple. A warehouse still fits when the real need is a single governed source of truth and a central team can keep up. A lake still fits when the problem is format flexibility, not ownership. The mesh fits specifically when the organization has outgrown centralized ownership (many domains, many consumers, a central team as the constraint) and has the organizational maturity to operate domain teams that treat data as a product and a platform team that can run self-serve infrastructure. Pick the pattern that matches your actual bottleneck.",
 });
 
 /* ============================ 17 · CLOSING ============================ */
@@ -172,7 +172,7 @@ contentSlide({
     title: "Go deeper: the 201",
     sub: "Orchestration styles, Quarkus vs. Spring Boot, contracts and the catalog, progressive delivery, autoscaling, and observability.",
   });
-  s.addNotes("That's the 101: the landscape that led to data mesh, the four principles that define it, and why Quarkus and Kubernetes are a natural pairing for building one. The 201 goes deep on everything we only teased here — the full choreography-versus-orchestration comparison across Kafka, Camel, and Quarkus Flow; the Quarkus-vs-Spring-Boot side-by-side on startup time, memory, and native builds; contracts and the schema catalog; progressive delivery with mutual TLS; elastic autoscaling with KEDA; and the observability stack tying it all together. The reference repository is patterncatalyst/datamesh-reference-arch-quarkus — it's unpublished pending approval, but that's the name to look for. Thanks — happy to take questions.");
+  s.addNotes("That's the 101: the landscape that led to data mesh, the four principles that define it, and why Quarkus and Kubernetes are a natural pairing for building one. The 201 goes deep on everything we only teased here: the full choreography-versus-orchestration comparison across Kafka, Camel, and Quarkus Flow; the Quarkus-vs-Spring-Boot side-by-side on startup time and memory, with the JDK 25 AOT cache and native builds; contracts and the schema catalog; progressive delivery with mutual TLS; elastic autoscaling with KEDA; and the observability stack tying it all together. The reference repository is patterncatalyst/datamesh-reference-arch-quarkus. It is unpublished pending approval, but that's the name to look for. Thanks; happy to take questions.");
 })();
 
 /* ============================ WRITE ============================ */
