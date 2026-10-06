@@ -118,10 +118,9 @@ kubectl get pods -n kube-system
 printf '\n'
 printf '==> Profile is ready.\n'
 printf '\n'
-printf 'Application images are built directly into this profile'\''s docker daemon\n'
-printf '(no in-cluster registry):\n'
-printf '  eval $(minikube docker-env -p %s)\n' "$PROFILE_NAME"
-printf '  docker build -t <service>:v1 examples/<service>\n'
+printf 'Application images are built on the host and loaded into this profile\n'
+printf '(no registry; the containerd runtime does not use minikube docker-env):\n'
+printf '  ./scripts/load-images.sh\n'
 printf '\n'
 printf 'Next steps:\n'
 printf '  ./scripts/bootstrap.sh             # bring up the full stack\n'

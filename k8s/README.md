@@ -25,37 +25,40 @@ k8s/
       kustomization.yaml       # ../../base + image tags, no registry
 ```
 
-## Build images into the cluster's Docker daemon (no registry)
+## Build images and load them into the cluster (no registry)
 
-Images are built directly into the cluster's Docker daemon; this stack has
-no image registry. From the repo root, with the `minikube` profile
-(`datamesh`) running:
+This stack has no image registry. From the repo root, with the `minikube`
+profile (`datamesh`) running:
 
 ```bash
-eval $(minikube docker-env -p datamesh)
-
-docker build -f examples/order-service/src/main/docker/Containerfile.multistage \
-  -t datamesh/order-service:latest .
-
-docker build -f examples/notification-service/src/main/docker/Containerfile.multistage \
-  -t datamesh/notification-service:latest .
-
-docker build -f examples/graphql-gateway/src/main/docker/Containerfile.multistage \
-  -t datamesh/graphql-gateway:latest .
+./scripts/load-images.sh                 # all four services
+./scripts/load-images.sh order-service   # or just the ones you changed
 ```
 
-The build context is the **repo root** for all three, not `examples/<svc>`:
-each Containerfile's builder stage copies the whole `examples/` Maven
-reactor so `domain-model` and `contracts` resolve as reactor modules
-(see the comment block at the top of each `Containerfile.multistage`).
+For each of order-service, inventory-service, notification-service, and
+graphql-gateway, the script builds the image with the host's `docker`, copies
+it into the profile with `minikube image load`, and restarts the Deployment if
+it already exists. By hand, for one service:
 
-`eval $(minikube docker-env)` points the shell's `docker` CLI at the
-cluster node's Docker daemon, so the image lands where the kubelet looks.
-Every Deployment in `k8s/base/*.yaml` sets `imagePullPolicy: IfNotPresent`
-and the image names (`datamesh/order-service`, etc.) carry no registry host,
-so as long as the exact `name:tag` exists in that daemon the kubelet never
-pulls externally. The update loop is to rebuild with the same tag (`latest`)
-and run `kubectl rollout restart deployment/<svc> -n datamesh`.
+```bash
+docker build -f examples/order-service/src/main/docker/Containerfile.multistage \
+  -t datamesh/order-service:latest .
+minikube image load datamesh/order-service:latest -p datamesh
+kubectl rollout restart deployment/order-service -n datamesh
+```
+
+The build context is the **repo root**, not `examples/<svc>`: each
+Containerfile's builder stage copies the whole `examples/` Maven reactor so
+`domain-model` and `contracts` resolve as reactor modules (see the comment
+block at the top of each `Containerfile.multistage`).
+
+The profile uses the containerd runtime, so `eval $(minikube docker-env)` does
+not apply; it works only with the docker runtime. Every Deployment in
+`k8s/base/*.yaml` sets `imagePullPolicy: IfNotPresent` and the image names
+(`datamesh/order-service`, etc.) carry no registry host, so once the exact
+`name:tag` is loaded the kubelet never pulls externally. Without it, the pods
+sit in `ImagePullBackOff`: the kubelet tries Docker Hub, where these images do
+not exist.
 
 ## Apply
 

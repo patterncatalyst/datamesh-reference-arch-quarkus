@@ -4,14 +4,15 @@ kind: Kustomization
 resources:
   - ../../base
 
-# Images are built directly into minikube's own Docker daemon
-# (`eval $(minikube docker-env)` then `docker build -t datamesh/<svc> .`) —
-# no external registry. `newTag` pins the tag; the image name itself stays
+# Images are built with the host's docker and loaded into the profile's
+# containerd runtime with scripts/load-images.sh (`minikube image load`); there
+# is no external registry, and `minikube docker-env` does not apply to the
+# containerd runtime. `newTag` pins the tag; the image name itself stays
 # registry-free ("datamesh/<svc>", not "some.registry/datamesh/<svc>") so
 # imagePullPolicy: IfNotPresent (set in k8s/base/*.yaml) resolves against the
-# image already sitting in minikube's local docker, never attempting a
-# network pull. Bump these tags (and rebuild with the matching -t tag) when
-# you want to roll a new image without relying on :latest cache semantics.
+# image already loaded into the cluster, never attempting a network pull. Bump
+# these tags (and rebuild with the matching -t tag) when you want to roll a new
+# image without relying on :latest cache semantics.
 images:
   - name: datamesh/order-service
     newTag: latest
