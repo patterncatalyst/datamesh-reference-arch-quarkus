@@ -5,70 +5,94 @@ description: Read this FIRST after a context compaction or restart to resume the
 
 # RESUME — datamesh-reference-arch-quarkus build
 
-## Current state — 2026-10-06 (read this section first)
+## Current state — 2026-10-06, end of session (read this section first)
 
-**Build is complete and public; recent work was a content/tooling hardening pass.**
-`main` is clean at `76bf57a` with no open PRs in this repo.
+**Build complete, public, and fully exercised.** All 19 demos across the five
+walkthrough acts passed on 2026-10-06, `mvn verify` passed on all 12 modules,
+and the chapter 16 and 19 gaps are closed. `main` is clean at `12d904e` with
+no open PRs here or in `patterncatalyst/lgtm-skills`.
 
-### Done in the 2026-10-05/06 session (all merged)
-- **Professional content pass** (#29–#33): voice pass over site, both decks
-  (r1.1: 201 = 100 slides, 101 = 17), demo narration, READMEs; demo slides use
-  title + subtitle with the script as an 8pt footnote; glossary bold terms;
-  new diagrams (Panache patterns, Uni vs imperative, WebSockets.Next, JBang,
-  startup paths, Panama, OIDC flow, WebSocket failover, Vert.x/Kafka
-  messaging); A1/A3/A5/A6 diagram fixes; analytical-data close. Plan + log:
-  [professional-content-pass.md](professional-content-pass.md).
-- **New demo**: `demos/demo-panama.sh` (FFM getpid/strlen) — verified.
-- **Leyden**: `scripts/compare-quarkus-springboot.sh --aot` (JDK 25 AOT cache,
-  both frameworks) — measured once: startup Quarkus 2.05→0.99 s, Spring
-  4.02→1.02 s; RSS Quarkus 337→372 MB, Spring 548→446 MB (ch12).
-- **CLAUDE.md rules** (#34): load `lgtm-quarkus` AND `lgtm-camel` before any
-  code/demo/JBang/dependency change; supported-stable pinned releases only;
-  no JBang catalog aliases; never modify JBang or its trust store; Docker
-  overrides the skills' Podman defaults.
-- **Walkthrough** (#35): per-demo context + Enter pauses, `--list`,
-  `--from <demo|actN>`; `--auto` for CI. `demo-jbang-prototype.sh` now runs a
-  local `HelloRoute.java` with pinned `//DEPS` (Camel 4.22.1, slf4j-simple
-  2.0.20) — no `camel@apache/camel` alias (it pulled GitHub `blob/HEAD`,
-  added the snapshot repo, and popped a JBang GUI trust dialog).
-- **Skills** (patterncatalyst/lgtm-skills #16, #18–#21): new
-  `lgtm-professional-voice` (scanner `scripts/scan.sh`); stable-only rule and
-  pinned installs in `lgtm-quarkus`/`lgtm-camel`; corrected `camel-mcp` setup.
-- **MCP servers registered (user scope), both connect**:
-  `quarkus-agent` = `jbang io.quarkus:quarkus-agent-mcp:1.2.11:runner`;
-  `camel-mcp` = `jbang -Dcamel.mcp.transport=stdio org.apache.camel:camel-launcher:4.22.1 mcp`
-  (one-time `camel plugin add mcp` already done; `~/.camel-jbang-plugins.json`).
-  A new session loads them — use them per CLAUDE.md.
+### State of the machine
+- **Docker Desktop** (`desktop-linux` context): 8 CPUs, ~31 GiB, 252 GB disk.
+- **minikube `datamesh`** profile (docker driver, containerd runtime, 24 GB /
+  8 CPUs): **stopped**, not deleted. `minikube start -p datamesh`, then
+  `./scripts/load-images.sh` if the images need rebuilding. Global minikube
+  config `rootless: false`. The old `capstone` profile is deleted.
+- **Local `.env`** (git-ignored): copied from `.env.example` with
+  `MIMIR_PORT=19090`, because Fedora's Cockpit holds 9090.
+- **Host tools**: `kcat` 1.7.1 installed (dnf). hey/ghz are not installed;
+  `run-all-tests.sh --load` needs them on PATH (pinned: `go install
+  github.com/rakyll/hey@v0.1.5`, `github.com/bojand/ghz/cmd/ghz@v0.121.0`).
+- **MCP servers** (user scope, both connect): `quarkus-agent` =
+  `jbang io.quarkus:quarkus-agent-mcp:1.2.11:runner`; `camel-mcp` =
+  `jbang -Dquarkus.log.level=WARN org.apache.camel:camel-jbang-mcp:4.22.1:runner`
+  (reports `4.22.1-SNAPSHOT` in serverInfo; that is a fallback string in the
+  release jar).
 
-### Walkthrough status (all five acts run on 2026-10-06)
-| Demo | Result |
+### Merged this session (datamesh #29–#48, lgtm-skills #16–#23)
+- **Content**: professional voice pass on site, decks, demos (#29–#33);
+  native and AOT-cache build figures, ch11 Figures 11.6/11.7, two 201 slides
+  (#41); setup page Docker sizing for Docker Engine and Docker Desktop (#38),
+  demo tools and the Cockpit port note (#44). 201 deck r1.1 = 102 slides,
+  101 = 17.
+- **Pins**: Quarkus JUnit artifacts `quarkus-junit` / `quarkus-junit-mockito`
+  (#37); images Ollama 0.35.1, Postgres 18.6, kafka-ui → `kafbat/kafka-ui:v1.5.0`
+  (#39, #40); newman 6.2.2, hey v0.1.5, ghz v0.121.0 (#47).
+- **Kubernetes path** (#42): Helm repo names matched exactly in setup scripts;
+  new `scripts/load-images.sh` (host docker build + `minikube image load`;
+  `minikube docker-env` does not apply to containerd); KEDA demos start from
+  zero and wait out KEDA's scale-down window; HTTP demo uses interceptor port
+  8080 and GraphQL POSTs.
+- **Demos** (#44): demo-websocket overrides the push channel topic;
+  demo-orchestration-styles pulls the model when missing; demo-ai-triage falls
+  back to the compose Ollama profile.
+- **Compose network** renamed `datamesh-compose` (#45) so it no longer joins
+  minikube's `datamesh` network.
+- **Chapter 16** (#48): `demos/jbang/WsReconnectClient.java` +
+  `tooling/ws-failover/verify-ws-failover.sh` — replica failover verified.
+- **Chapter 19** (#47): Newman 49/49, hey ~18k req/s, ghz ~12k calls/s.
+- **Reconciliation** (#46): 61 verified, 26 not ported (each with a reason),
+  6 ported, 9 unverified (explanatory figures).
+- **lgtm-skills**: `lgtm-professional-voice` (#16, #18, #19); stable-only rule
+  (#20, #21); Croway's #12 merged via #22 with the pinned camel-mcp runner;
+  `quarkus-junit` names in lgtm-quarkus (#23).
+
+### Walkthrough status (all five acts, 2026-10-06)
+| Act | Result |
 |---|---|
-| Acts 1–3 (13 demos, `--with-ollama`) | **passed** (2026-10-06): 10/13 on the first run; demo-websocket (push-channel topic override), demo-orchestration-styles (pull the model when missing), and demo-ai-triage (fall back to the compose Ollama profile) fixed and passed on re-run |
-| demo-jbang-prototype, demo-continuous-testing, demo-panama | passed |
-| demo-native | **passed** (2026-10-06): Mandrel container build 136 s, 141 MB runner, **startup 0.081 s**, `GET /orders` served with no JVM |
-| demo-keda-kafka, demo-keda-http (act 5) | **passed** (2026-10-06, #42): notification-service 0→1 on lag and back to 0; graphql-gateway 0→1 with 120/120 GraphQL requests 200 |
+| 1 (8 demos) | passed |
+| 2 (`--with-ollama`) | passed |
+| 3 (4 demos, `--with-ollama`) | passed |
+| 4 (incl. `--with-native`) | passed; native build 136 s, 141 MB, startup 0.081 s |
+| 5 (`--with-minikube`) | passed; keda-kafka 0→1→0, keda-http 0→1 with 120/120 200 |
 
-### Next steps (in order)
-1. ~~Docker Desktop resize~~ — done 2026-10-06 (8 CPUs, ~31 GiB, 252 GB disk).
-2. ~~Bootstrap full-size cluster~~ — done 2026-10-06 with `MINIKUBE_CPUS=8`
-   (8/8 tiers, 50 pods). The host's global minikube config had `rootless: true`
-   left from a podman profile; it is now set to `false` (docker is the default
-   here). Build and load the service images with `scripts/load-images.sh`
-   before the KEDA demos.
-3. ~~Run act 5~~ — done 2026-10-06: demo-keda-kafka and demo-keda-http both
-   passed (first end-to-end pass of keda-http) after fixing the interceptor
-   port, the GET-vs-POST load, and the scale-from-zero starting state.
-4. ~~Record the native result~~ — done 2026-10-06 with the native and AOT
-   cache build figures (ch11 Figures 11.6 and 11.7, two new 201 slides,
-   footers, deck notes, reconciliation).
+Command for a full run: `bash demos/walkthrough.sh --with-ollama --with-native
+--with-minikube --auto` (headless env below; cluster started and images
+loaded first).
+
+### Remaining by design (not open work)
+- Ch20 Vert.x event-bus material is explanatory; ch1/ch18 are conceptual.
+- 26 python-repo artifacts are `not ported` (OpenMetadata tooling, replaced
+  helper scripts); see `_plans/reconciliation.md`.
+- Notion 1-hour abstract (build-plan step 15) not written.
+- DEF-001: in-process Ollama tool calling stays deferred upstream; the MCP
+  server path is the verified one.
 
 ### Session rules learned (also in memory)
-- Agents never run demos that invoke remote JBang sources; run JBang work
-  headless (`env -u DISPLAY -u WAYLAND_DISPLAY`, `JAVA_TOOL_OPTIONS=-Djava.awt.headless=true`, stdin `</dev/null`).
+- Load `lgtm-quarkus` and `lgtm-camel` before code/demo/dependency changes;
+  supported-stable pinned releases only; no JBang catalog aliases; never
+  modify JBang or its trust store.
+- Run JBang and demos headless: `env -u DISPLAY -u WAYLAND_DISPLAY
+  JAVA_TOOL_OPTIONS=-Djava.awt.headless=true ... </dev/null`.
+- Use plain branches in the main checkout, not git worktrees. Don't edit a
+  script while a walkthrough is executing it.
+- In zsh, `-t datamesh/$s:latest` hits the `:l` modifier; build loops run
+  under `bash -c` (or use `scripts/load-images.sh`).
 - Don't prune Docker images/named volumes or change Docker Desktop/system
-  services without asking. The 2026-10-06 prune removed only anonymous
-  volumes (3.3 GB) + build cache (1.1 GB); 8 named volumes kept.
-- Voice: senior-engineer audience; run `~/.claude/skills/lgtm-professional-voice/scripts/scan.sh` on touched files.
+  services without asking; the user runs `sudo` installs in their own
+  terminal (a `!` command cannot answer a sudo prompt).
+- Voice: senior-engineer audience; run
+  `~/.claude/skills/lgtm-professional-voice/scripts/scan.sh` on touched files.
 
 ---
 
