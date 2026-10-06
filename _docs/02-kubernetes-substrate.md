@@ -148,12 +148,15 @@ k8s/keda/
 
 The `base` layer declares the resources; the `minikube` overlay holds the
 environment-specific decision, a frequent source of errors: there is **no image registry**
-in this stack. Images are built directly into the cluster's own Docker daemon —
+in this stack. Images are built with the host's Docker and loaded into the cluster's own
+container runtime —
 
 ```bash
-eval $(minikube docker-env -p datamesh)
+./scripts/load-images.sh
+# per service, by hand:
 docker build -f examples/order-service/src/main/docker/Containerfile.multistage \
   -t datamesh/order-service:latest .
+minikube image load datamesh/order-service:latest -p datamesh
 ```
 
 — so the overlay's `images:` block only ever rewrites the tag (`newTag: latest`), never
@@ -161,8 +164,10 @@ the registry host, and every base manifest sets `imagePullPolicy: IfNotPresent`.
 pull policy wrong — leave it at the default `Always` — and the kubelet will try to pull
 `datamesh/order-service` from Docker Hub, fail (there is no such public image), and the
 pod will sit in `ImagePullBackOff` even though the correctly tagged image is in the
-cluster's own daemon. Building into the cluster's daemon and setting the pull policy to
-`IfNotPresent` are coupled; change neither independently.
+cluster. Skip the load step and the result is the same. Loading into the cluster and
+setting the pull policy to `IfNotPresent` are coupled; change neither independently. The
+profile runs containerd, so `eval $(minikube docker-env)`, which only works with the
+Docker runtime, is not an option here.
 
 Build context matters too: every
 `Containerfile.multistage` build documented in the k8s
@@ -236,4 +241,4 @@ order-service template the others follow, and how each one is packaged and shipp
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `scripts/bootstrap.sh` was driven end to end on a local `minikube` cluster (podman driver, 24 GB / 16 CPU), bringing up all eight tiers healthy — the cluster itself, Istio, CloudNativePG + Postgres, Strimzi + Kafka, KEDA, the full LGTM stack, Kiali, and Apicurio (50/50 pods Running). The bring-up surfaced and fixed three bootstrap bugs along the way: the Strimzi Kafka CR pinned an unsupported Kafka version, Mimir rejected overlapping filesystem data dirs, and Apicurio's readiness probe used a health path its image doesn't serve.*
+*Verification status: <span class="status status--verified">verified</span>. `scripts/bootstrap.sh` was driven end to end on a local `minikube` cluster (podman driver, 24 GB / 16 CPU), bringing up all eight tiers healthy — the cluster itself, Istio, CloudNativePG + Postgres, Strimzi + Kafka, KEDA, the full LGTM stack, Kiali, and Apicurio (50/50 pods Running). The bring-up surfaced and fixed three bootstrap bugs along the way: the Strimzi Kafka CR pinned an unsupported Kafka version, Mimir rejected overlapping filesystem data dirs, and Apicurio's readiness probe used a health path its image doesn't serve. Re-run on 2026-10-06 with the docker driver on Docker Desktop (8 CPUs, so `MINIKUBE_CPUS=8`): all eight tiers came up with 50 pods Running after one fix, setup scripts that matched Helm repository names by prefix (an existing `grafana-community` repo hid a missing `grafana` repo). The service images then had to be built and loaded with `scripts/load-images.sh`; the cluster runs containerd, so the `minikube docker-env` route described in earlier revisions does not apply.*

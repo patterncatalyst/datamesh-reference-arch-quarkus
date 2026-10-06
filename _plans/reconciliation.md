@@ -59,8 +59,8 @@ don't let it fall behind the build-plan step table in `build-plan.md`
 | `demos/demo-kafka.sh` | `demos/demo-kafka.sh` | not started | Reactive Messaging |
 | `demos/demo-avro.sh` | (fold into demo-kafka.sh or contracts chapter) | not started | Evaluate whether it needs a standalone script |
 | `demos/demo-canary.sh` + `demo-canary-verify.sh` | `demos/demo-canary.sh` (+ verify) | not started | Istio, mirrors python 1:1 |
-| `demos/demo-keda-http.sh` | `demos/demo-keda-http.sh` | not started | |
-| `demos/demo-keda-kafka.sh` | `demos/demo-keda-kafka.sh` | not started | |
+| `demos/demo-keda-http.sh` | `demos/demo-keda-http.sh` | verified | 2026-10-06 act 5: graphql-gateway 0→1 through the interceptor (port 8080), 120/120 GraphQL POSTs returned 200; starts from zero after KEDA's scale-down window |
+| `demos/demo-keda-kafka.sh` | `demos/demo-keda-kafka.sh` | verified | 2026-10-06 act 5: notification-service 0→1 on lag from 60 orders, drained to 0 after cooldown; starts from zero |
 | `demos/demo-observability.sh` / `demo-tracing.sh` | `demos/demo-tracing.sh` | not started | OpenTelemetry |
 | `demos/demo-discovery.sh` | `demos/demo-discovery.sh` | not started | Contracts/catalog discovery |
 | `demos/demo-om-lineage.sh` / `demo-openmetadata.sh` | `demos/demo-om-lineage.sh` | not started | |
@@ -91,7 +91,7 @@ don't let it fall behind the build-plan step table in `build-plan.md`
 | `scripts/splice-diagrams.sh` | `scripts/splice-diagrams.sh` | not started | Pairs with `lgtm-diagram-generator` |
 | `scripts/sync-example-pages.sh` | `scripts/sync-example-pages.sh` | not started | |
 | `scripts/setup-istio.sh` | `scripts/setup-istio.sh` | not started | Via `lgtm-minikube-stack` |
-| `scripts/setup-keda.sh` | `scripts/setup-keda.sh` | not started | Via `lgtm-minikube-stack` |
+| `scripts/setup-keda.sh` | `scripts/setup-keda.sh` | verified | Via `lgtm-minikube-stack`; 2026-10-06 bootstrap, Helm repo name match fixed |
 | `scripts/setup-strimzi.sh` | `scripts/setup-strimzi.sh` | not started | Via `lgtm-minikube-stack` |
 | `examples/.../scripts/setup-postgres-operator.sh` | `scripts/setup-postgres-operator.sh` | not started | Via `lgtm-minikube-stack` (CloudNativePG) |
 | `examples/.../scripts/setup-openmetadata.sh` / `ingest-openmetadata.sh` | `scripts/setup-openmetadata.sh` / `ingest-openmetadata.sh` | not started | |

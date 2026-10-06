@@ -43,7 +43,7 @@ fi
 
 # ─── 1. kedacore helm repo ───────────────────────────────────────────────────
 printf '==> Ensuring the kedacore helm repo is registered\n'
-if helm repo list 2>/dev/null | grep -q '^kedacore'; then
+if helm repo list 2>/dev/null | grep -q '^kedacore[[:space:]]'; then
     helm repo update kedacore >/dev/null
 else
     helm repo add kedacore https://kedacore.github.io/charts

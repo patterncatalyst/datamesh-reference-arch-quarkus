@@ -189,6 +189,26 @@ get_replicas() {
     echo "$val"
 }
 
+# ─── Start from zero. A running replica drains a burst of orders
+# before KEDA's 15 s poll sees any lag, so the burst must arrive with no consumer.
+# `kubectl apply -k` above resets .spec.replicas to the base value of 1, so
+# request zero explicitly. If the trigger is idle, KEDA holds it there. If it
+# saw traffic recently (an earlier run), KEDA restores a replica until its
+# scale-down window passes (cooldownPeriod=120 in k8s/keda/consumer-scaledobject.yaml), so wait for that
+# rather than racing it.
+step "reset: scale notification-service to zero (the state KEDA scales up from)"
+kubectl scale deployment notification-service -n "$NS" --replicas=0 >/dev/null \
+    || fail "kubectl scale deployment/notification-service --replicas=0 failed"
+RESET_BUDGET=180
+for (( i = 0; i < RESET_BUDGET; i += 5 )); do
+    [[ -z "$(kubectl get pods -n "$NS" -l app.kubernetes.io/name=notification-service -o name 2>/dev/null)" ]] && break
+    (( i % 60 == 0 && i > 0 )) && info "waiting for KEDA's scale-down window before the burst (${i}s)"
+    sleep 5
+done
+[[ -z "$(kubectl get pods -n "$NS" -l app.kubernetes.io/name=notification-service -o name 2>/dev/null)" ]] \
+    || fail "notification-service still has pods ${RESET_BUDGET}s after requesting zero replicas; check for traffic or lag still holding the KEDA trigger active"
+info "notification-service is at zero replicas with no pods"
+
 BASELINE_REPLICAS="$(get_replicas)"
 info "baseline notification-service replicas: ${BASELINE_REPLICAS}"
 

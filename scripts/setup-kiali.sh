@@ -75,7 +75,7 @@ fi
 # ─── 1. kiali helm repo ───────────────────────────────────────────────────────
 
 step "Ensuring the kiali helm repo is registered"
-if helm repo list 2>/dev/null | grep -q '^kiali'; then
+if helm repo list 2>/dev/null | grep -q '^kiali[[:space:]]'; then
     helm repo update kiali >/dev/null
 else
     helm repo add kiali https://kiali.org/helm-charts

@@ -48,19 +48,15 @@ description: Read this FIRST after a context compaction or restart to resume the
 | demo-keda-kafka, demo-keda-http (act 5) | **not run — no cluster** |
 
 ### Next steps (in order)
-1. **Docker Desktop resize — pending on the user.** Saved settings and the live
-   VM still show 8 CPUs / 16 GB / 64 GB disk (98% full, ~970 MB free). Target:
-   *Settings → Resources* Memory 28 GB, Disk 200 GB, CPUs 8 (host has 16),
-   *Apply & restart*. Verify: `docker info --format '{{.NCPU}} {{.MemTotal}}'`
-   ≈ 8 / ~27 GiB and `docker run --rm alpine:3 df -h /` shows the larger disk.
-   Alternative: native `docker-ce` 29.8.2 is installed but inactive
-   (`sudo systemctl start docker`, then `--context default`).
-2. **Bootstrap full-size cluster**: `MINIKUBE_CPUS=8 ./scripts/bootstrap.sh`
-   (24 GB / 80 GB defaults; CPUs reduced to 8 to fit the Desktop VM — record
-   that deviation in ch02/ch07 footers). Long-running; run in background.
-3. **Run act 5**: `bash demos/walkthrough.sh --from act5 --with-minikube --auto`.
-   demo-keda-kafka was verified on a cluster before (5885b28); keda-http has
-   never been confirmed end to end.
+1. ~~Docker Desktop resize~~ — done 2026-10-06 (8 CPUs, ~31 GiB, 252 GB disk).
+2. ~~Bootstrap full-size cluster~~ — done 2026-10-06 with `MINIKUBE_CPUS=8`
+   (8/8 tiers, 50 pods). This host's global minikube config has
+   `rootless: true` left from a podman profile; run with
+   `MINIKUBE_ROOTLESS=false` against Docker Desktop. Build and load the service
+   images with `scripts/load-images.sh` before the KEDA demos.
+3. ~~Run act 5~~ — done 2026-10-06: demo-keda-kafka and demo-keda-http both
+   passed (first end-to-end pass of keda-http) after fixing the interceptor
+   port, the GET-vs-POST load, and the scale-from-zero starting state.
 4. ~~Record the native result~~ — done 2026-10-06 with the native and AOT
    cache build figures (ch11 Figures 11.6 and 11.7, two new 201 slides,
    footers, deck notes, reconciliation).

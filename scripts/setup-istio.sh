@@ -67,7 +67,7 @@ fi
 # ─── 1. istio helm repo ──────────────────────────────────────────────────────
 
 step "Ensuring the istio helm repo is registered"
-if helm repo list 2>/dev/null | grep -q '^istio'; then
+if helm repo list 2>/dev/null | grep -q '^istio[[:space:]]'; then
     helm repo update istio >/dev/null
 else
     helm repo add istio https://istio-release.storage.googleapis.com/charts

@@ -170,6 +170,7 @@ fi
 step "Bring-up complete."
 cat <<EOF
 
+    Service images:        ./scripts/load-images.sh   (build + load into the profile; the KEDA demos need them)
     Cluster status:        ./scripts/cluster-status.sh
     Stable service access: ./scripts/tunnel-services.sh   (NodePort + SSH tunnel — NOT kubectl port-forward)
     Tear down the profile: ./scripts/teardown.sh
