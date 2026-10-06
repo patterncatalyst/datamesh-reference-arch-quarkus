@@ -132,7 +132,7 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
     Dev Services tags == IT Testcontainers tags. `%prod` env-driven config in all
     services (`${KAFKA_BOOTSTRAP_SERVERS}`/`${APICURIO_REGISTRY_URL}`/`${JDBC_URL}`);
     Dev Services image-names pinned. Multi-stage UBI Containerfiles (order test-built).
-    `.devcontainer/` (JDK25/Maven3.9.9, DooD socket, joins `datamesh` network).
+    `.devcontainer/` (JDK25/Maven3.9.9, DooD socket, joins the `datamesh-compose` network).
     `.dockerignore` added. **DEF-002 RESOLVED** — `OrderPlacedAvroWireIT` byte-asserts
     Avro magic byte, green in default `mvn verify`.
   - **Step 9 (minikube):** `scripts/` substrate (bootstrap + Strimzi/CNPG/KEDA/

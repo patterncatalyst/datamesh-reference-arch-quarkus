@@ -237,4 +237,7 @@ volumes:
 
 networks:
   default:
-    name: datamesh
+    # Not "datamesh": minikube's docker driver names its network after the
+    # profile (scripts/setup-profile.sh, profile "datamesh"), and compose
+    # would otherwise join that network instead of creating its own.
+    name: datamesh-compose
