@@ -460,6 +460,13 @@ tableSlide({ eyebrow: "Quarkus vs. Spring Boot", title: "With the JDK 25 AOT cac
   note: "Single run on Temurin JDK 25.0.3, same JDK flags on both frameworks. Indicative, not a benchmark.",
   notes: "What it shows: the same order-service and Spring Boot twin, run once on the plain JVM and once with a JDK 25 AOT cache (Project Leyden). A training run with -XX:AOTCacheOutput writes the cache when the application exits; the measured run uses -XX:AOTCache with -XX:AOTMode=on, which fails loudly if the cache is unusable instead of silently falling back. Spring Boot runs from its extracted layout because nested jars cannot be cached. Reading the table: startup on both frameworks drops to about one second, so the AOT cache narrows the gap to parity. Quarkus's memory rises (337 to 372 MB) while Spring Boot's falls (548 to 446 MB); the cache is memory-mapped and counts toward RSS, and the cache files are 103 MB and 123 MB. Quarkus is still faster and smaller on the plain JVM. Caveats: single run on Temurin 25.0.3 on 2026-10-05, same JDK and classpath required for the cache, indicative only. Both services were measured with identical flags; Quarkus's own AOT integration was not used, to keep the comparison symmetric." });
 
+diagramSlide({ eyebrow: "Quarkus vs. Spring Boot", title: "How the AOT cache is trained and used",
+  subtitle: "Same jar, same JDK: a training run, then a production run",
+  demoRef: "scripts/compare-quarkus-springboot.sh --aot",
+  image: "11-aot-cache-build",
+  caption: "The training run writes the cache at exit; the production run maps it and fails fast if it is stale.",
+  notes: "How the AOT comparison numbers were produced. mvn package builds quarkus-run.jar as usual; there is no special packaging. The training run starts that jar with -XX:AOTCacheOutput, waits for the started log line, and sends SIGTERM, because the JVM writes the cache when it exits. The cache holds classes already loaded and linked (JEP 483) and method profiles (JEP 515); JEP 514 is what makes this a single training step. For order-service it is 103 MB. The production run starts the same jar on the same JDK with -XX:AOTCache and -XX:AOTMode=on; without AOTMode=on, a stale or mismatched cache is silently ignored and the measurement would be wrong. Startup went from 2.045 s to 0.992 s, with the full JVM and JIT still active. Spring Boot gets the same treatment from its extracted layout, because classes inside nested jars cannot be cached. Single run on Temurin 25.0.3, 2026-10-05." });
+
 /* ====================== 06 · PLATFORM: SELF-SERVE, ELASTIC, RESILIENT ====================== */
 (() => {
   const s = divider({ num: "06", title: "Platform: self-serve, elastic, resilient", sub: "KEDA scales two data products to demand, and to zero: the self-serve platform in action." });
@@ -575,7 +582,7 @@ contentSlide({ eyebrow: "Security", title: "OIDC with live bearer tokens",
 /* ====================== 09 · NATIVE ====================== */
 (() => {
   const s = divider({ num: "09", title: "Native", sub: "A separate axis from the JVM comparison: Quarkus with no JVM in the process." });
-  s.addNotes("Native stays out of the Spring Boot comparison table so that table compares JVM to JVM. No native build has been run for the comparison numbers, and the commonly cited native figures (sub-100 ms startup, tens of MB of RSS) are general Quarkus numbers and not measured here. Native is covered by an opt-in, long-running demo (demo-native.sh).");
+  s.addNotes("Native stays out of the Spring Boot comparison table so that table compares JVM to JVM. The comparison numbers are JVM only. Native is covered by an opt-in, long-running demo (demo-native.sh); its one recorded run, on 2026-10-06 with the Mandrel builder container, built in 136 s, produced a 141 MB binary, and reported startup in 0.081 s. Native resident memory was not measured.");
 })();
 
 contentSlide({ eyebrow: "Native", title: "Native executable: no JVM",
@@ -586,7 +593,14 @@ contentSlide({ eyebrow: "Native", title: "Native executable: no JVM",
     { text: "It runs the *-runner binary directly, with no java and no quarkus-run.jar, against a throwaway Postgres container. Native mode gets no Dev Services, so %prod needs a reachable database.", lvl: 1 },
     { text: "Asserted: GET /orders returns a JSON array through the REST, Hibernate ORM, and Panache stack with no JVM in the process.", lvl: 1 },
   ],
-  notes: "DEMO 19 of 19, so all nineteen demos in the matrix are now covered. What it does: compiles and runs order-service as a native executable with no JVM in the process. What to show: the native binary's boot log and a GET /orders response. Infra: opt-in, with a native toolchain and one throwaway Postgres container. It is long-running: several minutes, and longer the first time a 1 to 2 GB builder image is pulled. Fallback: the recorded boot log and GET /orders response. It is the only demo outside walkthrough.sh's default acts, because of its runtime cost. It sits apart from the Spring Boot comparison, which is JVM-only; this is the only place native compilation appears." });
+  notes: "DEMO 19 of 19, so all nineteen demos in the matrix are now covered. What it does: compiles and runs order-service as a native executable with no JVM in the process. What to show: the native binary's boot log and a GET /orders response. Infra: opt-in, with a native toolchain and one throwaway Postgres container. It is long-running: several minutes, and longer the first time a 1 to 2 GB builder image is pulled. Fallback: the recorded boot log and GET /orders response. It is the only demo outside walkthrough.sh's default acts, because of its runtime cost. It sits apart from the Spring Boot comparison, which is JVM-only; this is the only place native compilation appears. Recorded run, 2026-10-06: no local native-image, so the Mandrel builder container was used; 136 s build, 141 MB runner binary, startup reported at 0.081 s, GET /orders served with no JVM. Single run, indicative." });
+
+diagramSlide({ eyebrow: "Native", title: "How the native executable is built",
+  subtitle: "Quarkus build, then native-image, then a binary with no JVM",
+  demoRef: "demos/demo-native.sh",
+  image: "11-native-build",
+  caption: "Build: Quarkus build steps, then native-image. Run: the binary against a throwaway Postgres, with no Dev Services.",
+  notes: "Walk the top row left to right. mvn package -Pnative runs the Quarkus build first: each extension's build steps run at build time, register what needs reflection or resources, and initialize classes, so the work a JVM would do at startup is already done. native-image then runs a points-to analysis over the closed world, snapshots the initialized heap, and compiles only reachable code into one executable. The middle row is where native-image comes from: a local GraalVM or Mandrel, or the Mandrel builder container with quarkus.native.container-build=true, which is what this machine used. If neither exists the demo fails rather than substituting a JVM jar. The bottom row is the run: native mode gets no Dev Services, so the demo starts a throwaway Postgres 18.6 container and passes TZ=UTC and a JDBC_URL to the binary, then asserts GET /orders returns a JSON array. Measured on 2026-10-06: 136 s build, 141 MB binary, startup 0.081 s. Single run, indicative." });
 
 /* ====================== 10 · THE WHOLE PICTURE ====================== */
 (() => {

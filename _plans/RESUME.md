@@ -61,9 +61,9 @@ description: Read this FIRST after a context compaction or restart to resume the
 3. **Run act 5**: `bash demos/walkthrough.sh --from act5 --with-minikube --auto`.
    demo-keda-kafka was verified on a cluster before (5885b28); keda-http has
    never been confirmed end to end.
-4. **Record the native result**: ch11 + ch12 footers, the 201 deck notes
-   ("native not exercised"), and `_plans/reconciliation.md` still say native
-   was not run — update with the 2026-10-06 numbers above.
+4. ~~Record the native result~~ — done 2026-10-06 with the native and AOT
+   cache build figures (ch11 Figures 11.6 and 11.7, two new 201 slides,
+   footers, deck notes, reconciliation).
 
 ### Session rules learned (also in memory)
 - Agents never run demos that invoke remote JBang sources; run JBang work

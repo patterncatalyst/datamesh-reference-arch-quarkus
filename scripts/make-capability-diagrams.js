@@ -1,8 +1,8 @@
-// make-capability-diagrams.js — seven capability figures for chapter 11
+// make-capability-diagrams.js — nine capability figures for chapter 11
 // (Panache patterns, Uni vs imperative, WebSockets.Next, JBang, startup paths,
-// Panama FFM, OIDC token flow). Same visual grammar as svglib.js /
-// make-quarkus-diagrams.js; emits paired .svg + .excalidraw into
-// assets/diagrams/.
+// Panama FFM, OIDC token flow, native build, AOT cache build). Same visual
+// grammar as svglib.js / make-quarkus-diagrams.js; emits paired .svg +
+// .excalidraw into assets/diagrams/.
 const { SVG, FAM, INK, MUT } = require("./svglib.js");
 const fs = require("fs");
 const path = require("path");
@@ -297,4 +297,65 @@ const lbl = (s, x, y, t, o = {}) => T(s, x, y, t, { size: 14, fill: MUT, italic:
 
   T(s, 590, 500, "Password grant for the demo only; browser apps use the authorization code flow.", { size: 14, fill: "#6a5a3a", italic: true });
   save("11-oidc-token-flow", s);
+})();
+
+/* ========== 11-native-build ========== */
+(() => {
+  const s = new SVG(1180, 600);
+  s.title("How demo-native.sh builds order-service as a native executable");
+
+  const y = 70, h = 116;
+  box(s, 40, y, 220, h, "tan", { t: "mvn package -Pnative", mono: true }, [{ t: "-pl order-service -am", mono: true }]);
+  box(s, 300, y, 270, h, "blue", "Quarkus build", ["extensions run build steps", "reflection, resources registered", "classes initialized at build"]);
+  box(s, 610, y, 250, h, "orange", { t: "native-image", mono: true }, ["points-to analysis", "heap snapshot", "compiles reachable code"]);
+  box(s, 900, y, 240, h, "green", "Native executable", [{ t: "order-service-…-runner", mono: true }, "141 MB, no JVM, no JIT"]);
+  arrow(s, 260, y + h / 2, 300, y + h / 2);
+  arrow(s, 570, y + h / 2, 610, y + h / 2);
+  arrow(s, 860, y + h / 2, 900, y + h / 2);
+
+  box(s, 40, 226, 220, 120, "gray", "Neither found", ["the demo fails; it never", "builds a JVM jar and", "calls it native"], { lh: 20 });
+  frame(s, 300, 226, 840, 120, "Where native-image comes from", "orange");
+  box(s, 320, 264, 390, 68, "white", "Local GraalVM or Mandrel", [{ t: "native-image on PATH or $GRAALVM_HOME", mono: true }], { lh: 20, hsize: 14 });
+  box(s, 730, 264, 390, 68, "orange", "Mandrel builder container (used here)", [{ t: "quarkus.native.container-build=true", mono: true }], { lh: 20, hsize: 14 });
+  arrow(s, 735, 264, 735, y + h);
+
+  frame(s, 40, 376, 1100, 120, "Run: native mode gets no Dev Services", "green");
+  const ry = 414, rh = 62;
+  box(s, 60, ry, 260, rh, "white", { t: "demo-native.sh", mono: true }, ["asserts a JSON array"], { lh: 20, hsize: 14 });
+  box(s, 460, ry, 260, rh, "green", "Native binary", [{ t: "TZ=UTC, JDBC_URL=…", mono: true }], { lh: 20, hsize: 14 });
+  box(s, 860, ry, 260, rh, "gray", "Postgres 18.6", ["throwaway container"], { lh: 20, hsize: 14 });
+  arrow(s, 320, ry + rh / 2, 460, ry + rh / 2);
+  lbl(s, 390, ry + rh / 2 - 10, "GET /orders", { mono: true });
+  arrow(s, 720, ry + rh / 2, 860, ry + rh / 2);
+  lbl(s, 790, ry + rh / 2 - 10, "JDBC");
+
+  s.rect(40, 516, 1100, 56, "tan");
+  T(s, 590, 550, "Measured 2026-10-06: Mandrel container build 136 s · 141 MB binary · started in 0.081 s", { size: 15, weight: 700, fill: FAM.tan.head });
+  save("11-native-build", s);
+})();
+
+/* ========== 11-aot-cache-build ========== */
+(() => {
+  const s = new SVG(1180, 540);
+  s.title("How compare-quarkus-springboot.sh --aot builds and uses the JDK 25 AOT cache");
+
+  const y = 70, h = 116, y2 = 236;
+  box(s, 40, y, 220, h, "tan", { t: "mvn package", mono: true }, ["target/quarkus-app/", { t: "quarkus-run.jar", mono: true }]);
+  box(s, 300, y, 400, h, "orange", "Training run", [{ t: "-XX:AOTCacheOutput=order-service.aot", mono: true }, "wait for the started line, then SIGTERM", "cache is written when the JVM exits"]);
+  box(s, 740, y, 400, h, "green", { t: "order-service.aot", mono: true }, ["classes loaded and linked (JEP 483)", "method profiles (JEP 515)", "103 MB"]);
+  arrow(s, 260, y + h / 2, 300, y + h / 2);
+  arrow(s, 700, y + h / 2, 740, y + h / 2);
+
+  box(s, 40, y2, 220, h, "gray", "Measured", ["Temurin 25.0.3", "2026-10-05", "single run"], { lh: 20 });
+  box(s, 300, y2, 400, h, "green", "Started in 0.992 s", ["2.045 s on the plain JVM", "same jar, full JVM, JIT active"]);
+  box(s, 740, y2, 400, h, "blue", "Production run", [{ t: "-XX:AOTCache=order-service.aot", mono: true }, { t: "-XX:AOTMode=on", mono: true }, "same jar, JDK, and flags"]);
+  arrow(s, 940, y + h, 940, y2);
+  arrow(s, 740, y2 + h / 2, 700, y2 + h / 2);
+
+  frame(s, 40, 382, 1100, 130, "Rules the script enforces", "gray");
+  const by = 420, bw = 344, bh = 76;
+  box(s, 60, by, bw, bh, "white", "Same JDK, classpath, flags", ["for training and production"], { lh: 20, hsize: 14 });
+  box(s, 418, by, bw, bh, "white", { t: "-XX:AOTMode=on", mono: true }, ["a stale cache stops startup", "instead of being ignored"], { lh: 20, hsize: 14 });
+  box(s, 776, by, bw, bh, "white", "Spring Boot: extract first", ["nested jars cannot be cached", { t: "-Djarmode=tools extract", mono: true }], { lh: 20, hsize: 14 });
+  save("11-aot-cache-build", s);
 })();

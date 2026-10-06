@@ -25,7 +25,7 @@ service would have cost to build in the framework most teams already know.
 ## What the twin is
 
 A standalone Spring Boot **4.0.8** project on the **same JDK 25** the rest of
-the repo targets. It is intentionally kept out of the Quarkus Maven build
+the repo targets. It is kept out of the Quarkus Maven build
 ([pom.xml]({{ site.repo_blob }}/examples/pom.xml)'s `<modules>` list runs from `domain-model` through
 `ai-rules-service` and does not mention `spring-boot-compare` anywhere) —
 Spring Boot wants its own `spring-boot-starter-parent`, so mixing the two
@@ -233,7 +233,7 @@ flags the other lacks.
 The unusual part is what it measures startup *against*. The
 obvious choice — poll `/q/health` or `/actuator/health` until it returns
 `200` — doesn't work here, because the script points
-`KAFKA_BOOTSTRAP_SERVERS` at a dead port on purpose for both services. Both
+`KAFKA_BOOTSTRAP_SERVERS` at a dead port for both services. Both
 frameworks' Kafka reactive-messaging health indicators report `DOWN` for as
 long as the broker is unreachable, so the *aggregate* health endpoint would
 never turn green regardless of whether the application itself had finished
@@ -284,7 +284,8 @@ classes from a training run and maps them at the next launch. Running both
 services with it shows how much of the gap is the framework and how much is
 JVM class-loading cost that the JDK can remove for either. Chapter 11
 ([Figure 11.5]({{ '/docs/11-quarkus-capability-tour/' | relative_url }})) draws the startup paths this
-adds next to native image.
+adds next to native image, and Figure 11.7 shows how the cache is trained and
+used.
 
 `scripts/compare-quarkus-springboot.sh --aot` runs the default JVM
 measurement first, then repeats it per service with plain JDK flags and no
@@ -385,4 +386,4 @@ Quarkus starts faster and uses less memory* — weigh that against everything
 else you already know about both frameworks.
 
 ---
-*Verification status: <span class="status status--verified">verified</span>. Both services build and boot, the twin's `mvn verify` passed (OrderControllerTest 4/4), and `scripts/compare-quarkus-springboot.sh` was run on JDK 25.0.3 (Temurin) on 2026-10-05 in default JVM mode and with `--aot`: both exited 0, the default JVM table and the AOT table above come from that single run (Quarkus 2.05 s / 337 MB against Spring Boot 4.02 s / 548 MB on the plain JVM), and the `--aot` run used `-XX:AOTMode=on`. Each figure is a single run. Native image was not run.*
+*Verification status: <span class="status status--verified">verified</span>. Both services build and boot, the twin's `mvn verify` passed (OrderControllerTest 4/4), and `scripts/compare-quarkus-springboot.sh` was run on JDK 25.0.3 (Temurin) on 2026-10-05 in default JVM mode and with `--aot`: both exited 0, the default JVM table and the AOT table above come from that single run (Quarkus 2.05 s / 337 MB against Spring Boot 4.02 s / 548 MB on the plain JVM), and the `--aot` run used `-XX:AOTMode=on`. Each figure is a single run. Native image is outside this JVM-to-JVM comparison; chapter 11 records its own run (`demo-native.sh`, 2026-10-06).*

@@ -418,7 +418,11 @@ extensions register for you), and different peak-throughput characteristics
 because there is no JIT. The demo runs the binary against a throwaway Postgres
 container (native mode gets no Dev Services; the `%prod` profile expects a
 reachable database) and asserts that `GET /orders` returns a JSON array through
-the full REST, Hibernate ORM, and Panache stack.
+the full REST, Hibernate ORM, and Panache stack. On 2026-10-06, with no local
+`native-image`, the demo used the Mandrel builder container: the build took
+136 s, the binary is 141 MB, and it reported startup in 0.081 s.
+
+{% include excalidraw.html file="11-native-build" alt="Native build pipeline. mvn package -Pnative for order-service runs the Quarkus build, where extensions run build steps, register reflection and resources, and initialize classes at build time. native-image then performs points-to analysis, takes a heap snapshot, and compiles reachable code into an order-service runner executable of 141 MB with no JVM and no JIT. native-image comes from a local GraalVM or Mandrel on PATH or GRAALVM_HOME, or from the Mandrel builder container with quarkus.native.container-build=true, which was used here; if neither is found the demo fails rather than building a JVM jar. At run time native mode gets no Dev Services: demo-native.sh sends GET /orders to the native binary, started with TZ=UTC and a JDBC_URL, which connects to a throwaway Postgres 18.6 container. Measured on 2026-10-06: Mandrel container build 136 s, 141 MB binary, started in 0.081 s." caption="Figure 11.6 — How demo-native.sh builds and runs the native executable" %}
 
 **JDK AOT cache (Project Leyden).** JDK 25 can record loaded and linked
 classes in a training run (`-XX:AOTCacheOutput=app.aot`, JEPs 483 and 514) and
@@ -432,6 +436,8 @@ single run on Temurin 25.0.3, self-reported startup fell from 2.045 s to
 gap between the frameworks closes. Resident memory moved the other way for
 Quarkus (337 to 372 MB, with the mapped cache counted) and down for Spring (548
 to 446 MB). The caches were 103 MB and 123 MB.
+
+{% include excalidraw.html file="11-aot-cache-build" alt="AOT cache pipeline. mvn package produces target/quarkus-app/quarkus-run.jar. A training run with -XX:AOTCacheOutput=order-service.aot waits for the started log line, then sends SIGTERM; the cache is written when the JVM exits. order-service.aot holds classes loaded and linked (JEP 483) and method profiles (JEP 515) and is 103 MB. The production run uses -XX:AOTCache=order-service.aot with -XX:AOTMode=on and the same jar, JDK, and flags, and started in 0.992 s against 2.045 s on the plain JVM, with the full JVM and JIT active. Measured on Temurin 25.0.3 on 2026-10-05, single run. Rules the script enforces: the same JDK, classpath, and flags for training and production; AOTMode=on so that a stale cache stops startup instead of being ignored; and for Spring Boot, extracting the jar first with -Djarmode=tools extract because nested jars cannot be cached." caption="Figure 11.7 — How the JDK AOT cache is trained and used" %}
 
 Native image removes the JVM and costs the most to build. The AOT cache keeps
 the JVM and reduces startup without changing the deployment model. Plain JVM
@@ -462,7 +468,7 @@ public Response delete(@PathParam("id") Long id) {
 }
 ```
 
-{% include excalidraw.html file="11-oidc-token-flow" alt="Token flow. Dev Services starts Keycloak with realm quarkus and users alice (admin and user) and bob (user). Step 1: the client posts to the token endpoint with the password grant and client quarkus-app. Step 2: Keycloak returns a JWT access token. Step 3: the client calls DELETE /reviews/{id} with an Authorization Bearer header. review-service verifies the signature against the Keycloak JWKS, the issuer, and the expiry, then applies RolesAllowed admin. Outcomes: no token returns 401, bob returns 403, alice returns 204 and a following GET returns 404." caption="Figure 11.6 — How OIDC protects review-service" %}
+{% include excalidraw.html file="11-oidc-token-flow" alt="Token flow. Dev Services starts Keycloak with realm quarkus and users alice (admin and user) and bob (user). Step 1: the client posts to the token endpoint with the password grant and client quarkus-app. Step 2: Keycloak returns a JWT access token. Step 3: the client calls DELETE /reviews/{id} with an Authorization Bearer header. review-service verifies the signature against the Keycloak JWKS, the issuer, and the expiry, then applies RolesAllowed admin. Outcomes: no token returns 401, bob returns 403, alice returns 204 and a following GET returns 404." caption="Figure 11.8 — How OIDC protects review-service" %}
 
 The flow, as [demo-oidc.sh]({{ site.repo_blob }}/demos/demo-oidc.sh) exercises it against the Keycloak container (found
 with `docker port`, because Testcontainers binds a random host port):
@@ -499,7 +505,7 @@ org.apache.camel:camel-launcher:4.22.1` installs the Camel CLI. This project
 does not use JBang catalog aliases (`name@org`): they fetch unpinned scripts
 from GitHub and make JBang ask the user to trust the source.
 
-{% include excalidraw.html file="11-jbang-tooling" alt="A single Java file with DEPS and JAVA 25 directives is run by jbang, which resolves dependencies from Maven Central, downloads a JDK if missing, and caches the build. Tools such as the Camel CLI install from pinned Maven coordinates. Uses in this project: HelloRoute.java, WsNotificationClient.java, and PanamaFfm.java." caption="Figure 11.7 — JBang as environment tooling" %}
+{% include excalidraw.html file="11-jbang-tooling" alt="A single Java file with DEPS and JAVA 25 directives is run by jbang, which resolves dependencies from Maven Central, downloads a JDK if missing, and caches the build. Tools such as the Camel CLI install from pinned Maven coordinates. Uses in this project: HelloRoute.java, WsNotificationClient.java, and PanamaFfm.java." caption="Figure 11.9 — JBang as environment tooling" %}
 
 Three scripts in [demos/jbang]({{ site.repo_tree }}/demos/jbang) use it:
 
@@ -561,7 +567,7 @@ lets Java call C functions and manage off-heap memory with no JNI. JNI requires
 a C glue library, a generated header, and a separate native build for each
 platform. FFM needs only Java.
 
-{% include excalidraw.html file="11-panama-ffm" alt="Java calls Linker.nativeLinker, whose defaultLookup finds libc symbols. downcallHandle with a FunctionDescriptor produces a method handle for getpid and strlen. An Arena allocates an off-heap MemorySegment holding a C string and frees it when the arena closes. A contrast box notes that JNI needs C glue, headers, and a separate native build. A note mentions the enable-native-access flag." caption="Figure 11.8 — Calling libc through the FFM API" %}
+{% include excalidraw.html file="11-panama-ffm" alt="Java calls Linker.nativeLinker, whose defaultLookup finds libc symbols. downcallHandle with a FunctionDescriptor produces a method handle for getpid and strlen. An Arena allocates an off-heap MemorySegment holding a C string and frees it when the arena closes. A contrast box notes that JNI needs C glue, headers, and a separate native build. A note mentions the enable-native-access flag." caption="Figure 11.10 — Calling libc through the FFM API" %}
 
 The script [PanamaFfm.java]({{ site.repo_blob }}/demos/jbang/PanamaFfm.java) calls two libc functions:
 
@@ -676,4 +682,4 @@ twin on startup and memory, with and without the AOT cache.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `demo-reactive-vertx.sh` (concurrent reactive and imperative calls), `demo-continuous-testing.sh` (6/6), `demo-jbang-prototype.sh`, `demo-oidc.sh` (live Keycloak Dev Service), `demo-panama.sh` (JDK 25.0.3, JBang 0.138.0: `getpid` and `strlen` results match the JVM's own), and the gRPC, GraphQL, and REST demos passed. The AOT cache numbers are measured in chapter 12 from a single run. Native image is not exercised in this pass (no GraalVM or Mandrel in this environment). Figures 11.2 through 11.8 are explanatory diagrams; the illustrative `PanacheRepository` example is not run code.*
+*Verification status: <span class="status status--verified">verified</span>. `demo-reactive-vertx.sh` (concurrent reactive and imperative calls), `demo-continuous-testing.sh` (6/6), `demo-jbang-prototype.sh`, `demo-oidc.sh` (live Keycloak Dev Service), `demo-panama.sh` (JDK 25.0.3, JBang 0.138.0: `getpid` and `strlen` results match the JVM's own), and the gRPC, GraphQL, and REST demos passed. The AOT cache numbers are measured in chapter 12 from a single run. `demo-native.sh` passed on 2026-10-06 with the Mandrel builder container (136 s build, 141 MB binary, 0.081 s startup, `GET /orders` served with no JVM); that is also a single run. Figures 11.2 through 11.10 are explanatory diagrams; the illustrative `PanacheRepository` example is not run code.*
