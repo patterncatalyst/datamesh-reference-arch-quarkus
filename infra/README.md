@@ -208,7 +208,7 @@ All of the following were run live in this environment (Docker Engine
 - `docker exec datamesh-postgres psql ... \l` — confirms `orderdb`,
   `inventorydb`, `notificationdb`, `reviewdb`, `shippingdb` all exist,
   owned by `appuser`; `SHOW timezone` returns `UTC`.
-- `kafkacat -b kafka:9094 -L` (run from a container on the `datamesh`
+- `kafkacat -b kafka:9094 -L` (run from a container on the `datamesh-compose`
   network) and `kafkacat -b localhost:9092 -L` (run with `--network
   host`) — both list broker 1 and successfully round-trip topic metadata
   (auto-create-topics produced a 3-partition topic matching

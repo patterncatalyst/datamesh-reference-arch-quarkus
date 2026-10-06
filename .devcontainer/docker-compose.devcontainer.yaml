@@ -40,7 +40,7 @@ services:
       # Points %dev traces/metrics at the root compose.yaml's LGTM service
       # (service `lgtm`, hostname `lgtm`, OTLP/HTTP on 4318). Reachable once
       # the standing stack is up and this workspace has joined its network
-      # (the `datamesh` network below).
+      # (the `datamesh-compose` network below).
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     networks:
@@ -49,9 +49,9 @@ services:
 networks:
   datamesh:
     # The root compose.yaml owns and creates this network (see its
-    # `networks: datamesh: {name: datamesh}`). `external: true` here means
+    # `networks: default: {name: datamesh-compose}`). `external: true` here means
     # the devcontainer joins that standing stack (Kafka/Postgres/Apicurio/
     # LGTM) instead of creating its own empty network. Bring the infra up
     # first: `docker compose up -d` at the repo root.
     external: true
-    name: datamesh
+    name: datamesh-compose
