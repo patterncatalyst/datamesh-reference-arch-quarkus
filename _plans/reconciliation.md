@@ -12,109 +12,129 @@ counterpart and a status. Update this file as artifacts are ported;
 don't let it fall behind the build-plan step table in `build-plan.md`
 (which tracks phases/skills, not per-artifact drift).
 
-**Status legend:** `not started` · `in progress` · `ported` · `ported (adapted)` · `deferred` · `n/a (python-only)`
+**Status legend:** `not ported` · `ported` · `ported (adapted)` · `verified` · `verified (partial)` · `conceptual` · `unverified` · `measured` · `deferred` · `n/a (python-only)`
+
+`verified` means the artifact ran in a real environment and produced its claimed effect. `ported` means it exists with no recorded run. `verified (partial)` means some parts ran and the Notes name what did not. `not ported` means no counterpart exists; Notes say what covers it or that it was not carried over.
 
 ## Chapters (`_docs/`)
 
 | Python artifact | Quarkus counterpart | Status | Notes |
 |---|---|---|---|
-| `_docs/00-index.md` | `_docs/00-index.md` | not started | |
-| `_docs/01-concepts.md` | `_docs/01-concepts.md` | not started | Principles content is stack-agnostic; port near-verbatim |
-| `_docs/01-data-architectures.md` | `_docs/01-data-architectures.md` | not started | |
-| `_docs/02-kubernetes-substrate.md` | `_docs/02-kubernetes-substrate.md` | not started | Docker vs podman note needs updating (DRQ-003) |
-| `_docs/03-services-and-data-products.md` | `_docs/03-services-and-data-products.md` | not started | Rewrite service code samples in Quarkus (Panache) |
-| `_docs/04-contracts-and-catalog.md` | `_docs/04-contracts-and-catalog.md` | not started | |
-| `_docs/05-data-planes.md` | `_docs/05-data-planes.md` | not started | Add Camel EIP framing where Quarkus uses Camel routes |
-| `_docs/06-progressive-delivery-mtls.md` | `_docs/06-progressive-delivery-mtls.md` | not started | |
-| `_docs/07-elastic-and-resilient.md` | `_docs/07-elastic-and-resilient.md` | not started | |
-| `_docs/08-observability.md` | `_docs/08-observability.md` | not started | |
-| `_docs/09-anti-patterns.md` | `_docs/09-anti-patterns.md` | not started | |
-| `_docs/10-summary.md` | `_docs/10-summary.md` | not started | |
-| _(none — new)_ | `_docs/11-quarkus-capability-tour.md` | not started | New chapter, no python source |
-| _(none — new)_ | `_docs/12-quarkus-vs-spring-boot.md` | not started | New chapter; depends on DRQ-006 twin service measurements |
+| `_docs/00-index.md` | `_docs/00-index.md` | verified | Site builds with 0 errors; chapter links resolve |
+| `_docs/01-concepts.md` | `_docs/01-concepts.md` | conceptual | Principles chapter; stack-agnostic, no runnable claims |
+| `_docs/01-data-architectures.md` | `_docs/01-data-architectures.md` | conceptual | Architecture background; no runnable claims |
+| `_docs/02-kubernetes-substrate.md` | `_docs/02-kubernetes-substrate.md` | verified | bootstrap.sh drove all eight tiers 2026-10-06 (50 pods Running); docker driver, Docker Desktop; Docker note updated (DRQ-003) |
+| `_docs/03-services-and-data-products.md` | `_docs/03-services-and-data-products.md` | verified | `mvn verify` green; demo-order and demo-grpc passed; Quarkus Panache samples |
+| `_docs/04-contracts-and-catalog.md` | `_docs/04-contracts-and-catalog.md` | verified (partial) | Avro wire assertion verified; incompatible-schema rejection by Apicurio not exercised; OpenMetadata not ported |
+| `_docs/05-data-planes.md` | `_docs/05-data-planes.md` | verified (partial) | demo-graphql and demo-grpc passed; Camel YAML DSL variant not run |
+| `_docs/06-progressive-delivery-mtls.md` | `_docs/06-progressive-delivery-mtls.md` | verified | Istio mTLS and 90/10 canary observed on minikube; selective injection by pod label |
+| `_docs/07-elastic-and-resilient.md` | `_docs/07-elastic-and-resilient.md` | verified | KEDA scale-to-zero and lag scaling run 2026-10-06 (act 5); single run |
+| `_docs/08-observability.md` | `_docs/08-observability.md` | verified (partial) | demo-tracing passed against compose otel-lgtm; mesh/Kiali view needs a live cluster |
+| `_docs/09-anti-patterns.md` | `_docs/09-anti-patterns.md` | verified | "In this build" callouts confirmed by the Maven build and committed manifests |
+| `_docs/10-summary.md` | `_docs/10-summary.md` | verified | Architectural claims confirmed by build and `k8s/` manifests; runtime claims covered in chapters 6 and 7 |
+| _(none — new)_ | `_docs/11-quarkus-capability-tour.md` | verified | Demos for each capability passed; native run 2026-10-06 (single run); Panache example is illustrative |
+| _(none — new)_ | `_docs/12-quarkus-vs-spring-boot.md` | verified | compare script run 2026-10-05, JVM and `--aot`; single run, not a benchmark |
+| _(none — new)_ | `_docs/13-orchestration-styles.md` | verified | demo-orchestration-styles passed with Ollama (acts 2-3); unit tests green |
+| _(none — new)_ | `_docs/14-ai-rules-triage.md` | verified | demo-ai-classify, demo-ai-mcp, demo-camel-integration, demo-ai-triage passed with Ollama qwen2.5:3b |
+| _(none — new)_ | `_docs/16-websocket-scaling.md` | verified (partial) | Two-replica fan-out run on minikube; replica failure and client reconnect conceptual |
+| _(none — new)_ | `_docs/17-gotchas.md` | verified | Fixes re-run green by `mvn verify` |
+| _(none — new)_ | `_docs/18-agentic-recommendations.md` | conceptual | Distilled recommendations; no build or demo; upstream langchain4j defect claim to re-check |
+| _(none — new)_ | `_docs/19-testing-details.md` | verified (partial) | Automated tiers green; Newman collection and hey/ghz load scripts not exercised |
+| _(none — new)_ | `_docs/20-messaging-in-memory-vs-kafka.md` | verified (partial) | In-memory connector tests green; Vert.x event-bus and Kafka scaling material conceptual |
+| _(none — new)_ | `_docs/21-orchestration-engines-compared.md` | verified | Orchestration tests green; demos passed with Ollama 2026-10-06 (single run) |
 
 ## Services (`examples/lgtm-datamesh/services/` → `examples/`)
 
 | Python artifact | Quarkus counterpart | Status | Notes |
 |---|---|---|---|
-| `services/order-service` | `examples/order-service` | not started | Panache + REST; primary data product |
-| `services/inventory-service` | `examples/inventory-service` | not started | |
-| `services/payment-service` | `examples/payment-service` | not started | |
-| `services/shipping-service` | `examples/shipping-service` | not started | |
-| `services/notification-service` | `examples/notification-service` | not started | Kafka consumer via Reactive Messaging |
-| `services/review-service` | `examples/review-service` | not started | |
-| `services/graphql-gateway` | `examples/graphql-gateway` | not started | SmallRye GraphQL |
-| `proto/capstone/*.proto` | `examples/*/proto/*.proto` | not started | Reuse proto defs where domain shapes match |
-| _(none — new)_ | `examples/spring-boot-compare` (order-service twin) | not started | DRQ-006; comparison chapter depends on this |
-| _(none — new)_ | `examples/domain-model` | not started | Shared framework-agnostic entities, per build-plan step 5 |
-| _(none — seed)_ | ported from `enterprise-integration-patterns-with-camel/examples/42-ai-mcp/quarkus` | not started | AI/MCP seed — see build-plan step 6 |
+| `services/order-service` | `examples/order-service` | verified | Panache + REST; primary data product; `mvn verify` 2026-10-06; exercised by demo-order |
+| `services/inventory-service` | `examples/inventory-service` | verified | `mvn verify` 2026-10-06; exercised by demo-grpc |
+| `services/payment-service` | `examples/payment-service` | verified | `mvn verify` 2026-10-06; Avro choreography processor (DRQ-010), exercised by demo-kafka |
+| `services/shipping-service` | `examples/shipping-service` | verified | `mvn verify` 2026-10-06; in-memory connector tests; exercised by demo-reactive-vertx |
+| `services/notification-service` | `examples/notification-service` | verified | Kafka consumer via Reactive Messaging; `mvn verify` 2026-10-06; exercised by demo-websocket and demo-keda-kafka |
+| `services/review-service` | `examples/review-service` | verified | `mvn verify` 2026-10-06 |
+| `services/graphql-gateway` | `examples/graphql-gateway` | verified | SmallRye GraphQL; `mvn verify` 2026-10-06; exercised by demo-graphql and demo-keda-http |
+| `proto/capstone/*.proto` | `examples/*/proto/*.proto` | verified | Protos live in `examples/contracts/src/main/proto`; used by gRPC demo and `mvn verify` |
+| _(none — new)_ | `examples/spring-boot-compare` (order-service twin) | verified | Outside the reactor; chapter 12 footer: twin `mvn verify` passed, compare script run 2026-10-05 (DRQ-006) |
+| _(none — new)_ | `examples/domain-model` | verified | Shared framework-agnostic entities; reactor module, `mvn verify` 2026-10-06 |
+| _(none — new)_ | `examples/ai-rules-service` | verified | Ollama classify + Drools decide (DRQ-012/014); `mvn verify` 2026-10-06; exercised by demo-ai-triage |
+| _(none — new)_ | `examples/contracts` | verified | Avro and gRPC contract module; `mvn verify` 2026-10-06 |
+| _(none — seed)_ | ported from `enterprise-integration-patterns-with-camel/examples/42-ai-mcp/quarkus` | verified | Landed as `examples/ai-mcp-service`; `mvn verify` 2026-10-06; exercised by demo-ai-mcp |
 
 ## Demos (`examples/lgtm-datamesh/demos/` → `demos/`)
 
 | Python artifact | Quarkus counterpart | Status | Notes |
 |---|---|---|---|
-| `demos/demo-order.sh` | `demos/demo-order.sh` | not started | Panache + REST data product |
-| `demos/demo-grpc.sh` | `demos/demo-grpc.sh` | not started | quarkus-grpc |
-| `demos/demo-graphql.sh` | `demos/demo-graphql.sh` | not started | SmallRye GraphQL |
-| `demos/demo-kafka.sh` | `demos/demo-kafka.sh` | not started | Reactive Messaging |
-| `demos/demo-avro.sh` | (fold into demo-kafka.sh or contracts chapter) | not started | Evaluate whether it needs a standalone script |
-| `demos/demo-canary.sh` + `demo-canary-verify.sh` | `demos/demo-canary.sh` (+ verify) | not started | Istio, mirrors python 1:1 |
+| `demos/demo-order.sh` | `demos/demo-order.sh` | verified | 2026-10-06 walkthrough; Panache + REST data product |
+| `demos/demo-grpc.sh` | `demos/demo-grpc.sh` | verified | 2026-10-06 walkthrough; quarkus-grpc |
+| `demos/demo-graphql.sh` | `demos/demo-graphql.sh` | verified | 2026-10-06 walkthrough; SmallRye GraphQL |
+| `demos/demo-kafka.sh` | `demos/demo-kafka.sh` | verified | 2026-10-06 walkthrough; Reactive Messaging; also asserts Avro magic byte |
+| `demos/demo-avro.sh` | (fold into demo-kafka.sh or contracts chapter) | not ported | Folded into demo-kafka.sh (raw-byte Avro assertion) and `OrderPlacedAvroWireIT`; DRQ-009, DEF-002; absent from build-plan demo matrix |
+| `demos/demo-canary.sh` + `demo-canary-verify.sh` | `demos/demo-canary.sh` (+ verify) | not ported | No demo script; canary delivered as `k8s/istio/` manifests, verified manually (70 requests, 63 v1 / 7 v2) and documented in chapter 6; absent from build-plan demo matrix |
 | `demos/demo-keda-http.sh` | `demos/demo-keda-http.sh` | verified | 2026-10-06 act 5: graphql-gateway 0→1 through the interceptor (port 8080), 120/120 GraphQL POSTs returned 200; starts from zero after KEDA's scale-down window |
 | `demos/demo-keda-kafka.sh` | `demos/demo-keda-kafka.sh` | verified | 2026-10-06 act 5: notification-service 0→1 on lag from 60 orders, drained to 0 after cooldown; starts from zero |
-| `demos/demo-observability.sh` / `demo-tracing.sh` | `demos/demo-tracing.sh` | not started | OpenTelemetry |
-| `demos/demo-discovery.sh` | `demos/demo-discovery.sh` | not started | Contracts/catalog discovery |
-| `demos/demo-om-lineage.sh` / `demo-openmetadata.sh` | `demos/demo-om-lineage.sh` | not started | |
-| `demos/demo-kiali.sh` | `demos/demo-kiali.sh` | not started | |
-| `demos/demo-notifications.sh` | `demos/demo-notifications.sh` | not started | |
-| `demos/demo-reviews.sh` | `demos/demo-reviews.sh` | not started | |
-| `demos/demo-service.sh` | `demos/demo-service.sh` | not started | Generic per-service smoke pattern |
-| `demos/demo-trace-flow.sh` | `demos/demo-trace-flow.sh` | not started | |
-| `demos/demo-add-data-product.sh` | `demos/demo-add-data-product.sh` | not started | |
-| `demos/walkthrough.sh` | `demos/walkthrough.sh` | not started | Orchestrator; five-act structure preserved where capability set overlaps |
-| _(none — new)_ | `demos/demo-jbang-prototype.sh` | not started | jbang / Camel CLI prototyping |
-| _(none — new)_ | `demos/demo-continuous-testing.sh` | not started | Quarkus continuous testing + Dev Services |
-| _(none — new)_ | `demos/demo-ai-classify.sh` | not started | langchain4j, seeded from 42-ai-mcp `OrderClassifierRoute` |
-| _(none — new)_ | `demos/demo-ai-mcp.sh` | not started | langchain4j + MCP, seeded from 42-ai-mcp `OrderLookupToolRoute` |
-| _(none — new)_ | `demos/demo-camel-integration.sh` | not started | Quarkus + Camel EIPs |
-| _(none — new)_ | `demos/demo-websocket.sh` | not started | websocket.next |
-| _(none — new)_ | `demos/demo-oidc.sh` | not started | quarkus-oidc; feasibility-gated per DRQ-005 |
-| _(none — new)_ | `demos/demo-reactive-vertx.sh` | not started | Vert.x unified reactive+imperative |
-| _(none — new)_ | `demos/demo-native.sh` | not started | Native compilation (GraalVM/Mandrel) |
+| `demos/demo-observability.sh` / `demo-tracing.sh` | `demos/demo-tracing.sh` | verified | 2026-10-06 walkthrough; OpenTelemetry; cross-service trace against compose otel-lgtm |
+| `demos/demo-discovery.sh` | `demos/demo-discovery.sh` | not ported | No OpenMetadata deployment in this repo; chapter 4 states the gap; absent from build-plan demo matrix |
+| `demos/demo-om-lineage.sh` / `demo-openmetadata.sh` | `demos/demo-om-lineage.sh` | not ported | OpenMetadata not carried over (chapter 4 states the gap); absent from build-plan demo matrix |
+| `demos/demo-kiali.sh` | `demos/demo-kiali.sh` | not ported | Kiali installed by `scripts/setup-kiali.sh`; no standalone demo script; absent from build-plan demo matrix |
+| `demos/demo-notifications.sh` | `demos/demo-notifications.sh` | not ported | Covered by demo-websocket.sh and demo-keda-kafka.sh; absent from build-plan demo matrix |
+| `demos/demo-reviews.sh` | `demos/demo-reviews.sh` | not ported | review-service has no standalone demo; covered by `mvn verify`; absent from build-plan demo matrix |
+| `demos/demo-service.sh` | `demos/demo-service.sh` | not ported | Per-service smoke pattern replaced by `demos/lib/_demo.sh` and the per-capability demos |
+| `demos/demo-trace-flow.sh` | `demos/demo-trace-flow.sh` | not ported | Folded into demo-tracing.sh (cross-service trace); absent from build-plan demo matrix |
+| `demos/demo-add-data-product.sh` | `demos/demo-add-data-product.sh` | not ported | No `scaffold-service.sh` carried over; absent from build-plan demo matrix |
+| `demos/walkthrough.sh` | `demos/walkthrough.sh` | verified | Drove all five acts 2026-10-06 (19 demos, `--with-ollama --with-native --with-minikube`); five-act structure preserved |
+| _(none — new)_ | `demos/demo-jbang-prototype.sh` | verified | 2026-10-06 walkthrough; jbang / Camel CLI prototyping |
+| _(none — new)_ | `demos/demo-continuous-testing.sh` | verified | 2026-10-06 walkthrough; Quarkus continuous testing + Dev Services |
+| _(none — new)_ | `demos/demo-ai-classify.sh` | verified | 2026-10-06 walkthrough; langchain4j, seeded from 42-ai-mcp `OrderClassifierRoute`; Ollama qwen2.5:3b |
+| _(none — new)_ | `demos/demo-ai-mcp.sh` | verified | 2026-10-06 walkthrough; langchain4j + MCP, seeded from 42-ai-mcp `OrderLookupToolRoute`; Ollama |
+| _(none — new)_ | `demos/demo-camel-integration.sh` | verified | 2026-10-06 walkthrough; Quarkus + Camel EIPs; Ollama |
+| _(none — new)_ | `demos/demo-websocket.sh` | verified | 2026-10-06 walkthrough; websocket.next |
+| _(none — new)_ | `demos/demo-oidc.sh` | verified | 2026-10-06 walkthrough; quarkus-oidc against a live Keycloak Dev Service |
+| _(none — new)_ | `demos/demo-reactive-vertx.sh` | verified | 2026-10-06 walkthrough; Vert.x unified reactive + imperative |
+| _(none — new)_ | `demos/demo-native.sh` | verified | 2026-10-06 walkthrough; Mandrel builder container, single run |
+| _(none — new)_ | `demos/demo-ai-triage.sh` | verified | 2026-10-06 walkthrough; Camel route and Quarkus Flow A/B; Ollama |
+| _(none — new)_ | `demos/demo-orchestration-styles.sh` | verified | 2026-10-06 walkthrough; choreography, Camel, and Flow over one domain; Ollama |
+| _(none — new)_ | `demos/demo-panama.sh` | verified | 2026-10-06 walkthrough; see Panama row below |
 
 ## Scripts (`scripts/` and `examples/lgtm-datamesh/scripts/`)
 
 | Python artifact | Quarkus counterpart | Status | Notes |
 |---|---|---|---|
-| `scripts/bootstrap-capstone.sh` | `scripts/bootstrap.sh` | not started | Adapt to docker-compose + minikube split |
-| `scripts/check-cross-references.sh` | `scripts/check-cross-references.sh` | not started | Port as-is, path-adjusted |
-| `scripts/check-liquid-collisions.sh` | `scripts/check-liquid-collisions.sh` | not started | Port as-is |
-| `scripts/splice-diagrams.sh` | `scripts/splice-diagrams.sh` | not started | Pairs with `lgtm-diagram-generator` |
-| `scripts/sync-example-pages.sh` | `scripts/sync-example-pages.sh` | not started | |
-| `scripts/setup-istio.sh` | `scripts/setup-istio.sh` | not started | Via `lgtm-minikube-stack` |
+| `scripts/bootstrap-capstone.sh` | `scripts/bootstrap.sh` | verified | 2026-10-06 ran all 8 steps; docker-compose + minikube split |
+| `scripts/check-cross-references.sh` | `scripts/check-cross-references.sh` | not ported | Not carried over; build-plan risk list planned the port, none landed; build-plan step 3 site build checks links |
+| `scripts/check-liquid-collisions.sh` | `scripts/check-liquid-collisions.sh` | not ported | Not carried over; build-plan risk list planned the port, none landed |
+| `scripts/splice-diagrams.sh` | `scripts/splice-diagrams.sh` | not ported | Replaced by `scripts/make-*-diagrams.js` and `svglib.js` |
+| `scripts/sync-example-pages.sh` | `scripts/sync-example-pages.sh` | not ported | Not carried over; chapters link examples via `site.repo_blob` |
+| `scripts/setup-istio.sh` | `scripts/setup-istio.sh` | verified | Via `lgtm-minikube-stack`; 2026-10-06 bootstrap |
 | `scripts/setup-keda.sh` | `scripts/setup-keda.sh` | verified | Via `lgtm-minikube-stack`; 2026-10-06 bootstrap, Helm repo name match fixed |
-| `scripts/setup-strimzi.sh` | `scripts/setup-strimzi.sh` | not started | Via `lgtm-minikube-stack` |
-| `examples/.../scripts/setup-postgres-operator.sh` | `scripts/setup-postgres-operator.sh` | not started | Via `lgtm-minikube-stack` (CloudNativePG) |
-| `examples/.../scripts/setup-openmetadata.sh` / `ingest-openmetadata.sh` | `scripts/setup-openmetadata.sh` / `ingest-openmetadata.sh` | not started | |
-| `examples/.../scripts/setup-observability.sh` | `scripts/setup-observability.sh` | not started | |
-| `examples/.../scripts/scaffold-service.sh` | `scripts/scaffold-service.sh` | not started | Rework for Quarkus/Maven layout |
-| `examples/.../scripts/gen-protos.sh` | `scripts/gen-protos.sh` | not started | |
-| `examples/.../scripts/restore-baseline.sh` | `scripts/restore-baseline.sh` | not started | |
-| `examples/.../scripts/teardown.sh` | `scripts/teardown.sh` | not started | |
-| `examples/.../scripts/cluster-up.sh` / `cluster-status.sh` | `scripts/cluster-up.sh` / `cluster-status.sh` | not started | |
-| `examples/.../scripts/tunnel-services.sh` | `scripts/tunnel-services.sh` | not started | |
-| `examples/.../scripts/publish-discovery-contracts.sh` | `scripts/publish-discovery-contracts.sh` | not started | |
-| `scripts/audit-fedora-prereqs.sh` | (evaluate: docker prereq audit) | not started | Fedora/podman-specific; needs docker-toolchain rewrite or drop |
-| `scripts/editorial-audit.sh` | `scripts/editorial-audit.sh` | not started | |
-| `scripts/test-template.sh` | `scripts/test-template.sh` | not started | |
-| `examples/.../scripts/build-image.sh` | `scripts/build-image.sh` | not started | UBI + docker build, not podman |
+| `scripts/setup-strimzi.sh` | `scripts/setup-strimzi.sh` | verified | Landed as `scripts/setup-kafka-operator.sh`; 2026-10-06 bootstrap |
+| `examples/.../scripts/setup-postgres-operator.sh` | `scripts/setup-postgres-operator.sh` | verified | Via `lgtm-minikube-stack` (CloudNativePG); 2026-10-06 bootstrap |
+| `examples/.../scripts/setup-openmetadata.sh` / `ingest-openmetadata.sh` | `scripts/setup-openmetadata.sh` / `ingest-openmetadata.sh` | not ported | OpenMetadata not carried over (chapter 4 states the gap) |
+| `examples/.../scripts/setup-observability.sh` | `scripts/setup-observability.sh` | verified | Landed as `scripts/setup-lgtm.sh`; 2026-10-06 bootstrap |
+| `examples/.../scripts/scaffold-service.sh` | `scripts/scaffold-service.sh` | not ported | Not carried over; absent from build-plan |
+| `examples/.../scripts/gen-protos.sh` | `scripts/gen-protos.sh` | not ported | Protos and Avro generated by the Maven build in `examples/contracts` |
+| `examples/.../scripts/restore-baseline.sh` | `scripts/restore-baseline.sh` | not ported | Not carried over; absent from build-plan |
+| `examples/.../scripts/teardown.sh` | `scripts/teardown.sh` | ported | Exists; not separately verified |
+| `examples/.../scripts/cluster-up.sh` / `cluster-status.sh` | `scripts/cluster-up.sh` / `cluster-status.sh` | ported | `cluster-up` landed as `setup-profile.sh` (verified via bootstrap 2026-10-06); `cluster-status.sh` exists, not separately verified |
+| `examples/.../scripts/tunnel-services.sh` | `scripts/tunnel-services.sh` | ported | Exists; not separately verified |
+| `examples/.../scripts/publish-discovery-contracts.sh` | `scripts/publish-discovery-contracts.sh` | not ported | Not carried over; no OpenMetadata discovery here (chapter 4) |
+| `scripts/audit-fedora-prereqs.sh` | (evaluate: docker prereq audit) | not ported | Fedora/podman-specific; dropped, no docker audit written |
+| `scripts/editorial-audit.sh` | `scripts/editorial-audit.sh` | not ported | Not carried over; `lgtm-professional-voice` scan covers it |
+| `scripts/test-template.sh` | `scripts/test-template.sh` | not ported | Not carried over; `scripts/run-all-tests.sh` is the test entry point |
+| `examples/.../scripts/build-image.sh` | `scripts/build-image.sh` | not ported | Folded into `scripts/load-images.sh` (docker build + minikube image load); UBI Containerfiles |
+| _(none — new)_ | `scripts/load-images.sh` | verified | Builds service images and loads them into minikube (containerd); 2026-10-06 act 5 |
+| _(none — new)_ | `scripts/setup-profile.sh` | verified | minikube profile; 2026-10-06 bootstrap |
+| _(none — new)_ | `scripts/setup-lgtm.sh`, `setup-kiali.sh`, `setup-apicurio.sh`, `setup-kafka-operator.sh` | verified | 2026-10-06 bootstrap |
+| _(none — new)_ | `scripts/run-all-tests.sh` | ported | Test-pyramid runner; exists, not separately verified |
 
 ## Deck (`presentation/`)
 
 | Python artifact | Quarkus counterpart | Status | Notes |
 |---|---|---|---|
-| `presentation/data-mesh-101/` | `presentation/datamesh-quarkus-101/` | not started | Rebuild with `lgtm-presentation`; one slide per demo + Spring Boot compare slides |
+| `presentation/data-mesh-101/` | `presentation/datamesh-quarkus-101/` | ported (adapted) | Landed as `presentation/datamesh-101/` (r1.1, 17 slides); built with `lgtm-presentation` |
 | `presentation/data-mesh-openshift/` | `presentation/datamesh-quarkus-openshift/` | deferred | Lower priority than the primary deck; revisit after core demos land |
-| _(none — new)_ | Notion 1-hour abstract page | not started | Build-plan step 15 |
+| _(none — new)_ | `presentation/datamesh-201/` | ported (adapted) | r1.1, 102 slides; Quarkus-specific deck (capability tour, comparison, KEDA)|
+| _(none — new)_ | Notion 1-hour abstract page | not ported | Build-plan step 15 still pending; lives in Notion, not in this repo |
 
 ## Other project docs
 
@@ -123,10 +143,10 @@ don't let it fall behind the build-plan step table in `build-plan.md`
 | `PRD.md` | `PRD.md` | ported (adapted) | This pass |
 | `_plans/decisions.md` (DRA-series) | `_plans/decisions.md` (DRQ-series) | ported (adapted) | Distinct numbering series, per python precedent |
 | `_plans/reconciliation.md` (verification-claim log) | `_plans/reconciliation.md` (this file — artifact map) | ported (adapted) | Different shape deliberately: this file tracks artifact-level porting status; add a verification-claim log section once demos are runnable |
-| `README.md` | `README.md` | not started | |
-| `onboarding/GETTING-STARTED.md` | `onboarding/GETTING-STARTED.md` | not started | |
-| `onboarding/LESSONS-LEARNED.md` | `onboarding/LESSONS-LEARNED.md` | not started | Populate as this build surfaces its own lessons; don't copy python's |
-| `.github/workflows/pages.yml` | `.github/workflows/pages.yml` | not started | |
+| `README.md` | `README.md` | ported | Exists; not separately verified |
+| `onboarding/GETTING-STARTED.md` | `onboarding/GETTING-STARTED.md` | not ported | No `onboarding/` directory; README and `demos/README.md` cover setup |
+| `onboarding/LESSONS-LEARNED.md` | `onboarding/LESSONS-LEARNED.md` | not ported | Not started; lessons recorded in `_docs/17-gotchas.md` and `_plans/RESUME.md` |
+| `.github/workflows/pages.yml` | `.github/workflows/pages.yml` | ported | Exists; not separately verified |
 | `_plans/archive/` (CAP-series history) | _(n/a)_ | n/a (python-only) | This repo's own history starts at DRQ-001; no capstone archive to port |
 
 ## New artifacts with no python source
@@ -171,13 +191,14 @@ content is explanatory or conceptual and was not run.
 Update a row's status when the corresponding artifact is created or
 substantively changed:
 
-- `not started` → `in progress` when work begins.
-- `in progress` → `ported` (content matches the python source's intent,
+- `not ported` → `ported` when the counterpart is created: `ported` (content matches the python source's intent,
   adapted only for language/framework) or `ported (adapted)` (the
   Quarkus version deliberately diverges in scope or approach — note why).
 - `deferred` when explicitly postponed — cross-reference the
   `_plans/decisions.md` entry or `_plans/build-plan.md` risk that
   explains the deferral.
+- Promote to `verified` only after a real run that produced the claimed
+  effect, and record the date in Notes.
 - Add new rows immediately when a new artifact (python-sourced or
   Quarkus-only) is created — don't batch updates until the end of a
   phase.
