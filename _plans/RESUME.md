@@ -45,15 +45,15 @@ description: Read this FIRST after a context compaction or restart to resume the
 |---|---|
 | demo-jbang-prototype, demo-continuous-testing, demo-panama | passed |
 | demo-native | **passed** (2026-10-06): Mandrel container build 136 s, 141 MB runner, **startup 0.081 s**, `GET /orders` served with no JVM |
-| demo-keda-kafka, demo-keda-http (act 5) | **not run — no cluster** |
+| demo-keda-kafka, demo-keda-http (act 5) | **passed** (2026-10-06, #42): notification-service 0→1 on lag and back to 0; graphql-gateway 0→1 with 120/120 GraphQL requests 200 |
 
 ### Next steps (in order)
 1. ~~Docker Desktop resize~~ — done 2026-10-06 (8 CPUs, ~31 GiB, 252 GB disk).
 2. ~~Bootstrap full-size cluster~~ — done 2026-10-06 with `MINIKUBE_CPUS=8`
-   (8/8 tiers, 50 pods). This host's global minikube config has
-   `rootless: true` left from a podman profile; run with
-   `MINIKUBE_ROOTLESS=false` against Docker Desktop. Build and load the service
-   images with `scripts/load-images.sh` before the KEDA demos.
+   (8/8 tiers, 50 pods). The host's global minikube config had `rootless: true`
+   left from a podman profile; it is now set to `false` (docker is the default
+   here). Build and load the service images with `scripts/load-images.sh`
+   before the KEDA demos.
 3. ~~Run act 5~~ — done 2026-10-06: demo-keda-kafka and demo-keda-http both
    passed (first end-to-end pass of keda-http) after fixing the interceptor
    port, the GET-vs-POST load, and the scale-from-zero starting state.
