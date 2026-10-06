@@ -104,7 +104,7 @@ require curl jq
 # ghz has no generic apt/dnf/brew package most places — give an actionable
 # install hint rather than the generic `require` message.
 command -v "$GHZ_BIN" >/dev/null 2>&1 \
-    || fail "missing required command: ${GHZ_BIN} — install it with: go install github.com/bojand/ghz/cmd/ghz@latest (or grab a release from https://ghz.sh/)"
+    || fail "missing required command: ${GHZ_BIN} — install it with: go install github.com/bojand/ghz/cmd/ghz@v0.121.0 (or the v0.121.0 release binary from https://github.com/bojand/ghz/releases)"
 
 [[ -f "$PROTO_FILE" ]] \
     || fail "inventory.proto not found at ${PROTO_FILE} — has the contracts module moved?"
