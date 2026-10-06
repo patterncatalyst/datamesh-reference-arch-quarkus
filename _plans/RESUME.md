@@ -40,9 +40,10 @@ description: Read this FIRST after a context compaction or restart to resume the
   (one-time `camel plugin add mcp` already done; `~/.camel-jbang-plugins.json`).
   A new session loads them — use them per CLAUDE.md.
 
-### Walkthrough status (`bash demos/walkthrough.sh --from act4 --with-native --auto`)
+### Walkthrough status (all five acts run on 2026-10-06)
 | Demo | Result |
 |---|---|
+| Acts 1–3 (13 demos, `--with-ollama`) | **passed** (2026-10-06): 10/13 on the first run; demo-websocket (push-channel topic override), demo-orchestration-styles (pull the model when missing), and demo-ai-triage (fall back to the compose Ollama profile) fixed and passed on re-run |
 | demo-jbang-prototype, demo-continuous-testing, demo-panama | passed |
 | demo-native | **passed** (2026-10-06): Mandrel container build 136 s, 141 MB runner, **startup 0.081 s**, `GET /orders` served with no JVM |
 | demo-keda-kafka, demo-keda-http (act 5) | **passed** (2026-10-06, #42): notification-service 0→1 on lag and back to 0; graphql-gateway 0→1 with 120/120 GraphQL requests 200 |

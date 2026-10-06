@@ -341,4 +341,4 @@ no central artifact to extend.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. The orchestration code is exercised green (`OrderTriageRouteTest`, `OrderTriageFlowTest`, `OrderTriageDrlTest`), and `OrderChoreographyChainIT` is confirmed `@Disabled` for the documented reason. The live choreography chain and the Camel/Flow orchestration demos call the local LLM and need the Ollama profile, which was not run.*
+*Verification status: <span class="status status--verified">verified</span>. The orchestration code is exercised green (`OrderTriageRouteTest`, `OrderTriageFlowTest`, `OrderTriageDrlTest`), and `OrderChoreographyChainIT` is confirmed `@Disabled` for the documented reason. The live choreography chain and the Camel/Flow orchestration demos call the local LLM; on 2026-10-06 `demo-orchestration-styles.sh` and `demo-ai-triage.sh` both passed against the compose Ollama profile with `qwen2.5:3b` (walkthrough acts 2 and 3, single run).*
