@@ -45,21 +45,45 @@
 # gated. An act is reported SKIPPED only when every demo selected into it
 # was gate-skipped; otherwise it is PASSED/FAILED on its executed demos.
 #
+# ── Presenter pacing ─────────────────────────────────────────────────────────
+# Every demo gets a header (position, name, act), 2-3 lines of context from
+# the DEMO_INFO registry (what it shows, what to watch, URLs to open), then
+# "Press Enter to start <demo>..." before it runs and "<demo> complete --
+# Press Enter to continue..." after it (the latter says FAILED when the demo
+# failed). A gate-skipped demo prints its one-line skip reason instead of the
+# explanation and never pauses. The between-act pause is kept.
+#
+# Where the Enter keypress is read from:
+#   - stdin is a TTY (normal use, also with stdout piped to `tee`): stdin.
+#   - stdin is piped/redirected: lines are consumed from it, one per pause
+#     (`printf '\n\n\n' | walkthrough.sh ...` scripts a run). When the input is
+#     exhausted, /dev/tty is used if the process has one; if not, pausing is
+#     switched off for the rest of the run, with a notice, and the run
+#     continues unattended.
+#   - --auto / --no-pause: no pause is ever shown (CI/self-test).
+# Each demo runs as a child process with stdin from /dev/null, so a demo can
+# never swallow keystrokes meant for the presenter.
+#
 # ── Flags ────────────────────────────────────────────────────────────────────
 #   --with-ollama       run ACT2/ACT3's ollama-profile demos
 #   --with-native        run ACT4's demo-native (slow native compile)
 #   --with-minikube       run ACT5's KEDA demos (needs a live cluster)
 #   --only <d[,d...]>    run only the named demo(s) (comma-separated)
 #   --skip <d[,d...]>    run every selected demo EXCEPT the named one(s)
+#   --from <demo|actN>   start at that demo (or the first demo of act N, e.g.
+#                        act4) and run everything after it; composes with
+#                        --only/--skip and the --with-* gates
+#   --list               print the acts and demos with gate requirements, exit 0
 #   --no-preflight       skip the environment/toolchain preflight sweep
-#   --no-pause / --auto  don't wait for Enter between acts (CI/self-test)
+#   --no-pause / --auto  show no pauses at all (CI/self-test)
 #   -h / --help          list acts, demos, and flags, then exit
 #
 # `--only` and `--skip` operate on demo NAMES (e.g. `demo-order`), are
 # mutually exclusive, and select the demo SET before gating is applied — a
 # gated demo named in `--only` without its flag still shows the SKIP path
-# rather than running (see the live verification notes in this step's
-# report for exactly that case).
+# rather than running. `--from` is applied on top of that selection, in
+# catalog order. Unknown names for --only/--skip/--from fail before any
+# demo runs.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/_demo.sh"
@@ -100,6 +124,41 @@ DEMO_GATE=(
     minikube minikube
 )
 DEMO_COUNT=${#DEMO_NAMES[@]}
+
+# DEMO_INFO[name] — 2-3 lines shown under the per-demo header before the demo
+# runs: what it shows, what to watch for, URLs to open. Derived from the
+# deck's per-demo speaker notes (presentation/datamesh-201/build-deck.js).
+# Ports come from compose.yaml/.env.example (Grafana 3000, Apicurio 8081,
+# Kafka UI 8090 under --profile tools).
+declare -A DEMO_INFO
+DEMO_INFO[demo-order]=$'POST /orders checks stock over gRPC, persists through Panache, then publishes order.placed to Kafka.\nWatch for: 201 on create, 200 on GET by id, 404 on an unknown id, then the row confirmed directly in Postgres.\nCompose baseline (Postgres, Kafka, Apicurio) starts and stops with the demo.'
+DEMO_INFO[demo-grpc]=$'inventory-service answers capstone.inventory.v1.InventoryService/CheckStock over gRPC; the server base class is generated from inventory.proto.\nWatch for: the grpcurl call against the .proto returning available and quantityOnHand. @Blocking keeps the Panache work off the event loop.\nCompose baseline.'
+DEMO_INFO[demo-graphql]=$'The gateway resolves order(id) over REST and the nested stock field lazily over gRPC; both come back in one /graphql response.\nWatch for: REST-sourced and gRPC-sourced fields together in one .data.order payload, no .errors. Gateway orchestration of reads, not subgraph federation.\nCompose baseline.'
+DEMO_INFO[demo-kafka]=$'Avro on the wire against the Apicurio Schema Registry. order-service pins AvroKafkaSerializer; the demo reads the raw topic bytes back.\nWatch for: first byte 0x00 (Apicurio/Confluent magic byte); JSON would start with 0x7B. Registry at http://localhost:8081 while the stack is up.\nCompose baseline.'
+DEMO_INFO[demo-tracing]=$'One order request produces a single cross-service trace in Tempo: REST root span, the CheckStock gRPC child, two Postgres children.\nWatch for: the span count and the service.name set the script parses from the Tempo API. To browse it: Grafana http://localhost:3000, Explore, Tempo datasource (up only while the demo runs).\nCompose baseline (LGTM always on).'
+DEMO_INFO[demo-websocket]=$'WebSockets.Next composed with Reactive Messaging: a Kafka consumer in notification-service pushes to every open socket after commit.\nWatch for: a JBang JDK WebSocket client, connected before the order is placed, receiving a message whose orderId, customerId and itemSku match the order. Endpoint ws://localhost:8093/ws/notifications.\nCompose baseline; needs jbang.'
+DEMO_INFO[demo-reactive-vertx]=$'Reactive and imperative code on one Vert.x reactor under concurrent load; the framework picks the thread pool from @Blocking and the return type.\nWatch for: three gRPC and three REST calls fired concurrently at one process, all six answers correct and uncorrelated.\nCompose baseline.'
+DEMO_INFO[demo-oidc]=$'Bearer-token exchange against a Dev Services Keycloak, no mocked header: 401 without a token, 403 for a valid token missing the role, then 204 followed by 404 for the authorized caller.\nWatch for: the 403 for Bob is RBAC, not authentication. The Keycloak port is random (Testcontainers), found with docker port.\nCompose baseline; needs a live Keycloak Dev Service.'
+DEMO_INFO[demo-orchestration-styles]=$'One domain coordinated three ways: Kafka choreography, a Camel route, and a Quarkus Flow workflow.\nWatch for: the Avro magic byte on every Act 1 hop, and matching strict decisions from the Camel and Flow engines. Act 1 skips the classifier-stability trial the other two require.\nCompose ollama profile (--with-ollama).'
+DEMO_INFO[demo-ai-classify]=$'A single-shot langchain4j chat call classifies an order against the local Ollama model (qwen2.5:3b).\nWatch for: the classify endpoint returning one of the defined category labels. Single-shot classification is reliable; multi-turn tool calling is the known limitation.\nCompose ollama profile (--with-ollama).'
+DEMO_INFO[demo-ai-mcp]=$'The working MCP-server tool-calling path. The in-process agent endpoint, which has a known defect, is never called.\nWatch for: the MCP JSON-RPC handshake, the tool list, and three deterministic lookups. The limitation is a transport-wiring defect in camel-quarkus-support-langchain4j (open upstream deferral), not model capability.\nCompose ollama profile (--with-ollama).'
+DEMO_INFO[demo-camel-integration]=$'Camel EIPs in isolation: separates "does the route logic work" from "does AI tool calling work".\nWatch for: all four branches, including the fallback for an unrecognized order id (ORD-001, ORD-002, ORD-003, then the fallback).\nCompose ollama profile (--with-ollama).'
+DEMO_INFO[demo-ai-triage]=$'Classify, then decide: the same pipeline through both orchestration shapes, with Drools (not tool calling) making the decision.\nWatch for: FRAUD_HOLD, EXPEDITE and ROUTE_TO_WAREHOUSE on three pre-validated inputs, identical across both endpoints. Needs qwen2.5:3b on the host or the ollama profile.\nPrimary AI demo (--with-ollama).'
+DEMO_INFO[demo-jbang-prototype]=$'A complete Camel route in one Java file: no pom.xml, no Maven module, only jbang resolving pinned Camel dependencies.\nWatch for: the transformed marker JBANG_PROTOTYPE_OK in the route log, not just a zero exit code. The first run downloads dependencies and can take a while.\nNo docker; needs jbang. Pinned Camel 4.22.1 resolves from Maven Central; there is no remote script to trust.'
+DEMO_INFO[demo-continuous-testing]=$'Quarkus continuous testing: instant reruns with Dev Services provisioning infra, the fast end of the feedback-loop spectrum.\nWatch for: the banner "All 4 tests are passing". A missing banner fails the demo.\nJDK and Maven only; Dev Services starts its own containers.'
+DEMO_INFO[demo-panama]=$'A JBang script (JDK 25, no Maven) calls libc getpid() and strlen() through the FFM API and checks both against Java.\nWatch for: PANAMA_GETPID equal to JVM_PID, and PANAMA_STRLEN equal to JAVA_LENGTH (strlen counts UTF-8 bytes).\nNo docker; needs jbang.'
+DEMO_INFO[demo-native]=$'order-service compiled to a native executable and run with no JVM in the process.\nWatch for: the native boot log and a GET /orders response. Long-running: several minutes, longer on the first run while a 1-2 GB builder image is pulled.\nOne throwaway Postgres container (--with-native).'
+DEMO_INFO[demo-keda-kafka]=$'KEDA scales notification-service from zero on Kafka consumer-group lag, on the local Kubernetes cluster built by scripts/bootstrap.sh.\nWatch for: replicas climbing from zero on a lag burst, then returning to zero as the backlog drains.\nCluster context must be set (--with-minikube).'
+DEMO_INFO[demo-keda-http]=$'KEDA HTTP add-on scales graphql-gateway from zero on inbound request rate through its interceptor.\nWatch for: the scaled-to-zero deployment reaching at least one replica within budget. A scaled-to-zero workload reports unknown health until the first request; that is expected. Not yet verified end to end.\nCluster context must be set (--with-minikube).'
+
+# _demo_index <name> — echoes the catalog index of a demo, or returns 1.
+_demo_index() {
+    local i
+    for (( i = 0; i < DEMO_COUNT; i++ )); do
+        if [[ "${DEMO_NAMES[i]}" == "$1" ]]; then echo "$i"; return 0; fi
+    done
+    return 1
+}
 
 # _demo_required_cmds <name> — echoes the space-separated binaries that demo
 # `require`s itself (mirrors each demo-*.sh's own `require` line / dedicated
@@ -159,13 +218,40 @@ ${BOLD}Flags:${RST}
   --with-minikube       run ACT5's KEDA demos, needs a live cluster (default: skipped)
   --only <d[,d...]>     run only the named demo(s) (comma-separated, exact name)
   --skip <d[,d...]>     run every selected demo except the named one(s)
+  --from <demo|actN>    start at that demo, or at the first demo of act N (act1..act5),
+                        and run everything after it (composes with --only/--skip/gates)
+  --list                list acts and demos with gate requirements, then exit
   --no-preflight        skip the environment/toolchain preflight sweep
-  --no-pause, --auto    don't wait for Enter between acts (CI/self-test)
+  --no-pause, --auto    show no pauses at all (CI/self-test)
   -h, --help            show this help and exit
+
+${BOLD}Pacing:${RST}
+  Each demo prints a header and 2-3 lines of context, then waits:
+    "Press Enter to start <demo>..."  before it runs
+    "<demo> complete -- Press Enter to continue..."  after it (FAILED if it failed)
+  A pause also separates acts. Gate-skipped demos print their skip reason and
+  do not pause. Enter is read from stdin when it is a TTY; when stdin is piped
+  one line is consumed per pause, then /dev/tty is used if available,
+  otherwise pausing is switched off for the rest of the run.
 
 --only and --skip are mutually exclusive and operate on demo names (see the
 list above), e.g.: --only demo-order,demo-grpc
+--from examples: --from demo-tracing, --from act4, --from act4 --with-native
 EOF
+}
+
+print_list() {
+    local n i tag
+    printf 'Acts and demos (19 demos, 5 acts):\n'
+    for (( n = 1; n <= 5; n++ )); do
+        printf '\nact%d  %s\n' "$n" "${ACT_TITLE[n]}"
+        for (( i = 0; i < DEMO_COUNT; i++ )); do
+            [[ "${DEMO_ACT[i]}" == "$n" ]] || continue
+            tag="default"
+            [[ -n "${DEMO_GATE[i]}" ]] && tag="requires --with-${DEMO_GATE[i]}"
+            printf '  %2d. %-28s %s\n' $(( i + 1 )) "${DEMO_NAMES[i]}" "$tag"
+        done
+    done
 }
 
 # ─── Argument parsing ────────────────────────────────────────────────────────
@@ -174,6 +260,7 @@ WITH_NATIVE=0
 WITH_MINIKUBE=0
 ONLY_LIST=""
 SKIP_LIST=""
+FROM_TARGET=""
 NO_PREFLIGHT=0
 AUTO=0
 
@@ -187,6 +274,9 @@ while [[ $# -gt 0 ]]; do
         --only=*) ONLY_LIST="${1#*=}"; shift ;;
         --skip) SKIP_LIST="${2:-}"; shift 2 ;;
         --skip=*) SKIP_LIST="${1#*=}"; shift ;;
+        --from) FROM_TARGET="${2:-}"; shift 2 ;;
+        --from=*) FROM_TARGET="${1#*=}"; shift ;;
+        --list) print_list; exit 0 ;;
         --no-preflight) NO_PREFLIGHT=1; shift ;;
         --no-pause|--auto) AUTO=1; shift ;;
         *)
@@ -225,9 +315,26 @@ if [[ -n "$SKIP_LIST" ]]; then
     done
 fi
 
-# is_selected <name> — true iff <name> survives the --only/--skip filter.
+# --from <demo|actN>: resolve to a catalog index (FROM_IDX); everything
+# before it is excluded. Fails before any demo runs on an unknown name.
+FROM_IDX=0
+if [[ -n "$FROM_TARGET" ]]; then
+    if [[ "$FROM_TARGET" =~ ^act([1-5])$ ]]; then
+        for (( i = 0; i < DEMO_COUNT; i++ )); do
+            if [[ "${DEMO_ACT[i]}" == "${BASH_REMATCH[1]}" ]]; then FROM_IDX=$i; break; fi
+        done
+    elif idx="$(_demo_index "$FROM_TARGET")"; then
+        FROM_IDX=$idx
+    else
+        fail "--from: unknown demo or act '$FROM_TARGET' -- use act1..act5 or one of: $VALID_NAMES"
+    fi
+fi
+
+# is_selected <name> — true iff <name> survives --from and the --only/--skip filter.
 is_selected() {
-    local name="$1"
+    local name="$1" idx
+    idx="$(_demo_index "$name")" || return 1
+    (( idx >= FROM_IDX )) || return 1
     if [[ -n "$ONLY_LIST" ]]; then
         _in_csv "$name" "$ONLY_LIST"
     elif [[ -n "$SKIP_LIST" ]]; then
@@ -268,7 +375,8 @@ narrate "selected acts: ${ACTIVE_ACTS[*]:-none}"
 (( WITH_OLLAMA ))   && narrate "--with-ollama enabled (ACT2/ACT3 ollama-profile demos in scope)"
 (( WITH_NATIVE ))   && narrate "--with-native enabled (ACT4 native compile in scope)"
 (( WITH_MINIKUBE )) && narrate "--with-minikube enabled (ACT5 KEDA demos in scope)"
-(( AUTO )) && narrate "--auto/--no-pause: running unattended, no Enter prompts between acts"
+[[ -n "$FROM_TARGET" ]] && narrate "--from ${FROM_TARGET}: starting at $(printf '%s' "${DEMO_NAMES[FROM_IDX]}")"
+(( AUTO )) && narrate "--auto/--no-pause: running unattended, no Enter prompts"
 
 if [[ ${#ACTIVE_ACTS[@]} -eq 0 ]]; then
     fail "no demos selected -- check --only/--skip for a typo (valid names: $VALID_NAMES)"
@@ -337,6 +445,39 @@ else
     fi
 fi
 
+# ─── Pacing helpers ──────────────────────────────────────────────────────────
+PAUSES_OFF=0
+
+# pause <label> — Enter-to-advance; see "Presenter pacing" in the header for
+# where the keypress is read from. No-op under --auto/--no-pause.
+pause() {
+    (( AUTO || PAUSES_OFF )) && return 0
+    printf '\n%s[%s]%s ' "$BOLD" "$1" "$RST"
+    if [[ -t 0 ]]; then
+        read -r _ || PAUSES_OFF=1
+    elif read -r _; then
+        printf '\n'
+    elif { read -r _ </dev/tty; } 2>/dev/null; then
+        :
+    else
+        PAUSES_OFF=1
+        printf '\n%s  (no input available for pauses; continuing unattended)%s\n' "$DIM" "$RST"
+        return 0
+    fi
+    return 0
+}
+
+# demo_header <index> — per-demo banner plus the registry context lines.
+demo_header() {
+    local i="$1" name="${DEMO_NAMES[$1]}" line
+    printf '\n%s%s───────────────────────────────────────────────────────────────%s\n' "$BOLD" "$BLU" "$RST"
+    printf '%s%s  Demo %d of %d  ·  %s  ·  ACT %d%s\n' "$BOLD" "$BLU" $(( i + 1 )) "$DEMO_COUNT" "$name" "${DEMO_ACT[i]}" "$RST"
+    printf '%s%s───────────────────────────────────────────────────────────────%s\n' "$BOLD" "$BLU" "$RST"
+    while IFS= read -r line; do
+        printf '  %s\n' "$line"
+    done <<<"${DEMO_INFO[$name]:-}"
+}
+
 # ─── Run the acts ────────────────────────────────────────────────────────────
 TOTAL_RUN=0 TOTAL_PASS=0 TOTAL_FAIL=0 TOTAL_SKIP=0
 ACT_PASS=0 ACT_FAIL=0 ACT_SKIP=0
@@ -354,6 +495,7 @@ for act_idx in "${!ACTIVE_ACTS[@]}"; do
         is_selected "$name" || continue
 
         if ! gate_satisfied "$gate"; then
+            printf '\n%s  · %s%s\n' "$DIM" "${name}" "$RST"
             narrate "SKIP ${name} -- requires --with-${gate} (not passed; opt-in, skipped by design)"
             TOTAL_SKIP=$(( TOTAL_SKIP + 1 ))
             continue
@@ -361,12 +503,16 @@ for act_idx in "${!ACTIVE_ACTS[@]}"; do
 
         act_any_ran=1
         TOTAL_RUN=$(( TOTAL_RUN + 1 ))
-        if run_act "$name" bash "${SCRIPT_DIR}/${name}.sh"; then
+        demo_header "$i"
+        pause "Press Enter to start ${name}…"
+        if run_act "$name" bash "${SCRIPT_DIR}/${name}.sh" </dev/null; then
             TOTAL_PASS=$(( TOTAL_PASS + 1 ))
+            pause "${name} complete — Press Enter to continue…"
         else
             TOTAL_FAIL=$(( TOTAL_FAIL + 1 ))
             act_any_failed=1
             FAILED_DEMOS+=("$name")
+            pause "${name} FAILED — Press Enter to continue…"
         fi
     done
 
@@ -389,9 +535,9 @@ for act_idx in "${!ACTIVE_ACTS[@]}"; do
 
     # Pause between acts (presenter pacing), unless --auto/--no-pause, and
     # never after the last act shown.
-    if (( ! AUTO )) && (( act_idx < ${#ACTIVE_ACTS[@]} - 1 )); then
+    if (( act_idx < ${#ACTIVE_ACTS[@]} - 1 )); then
         next_n="${ACTIVE_ACTS[act_idx+1]}"
-        prompt_enter "Enter to continue -- next: ${ACT_TITLE[next_n]}"
+        pause "Enter to continue — next act: ${ACT_TITLE[next_n]}"
     fi
 done
 

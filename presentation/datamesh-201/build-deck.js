@@ -205,17 +205,17 @@ contentSlide({ eyebrow: "Quarkus capability tour", title: "WebSocket push from K
 diagramSlide({ eyebrow: "Quarkus capability tour", title: "JBang as environment tooling",
   image: "11-jbang-tooling",
   caption: "One .java file with //DEPS and //JAVA directives; JBang resolves dependencies, finds or downloads a JDK, and caches the build.",
-  notes: "JBang runs a single Java source file with inline dependency directives: //DEPS for Maven coordinates and //JAVA 25 for the JDK. It resolves from Maven Central, downloads a JDK if none matches, and caches the compiled result. The app catalog adds entries such as camel@apache/camel, and the Quarkus CLI is distributed the same way. This project uses it for HelloRoute.java (a Camel route), WsNotificationClient.java (the WebSocket test client), and PanamaFfm.java (the Panama demo). It matters for the demos because they need no Maven module." });
+  notes: "JBang runs a single Java source file with inline dependency directives: //DEPS for Maven coordinates and //JAVA 25 for the JDK. It resolves from Maven Central, downloads a JDK if none matches, and caches the compiled result. Tools install the same way from pinned Maven coordinates, for example the Camel CLI from org.apache.camel:camel-launcher:4.22.1. The project avoids catalog aliases such as camel@apache/camel, which fetch unpinned scripts from GitHub and prompt the user to trust the source. This project uses it for HelloRoute.java (a Camel route), WsNotificationClient.java (the WebSocket test client), and PanamaFfm.java (the Panama demo). It matters for the demos because they need no Maven module." });
 
 contentSlide({ eyebrow: "Quarkus capability tour", title: "Prototyping with JBang",
   subtitle: "A Camel route without a Maven module",
   demoRef: "demos/demo-jbang-prototype.sh",
   bullets: [
     { lead: "demos/jbang/HelloRoute.java", text: "is a complete Camel route with no pom.xml and no Maven module." },
-    { lead: "jbang camel@apache/camel run", text: "resolves Camel's runtime from Maven Central and runs the route directly.", lvl: 1 },
+    { lead: "jbang demos/jbang/HelloRoute.java", text: "resolves pinned Camel 4.22.1 dependencies from Maven Central and runs the route directly.", lvl: 1 },
     { text: "Use it to try a route shape, an EIP combination, or a component configuration before committing to a module.", lvl: 1 },
   ],
-  notes: "DEMO 6 of 19. What it does: the lightest demo in the set; no Maven and no containers, only JBang resolving Camel. JBang installs and trusts the camel@apache/camel catalog entry on first use. What to show: the exact transformed marker string (JBANG_PROTOTYPE_OK: ...) in the route's log output, not only a zero exit code. Infra: bare (JDK 25 and jbang on PATH; no docker compose). Fallback: the recorded log line." });
+  notes: "DEMO 6 of 19. What it does: the lightest demo in the set; no Maven and no containers, only JBang resolving pinned Camel 4.22.1 dependencies from Maven Central. The route file is local and nothing is fetched from GitHub, so JBang never asks for trust. What to show: the exact transformed marker string (JBANG_PROTOTYPE_OK: ...) in the route's log output, not only a zero exit code. Infra: bare (JDK 25 and jbang on PATH; no docker compose). Fallback: the recorded log line." });
 
 contentSlide({ eyebrow: "Quarkus capability tour", title: "Continuous testing",
   subtitle: "Tests rerun on every save, against Dev Services",

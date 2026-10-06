@@ -493,10 +493,13 @@ JBang runs a single `.java` file without a build file. Dependencies and the
 required JDK are declared in comment directives at the top of the file:
 `//DEPS group:artifact:version` resolves a library from Maven Central, and
 `//JAVA 25+` selects the JDK. JBang downloads a matching JDK if none is
-installed and caches the compiled result. It also launches catalog apps such as
-`camel@apache/camel`, so tools run without a global install.
+installed and caches the compiled result. Tools install the same way from pinned
+Maven coordinates: `jbang app install --name camel
+org.apache.camel:camel-launcher:4.22.1` installs the Camel CLI. This project
+does not use JBang catalog aliases (`name@org`): they fetch unpinned scripts
+from GitHub and make JBang ask the user to trust the source.
 
-{% include excalidraw.html file="11-jbang-tooling" alt="A single Java file with DEPS and JAVA 25 directives is run by jbang, which resolves dependencies from Maven Central, downloads a JDK if missing, and caches the build. The app catalog launches camel@apache/camel and the Quarkus CLI. Uses in this project: HelloRoute.java, WsNotificationClient.java, and PanamaFfm.java." caption="Figure 11.7 — JBang as environment tooling" %}
+{% include excalidraw.html file="11-jbang-tooling" alt="A single Java file with DEPS and JAVA 25 directives is run by jbang, which resolves dependencies from Maven Central, downloads a JDK if missing, and caches the build. Tools such as the Camel CLI install from pinned Maven coordinates. Uses in this project: HelloRoute.java, WsNotificationClient.java, and PanamaFfm.java." caption="Figure 11.7 — JBang as environment tooling" %}
 
 Three scripts in [demos/jbang]({{ site.repo_tree }}/demos/jbang) use it:
 
@@ -507,10 +510,29 @@ Three scripts in [demos/jbang]({{ site.repo_tree }}/demos/jbang) use it:
 | `PanamaFfm.java` | `demo-panama.sh` | Native calls through the FFM API (next section) |
 
 [demo-jbang-prototype.sh]({{ site.repo_blob }}/demos/demo-jbang-prototype.sh) runs [HelloRoute.java]({{ site.repo_blob }}/demos/jbang/HelloRoute.java), a complete
-Camel route with no `pom.xml`:
+Camel route with no `pom.xml`. The header pins every dependency to a stable
+release, Camel 4.22.1 on the line the `quarkus-camel-bom` 3.39.5 platform
+pins, and `main()` starts Camel Main and stops it after one message:
 
 ```java
+///usr/bin/env jbang "$0" "$@" ; exit $?
+//JAVA 25+
+//DEPS org.apache.camel:camel-main:4.22.1
+//DEPS org.apache.camel:camel-timer:4.22.1
+//DEPS org.apache.camel:camel-log:4.22.1
+//DEPS org.slf4j:slf4j-simple:2.0.20
+//JAVA_OPTIONS -Dorg.slf4j.simpleLogger.logFile=System.out
+
 public class HelloRoute extends RouteBuilder {
+
+    public static void main(String[] args) throws Exception {
+        Main main = new Main();
+        main.configure().addRoutesBuilder(new HelloRoute());
+        main.configure().withDurationMaxMessages(1);
+        main.configure().withDurationMaxSeconds(90);
+        main.run(args);
+    }
+
     @Override
     public void configure() throws Exception {
         from("timer:prototype?repeatCount=1")
@@ -524,8 +546,10 @@ public class HelloRoute extends RouteBuilder {
 }
 ```
 
-`jbang camel@apache/camel run HelloRoute.java` resolves Camel from Maven
+`jbang demos/jbang/HelloRoute.java` resolves the pinned dependencies from Maven
 Central and runs the route with no `mvn package` and no project scaffolding.
+The script is a local file and its dependencies come from Maven Central, so
+JBang has no remote source to ask the presenter to trust.
 That makes it a quick way to try a route shape, an EIP combination, or a
 component configuration before creating a module. The demo asserts that the
 exact transformed marker string appears in the route's log output.
