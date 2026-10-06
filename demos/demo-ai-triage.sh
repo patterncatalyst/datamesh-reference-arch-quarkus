@@ -12,8 +12,8 @@
 #   POST /api/orders/triage-flow  — orchestrated by a Quarkus Flow workflow
 #
 # Both delegate classification to a single-shot langchain4j chat call against
-# Ollama (qwen2.5:3b) — NOT an agent, NOT tool-calling — and both hand the
-# classified fields to the SAME embedded Drools rule set
+# Ollama (qwen2.5:3b) — not an agent, not tool-calling — and both hand the
+# classified fields to the same embedded Drools rule set
 # (rules/order-triage.drl) to make the actual business decision
 # (FRAUD_HOLD / EXPEDITE / ROUTE_TO_WAREHOUSE). This is the shape that
 # structurally avoids the tool-calling defect: neither path has a
@@ -23,7 +23,7 @@
 #
 # Infra: this demo talks to a HOST Ollama already running on
 # http://localhost:11434 (ai-rules-service's application.properties already
-# points there) — it does NOT start/stop Ollama itself (compose_up ollama is
+# points there) — it does not start/stop Ollama itself (compose_up ollama is
 # also an option, but would collide with an already-running host Ollama on
 # the same port, so this script assumes host Ollama is up, same as this
 # module's opt-in IT does).
@@ -37,7 +37,7 @@
 # packages the module itself (idempotent — fast on an unchanged tree) and
 # runs the resulting quarkus-run.jar directly, which is both more reliable
 # here and faster to boot than dev mode. See the one-line pom.xml fix this
-# step applied (examples/ai-rules-service/pom.xml) — NOT committed.
+# step applied (examples/ai-rules-service/pom.xml) — not committed.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/_demo.sh"

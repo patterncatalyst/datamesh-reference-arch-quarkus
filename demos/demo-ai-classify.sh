@@ -4,7 +4,7 @@
 #
 # ai-mcp-service's OrderClassifierRoute exposes POST /api/orders/classify ->
 # direct:classify-order -> langchain4j-chat:classifier. This is a single-shot
-# chat call (CHAT_SINGLE_MESSAGE_WITH_PROMPT) -- NOT an agent, NOT tool
+# chat call (CHAT_SINGLE_MESSAGE_WITH_PROMPT) -- not an agent, not tool
 # calling -- so it structurally avoids the tool-calling defect (the embedded
 # MCP server / tool-calling limitation lives entirely in OrderLookupToolRoute
 # / OrderAssistantRoute, neither of which this demo touches).
@@ -24,7 +24,7 @@
 # else...") instead of classifying it -- confirmed deterministically across
 # repeated real calls against the live qwen2.5:3b before the fix (never once
 # produced JSON). Fixed in
-# examples/ai-mcp-service/src/main/java/.../OrderClassifierRoute.java (NOT
+# examples/ai-mcp-service/src/main/java/.../OrderClassifierRoute.java (not
 # committed -- flagged here same as the ai-rules-service pom.xml fix in
 # demo-ai-triage.sh): corrected header name + chatOperation query param +
 # an empty-Map body (CHAT_SINGLE_MESSAGE_WITH_PROMPT requires a

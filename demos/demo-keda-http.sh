@@ -33,9 +33,9 @@
 # header set to the hosts entry above — exactly the invocation
 # k8s/keda/README.md documents under "gateway-httpscaledobject.yaml — observe
 # scale 0→N on HTTP load". Requests sent directly to graphql-gateway's own
-# ClusterIP Service bypass the interceptor entirely and would NOT be counted
-# by the scaler or wake a scaled-to-zero Deployment — this demo deliberately
-# routes through the interceptor, not the Service, for that reason.
+# ClusterIP Service bypass the interceptor entirely and would not be counted
+# by the scaler or wake a scaled-to-zero Deployment — this demo
+# routes through the interceptor rather than the Service for that reason.
 #
 # ── Requires a running cluster ───────────────────────────────────────────────
 # Needs the local Kubernetes platform from ./scripts/bootstrap.sh (`minikube`
@@ -54,7 +54,7 @@
 # `kubectl` (not a separate `kustomize` binary) and uses `kubectl kustomize`
 # for the static render checks below.
 #
-# ── Why this demo is NOT blocked by the inventory-service gap ───────────────
+# ── Why this demo is not blocked by the inventory-service gap ───────────────
 # Unlike demo-keda-kafka.sh (whose load path goes through order-service's
 # gRPC-gated POST /orders, which 503s on this substrate — see that script's
 # header for the full gap writeup), the KEDA HTTP add-on's interceptor
@@ -75,7 +75,7 @@
 # generator Pod (`kubectl run ... --restart=Never`) in the datamesh
 # namespace; it is deleted in the EXIT trap. The app Deployment / KEDA
 # HTTPScaledObject applied via `kubectl apply -k` are part of the standing
-# substrate and are intentionally left in place, not torn down.
+# substrate and are left in place, not torn down.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/_demo.sh"
@@ -168,7 +168,7 @@ kubectl get svc keda-add-ons-http-interceptor-proxy -n "$KEDA_NS" >/dev/null 2>&
     || fail "interceptor proxy Service 'keda-add-ons-http-interceptor-proxy' not found in namespace ${KEDA_NS} — the KEDA HTTP add-on helm release (scripts/setup-keda.sh) may not have installed correctly"
 info "namespace '${NS}' exists, KEDA HTTP add-on CRDs installed, interceptor proxy Service present"
 
-step "apply the real app overlay + KEDA scalers"
+step "apply the app overlay + KEDA scalers"
 kubectl apply -k "${K8S_DIR}/overlays/minikube" \
     || fail "kubectl apply -k k8s/overlays/minikube failed"
 kubectl apply -k "${K8S_DIR}/keda" \
@@ -251,7 +251,7 @@ fi
 info "graphql-gateway scaled from ${BASELINE_REPLICAS} to ${CURRENT_REPLICAS} replicas"
 
 narrate "KEDA's HTTP add-on woke graphql-gateway from ${BASELINE_REPLICAS} replica(s) to"
-narrate "${CURRENT_REPLICAS} in response to inbound HTTP load routed through the real"
-narrate "interceptor proxy and the real k8s/keda/gateway-httpscaledobject.yaml trigger."
+narrate "${CURRENT_REPLICAS} in response to inbound HTTP load routed through the"
+narrate "interceptor proxy and the k8s/keda/gateway-httpscaledobject.yaml trigger."
 
 demo_ok

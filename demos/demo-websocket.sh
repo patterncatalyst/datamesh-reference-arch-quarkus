@@ -9,7 +9,7 @@
 # capability demoable at all -- see the "FILES ADDED/CHANGED" list below.
 # It is the natural home: notification-service already consumes
 # `order.placed` off Kafka and persists a `Notification` row per order
-# (OrderPlacedConsumer) — the new socket pushes that SAME, already-persisted
+# (OrderPlacedConsumer) — the new socket pushes that same, already-persisted
 # Notification to any live client, in real time, as soon as it's committed.
 #
 #   NEW  examples/notification-service/src/main/java/.../OrderNotificationSocket.java
@@ -26,20 +26,20 @@
 #        previously used anywhere in this project — confirmed by grepping
 #        every examples/*/pom.xml for "websockets" before starting).
 #
-# This demo rides the SAME real pipeline demo-order.sh/demo-kafka.sh already
+# This demo rides the same real pipeline demo-order.sh/demo-kafka.sh already
 # prove (order-service -> inventory-service gRPC -> Postgres -> Avro/Kafka
-# publish -> Apicurio), with notification-service added as a THIRD packaged
+# publish -> Apicurio), with notification-service added as a third packaged
 # service consuming that same order.placed event — so the WebSocket push
 # this demo asserts is driven by an already-proven, cross-service,
 # at-least-once Kafka event, not a synthetic/local trigger.
 #
 # ── Real WS client: plain JDK java.net.http.WebSocket via jbang ────────────
-# `websocat` is NOT installed on this host and is not a toolchain dependency
+# `websocat` is not installed on this host and is not a toolchain dependency
 # already established elsewhere in this repo (unlike `jbang`, used by
 # demo-jbang-prototype.sh) — rather than adding a brand new external binary
 # dependency for one demo, this uses demos/jbang/WsNotificationClient.java,
 # a small dependency-free JDK WebSocket client run via `jbang` (already a
-# required/documented toolchain piece here). If `websocat` IS present this
+# required/documented toolchain piece here). If `websocat` is present this
 # demo still doesn't need it — jbang's client is the primary path; this
 # comment documents why `require jbang`, not `require websocat`, gates this
 # demo. (Install hint if jbang itself is missing: see demo-jbang-prototype.sh.)
@@ -53,7 +53,7 @@
 # on both order-service's outgoing channel and notification-service's
 # incoming channel) sidesteps this exactly like demo-kafka.sh does.
 #
-# ── order.placed Avro security property — BOTH producer AND consumer sides
+# ── order.placed Avro security property — both producer and consumer sides
 # (found wiring THIS demo; demo-order.sh/demo-kafka.sh only needed it on the
 # producer) ──────────────────────────────────────────────────────────────
 # order-service (producer) needs org.apache.avro.SERIALIZABLE_PACKAGES=
@@ -62,14 +62,13 @@
 # trace). What's NEW here: notification-service (the consumer, and the only
 # service in this project that DESERIALIZES OrderPlaced back into a
 # capstone.order.v1.OrderPlaced SpecificRecord) needs the IDENTICAL system
-# property on its own packaged JVM for the SAME reason — confirmed
+# property on its own packaged JVM for the same reason — confirmed
 # empirically: without it, every poll fails with "java.lang.SecurityException:
 # Forbidden capstone.order.v1.OrderPlaced!" (SRMSG18249 in notification-
 # service's log), so no Notification is ever persisted and nothing is ever
 # pushed over the WebSocket, even though order-service's publish itself
 # succeeds. This is a second, previously-undetected instance of the same
-# production-readiness gap already named for the producer side — worth
-# flagging upstream for every %prod Avro consumer in this project, not
+# production-readiness gap already named for the producer side. Open upstream issue: it applies to every %prod Avro consumer in this project, not
 # just the ones already covered by an existing demo/IT.
 #
 # ── Port plan ────────────────────────────────────────────────────────────
@@ -106,7 +105,7 @@ AVRO_SERIALIZABLE_PACKAGES="capstone.order.v1"
 TOPIC="order.placed.ws.demo.$$"
 
 narrate "WebSockets.Next: a live client connects to notification-service's"
-narrate "new /ws/notifications endpoint; placing a real order propagates"
+narrate "new /ws/notifications endpoint; placing an order propagates"
 narrate "order-service -> gRPC CheckStock -> inventory-service -> Postgres,"
 narrate "then order-service -> Kafka (Avro/Apicurio) -> notification-service,"
 narrate "which persists a Notification row and pushes it over the live socket."
@@ -232,8 +231,8 @@ wait_http "${ORDER_BASE}/q/health/live" 60 \
     || { tail -n 60 "$ORD_LOGFILE" >&2; fail "order-service did not become healthy within 60s -- see $ORD_LOGFILE"; }
 info "order-service is up"
 
-# ─── Connect the REAL WebSocket client BEFORE triggering the event ─────────
-step "connect a real WebSocket client to ${WS_URL} (jbang, plain JDK java.net.http.WebSocket)"
+# ─── Connect the WebSocket client before triggering the event ─────────
+step "connect a WebSocket client to ${WS_URL} (jbang, plain JDK java.net.http.WebSocket)"
 WS_CLIENT_LOG="$(mktemp -t demo-ws-client-log-XXXXXX)"
 info "log: $WS_CLIENT_LOG"
 # Expect exactly 2 text messages on this connection: (1) the @OnOpen
@@ -262,7 +261,7 @@ done
 [[ -n "$ACK_JSON" ]] || { cat "$WS_CLIENT_LOG" >&2; fail "no connection-ack message observed on the WebSocket within budget"; }
 info "ack message: $ACK_JSON"
 assert_json_field "$ACK_JSON" '.type' 'connected'
-narrate "confirmed: real WebSocket connection-ack received and parsed (.type == \"connected\")"
+narrate "confirmed: WebSocket connection-ack received and parsed (.type == \"connected\")"
 
 # ─── Trigger: a real order, which triggers the full event chain ───────────
 step "POST /orders (WIDGET-1 x1) -- triggers the order.placed -> Kafka -> notification-service -> WS chain"
@@ -299,7 +298,7 @@ assert_json_field "$PUSH_JSON" '.eventType' 'order.placed'
 assert_json_field "$PUSH_JSON" '.customerId' "$CUSTOMER_ID"
 assert_json_field "$PUSH_JSON" '.itemSku' 'WIDGET-1'
 assert_json_field "$PUSH_JSON" '.quantity' '1'
-narrate "confirmed: a real, parsed Notification for order ${ORDER_ID} was pushed over the live"
+narrate "confirmed: a parsed Notification for order ${ORDER_ID} was pushed over the live"
 narrate "WebSocket connection -- orderId/eventType/customerId/itemSku/quantity all match the order"
 narrate "just placed, proving the full order-service -> Kafka -> notification-service -> WS chain"
 

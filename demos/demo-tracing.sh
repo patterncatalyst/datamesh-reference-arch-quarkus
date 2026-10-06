@@ -7,13 +7,13 @@
 #
 # POST /orders on order-service calls inventory-service over gRPC
 # (CheckStock), same cross-service hop demo-order.sh exercises for Panache —
-# this demo rides the SAME request to prove it produces one real, queryable,
+# this demo rides the same request to prove it produces one real, queryable,
 # multi-service trace: order-service's REST span is the trace root, and a
-# CheckStock gRPC span plus Postgres spans from BOTH services are children
+# CheckStock gRPC span plus Postgres spans from both services are children
 # of it, all stitched together by W3C trace-context propagation across the
 # gRPC call. This demo queries Tempo's HTTP API (not application logs) for
 # the proof: it finds the trace by service name, fetches it by id, and
-# parses span count + the set of service.name values actually present.
+# parses span count + the set of service.name values present.
 #
 # ── No module has quarkus-opentelemetry on its classpath (found wiring this
 # demo) — zero-pom-touch path chosen instead ──────────────────────────────
@@ -23,19 +23,19 @@
 # could turn on Quarkus's own OTel extension — it is a BUILD-time extension,
 # not something a runtime flag can retrofit onto an already-packaged jar.
 # Per this step's hard constraint (module source/pom edits are reserved for
-# the websocket demo's one flagged addition), this demo does NOT add the
+# the websocket demo's one flagged addition), this demo does not add the
 # extension to either module. Instead it attaches the upstream OpenTelemetry
 # Java auto-instrumentation agent (a single `-javaagent:` JVM flag, zero
 # source/pom changes, the same "runtime workaround over file edit" idiom
 # demo-order.sh/demo-kafka.sh use for their Avro/gRPC-port fixes) to both
 # packaged quarkus-run.jar processes. It auto-instruments JAX-RS/RESTEasy,
-# the gRPC client AND server, and JDBC with zero code changes, and exports
+# the gRPC client and server, and JDBC with zero code changes, and exports
 # real OTLP spans to the compose otel-lgtm collector — confirmed empirically
 # (see below) to produce an 11-span trace spanning both services for a
 # single POST /orders.
 #
 # The agent jar is cached at ~/.cache/datamesh-demos/opentelemetry-javaagent.jar
-# (NOT inside this repo — it's a large, independently-versioned binary, not
+# (not inside this repo — it's a large, independently-versioned binary, not
 # project source) and downloaded once from the upstream GitHub release if
 # missing. If the download fails (offline host), this demo fails loudly with
 # the exact manual-download command rather than silently skipping tracing.
@@ -47,7 +47,7 @@
 # (Jaeger-style: `.batches[].resource.attributes[]` for resource attributes
 # incl. `service.name`, and `.batches[].scopeSpans[]?.spans[]` /
 # `.batches[].instrumentationLibrarySpans[]?.spans[]` for the actual spans —
-# NOT the OTLP-JSON `resourceSpans` shape some newer Tempo docs show; this
+# not the OTLP-JSON `resourceSpans` shape some newer Tempo docs show; this
 # otel-lgtm image's bundled Tempo answers with the older key names, verified
 # live) — this demo parses both possible span-array keys defensively.
 # `/ready` lags `/api/search` answering 200 by ~30-40s on a cold container
@@ -143,7 +143,7 @@ done
 docker exec datamesh-postgres pg_isready -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 \
     || fail "compose Postgres (orderdb) did not become ready within 30s"
 # Tempo's own /ready lags /api/search answering 200 by ~30-40s on a cold
-# container (confirmed empirically) -- poll the API we actually use instead.
+# container (confirmed empirically) -- poll the API we use instead.
 wait_http "${TEMPO_BASE}/api/search?limit=1" 90 \
     || fail "Tempo search API at ${TEMPO_BASE}/api/search did not answer within 90s -- is the datamesh-lgtm container healthy? (docker logs datamesh-lgtm)"
 assert_http_200 "${TEMPO_BASE}/api/search?limit=1"

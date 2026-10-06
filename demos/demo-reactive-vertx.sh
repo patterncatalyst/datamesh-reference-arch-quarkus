@@ -4,14 +4,14 @@
 # demo: Vert.x unified reactive + imperative, inside ONE Quarkus app
 # (inventory-service).
 #
-# inventory-service exposes the SAME stock data through two execution
-# models on the SAME Vert.x reactor, in the SAME JVM:
+# inventory-service exposes the same stock data through two execution
+# models on the same Vert.x reactor, in the same JVM:
 #   - REACTIVE: InventoryGrpcService.checkStock(...) implements the
 #     Mutiny-typed `InventoryService` gRPC stub Quarkus generates from
 #     contracts/.../inventory.proto — its public API is `Uni<CheckStockResponse>`,
 #     the textbook reactive shape, even though the handler body is annotated
 #     `@Blocking` (it does a Panache/JDBC lookup) so Vert.x offloads it to a
-#     worker thread instead of ever parking the event loop. This IS exactly
+#     worker thread instead of ever parking the event loop. This is exactly
 #     Quarkus/Vert.x's "unified reactive + imperative" story: a reactive
 #     (Uni) contract at the edge, blocking work safely delegated underneath,
 #     all on one reactor.
@@ -19,15 +19,15 @@
 #     thread-per-request, no Uni/Multi anywhere) answers the exact same
 #     `stock` table on the exact same running instance.
 #
-# This demo proves BOTH independently (distinct, request-dependent computed
-# fields — see below) AND proves they coexist correctly under CONCURRENT
-# load: it fires gRPC (reactive) and REST (imperative) calls at the SAME
+# This demo proves both independently (distinct, request-dependent computed
+# fields — see below) and proves they coexist correctly under concurrent
+# load: it fires gRPC (reactive) and REST (imperative) calls at the same
 # TIME against the one running inventory-service process and asserts every
 # response is individually correct — no cross-talk, no blocking-each-other
 # failure, non-blocking I/O and classic imperative code sharing one app.
 #
 # ── Why CheckStock's gRPC answer and the REST GET /stock/{sku} answer are
-# NOT the same computation (the point of running both) ───────
+# not the same computation (the point of running both) ───────
 # REST's `available` is a static snapshot: `quantityOnHand > 0`. The gRPC
 # path's `available` is REQUEST-DEPENDENT: `quantity > 0 && onHand >=
 # quantity` (see InventoryGrpcService.checkStock) — asking for more than is
