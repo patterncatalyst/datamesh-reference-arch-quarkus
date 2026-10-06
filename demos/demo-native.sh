@@ -3,7 +3,7 @@
 # demos/demo-native.sh — "bare" toolchain demo.
 #
 # *** LONG-RUNNING / OPT-IN. *** A real GraalVM/Mandrel native compile of
-# order-service. This is NOT part of any default/fast demo run (and is not
+# order-service. This is not part of any default/fast demo run (and is not
 # wired into walkthrough.sh's default acts) — invoke it explicitly, and
 # expect it to take several minutes (longer still the first time a
 # container-build builder image has to be pulled, which can be 1-2GB).
@@ -50,7 +50,7 @@
 # forwards as the session TimeZone from a non-UTC-TZ CLIENT (confirmed
 # empirically on this host -- including against the native binary itself:
 # a native executable still reads the host's TZ the same way a JVM does).
-# The throwaway Postgres container's own TZ=UTC/PGTZ=UTC does NOT fix this --
+# The throwaway Postgres container's own TZ=UTC/PGTZ=UTC does not fix this --
 # postgres:18's image has no "US/Eastern" zoneinfo entry at all, no
 # matter what timezone the server itself runs in -- so the fix has to be on
 # the client side: TZ=UTC is set on the native runner process below, same
@@ -190,5 +190,5 @@ echo "$ORDERS_JSON" | jq -e 'type == "array"' >/dev/null \
     || fail "/orders did not return a JSON array from the native binary: $ORDERS_JSON"
 info "GET /orders returned a JSON array from the native binary: $ORDERS_JSON"
 
-narrate "native binary booted (${BUILD_SECS}s build) and served real HTTP + Postgres traffic with zero JVM"
+narrate "native binary booted (${BUILD_SECS}s build) and served HTTP + Postgres traffic with zero JVM"
 demo_ok

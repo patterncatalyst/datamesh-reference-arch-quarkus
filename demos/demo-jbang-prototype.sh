@@ -23,8 +23,8 @@ demo_begin "demo-jbang-prototype"
 # require() gives a generic "install curl/jq/docker/mvn"-style hint, which
 # would be actively misleading for jbang (none of those are the fix) — so
 # this preflight is a dedicated check with a jbang-specific install hint
-# instead of `require jbang`, per the step's acceptance criteria ("fail with
-# an install hint rather than silently pass").
+# instead of `require jbang`, so a missing jbang fails with an install hint
+# rather than silently passing.
 if ! command -v jbang >/dev/null 2>&1; then
     fail "jbang is required for this demo but was not found on PATH. Install it with: curl -Ls https://sh.jbang.dev | bash (or: sdk install jbang, or: brew install jbangdev/tap/jbang) — then re-run this script. See https://www.jbang.dev/documentation/guide/latest/installation.html"
 fi

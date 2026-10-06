@@ -7,14 +7,14 @@
 # endpoint (GatewayApi): `order(id)` resolves an order over REST from
 # order-service, and the nested `stock` field on that order resolves over
 # gRPC from inventory-service -- one client query, two backing protocols,
-# with the gRPC call made ONLY if the client actually selects `stock`
+# with the gRPC call made only if the client selects `stock`
 # (standard MicroProfile GraphQL @Source behavior).
 #
 # Flow: place a real order via order-service's REST data product (reusing
 # the same Panache round trip demo-order.sh proves), then issue ONE GraphQL
 # query to the gateway that fans out to both order-service (REST) and
 # inventory-service (gRPC) and assert the stitched response -- order fields
-# AND nested stock fields, all in a single parsed `.data.order` payload, with
+# and nested stock fields, all in a single parsed `.data.order` payload, with
 # no `.errors`. A second, negative-control query for an unknown order id
 # documents a real GatewayApi 404-handling gotcha found while wiring this
 # demo -- see the comment right above that step, near the end of this file.
@@ -33,8 +33,8 @@
 #
 # ── The inventory gRPC port (canonical 9000) ────────────────────────────────
 # order-service's gRPC CLIENT port, inventory-service's gRPC SERVER port, and
-# graphql-gateway's own gRPC client default all resolve to the SAME value,
-# 9000, via the SAME env var: `quarkus.grpc.clients.inventory.port=
+# graphql-gateway's own gRPC client default all resolve to the same value,
+# 9000, via the same env var: `quarkus.grpc.clients.inventory.port=
 # ${INVENTORY_GRPC_PORT:9000}` (order-service), `quarkus.grpc.server.port=
 # ${INVENTORY_GRPC_PORT:9000}` (inventory-service), and graphql-gateway's own
 # `INVENTORY_GRPC_PORT:9000` client default. All three agree with no override
@@ -232,8 +232,8 @@ assert_json_field "$GQL_RESP" '.data.order.itemSku' 'WIDGET-2'
 assert_json_field "$GQL_RESP" '.data.order.quantity' '1'
 assert_json_field "$GQL_RESP" '.data.order.status' 'PLACED'
 
-# The nested `stock` object proves the SECOND protocol (gRPC to
-# inventory-service) actually fired for this query -- GatewayApi.stock()
+# The nested `stock` object proves the second protocol (gRPC to
+# inventory-service) fired for this query -- GatewayApi.stock()
 # is only invoked when a client selects the field.
 STOCK_SKU="$(jq -r '.data.order.stock.sku' <<<"$GQL_RESP")"
 [[ "$STOCK_SKU" == "WIDGET-2" ]] || fail "expected .data.order.stock.sku == WIDGET-2, got '$STOCK_SKU'"
@@ -258,7 +258,7 @@ narrate "order ${ORDER_ID} (WIDGET-2) with live stock quantityOnHand=${STOCK_QOH
 # nulls out the (nullable) `order` field while ALSO reporting a
 # DataFetchingException in `.errors` -- so the client-visible end result
 # (`.data.order == null`) is reached via error recovery, not a clean
-# return. This demo asserts what ACTUALLY happens (null data + a reported
+# return. This demo asserts what happens (null data + a reported
 # error).
 step "negative control: unknown order id -- .data.order is null (see note above)"
 GQL_NULL_QUERY='{"query":"{ order(id: \"does-not-exist\") { id } }"}'

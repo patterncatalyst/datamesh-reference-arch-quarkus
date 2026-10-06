@@ -9,7 +9,7 @@
 # Quarkus's connector-serializer autodetection was proven to silently fall
 # back to a Jackson/JSON serializer here, see that file's comment). This
 # demo places a real order (which triggers the publish) and then reads the
-# RAW bytes back off the real compose Kafka broker with a plain byte-level
+# RAW bytes back off the compose Kafka broker with a plain byte-level
 # consumer (kcat) -- no Avro deserializer involved on the read side -- and
 # asserts the Apicurio/Confluent wire-format magic byte (0x00) is the first
 # byte of the record value. This is the same proof
@@ -35,9 +35,9 @@
 # A packaged order-service boots and serves POST /orders fine (the publish
 # is fire-and-forget -- OrderEventProducer's failure path only logs, see
 # OrderResource.placeOrder's `.exceptionally(...)`), but without this fix
-# EVERY order.placed publish throws, every time (confirmed via order-
-# service's own log; the symptom from THIS demo's point of view was kcat
-# timing out waiting for a message that was never actually produced):
+# every order.placed publish throws, every time (confirmed via order-
+# service's own log; the symptom from this demo's point of view was kcat
+# timing out waiting for a message that was never produced):
 #   java.lang.SecurityException: Forbidden capstone.order.v1.OrderPlaced!
 #   This class is not trusted to be included in Avro schemas. You may
 #   either use the system properties org.apache.avro.SERIALIZABLE_CLASSES
@@ -53,9 +53,9 @@
 # org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 as a plain JUnit
 # system property for the same reason). This demo applies the same fix as a
 # JVM system property on the launched order-service process -- no module
-# source touched -- but it is worth flagging upstream: the packaged/
-# production image has the SAME exposure and would silently drop every
-# order.placed event in a real deployment unless this property (or an
+# source touched. Open upstream issue: the packaged/
+# production image has the same exposure and would silently drop every
+# order.placed event in a deployment unless this property (or an
 # equivalent JAVA_TOOL_OPTIONS/JVM arg) is set wherever the image runs.
 #
 # ── Port plan (avoiding compose's host-published ports — see .env.example) ──
@@ -84,16 +84,16 @@ KAFKA_HOST_PORT="${KAFKA_HOST_PORT:-9092}"
 APICURIO_PORT="${APICURIO_PORT:-8081}"
 APICURIO_BASE="http://localhost:${APICURIO_PORT}/apis/registry/v3"
 # Avro 1.12.x's ClassSecurityValidator -- see header comment below. Without
-# this, EVERY order.placed publish from a packaged order-service throws
+# this, every order.placed publish from a packaged order-service throws
 # (confirmed empirically -- this is the specific bug this fix sidesteps;
 # there would be nothing on the topic at all otherwise).
 AVRO_SERIALIZABLE_PACKAGES="capstone.order.v1"
 
 TOPIC="order.placed.demo.$$"
 
-narrate "Reactive Messaging + Avro: placing a real order triggers"
+narrate "Reactive Messaging + Avro: placing an order triggers"
 narrate "OrderEventProducer to publish order.placed as Avro against Apicurio."
-narrate "This demo reads the raw bytes back off the real compose Kafka broker"
+narrate "This demo reads the raw bytes back off the compose Kafka broker"
 narrate "(kcat, no Avro decoder) and asserts the Apicurio/Confluent wire-format"
 narrate "magic byte 0x00 -- confirmation it's Avro on the wire, not JSON."
 
@@ -242,7 +242,7 @@ info "raw record value: ${RAW_LEN} bytes, first byte = 0x${FIRST_BYTE_HEX}"
     || fail "expected Apicurio/Confluent Avro wire-format magic byte 0x00 as the first byte, got 0x${FIRST_BYTE_HEX} (is OrderEventProducer still using AvroKafkaSerializer?)"
 [[ "$FIRST_BYTE_HEX" != "7b" ]] \
     || fail "record value starts with '{' (0x7b) -- serde has regressed to JSON (Avro wire format expected)"
-narrate "confirmed: order.placed value on the real compose Kafka broker starts with the"
+narrate "confirmed: order.placed value on the compose Kafka broker starts with the"
 narrate "Avro wire-format magic byte 0x00 -- not JSON, not any other encoding"
 
 # ─── Corroborate: Apicurio registered a schema for this publish ────────────

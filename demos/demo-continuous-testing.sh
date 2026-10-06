@@ -17,7 +17,7 @@
 # not taken from the docs.
 #
 # Fallback (if reliable parsing isn't achievable): if that banner never appears within the budget — e.g. a
-# future Quarkus version rewords it — this demo does NOT silently downgrade
+# future Quarkus version rewords it — this demo does not silently downgrade
 # to a pass. It still asserts dev mode started (HTTP 200 + a real
 # JSON array from Dev-Services-backed Postgres via GET /orders) but reports
 # the missing continuous-testing banner as a clearly labeled, non-fatal
@@ -32,7 +32,7 @@
 # non-UTC-TZ host ("FATAL: invalid value for parameter "TimeZone":
 # "US/Eastern"") — confirmed empirically on this host, and already
 # documented for the compose stack in compose.yaml ("TZ=UTC / PGTZ=UTC avoid
-# the US/Eastern boot failure"). Dev Services doesn't expose an easy hook to
+# the US/Eastern boot failure"). Dev Services doesn't expose a hook to
 # set the *container's* TZ, so this script instead sets TZ=UTC on the mvn
 # process itself, which changes the JVM's (and therefore pgjdbc's) default
 # timezone to one postgres:18 always recognizes. Confirmed fix: identical
@@ -94,7 +94,7 @@ assert_http_200 "${BASE_URL}/q/health/live"
 info "dev mode is up and healthy"
 
 # Corroborating positive-content check regardless of how the continuous
-# testing parse below goes: Dev-Services-backed Postgres is really serving
+# testing parse below goes: Dev-Services-backed Postgres is serving
 # requests through the full REST+Panache stack, not a bare
 # liveness probe.
 ORDERS_JSON="$(curl -fsS --max-time 10 "${BASE_URL}/orders")" \

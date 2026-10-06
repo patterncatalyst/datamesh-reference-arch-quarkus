@@ -29,20 +29,20 @@
 # through all three engines end to end, because the triage endpoints only
 # accept the order's line-item fields (no persistence, no event publish) and
 # the Kafka leg's order payload was never run through a classifier-stability
-# trial. What IS the same across all three legs is the DOMAIN (shipping/order)
+# trial. What is the same across all three legs is the domain (shipping/order)
 # and the comparison this demo exists to make: one decentralized mechanism
 # (Kafka) vs two differently-shaped centralized ones (a Camel route; a
 # declarative workflow document) coordinating the equivalent kind of step.
 #
 # ── Why packaged JVM mode against the compose baseline (not `quarkus:dev`) ──
 # Mirrors demo-order.sh/demo-kafka.sh/demo-websocket.sh exactly: every
-# service here wires its REAL external Postgres/Kafka/Apicurio ONLY under
+# service here wires its external Postgres/Kafka/Apicurio only under
 # %prod (see each module's application.properties), which a packaged
 # `quarkus-run.jar` runs under by default. This demo owns the compose
 # baseline for its run (no other demo may run concurrently against compose)
 # and tears it down on exit regardless of outcome.
 #
-# ── Avro SERIALIZABLE_PACKAGES -- producer AND consumer, per hop ───────────
+# ── Avro SERIALIZABLE_PACKAGES -- producer and consumer, per hop ───────────
 # Avro 1.12.x's ClassSecurityValidator refuses to (de)serialize a generated
 # SpecificRecord class via reflection unless its package is explicitly
 # trusted via -Dorg.apache.avro.SERIALIZABLE_PACKAGES on a plain `java -jar`
@@ -61,7 +61,7 @@
 # Omitting any one of these throws "SecurityException: Forbidden
 # capstone.*.v1.*!" on that service's own JVM, every time, for that hop only
 # -- the rest of the chain looks fine, making a missing property on one
-# single downstream hop easy to miss if you only watch the topic right after
+# single downstream hop easy to miss when you only watch the topic right after
 # it (confirmed empirically while wiring this demo: dropping
 # payment-service's capstone.payment.v1 entry let OrderPlaced deserialize
 # fine but made every outgoing PaymentCaptured publish throw, so
@@ -72,7 +72,7 @@
 # Same reasoning as demo-kafka.sh/demo-websocket.sh (compose's kafka-data
 # volume persists across runs) but THREE topics deep: the order-placed topic
 # override must match on order-service's OUTGOING channel, payment-service's
-# INCOMING channel, AND notification-service's INCOMING channel; the
+# INCOMING channel, and notification-service's INCOMING channel; the
 # payment-captured topic override must match on payment-service's OUTGOING
 # channel and shipping-service's INCOMING channel; the shipment-dispatched
 # topic override only has one side (shipping-service's OUTGOING channel, read
@@ -93,11 +93,11 @@
 # http://localhost:11434 unconditionally (no %prod override exists for it).
 # demo-ai-triage.sh assumes a HOST Ollama is already running there; this demo
 # instead brings up compose's `ollama` profile (`compose_up ollama`), which
-# publishes the container's 11434 to the SAME host port (.env.example's
+# publishes the container's 11434 to the same host port (.env.example's
 # OLLAMA_PORT=11434) -- so ai-rules-service needs no code/config change
 # either way. Same preflight check as demo-ai-triage.sh (Ollama reachable,
 # qwen2.5:3b in its model list), just pointed at the compose-managed
-# container instead of a host install, and run AFTER compose_up instead of
+# container instead of a host install, and run after compose_up instead of
 # before. The qwen2.5:3b model must already be pulled into compose's
 # `ollama-data` named volume (`docker exec datamesh-ollama ollama pull
 # qwen2.5:3b` once) -- this demo does not pull it itself (a multi-GB
@@ -311,7 +311,7 @@ wait_http "${SHIPPING_BASE}/q/health/live" 60 \
 info "shipping-service is up"
 
 # ─── Start notification-service: consumes order.placed independently of the
-# payment/shipping chain -- its own reaction to the SAME event, proving
+# payment/shipping chain -- its own reaction to the same event, proving
 # there is no single coordinator deciding "who reacts to order.placed" ─────
 step "start notification-service (HTTP ${NOTIFICATION_PORT}, in=${TOPIC_ORDER})"
 NOTIF_PIDFILE="$(mktemp -t demo-orch-notif-pid-XXXXXX)"
@@ -451,7 +451,7 @@ SHIP_ROW_COUNT="$(docker exec datamesh-postgres psql -U "${POSTGRES_USER:-appuse
 narrate "confirmed: 1 row in shippingdb.shipment for order ${ORDER_ID} (shipping-service's own persisted record)"
 
 # ─── Corroborate: notification-service reacted to order.placed independently
-# of the payment/shipping chain -- a THIRD, unrelated reaction to the SAME
+# of the payment/shipping chain -- a third, unrelated reaction to the same
 # original event, further proof there is no single coordinator ────────────
 step "corroborate: notification-service independently reacted to order.placed"
 NOTIF_LIST=""

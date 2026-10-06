@@ -3,7 +3,7 @@
 # demos/walkthrough.sh — the five-act presenter orchestrator that ties the
 # 19 demo-*.sh scripts together for a live talk.
 #
-# This script does NOT reimplement any demo's logic and does NOT manage
+# This script does not reimplement any demo's logic and does not manage
 # compose/Dev Services/cluster lifecycle itself — every demo-*.sh already
 # owns its own `compose_up`/`compose_down` (or Dev Services, or `kubectl`)
 # and its own per-run-unique state (orders, topics, tokens, ...). This
@@ -12,7 +12,7 @@
 # them, but the demos bind fixed host ports and that sharing would be a
 # bigger refactor out of scope for now), narrate the five acts, pace a presenter
 # through them with `prompt_enter`, and report a final tally. Demos are
-# ALWAYS run sequentially (one `run_act` after another) — never in
+# always run sequentially (one `run_act` after another) — never in
 # parallel; that is both a presenter-pacing choice and a hard requirement
 # (fixed host ports + a single compose.yaml baseline).
 #
@@ -49,7 +49,7 @@
 #   --with-ollama       run ACT2/ACT3's ollama-profile demos
 #   --with-native        run ACT4's demo-native (slow native compile)
 #   --with-minikube       run ACT5's KEDA demos (needs a live cluster)
-#   --only <d[,d...]>    run ONLY the named demo(s) (comma-separated)
+#   --only <d[,d...]>    run only the named demo(s) (comma-separated)
 #   --skip <d[,d...]>    run every selected demo EXCEPT the named one(s)
 #   --no-preflight       skip the environment/toolchain preflight sweep
 #   --no-pause / --auto  don't wait for Enter between acts (CI/self-test)
@@ -104,7 +104,7 @@ DEMO_COUNT=${#DEMO_NAMES[@]}
 # _demo_required_cmds <name> — echoes the space-separated binaries that demo
 # `require`s itself (mirrors each demo-*.sh's own `require` line / dedicated
 # preflight check), so this orchestrator's preflight can report the exact
-# union needed for the demos actually selected, instead of an over-broad
+# union needed for the selected demos, instead of an over-broad
 # fixed list.
 _demo_required_cmds() {
     case "$1" in
@@ -249,9 +249,9 @@ gate_satisfied() {
 }
 
 # ─── Compute the active act list (acts with >=1 selected demo) ─────────────
-# An act with NO selected demo (entirely excluded by --only/--skip) is not
-# shown at all -- it is irrelevant to a narrowed run. An act with selected
-# demos that are all gate-skipped IS shown (so the presenter/operator sees
+# An act with no selected demo (entirely excluded by --only/--skip) is not
+# shown at all -- it is irrelevant to a narrowed run. An act whose selected
+# demos are all gate-skipped is still shown (so the presenter/operator sees
 # the SKIP explanation), just reported as SKIPPED rather than PASSED/FAILED.
 ACTIVE_ACTS=()
 for (( n = 1; n <= 5; n++ )); do
@@ -312,7 +312,7 @@ else
     # Soft, non-fatal heads-up for the opt-in toolchains -- these WARN, they
     # never fail preflight: each gated demo already fails loudly and
     # correctly on its own if its real dependency (model/toolchain/cluster)
-    # turns out to be missing when it actually runs.
+    # turns out to be missing when it runs.
     if (( WITH_OLLAMA )); then
         if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^datamesh-ollama$' \
             && docker exec datamesh-ollama ollama list 2>/dev/null | grep -q 'qwen2.5:3b'; then
@@ -373,7 +373,7 @@ for act_idx in "${!ACTIVE_ACTS[@]}"; do
     # NOTE: act_header (lib/_demo.sh) prints its own auto-incrementing "ACT
     # N" banner number -- it does not use this script's act identity ($n),
     # so when --only/--skip narrows the run that banner number can diverge
-    # from $n (e.g. the first act actually shown is still printed "ACT 1").
+    # from $n (e.g. the first act shown is still printed "ACT 1").
     # Refer to acts by TITLE below, not by number, so these lines never
     # contradict the banner just printed above.
     if (( act_any_ran == 0 )); then
@@ -388,7 +388,7 @@ for act_idx in "${!ACTIVE_ACTS[@]}"; do
     fi
 
     # Pause between acts (presenter pacing), unless --auto/--no-pause, and
-    # never after the last act actually shown.
+    # never after the last act shown.
     if (( ! AUTO )) && (( act_idx < ${#ACTIVE_ACTS[@]} - 1 )); then
         next_n="${ACTIVE_ACTS[act_idx+1]}"
         prompt_enter "Enter to continue -- next: ${ACT_TITLE[next_n]}"

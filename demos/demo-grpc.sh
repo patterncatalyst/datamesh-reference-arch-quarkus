@@ -7,15 +7,15 @@
 # (see contracts/src/main/proto/capstone/inventory/v1/inventory.proto and
 # InventoryGrpcService) -- the first real cross-service call in the mesh
 # (order-service dials this same RPC before placing an order; see
-# demo-order.sh). This demo talks to it DIRECTLY with grpcurl -- a real gRPC
-# client issuing a real unary RPC over HTTP/2 -- not through order-service's
-# REST facade, so the protocol under test is unambiguous.
+# demo-order.sh). This demo talks to it directly with grpcurl -- a gRPC
+# client issuing a unary RPC over HTTP/2 rather than going through
+# order-service's REST facade, so the protocol under test is unambiguous.
 #
 # ── Why grpcurl, not "REST worked so gRPC must be fine" ───────────────────
 # grpcurl -plaintext against the server's reflection service lists
 # capstone.inventory.v1.InventoryService (proof Quarkus gRPC's reflection
-# support is live), then invokes CheckStock with a real protobuf request and
-# parses the real protobuf-over-JSON response. If this were secretly REST
+# support is live), then invokes CheckStock with a protobuf request and
+# parses the protobuf-over-JSON response. If this were secretly REST
 # under the hood, reflection listing a gRPC *service* (not a path) and a
 # `grpcurl ... CheckStock` unary call would both fail outright.
 #
@@ -50,9 +50,9 @@ GRPC_ADDR="localhost:${INVENTORY_GRPC_PORT}"
 
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 
-narrate "quarkus-grpc: a real gRPC client (grpcurl) calls"
+narrate "quarkus-grpc: a gRPC client (grpcurl) calls"
 narrate "capstone.inventory.v1.InventoryService/CheckStock over HTTP/2 against"
-narrate "inventory-service -- not REST, not a mock."
+narrate "inventory-service over gRPC (HTTP/2)."
 
 # ─── .env prereq (compose var resolution) ───────────────────────────────────
 if [[ ! -f "${REPO_ROOT}/.env" ]]; then
@@ -126,7 +126,7 @@ for (( i = 0; i < 30; i++ )); do
     sleep 1
 done
 
-# ─── Prove it's really gRPC: server reflection lists the service ───────────
+# ─── Confirm it's gRPC: server reflection lists the service ───────────
 step "grpcurl list -- server reflection"
 SERVICES="$(grpcurl -plaintext "$GRPC_ADDR" list 2>&1)" \
     || { tail -n 60 "$INV_LOGFILE" >&2; fail "grpcurl list failed against ${GRPC_ADDR} -- is gRPC reflection enabled? output: $SERVICES"; }

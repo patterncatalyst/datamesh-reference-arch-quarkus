@@ -44,12 +44,12 @@
 # cluster-reachability gate below — so, matching k8s/keda/README.md's own
 # precedent ("Rendering was verified with `kubectl kustomize ...` — no
 # cluster required for that check"), this demo uses `kubectl kustomize`
-# exclusively and does NOT `require` a standalone `kustomize` binary.
+# exclusively and does not `require` a standalone `kustomize` binary.
 #
 # ── order-service's gRPC inventory-check (canonical 9000) ───────────────────
 # The "real" way this system emits order.placed is POST /orders on
 # order-service (see examples/order-service/.../OrderResource.java): it
-# synchronously calls InventoryClient.checkStock() over gRPC and ONLY
+# synchronously calls InventoryClient.checkStock() over gRPC and only
 # persists + publishes order.placed if that call succeeds; a failed/
 # unreachable call fails CLOSED with HTTP 503 and publishes nothing (by
 # design — see InventoryClient.java's javadoc). This is fully wired on the
@@ -80,8 +80,8 @@
 # namespace; it is deleted in the EXIT trap. The app Deployments / KEDA
 # ScaledObject applied via `kubectl apply -k` are part of the standing
 # substrate (same objects scripts/bootstrap.sh's own docs describe as
-# persistent across runs) and are intentionally left in place, not torn
-# down, matching k8s/README.md's "replicas vs. KEDA (9c)" section.
+# persistent across runs) and are left in place, not torn
+# down, matching k8s/README.md's "replicas vs. KEDA" section.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/_demo.sh"
@@ -170,7 +170,7 @@ kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1 \
     || fail "KEDA core CRDs not found — run ./scripts/setup-keda.sh (or ./scripts/bootstrap.sh with ENABLE_KEDA=true, the default)"
 info "namespace '${NS}' exists and KEDA CRDs are installed"
 
-step "apply the real app overlay + KEDA scalers"
+step "apply the app overlay + KEDA scalers"
 kubectl apply -k "${K8S_DIR}/overlays/minikube" \
     || fail "kubectl apply -k k8s/overlays/minikube failed"
 kubectl apply -k "${K8S_DIR}/keda" \
@@ -279,7 +279,7 @@ fi
 info "notification-service drained back to ${CURRENT_REPLICAS} replicas (baseline was ${BASELINE_REPLICAS})"
 
 narrate "KEDA scaled notification-service 0/${BASELINE_REPLICAS} -> up on Kafka lag and back down to"
-narrate "baseline on drain + cooldown, driven entirely by the real k8s/keda/consumer-scaledobject.yaml"
-narrate "trigger against the real order.placed topic."
+narrate "baseline on drain + cooldown, driven entirely by the k8s/keda/consumer-scaledobject.yaml"
+narrate "trigger against the order.placed topic."
 
 demo_ok

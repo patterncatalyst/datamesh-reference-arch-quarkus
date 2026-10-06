@@ -29,12 +29,12 @@
 # ║ demonstrates the one part of this stack that works end to end:            ║
 # ║ the embedded Camel MCP server (camel-quarkus-mcp-server, which wraps the  ║
 # ║ Quarkiverse quarkus-mcp-server-http extension) publishing the shipping-   ║
-# ║ tagged order-status ai-tool to external MCP clients speaking the real MCP ║
+# ║ tagged order-status ai-tool to external MCP clients speaking the MCP ║
 # ║ Streamable HTTP wire protocol -- a completely separate code path from the ║
 # ║ in-process langchain4j-agent affected by the issue above.                 ║
 # ╚════════════════════════════════════════════════════════════════════════════╝
 #
-# What this demo asserts (MCP-server surface ONLY):
+# What this demo asserts (MCP-server surface only):
 #   1. POST /mcp {method:"initialize"} succeeds and returns a protocolVersion
 #      + an Mcp-Session-Id header (real MCP Streamable HTTP handshake).
 #   2. POST /mcp {method:"tools/list"} (with that session) lists a tool
@@ -229,7 +229,7 @@ assert_json_field "$ORD003" '.orderId' 'ORD-003'
 assert_json_field "$ORD003" '.status' 'DELIVERED'
 
 step "MCP-server surface confirmed"
-narrate "An external MCP client (plain curl+jq speaking real JSON-RPC 2.0 over"
+narrate "An external MCP client (plain curl+jq speaking JSON-RPC 2.0 over"
 narrate "the MCP Streamable HTTP transport) listed the order-status tool and"
 narrate "invoked it 3x with deterministic results -- all through the embedded"
 narrate "Camel MCP server, zero in-process langchain4j-agent tool-calling"

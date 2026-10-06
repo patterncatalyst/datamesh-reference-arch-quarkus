@@ -17,8 +17,8 @@
 # OrderResource.placeOrder), so this demo also boots inventory-service.
 #
 # ── Why packaged JVM mode (java -jar quarkus-run.jar), not `mvn quarkus:dev`
-# Both order-service and inventory-service wire their REAL external
-# Postgres/Kafka/Apicurio ONLY under the %prod profile (see each module's
+# Both order-service and inventory-service wire their external
+# Postgres/Kafka/Apicurio only under the %prod profile (see each module's
 # application.properties, "%prod overrides" section) — exactly the
 # compose.yaml stack this demo brings up (infra/db/init/00-init.sql
 # pre-creates one database per service: orderdb, inventorydb, ...). A
@@ -30,8 +30,8 @@
 #
 # ── The inventory gRPC port (canonical 9000) ────────────────────────────────
 # order-service's gRPC CLIENT port and inventory-service's gRPC SERVER port
-# both default to the SAME value, 9000, and are both overridable via the
-# SAME env var:
+# both default to the same value, 9000, and are both overridable via the
+# same env var:
 #     quarkus.grpc.clients.inventory.port=${INVENTORY_GRPC_PORT:9000}   (order-service)
 #     quarkus.grpc.server.port=${INVENTORY_GRPC_PORT:9000}              (inventory-service)
 # So a bare `java -jar inventory-service quarkus-run.jar` next to a bare
@@ -56,7 +56,7 @@
 # undetected production-readiness gap) ──────
 # A packaged order-service boots and serves POST /orders fine (the publish
 # is fire-and-forget -- OrderEventProducer's failure path only logs, see
-# OrderResource.placeOrder's `.exceptionally(...)`), but EVERY order.placed
+# OrderResource.placeOrder's `.exceptionally(...)`), but every order.placed
 # publish throws, every time, confirmed via the process's own log:
 #   java.lang.SecurityException: Forbidden capstone.order.v1.OrderPlaced!
 #   This class is not trusted to be included in Avro schemas. You may
@@ -73,12 +73,12 @@
 # org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 as a plain JUnit
 # system property for the identical reason). This demo applies the same
 # fix as a JVM system property on the launched order-service process --
-# no module source touched -- but this is worth flagging upstream: the
-# packaged/production image has the SAME exposure and would silently drop
-# every order.placed event in a real deployment unless this property (or an
+# no module source touched. Open upstream issue: the
+# packaged/production image has the same exposure and would silently drop
+# every order.placed event in a deployment unless this property (or an
 # equivalent JAVA_TOOL_OPTIONS/JVM arg) is set wherever the image runs.
 #
-# ── Port plan (deliberately avoiding compose's host-published ports:
+# ── Port plan (avoiding compose's host-published ports:
 # 5432/9092/9094/8081/3000/4317/4318/9090/3100/3200 — .env.example) ───────
 #   order-service      HTTP 8091
 #   inventory-service  HTTP 8092, gRPC 9000 (canonical default, see above)

@@ -3,8 +3,8 @@
 # demos/demo-oidc.sh — Quarkus OIDC bearer-token security, via the Keycloak
 # Dev Service. review-service is the smallest module in the project (three
 # plain REST endpoints, Postgres as its only other Dev Services dependency,
-# no cross-service calls), which made it the right place to add ONE real
-# protected endpoint rather than faking the capability.
+# no cross-service calls), which made it the right place to add one
+# protected endpoint.
 #
 # ── What review-service got, and why the change is minimal ─────────────────
 # `quarkus-oidc` was added to review-service's pom.xml with ZERO
@@ -26,7 +26,7 @@
 #      an RBAC check: a token alone is insufficient)
 #   3. DELETE with alice's token (admin role) -> 204, and the review is
 #      gone (follow-up GET -> 404), which confirms the delete took effect
-# All three tokens are obtained from the REAL Keycloak Dev Service via the
+# All three tokens are obtained from the Keycloak Dev Service via the
 # password grant (same idiom as the Quarkus bearer-token-auth-tutorial), not
 # faked/mocked — this is a live OIDC round trip end to end.
 #
@@ -58,7 +58,7 @@ BASE_URL="http://localhost:${HTTP_PORT}"
 
 narrate "review-service's DELETE /reviews/{id} is the project's one live OIDC"
 narrate "capability demo: a Keycloak Dev Service-backed bearer-token"
-narrate "+ @RolesAllowed(\"admin\") check, proven with real tokens end to end."
+narrate "+ @RolesAllowed(\"admin\") check, proven with tokens end to end."
 
 step "preflight: docker daemon reachable (Dev Services needs it for Postgres + Keycloak)"
 docker info >/dev/null 2>&1 \
@@ -145,7 +145,7 @@ get_token() {
     echo "$token"
 }
 
-step "password grant: real tokens for alice (admin+user) and bob (user only)"
+step "password grant: tokens for alice (admin+user) and bob (user only)"
 ALICE_TOKEN="$(get_token alice alice)"
 info "alice token acquired (admin+user roles)"
 BOB_TOKEN="$(get_token bob bob)"
@@ -192,10 +192,10 @@ info "GET /reviews/${REVIEW_ID} after delete -> HTTP $CODE_GONE"
 narrate "confirmed: the review row is gone (follow-up GET returned 404)"
 
 step "live OIDC + Keycloak Dev Service demo confirmed"
-narrate "Three real password-grant tokens from a disposable Keycloak Dev Service"
+narrate "Three password-grant tokens from a disposable Keycloak Dev Service"
 narrate "container (random host port, discovered via docker port) drove one"
 narrate "@RolesAllowed(\"admin\") endpoint through all three outcomes: 401 (no"
-narrate "token), 403 (wrong role), 204+404-after (right role, real effect)."
+narrate "token), 403 (wrong role), 204+404-after (right role, effect verified)."
 narrate "This is the live OIDC path, proven end to end rather than deferred."
 
 demo_ok
