@@ -224,7 +224,11 @@ All of the following were run live in this environment (Docker Engine
   state; `GET /api/clusters` shows the `datamesh` cluster online, 1
   broker, `SCHEMA_REGISTRY` feature detected (reaches Apicurio's
   Confluent-compatible API); then stopped and removed (profile-only
-  service, not part of the baseline).
+  service, not part of the baseline). Re-run on 2026-10-06 after the
+  switch from `provectuslabs/kafka-ui` (unmaintained since v0.7.2) to the
+  `kafbat/kafka-ui:v1.5.0` fork: same environment block, same result
+  (`ONLINE`, 1 broker, `SCHEMA_REGISTRY`), `/actuator/health` `UP`,
+  278 MiB of the 512 MiB limit.
 - `docker compose --profile tools --profile ollama config` — parses with
   no error (the `ollama` profile itself was NOT brought up — it requires
   an 8 GB image pull and is opt-in by design; config-level validation was

@@ -779,7 +779,7 @@ contentSlide({ eyebrow: "Appendix · infra", title: "compose.yaml services and .
     { head: true, text: "Baseline services (no --profile flag)" },
     { text: "postgres (postgres:18, TZ=UTC) · kafka (apache/kafka-native:4.2.0, KRaft) · apicurio (apicurio-registry:3.1.7) · lgtm (grafana/otel-lgtm:0.8.1, always on)." },
     { head: true, text: "Opt-in profiles" },
-    { text: "--profile tools: kafka-ui (provectuslabs/kafka-ui) · --profile ollama: ollama (ollama/ollama)." },
+    { text: "--profile tools: kafka-ui (kafbat/kafka-ui) · --profile ollama: ollama (ollama/ollama)." },
     { head: true, text: "Image tags" },
     { text: "Each tag in .env equals the tag Quarkus 3.39.5 Dev Services pulls by default, so quarkus:dev, mvn verify, and this compose stack behave the same.", color: C.ink },
     { text: "postgres:18 rejects legacy Olson timezone ids such as US/Eastern from a non-UTC host; TZ=UTC on the container and -Duser.timezone=UTC on every JVM keep mvn verify green.", color: C.ink },
