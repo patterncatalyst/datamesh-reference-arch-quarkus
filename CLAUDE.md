@@ -109,6 +109,34 @@ for any Quarkus-specific question or dev-loop action instead of running
 tools for Camel catalog lookups, route validation, and runtime
 introspection instead of guessing component/EIP syntax.
 
+### Required for every session in this repo
+
+- **Load `lgtm-quarkus` and `lgtm-camel` before touching code.** Any change
+  to Quarkus modules, Camel routes, demo scripts, JBang scripts, the compare
+  script, or any dependency/version/image reference loads **both** skills
+  first, even when another skill (`lgtm-tutorial`, `lgtm-presentation`,
+  `lgtm-relay`) is driving the task. Subagent prompts restate their rules,
+  since subagents do not inherit loaded skills.
+- **Supported stable releases only, always pinned.** No `HEAD`/branch
+  references, `SNAPSHOT`, alpha, beta, milestone, or RC builds, floating
+  `RELEASE`/`LATEST` versions, or `latest` image tags. Maven Central's
+  `<latest>`/`<release>` can point at a prerelease; check the version list.
+  Inside Maven modules the platform BOM pins versions; JBang `//DEPS` sit
+  outside it and are pinned explicitly to the BOM's line (e.g. Camel 4.22.x
+  for `quarkus-camel-bom` 3.39.5).
+- **No JBang catalog aliases** (`name@org`, e.g. `camel@apache/camel`). They
+  fetch unpinned scripts from GitHub and make JBang prompt the user to trust
+  the source, including a GUI dialog on the desktop. Use pinned Maven
+  coordinates or local scripts. Never modify JBang itself, its config, or its
+  trust store; agents do not run demos that invoke remote JBang sources.
+- **MCP servers must be configured** with pinned coordinates (see the
+  `lgtm-quarkus` and `lgtm-camel` references) before relying on the rules
+  above. If `claude mcp list` shows neither `quarkus-agent` nor `camel-mcp`,
+  say so and use the published guides instead of guessing.
+- **Docker overrides the skills' Podman defaults.** The two skills default to
+  Podman (`Containerfile`, `podman compose`); this repo uses Docker and
+  `docker compose` (see Key conventions).
+
 ## Structure (evolving — see `_plans/build-plan.md` for the authoritative step list)
 
 ```
