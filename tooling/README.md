@@ -18,16 +18,19 @@ tooling/
 
 ## Prerequisites
 
-- `newman` on PATH (`npm install -g newman`), or just `npx` — `run-newman.sh`
-  falls back to `npx --yes newman@6` automatically if `newman` isn't
-  installed.
+- `newman` on PATH (`npm install -g newman@6.2.2`), or just `npx` —
+  `run-newman.sh` falls back to `npx --yes newman@6.2.2` automatically if
+  `newman` isn't installed.
 - `curl`, `jq` on PATH (used for health probing and response parsing).
 - `hey` on PATH for the HTTP load script — install via `go install
-  github.com/rakyll/hey@latest`, or grab a prebuilt binary from the
+  github.com/rakyll/hey@v0.1.5`, or the v0.1.5 binary from the
   [hey releases page](https://github.com/rakyll/hey/releases).
 - `ghz` on PATH for the gRPC load script — install via `go install
-  github.com/bojand/ghz/cmd/ghz@latest`, or grab a prebuilt binary from
-  [ghz.sh](https://ghz.sh/).
+  github.com/bojand/ghz/cmd/ghz@v0.121.0`, or the v0.121.0 binary from the
+  [ghz releases page](https://github.com/bojand/ghz/releases).
+
+Versions are pinned to the newest stable releases (newman 6.2.2, hey
+v0.1.5, ghz v0.121.0); never `@latest`.
 
 ## Bring up the stack first
 

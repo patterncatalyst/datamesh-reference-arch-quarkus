@@ -168,11 +168,11 @@ check "jq on PATH"     "command -v jq >/dev/null 2>&1"     "install jq (apt/dnf/
 check "docker daemon reachable" "docker info >/dev/null 2>&1" \
     "start Docker Desktop/the docker service -- UNIT's *IT and TWIN's Testcontainers both need it"
 if (( RUN_LOAD == 1 )); then
-    check "hey on PATH"    "command -v hey >/dev/null 2>&1"    "go install github.com/rakyll/hey@latest"
-    check "ghz on PATH"    "command -v ghz >/dev/null 2>&1"    "go install github.com/bojand/ghz/cmd/ghz@latest"
+    check "hey on PATH"    "command -v hey >/dev/null 2>&1"    "go install github.com/rakyll/hey@v0.1.5"
+    check "ghz on PATH"    "command -v ghz >/dev/null 2>&1"    "go install github.com/bojand/ghz/cmd/ghz@v0.121.0"
     check "newman or npx on PATH" \
         "command -v newman >/dev/null 2>&1 || command -v npx >/dev/null 2>&1" \
-        "npm install -g newman (or ensure Node.js/npx is on PATH)"
+        "npm install -g newman@6.2.2 (or ensure Node.js/npx is on PATH)"
 fi
 if (( _DEMO_CHECK_FAILURES > 0 )); then
     PHASE_RESULT[preflight]="FAIL"

@@ -42,7 +42,7 @@ Options:
 
 Prerequisites (always checked before running, except with --help):
   - curl, jq on PATH
-  - newman on PATH, or npx available to run newman@6 on demand
+  - newman on PATH, or npx available to run the pinned newman@6.2.2 on demand
   - order-service (8091), inventory-service (8092), and graphql-gateway
     (8080) reachable — bring them up with:
         docker compose up -d
@@ -78,9 +78,9 @@ NEWMAN_RUNNER=()
 if command -v newman >/dev/null 2>&1; then
     NEWMAN_RUNNER=(newman)
 elif command -v npx >/dev/null 2>&1; then
-    NEWMAN_RUNNER=(npx --yes newman@6)
+    NEWMAN_RUNNER=(npx --yes newman@6.2.2)
 else
-    fail "neither 'newman' nor 'npx' found on PATH — install newman (npm install -g newman) or Node.js (for npx)"
+    fail "neither 'newman' nor 'npx' found on PATH — install newman (npm install -g newman@6.2.2) or Node.js (for npx)"
 fi
 
 # ─── Prerequisite gate: order-service, inventory-service, graphql-gateway ──
