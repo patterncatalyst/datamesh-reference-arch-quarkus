@@ -5,6 +5,78 @@ description: Read this FIRST after a context compaction or restart to resume the
 
 # RESUME — datamesh-reference-arch-quarkus build
 
+## Current state — 2026-10-06 (read this section first)
+
+**Build is complete and public; recent work was a content/tooling hardening pass.**
+`main` is clean at `76bf57a` with no open PRs in this repo.
+
+### Done in the 2026-10-05/06 session (all merged)
+- **Professional content pass** (#29–#33): voice pass over site, both decks
+  (r1.1: 201 = 100 slides, 101 = 17), demo narration, READMEs; demo slides use
+  title + subtitle with the script as an 8pt footnote; glossary bold terms;
+  new diagrams (Panache patterns, Uni vs imperative, WebSockets.Next, JBang,
+  startup paths, Panama, OIDC flow, WebSocket failover, Vert.x/Kafka
+  messaging); A1/A3/A5/A6 diagram fixes; analytical-data close. Plan + log:
+  [professional-content-pass.md](professional-content-pass.md).
+- **New demo**: `demos/demo-panama.sh` (FFM getpid/strlen) — verified.
+- **Leyden**: `scripts/compare-quarkus-springboot.sh --aot` (JDK 25 AOT cache,
+  both frameworks) — measured once: startup Quarkus 2.05→0.99 s, Spring
+  4.02→1.02 s; RSS Quarkus 337→372 MB, Spring 548→446 MB (ch12).
+- **CLAUDE.md rules** (#34): load `lgtm-quarkus` AND `lgtm-camel` before any
+  code/demo/JBang/dependency change; supported-stable pinned releases only;
+  no JBang catalog aliases; never modify JBang or its trust store; Docker
+  overrides the skills' Podman defaults.
+- **Walkthrough** (#35): per-demo context + Enter pauses, `--list`,
+  `--from <demo|actN>`; `--auto` for CI. `demo-jbang-prototype.sh` now runs a
+  local `HelloRoute.java` with pinned `//DEPS` (Camel 4.22.1, slf4j-simple
+  2.0.20) — no `camel@apache/camel` alias (it pulled GitHub `blob/HEAD`,
+  added the snapshot repo, and popped a JBang GUI trust dialog).
+- **Skills** (patterncatalyst/lgtm-skills #16, #18–#21): new
+  `lgtm-professional-voice` (scanner `scripts/scan.sh`); stable-only rule and
+  pinned installs in `lgtm-quarkus`/`lgtm-camel`; corrected `camel-mcp` setup.
+- **MCP servers registered (user scope), both connect**:
+  `quarkus-agent` = `jbang io.quarkus:quarkus-agent-mcp:1.2.11:runner`;
+  `camel-mcp` = `jbang -Dcamel.mcp.transport=stdio org.apache.camel:camel-launcher:4.22.1 mcp`
+  (one-time `camel plugin add mcp` already done; `~/.camel-jbang-plugins.json`).
+  A new session loads them — use them per CLAUDE.md.
+
+### Walkthrough status (`bash demos/walkthrough.sh --from act4 --with-native --auto`)
+| Demo | Result |
+|---|---|
+| demo-jbang-prototype, demo-continuous-testing, demo-panama | passed |
+| demo-native | **passed** (2026-10-06): Mandrel container build 136 s, 141 MB runner, **startup 0.081 s**, `GET /orders` served with no JVM |
+| demo-keda-kafka, demo-keda-http (act 5) | **not run — no cluster** |
+
+### Next steps (in order)
+1. **Docker Desktop resize — pending on the user.** Saved settings and the live
+   VM still show 8 CPUs / 16 GB / 64 GB disk (98% full, ~970 MB free). Target:
+   *Settings → Resources* Memory 28 GB, Disk 200 GB, CPUs 8 (host has 16),
+   *Apply & restart*. Verify: `docker info --format '{{.NCPU}} {{.MemTotal}}'`
+   ≈ 8 / ~27 GiB and `docker run --rm alpine:3 df -h /` shows the larger disk.
+   Alternative: native `docker-ce` 29.8.2 is installed but inactive
+   (`sudo systemctl start docker`, then `--context default`).
+2. **Bootstrap full-size cluster**: `MINIKUBE_CPUS=8 ./scripts/bootstrap.sh`
+   (24 GB / 80 GB defaults; CPUs reduced to 8 to fit the Desktop VM — record
+   that deviation in ch02/ch07 footers). Long-running; run in background.
+3. **Run act 5**: `bash demos/walkthrough.sh --from act5 --with-minikube --auto`.
+   demo-keda-kafka was verified on a cluster before (5885b28); keda-http has
+   never been confirmed end to end.
+4. **Record the native result**: ch11 + ch12 footers, the 201 deck notes
+   ("native not exercised"), and `_plans/reconciliation.md` still say native
+   was not run — update with the 2026-10-06 numbers above.
+
+### Session rules learned (also in memory)
+- Agents never run demos that invoke remote JBang sources; run JBang work
+  headless (`env -u DISPLAY -u WAYLAND_DISPLAY`, `JAVA_TOOL_OPTIONS=-Djava.awt.headless=true`, stdin `</dev/null`).
+- Don't prune Docker images/named volumes or change Docker Desktop/system
+  services without asking. The 2026-10-06 prune removed only anonymous
+  volumes (3.3 GB) + build cache (1.1 GB); 8 named volumes kept.
+- Voice: senior-engineer audience; run `~/.claude/skills/lgtm-professional-voice/scripts/scan.sh` on touched files.
+
+---
+
+## History (build phases)
+
 **Read this first after any /compact or restart.** Then read
 [build-plan.md](build-plan.md) (steps + status table) and
 [decisions.md](decisions.md) (DRQ-001…015).
