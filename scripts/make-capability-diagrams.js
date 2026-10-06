@@ -185,10 +185,10 @@ const lbl = (s, x, y, t, o = {}) => T(s, x, y, t, { size: 14, fill: MUT, italic:
   frame(s, 40, 226, 1100, 150, "Used in this project", "gray");
   const bw = 252, bg = 14, bx = 60, byy = 270, bh = 84;
   [
-    [{ t: "HelloRoute.java", mono: true }, ["Camel route prototype, run via", "camel@apache/camel"]],
+    [{ t: "HelloRoute.java", mono: true }, ["Camel route prototype with", "pinned //DEPS (Camel 4.22.1)"]],
     [{ t: "WsNotificationClient.java", mono: true }, ["WebSocket client for", "the push demo"]],
     [{ t: "PanamaFfm.java", mono: true }, ["Foreign Function & Memory", "calls into libc"]],
-    ["App catalog", [{ t: "camel@apache/camel", mono: true }, { t: "quarkus@quarkusio", mono: true }]],
+    ["Pinned tools", [{ t: "camel-launcher:4.22.1", mono: true }, { t: "quarkus-agent-mcp:1.2.11", mono: true }]],
   ].forEach(([hd, ln], i) => box(s, bx + i * (bw + bg), byy, bw, bh, i === 3 ? "tan" : "white", hd, ln, { lh: 20, hsize: 14 }));
   save("11-jbang-tooling", s);
 })();
