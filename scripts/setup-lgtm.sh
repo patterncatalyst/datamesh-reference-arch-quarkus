@@ -58,7 +58,7 @@ for repo in \
     "open-telemetry=https://open-telemetry.github.io/opentelemetry-helm-charts"
 do
     name="${repo%=*}"; url="${repo#*=}"
-    if helm repo list 2>/dev/null | grep -q "^${name}"; then
+    if helm repo list 2>/dev/null | grep -q "^${name}[[:space:]]"; then
         helm repo update "$name" >/dev/null
     else
         helm repo add "$name" "$url"
