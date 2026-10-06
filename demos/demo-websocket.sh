@@ -199,6 +199,7 @@ info "log: $NOTIF_LOGFILE"
     APICURIO_REGISTRY_URL="http://localhost:${APICURIO_PORT}/apis/registry/v3" \
     java -Dquarkus.http.port="$NOTIFICATION_PORT" \
         -Dmp.messaging.incoming.order-placed.topic="$TOPIC" \
+        -Dmp.messaging.incoming.order-placed-push.topic="$TOPIC" \
         -Dorg.apache.avro.SERIALIZABLE_PACKAGES="$AVRO_SERIALIZABLE_PACKAGES" \
         -jar target/quarkus-app/quarkus-run.jar \
 ) >"$NOTIF_LOGFILE" 2>&1 &

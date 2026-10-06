@@ -203,8 +203,17 @@ for (( i = 0; i < 60; i++ )); do
 done
 (( OLLAMA_READY == 1 )) \
     || fail "Ollama not reachable at ${OLLAMA_URL} after bringing up the compose 'ollama' profile"
-grep -q 'qwen2.5:3b' /tmp/demo-orch-ollama-tags.$$ \
-    || fail "qwen2.5:3b not found in Ollama's model list at ${OLLAMA_URL}/api/tags — pull it into the compose volume first: docker exec datamesh-ollama ollama pull qwen2.5:3b"
+# Pull the model into the compose volume when it is missing, as
+# demo-ai-classify.sh does, so this demo also works on a fresh machine where
+# act 2 runs before any act 3 demo has pulled it.
+if ! grep -q 'qwen2.5:3b' /tmp/demo-orch-ollama-tags.$$; then
+    info "qwen2.5:3b not found in the ollama container -- pulling (first pull is slow)"
+    docker exec datamesh-ollama ollama pull qwen2.5:3b \
+        || fail "docker exec datamesh-ollama ollama pull qwen2.5:3b failed"
+    curl -fsS --max-time 5 "${OLLAMA_URL}/api/tags" > /tmp/demo-orch-ollama-tags.$$ 2>/dev/null || true
+    grep -q 'qwen2.5:3b' /tmp/demo-orch-ollama-tags.$$ \
+        || fail "qwen2.5:3b still not listed in ${OLLAMA_URL}/api/tags after pull"
+fi
 rm -f /tmp/demo-orch-ollama-tags.$$
 info "Ollama is up and qwen2.5:3b is pulled"
 

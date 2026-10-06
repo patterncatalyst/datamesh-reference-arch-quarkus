@@ -21,12 +21,12 @@
 # regress into the upstream Ollama tool-calling failure — there is no
 # in-process tool-calling round trip to fail in the first place.
 #
-# Infra: this demo talks to a HOST Ollama already running on
-# http://localhost:11434 (ai-rules-service's application.properties already
-# points there) — it does not start/stop Ollama itself (compose_up ollama is
-# also an option, but would collide with an already-running host Ollama on
-# the same port, so this script assumes host Ollama is up, same as this
-# module's opt-in IT does).
+# Infra: ai-rules-service calls Ollama at http://localhost:11434 (its
+# application.properties points there). If a host Ollama already answers on
+# that port, the demo uses it. Otherwise it starts the compose `ollama`
+# profile, which publishes the same port, pulls qwen2.5:3b into the compose
+# volume if needed, and stops the profile on exit. It never starts the
+# profile while a host Ollama holds the port.
 #
 # Service lifecycle: this module's pom.xml is missing the
 # quarkus-maven-plugin <build> binding that its sibling modules
@@ -57,14 +57,36 @@ narrate "same TriageService logic: /triage (Camel route) vs /triage-flow (Quarku
 narrate "Flow workflow). This shape structurally avoids the tool-calling defect —"
 narrate "zero langchain4j tool-calling anywhere in either path."
 
-# ─── Preflight: host Ollama must be reachable with qwen2.5:3b pulled ────────
-step "preflight: host Ollama"
-curl -fsS --max-time 5 "${OLLAMA_URL}/api/tags" >/tmp/demo-ai-triage-ollama-tags.$$ 2>/dev/null \
-    || fail "host Ollama not reachable at ${OLLAMA_URL} — start it (ollama serve) before running this demo"
-grep -q 'qwen2.5:3b' /tmp/demo-ai-triage-ollama-tags.$$ \
-    || fail "qwen2.5:3b not found in Ollama's model list at ${OLLAMA_URL}/api/tags — run: ollama pull qwen2.5:3b"
-rm -f /tmp/demo-ai-triage-ollama-tags.$$
-info "host Ollama is up and qwen2.5:3b is pulled"
+# ─── Preflight: Ollama reachable with qwen2.5:3b pulled ─────────────────────
+# A host Ollama on the port is used as is; otherwise the compose profile is
+# started here and stopped in the EXIT trap below.
+step "preflight: Ollama (host, or the compose ollama profile)"
+STARTED_COMPOSE_OLLAMA=0
+if curl -fsS --max-time 5 "${OLLAMA_URL}/api/tags" >/dev/null 2>&1; then
+    info "Ollama already answering at ${OLLAMA_URL}; using it"
+else
+    info "no Ollama at ${OLLAMA_URL}; starting the compose ollama profile"
+    compose_up ollama
+    STARTED_COMPOSE_OLLAMA=1
+    # Stop the profile on any exit before the service trap below replaces
+    # this; preserve the exit code for _demo_exit_trap.
+    _cleanup_ollama() { local rc=$?; compose_down ollama >/dev/null 2>&1 || true; return "$rc"; }
+    trap '_cleanup_ollama; _demo_exit_trap' EXIT
+    wait_http "${OLLAMA_URL}/api/tags" 150 \
+        || fail "compose Ollama did not answer at ${OLLAMA_URL}/api/tags within 150s"
+fi
+if ! curl -fsS --max-time 5 "${OLLAMA_URL}/api/tags" | grep -q 'qwen2.5:3b'; then
+    if (( STARTED_COMPOSE_OLLAMA )); then
+        info "qwen2.5:3b not found in the ollama container -- pulling (first pull is slow)"
+        docker exec datamesh-ollama ollama pull qwen2.5:3b \
+            || fail "docker exec datamesh-ollama ollama pull qwen2.5:3b failed"
+    else
+        fail "qwen2.5:3b not found in the host Ollama's model list at ${OLLAMA_URL}/api/tags — run: ollama pull qwen2.5:3b"
+    fi
+fi
+curl -fsS --max-time 5 "${OLLAMA_URL}/api/tags" | grep -q 'qwen2.5:3b' \
+    || fail "qwen2.5:3b still not listed at ${OLLAMA_URL}/api/tags"
+info "Ollama is up and qwen2.5:3b is pulled"
 
 # ─── Build + start ai-rules-service as a packaged jar ───────────────────────
 step "build ai-rules-service"
@@ -88,6 +110,7 @@ echo "$!" > "$SVC_PIDFILE"
 _cleanup_service() {
     local rc=$?
     svc_stop "$SVC_PIDFILE" 2>/dev/null || true
+    (( STARTED_COMPOSE_OLLAMA )) && { compose_down ollama >/dev/null 2>&1 || true; }
     return "$rc"
 }
 trap '_cleanup_service; _demo_exit_trap' EXIT
