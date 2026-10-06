@@ -36,10 +36,10 @@ don't let it fall behind the build-plan step table in `build-plan.md`
 | _(none — new)_ | `_docs/12-quarkus-vs-spring-boot.md` | verified | compare script run 2026-10-05, JVM and `--aot`; single run, not a benchmark |
 | _(none — new)_ | `_docs/13-orchestration-styles.md` | verified | demo-orchestration-styles passed with Ollama (acts 2-3); unit tests green |
 | _(none — new)_ | `_docs/14-ai-rules-triage.md` | verified | demo-ai-classify, demo-ai-mcp, demo-camel-integration, demo-ai-triage passed with Ollama qwen2.5:3b |
-| _(none — new)_ | `_docs/16-websocket-scaling.md` | verified (partial) | Two-replica fan-out run on minikube; replica failure and client reconnect conceptual |
+| _(none — new)_ | `_docs/16-websocket-scaling.md` | verified | Two-replica fan-out on minikube; replica failure and client reconnect verified 2026-10-06 with `tooling/ws-failover/verify-ws-failover.sh` (#48) |
 | _(none — new)_ | `_docs/17-gotchas.md` | verified | Fixes re-run green by `mvn verify` |
 | _(none — new)_ | `_docs/18-agentic-recommendations.md` | conceptual | Distilled recommendations; no build or demo; upstream langchain4j defect claim to re-check |
-| _(none — new)_ | `_docs/19-testing-details.md` | verified (partial) | Automated tiers green; Newman collection and hey/ghz load scripts not exercised |
+| _(none — new)_ | `_docs/19-testing-details.md` | verified | Automated tiers green; Newman 49/49 and hey/ghz load passes ran 2026-10-06 via `run-all-tests.sh --load` (#47) |
 | _(none — new)_ | `_docs/20-messaging-in-memory-vs-kafka.md` | verified (partial) | In-memory connector tests green; Vert.x event-bus and Kafka scaling material conceptual |
 | _(none — new)_ | `_docs/21-orchestration-engines-compared.md` | verified | Orchestration tests green; demos passed with Ollama 2026-10-06 (single run) |
 
@@ -121,6 +121,8 @@ don't let it fall behind the build-plan step table in `build-plan.md`
 | `scripts/audit-fedora-prereqs.sh` | (evaluate: docker prereq audit) | not ported | Fedora/podman-specific; dropped, no docker audit written |
 | `scripts/editorial-audit.sh` | `scripts/editorial-audit.sh` | not ported | Not carried over; `lgtm-professional-voice` scan covers it |
 | `scripts/test-template.sh` | `scripts/test-template.sh` | not ported | Not carried over; `scripts/run-all-tests.sh` is the test entry point |
+| _(none — new)_ | `tooling/newman/`, `tooling/load/` | verified | 2026-10-06 `run-all-tests.sh --load`: Newman 49/49; hey ~18k req/s all 200; ghz ~12k calls/s, 8 Unavailable + 1 Canceled; newman 6.2.2, hey v0.1.5, ghz v0.121.0 pinned |
+| _(none — new)_ | `tooling/ws-failover/verify-ws-failover.sh` + `demos/jbang/WsReconnectClient.java` | verified | 2026-10-06 on minikube: replica deleted, client reconnected (979 ms backoff), catch-up without duplicate, next order from the survivor |
 | `examples/.../scripts/build-image.sh` | `scripts/build-image.sh` | not ported | Folded into `scripts/load-images.sh` (docker build + minikube image load); UBI Containerfiles |
 | _(none — new)_ | `scripts/load-images.sh` | verified | Builds service images and loads them into minikube (containerd); 2026-10-06 act 5 |
 | _(none — new)_ | `scripts/setup-profile.sh` | verified | minikube profile; 2026-10-06 bootstrap |
@@ -182,7 +184,7 @@ content is explanatory or conceptual and was not run.
 | _(none — new)_ | Figure `11-startup-paths` | unverified | Qualitative; numbers are in chapter 12 |
 | _(none — new)_ | Figure `11-panama-ffm` | unverified | Explanatory; the code it describes was run (see Panama row) |
 | _(none — new)_ | Figure `11-oidc-token-flow` | unverified | Explanatory; the flow matches what `demo-oidc.sh` exercised |
-| _(none — new)_ | Figure `16-websocket-failover` | unverified | Reconnect and backoff are conceptual; `WsNotificationClient` does not implement them |
+| _(none — new)_ | Figure `16-websocket-failover` | verified | The drawn flow matches the 2026-10-06 `verify-ws-failover.sh` run: socket closed on replica loss, jittered backoff, reconnect, catch-up via `GET /notifications` |
 | _(none — new)_ | Figure `20-vertx-in-memory` | unverified | Event bus usage is illustrative; the project uses the in-memory connector in shipping-service tests |
 | _(none — new)_ | Figure `20-kafka-messaging` | unverified | Explanatory; consumer groups and partitions as used by the Kafka legs |
 
