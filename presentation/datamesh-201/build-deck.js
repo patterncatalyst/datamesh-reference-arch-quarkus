@@ -709,7 +709,7 @@ diagramSlide({ eyebrow: "Appendix A1", title: "Scaling WebSocket push with Kafka
 diagramSlide({ eyebrow: "Appendix A1", title: "Surviving a replica failure",
   image: "16-websocket-failover",
   caption: "The socket closes, the client backs off with jitter, and a reconnect lands on a replica that already receives every event.",
-  notes: "Three panels. Normal: the client is connected to replica 2. Replica 2 fails: the socket closes and the client retries with backoff and jitter (1 s, 2 s, 4 s, and so on). Recovery: the Service routes the reconnect to replica 1 or 3, which already receives every event through its own push group, and the client fetches missed events with GET /notifications. Status: client reconnect and backoff is a recommended pattern. WsNotificationClient does not implement it, and it has not been verified." });
+  notes: "Three panels. Normal: the client is connected to replica 2. Replica 2 fails: the socket closes and the client retries with backoff and jitter (1 s, 2 s, 4 s, and so on). Recovery: the Service routes the reconnect to replica 1 or 3, which already receives every event through its own push group, and the client fetches missed events with GET /notifications. Status: verified 2026-10-06 with tooling/ws-failover/verify-ws-failover.sh and the WsReconnectClient: with two replicas, deleting the one holding the socket closed it, the client reconnected after a jittered 979 ms backoff, caught up through GET /notifications with no duplicate, and received the next order from the survivor. Single run." });
 
 diagramSlide({ eyebrow: "Appendix A2", title: "Gotchas",
   image: "17-gotchas",

@@ -285,14 +285,22 @@ The client side needs three behaviors:
 
 {% include excalidraw.html file="16-websocket-failover" alt="Three panels from left to right. Normal: a client holds a WebSocket to replica 2 while replicas 1, 2 and 3 each receive every event from Kafka through their own push consumer group. Replica 2 fails: its socket closes and the client waits with jittered exponential backoff, for example 1 s, 2 s, 4 s. Recover: the Service routes the reconnect to replica 1 or 3, which already receives every event, and the client re-fetches missed events through GET /notifications." caption="Figure A1.2 — Replica failure and client reconnect" %}
 
-The server half of this is the pattern described above and was verified
-with two replicas. The client half is a recommended pattern and is not
-implemented in this repository: the
-[WsNotificationClient]({{ site.repo_blob }}/demos/jbang/WsNotificationClient.java)
-jbang client used by `demo-websocket.sh` connects once, and treats a close
-before it has received the expected messages as an error. `OrderNotificationSocket`
-sends only the `connected` frame and does not replay history on connect.
-Killing a replica and observing a client recover has not been run.
+Both halves are in the repository. The client half is
+[WsReconnectClient.java]({{ site.repo_blob }}/demos/jbang/WsReconnectClient.java),
+a JDK-only client: it treats a close or error as a reason to reconnect, waits
+1 s, 2 s, 4 s and so on up to 16 s, each scaled by a random factor between 0.5
+and 1.5, re-fetches `GET /notifications` after every connect, and
+de-duplicates by order id across the push and catch-up paths.
+[verify-ws-failover.sh]({{ site.repo_blob }}/tooling/ws-failover/verify-ws-failover.sh)
+drives it on the local Kubernetes cluster: it holds `notification-service` at
+two replicas by pausing the ScaledObject, runs the client in-cluster against
+the `Service`, deletes the replica holding the client's socket (found by
+elimination), and checks that the client reconnects, catches up without a
+duplicate, and receives the next order from the survivor's own push
+consumer. `OrderNotificationSocket` still sends only the `connected` frame
+and does not replay history on connect; the catch-up comes from the client.
+The simpler `WsNotificationClient` used by `demo-websocket.sh` connects once
+and is unchanged.
 
 ## KEDA and scale-to-zero: a socket pins a replica up
 
@@ -361,4 +369,4 @@ scaled, socket-holding variant of this service.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> for the fan-out; <span class="status status--unverified">unverified</span> for replica failure and client reconnect, which is a conceptual pattern that was not run (`WsNotificationClient` does not implement reconnect). The multi-replica fan-out was driven on a local Kubernetes cluster (`minikube`) with two `notification-service` replicas. Each replica's push consumer registered its own unique Kafka group (`notification-push-${HOSTNAME}` resolved to the two distinct pod names, confirmed alongside the shared `notification-service` persistence group), so every replica received every `order.placed` record. A WebSocket client was connected to each replica; a single order was placed, and both clients independently received the push for that same order id — the Kafka-backed broadcast across per-replica consumer groups behaving as described. (`OrderPlacedConsumer` persists on the shared group; `OrderPlacedPushConsumer` pushes on the per-replica group.) The single-replica `demo-websocket.sh` passed on 2026-10-06 after a fix: the demo isolates each run on its own Kafka topic, and it now overrides the push channel (`order-placed-push`) as well as the persistence channel, so the pushed message reaches the socket.*
+*Verification status: <span class="status status--verified">verified</span> for the fan-out and for replica failure and client reconnect. On 2026-10-06, `tooling/ws-failover/verify-ws-failover.sh` held two replicas, received order A over the first connection as a push, deleted the replica holding the socket (`WS_CLOSED code=1000`), reconnected after a jittered 979 ms backoff, re-fetched 183 notifications with no new or duplicate order, and received order B as a push from the surviving replica. Single run. The multi-replica fan-out was driven on a local Kubernetes cluster (`minikube`) with two `notification-service` replicas. Each replica's push consumer registered its own unique Kafka group (`notification-push-${HOSTNAME}` resolved to the two distinct pod names, confirmed alongside the shared `notification-service` persistence group), so every replica received every `order.placed` record. A WebSocket client was connected to each replica; a single order was placed, and both clients independently received the push for that same order id — the Kafka-backed broadcast across per-replica consumer groups behaving as described. (`OrderPlacedConsumer` persists on the shared group; `OrderPlacedPushConsumer` pushes on the per-replica group.) The single-replica `demo-websocket.sh` passed on 2026-10-06 after a fix: the demo isolates each run on its own Kafka topic, and it now overrides the push channel (`order-placed-push`) as well as the persistence channel, so the pushed message reaches the socket.*
