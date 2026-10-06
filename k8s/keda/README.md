@@ -99,7 +99,7 @@ kubectl get httpscaledobject graphql-gateway-httpscaledobject -n datamesh
 # (demo-keda-http.sh automates this), e.g.:
 kubectl run -n datamesh curl-test --rm -it --image=curlimages/curl --restart=Never -- \
   curl -H "Host: graphql-gateway.datamesh.svc.cluster.local" \
-  http://keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local/graphql
+  http://keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local:8080/graphql
 ```
 
 ## Static validation

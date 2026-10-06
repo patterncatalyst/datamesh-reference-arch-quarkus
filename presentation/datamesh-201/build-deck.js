@@ -515,7 +515,7 @@ contentSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "Scal
     { text: "The interceptor's wait timeout is raised from 20 s to 180 s to cover a cold JVM boot.", lvl: 1 },
     { text: "Asserted: a scaled-to-zero deployment reaches at least one replica within a 240-second budget.", lvl: 1 },
   ],
-  notes: "DEMO 16 of 19. What it does: scales graphql-gateway from zero on inbound HTTP request rate through the KEDA HTTP add-on's interceptor. What to show: a scaled-to-zero deployment reaching at least one replica within budget. Infra: opt-in local Kubernetes cluster, the same platform as demo-keda-kafka.sh. Fallback: a recorded scale-up timeline. Status: unverified; the HTTP add-on demo has not been run end to end. A scaled-to-zero workload reports 'unknown' health until the first request; that is expected, and worth answering before someone asks." });
+  notes: "DEMO 16 of 19. What it does: scales graphql-gateway from zero on inbound HTTP request rate through the KEDA HTTP add-on's interceptor. What to show: a scaled-to-zero deployment reaching at least one replica within budget. Infra: opt-in local Kubernetes cluster, the same platform as demo-keda-kafka.sh. Fallback: a recorded scale-up timeline. Status: verified 2026-10-06; graphql-gateway scaled 0 to 1 and all 120 GraphQL requests through the interceptor returned 200, single run. A scaled-to-zero workload reports 'unknown' health until the first request; that is expected, and worth answering before someone asks." });
 
 /* ====================== 07 · GOVERNANCE, MESH, OBSERVABILITY ====================== */
 (() => {

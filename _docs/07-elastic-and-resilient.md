@@ -152,7 +152,7 @@ spec:
 `hosts` is the in-cluster Service FQDN rather than an external hostname, because this
 stack has no Ingress. Operationally, traffic only counts toward this scaler if it goes
 *through* the HTTP add-on's own interceptor proxy Service
-(`keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local`) with the `Host` header
+(`keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local:8080`) with the `Host` header
 set to that FQDN. A request sent directly to `graphql-gateway`'s own `ClusterIP`
 Service bypasses the interceptor: it is never counted and does not wake a
 scaled-to-zero Deployment. `scaleTargetRef.service` plus exactly one of `port`/
@@ -302,4 +302,4 @@ products.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. Observed directly on a local Kubernetes cluster (`minikube`): both ScaledObjects drive their targets to zero at rest (`notification-service` and `graphql-gateway` sit at 0 replicas), and `notification-service` scales up from zero on Kafka consumer-group lag — placing valid orders emits `order.placed`, lag crosses the threshold, and KEDA activates the ScaledObject and scales the deployment 0→1. Driving this surfaced a bug in `demo-keda-kafka.sh` (it posted orders for an unseeded SKU, so order placement 409'd and produced no events), now fixed by seeding stock before the burst. The KEDA HTTP add-on scaler (scale-from-zero on request rate) was not separately confirmed in this pass.*
+*Verification status: <span class="status status--verified">verified</span>. Observed directly on a local Kubernetes cluster (`minikube`): both ScaledObjects drive their targets to zero at rest (`notification-service` and `graphql-gateway` sit at 0 replicas), and `notification-service` scales up from zero on Kafka consumer-group lag — placing valid orders emits `order.placed`, lag crosses the threshold, and KEDA activates the ScaledObject and scales the deployment 0→1. Driving this surfaced a bug in `demo-keda-kafka.sh` (it posted orders for an unseeded SKU, so order placement 409'd and produced no events), now fixed by seeding stock before the burst. Re-run on 2026-10-06 through `demos/walkthrough.sh --from act5 --with-minikube`: both demos passed. `demo-keda-kafka` scaled `notification-service` 0→1 on lag from 60 orders and drained back to 0 after the cooldown; `demo-keda-http` scaled `graphql-gateway` 0→1 through the interceptor, and all 120 GraphQL requests returned 200, including the first, held during the cold start. That run fixed three demo bugs: the HTTP load targeted the interceptor proxy on port 80 instead of 8080, it sent a bare GET that the gateway answers with 405, and both demos started from one running replica, which drained the burst before KEDA's 15 s poll saw any load. Each demo now scales its target to zero and waits out KEDA's scale-down window before the burst. Single run.*

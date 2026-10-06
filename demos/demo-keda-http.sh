@@ -88,6 +88,8 @@ NS="datamesh"
 KEDA_NS="keda"
 K8S_DIR="${REPO_ROOT}/k8s"
 INTERCEPTOR_HOST="keda-add-ons-http-interceptor-proxy.${KEDA_NS}.svc.cluster.local"
+# The proxy Service listens on 8080, not 80 (kubectl get svc -n keda).
+INTERCEPTOR_PORT=8080
 SCALED_HOST="graphql-gateway.${NS}.svc.cluster.local"
 
 narrate "KEDA HTTP add-on scaling graphql-gateway 0 -> N on inbound request"
@@ -187,6 +189,26 @@ get_replicas() {
     echo "$val"
 }
 
+# ─── Start from zero. The demo shows the interceptor holding a request
+# while KEDA scales the gateway up from zero.
+# `kubectl apply -k` above resets .spec.replicas to the base value of 1, so
+# request zero explicitly. If the trigger is idle, KEDA holds it there. If it
+# saw traffic recently (an earlier run), KEDA restores a replica until its
+# scale-down window passes (the HTTP add-on's default scaledownPeriod of 300 s), so wait for that
+# rather than racing it.
+step "reset: scale graphql-gateway to zero (the state KEDA scales up from)"
+kubectl scale deployment graphql-gateway -n "$NS" --replicas=0 >/dev/null \
+    || fail "kubectl scale deployment/graphql-gateway --replicas=0 failed"
+RESET_BUDGET=420
+for (( i = 0; i < RESET_BUDGET; i += 5 )); do
+    [[ -z "$(kubectl get pods -n "$NS" -l app.kubernetes.io/name=graphql-gateway -o name 2>/dev/null)" ]] && break
+    (( i % 60 == 0 && i > 0 )) && info "waiting for KEDA's scale-down window before the burst (${i}s)"
+    sleep 5
+done
+[[ -z "$(kubectl get pods -n "$NS" -l app.kubernetes.io/name=graphql-gateway -o name 2>/dev/null)" ]] \
+    || fail "graphql-gateway still has pods ${RESET_BUDGET}s after requesting zero replicas; check for traffic or lag still holding the KEDA trigger active"
+info "graphql-gateway is at zero replicas with no pods"
+
 BASELINE_REPLICAS="$(get_replicas)"
 info "baseline graphql-gateway replicas: ${BASELINE_REPLICAS}"
 
@@ -198,10 +220,13 @@ step "generate load: burst requests through the KEDA HTTP add-on interceptor"
 
 LOADGEN_POD="demo-keda-http-loadgen-$$"
 # 120 requests, comfortably above scalingMetric.requestRate.targetValue=50
-# per 1m window (k8s/keda/gateway-httpscaledobject.yaml). --max-time bounds
-# each request so a cold-starting backend (interceptor.replicas.waitTimeout=
-# 180s, scripts/setup-keda.sh) can't stall the whole burst indefinitely.
-LOADGEN_SCRIPT="i=0; while [ \$i -lt 120 ]; do curl -s -o /dev/null --max-time 5 -w '%{http_code} ' -H 'Host: ${SCALED_HOST}' http://${INTERCEPTOR_HOST}/graphql; i=\$((i+1)); done; echo"
+# per 1m window (k8s/keda/gateway-httpscaledobject.yaml). Each is a valid
+# GraphQL POST ({__typename}), so a served request returns 200; a bare GET
+# returns 405 from the gateway. The first request waits in the interceptor
+# while the gateway starts from zero, so --max-time (30 s) covers a JVM cold
+# start and still bounds the burst below interceptor.replicas.waitTimeout=180s
+# (scripts/setup-keda.sh).
+LOADGEN_SCRIPT="i=0; while [ \$i -lt 120 ]; do curl -s -o /dev/null --max-time 30 -w '%{http_code} ' -H 'Host: ${SCALED_HOST}' -H 'Content-Type: application/json' -d '{\"query\":\"{__typename}\"}' http://${INTERCEPTOR_HOST}:${INTERCEPTOR_PORT}/graphql; i=\$((i+1)); done; echo"
 
 _cleanup_loadgen_pod() {
     local rc=$?
@@ -214,7 +239,7 @@ kubectl run "$LOADGEN_POD" -n "$NS" --restart=Never --image=curlimages/curl:8.11
     --command -- /bin/sh -c "$LOADGEN_SCRIPT" \
     || fail "failed to start load-generator pod ${LOADGEN_POD}"
 
-# Wait for the burst to finish (120 requests x up to 5s --max-time each in
+# Wait for the burst to finish (120 requests x up to 30s --max-time each in
 # the worst case of a slow cold start, bounded by this budget).
 LOADGEN_DONE=0
 for (( i = 0; i < 240; i++ )); do
@@ -229,6 +254,8 @@ done
 
 LOADGEN_LOG="$(kubectl logs "$LOADGEN_POD" -n "$NS" 2>/dev/null || true)"
 info "interceptor response codes from the burst: ${LOADGEN_LOG:-<none captured>}"
+[[ " ${LOADGEN_LOG} " == *" 200 "* ]] \
+    || fail "no request through the interceptor returned 200 (codes: ${LOADGEN_LOG:-<none captured>}); the gateway did not serve traffic after scaling from zero"
 
 # ─── Assert: replica count climbs off baseline (wakes from scale-to-zero) ───
 step "assert: graphql-gateway replica count increases on HTTP load"
