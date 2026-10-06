@@ -14,6 +14,8 @@ tooling/
   load/
     load-orders.sh                    # hey-based load generator for POST /orders
     load-checkstock.sh                # ghz-based gRPC load generator for CheckStock
+  ws-failover/
+    verify-ws-failover.sh             # chapter 16: replica failure + client reconnect on minikube
 ```
 
 ## Prerequisites
@@ -190,3 +192,18 @@ pick one by name rather than guessing flags:
   password grant) — out of scope for an unattended Newman run.
 - **The notification WebSocket.** Not an HTTP or gRPC unary endpoint, so
   neither Newman, `hey`, nor `ghz` can reach it.
+
+## Verify WebSocket replica failover (Kubernetes)
+
+```bash
+./tooling/ws-failover/verify-ws-failover.sh
+```
+
+Runs on the local Kubernetes cluster rather than the compose stack. It needs
+`./scripts/bootstrap.sh`, `./scripts/load-images.sh`, and the app overlay and
+KEDA scalers applied (`demos/demo-keda-kafka.sh` applies both). It pauses
+`notification-service`'s ScaledObject at two replicas, runs
+`demos/jbang/WsReconnectClient.java` in-cluster
+(`eclipse-temurin:25.0.4_7-jdk`), deletes the replica holding the client's
+socket, and asserts reconnect, catch-up without duplicates, and delivery of
+the next order. The pause is removed on exit.
