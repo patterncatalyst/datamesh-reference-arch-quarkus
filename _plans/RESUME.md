@@ -74,7 +74,7 @@ loaded first).
 - Ch20 Vert.x event-bus material is explanatory; ch1/ch18 are conceptual.
 - 26 python-repo artifacts are `not ported` (OpenMetadata tooling, replaced
   helper scripts); see `_plans/reconciliation.md`.
-- Notion 1-hour abstract (build-plan step 15) not written.
+- Notion 1-hour abstract (build-plan step 15) written 2026-10-06 under Notion Abstracts.
 - DEF-001: in-process Ollama tool calling stays deferred upstream; the MCP
   server path is the verified one.
 

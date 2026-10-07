@@ -27,14 +27,14 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 | 7 | Quarkus data-product services (Panache/gRPC/GraphQL/Kafka) | B | lgtm-quarkus, quarkus-agent, camel-mcp | DONE + validated (mvn verify green: 21 tests, 0 fail; DEF-002 wire-byte test pending Phase C) |
 | 8 | Docker compose + Testcontainers + devcontainer | C | lgtm-docker-stack | DONE + validated (compose live-healthy: pg18/kafka-native4.2.0/apicurio3.1.7/lgtm; %prod env config; UBI Containerfiles; devcontainer; DEF-002 Avro-wire IT green) |
 | 9 | Minikube/K8s substrate + KEDA | C | lgtm-minikube-stack | DONE (substrate scripts + kustomize apps + KEDA scalers; CRD-schema-validated, no live cluster bring-up) |
-| 10 | Demos 1:1 with slides | D | lgtm-quarkus, lgtm-camel, MCPs | WIP (plan: _plans/phase-d-step10-plan.md; DRQ-012 embedded-Drools showcase) |
-| 11 | Tutorial chapters (+ Spring-Boot compare; incl. DRQ-015 orchestration-styles chapter) | D | lgtm-tutorial, quarkus-agent, camel-mcp | pending |
-| 12 | Diagrams (uniform) | D | lgtm-diagram-generator | pending |
-| 13 | Presentation deck (incl. DRQ-015: Kafka/Camel/Quarkus Flow orchestration-styles comparison + per-engine slides) | D | lgtm-presentation | pending |
-| 14 | Newman/load tooling | E | lgtm-quarkus | pending |
-| 15 | Notion 1-hour abstract | E | Notion MCP | pending |
-| 16 | (optional) refresh lgtm-quarkus ancillary pins | E | — | optional |
-| 17 | Validate → publish to GitHub (after approval) | E | lgtm-github | pending |
+| 10 | Demos 1:1 with slides | D | lgtm-quarkus, lgtm-camel, MCPs | DONE (19 demos in five acts; all passed end to end 2026-10-06) |
+| 11 | Tutorial chapters (+ Spring-Boot compare; incl. DRQ-015 orchestration-styles chapter) | D | lgtm-tutorial, quarkus-agent, camel-mcp | DONE (22 chapters incl. ch12 Spring Boot compare, ch13 orchestration styles) |
+| 12 | Diagrams (uniform) | D | lgtm-diagram-generator | DONE (44 paired Excalidraw sources with SVGs) |
+| 13 | Presentation deck (incl. DRQ-015: Kafka/Camel/Quarkus Flow orchestration-styles comparison + per-engine slides) | D | lgtm-presentation | DONE (101 deck r1.1, 17 slides; 201 deck r1.1, 102 slides) |
+| 14 | Newman/load tooling | E | lgtm-quarkus | DONE (Newman 49/49, hey and ghz load runs, 2026-10-06; #47) |
+| 15 | Notion 1-hour abstract | E | Notion MCP | DONE (2026-10-06; "A Data Mesh That Runs on a Laptop (60 min)", house format, filed under Notion Abstracts) |
+| 16 | (optional) refresh lgtm-quarkus ancillary pins | E | — | DONE (quarkus-junit names lgtm-skills#23; image and tool pins #37, #39, #40, #47) |
+| 17 | Validate → publish to GitHub (after approval) | E | lgtm-github | DONE (repo public; all 5 walkthrough acts and `mvn verify` passed 2026-10-06) |
 
 ## Demo ↔ slide ↔ capability matrix
 
