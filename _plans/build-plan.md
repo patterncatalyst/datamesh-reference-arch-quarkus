@@ -32,9 +32,9 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 | 12 | Diagrams (uniform) | D | lgtm-diagram-generator | pending |
 | 13 | Presentation deck (incl. DRQ-015: Kafka/Camel/Quarkus Flow orchestration-styles comparison + per-engine slides) | D | lgtm-presentation | pending |
 | 14 | Newman/load tooling | E | lgtm-quarkus | pending |
-| 15 | Notion 1-hour abstract | E | Notion MCP | pending |
-| 16 | (optional) refresh lgtm-quarkus ancillary pins | E | — | optional |
-| 17 | Validate → publish to GitHub (after approval) | E | lgtm-github | pending |
+| 15 | Notion 1-hour abstract | E | Notion MCP | DONE (2026-10-06; "A Data Mesh That Runs on a Laptop (60 min)", house format, filed under Notion Abstracts) |
+| 16 | (optional) refresh lgtm-quarkus ancillary pins | E | — | DONE (quarkus-junit names lgtm-skills#23; image and tool pins #37, #39, #40, #47) |
+| 17 | Validate → publish to GitHub (after approval) | E | lgtm-github | DONE (repo public; all 5 walkthrough acts and `mvn verify` passed 2026-10-06) |
 
 ## Demo ↔ slide ↔ capability matrix
 
