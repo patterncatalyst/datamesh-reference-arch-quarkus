@@ -128,8 +128,13 @@ helm upgrade --install tempo grafana/tempo \
     --set 'persistence.size=5Gi' \
     --set 'tempo.receivers.otlp.protocols.grpc.endpoint=0.0.0.0:4317' \
     --set 'tempo.receivers.otlp.protocols.http.endpoint=0.0.0.0:4318' \
-    --set 'service.type=NodePort' \
-    --set 'service.nodePort=30320'
+    --set 'service.type=NodePort'
+# The tempo chart ignores service.nodePort and gives every port a random
+# nodePort. Pin the HTTP API (port 3100, name tempo-prom-metrics: /ready,
+# /api/search, /api/traces) to 30320, which setup-profile.sh publishes on
+# 127.0.0.1:3200 (demos/lib/endpoints.sh). Service ports merge on `port`.
+kubectl -n "$NAMESPACE" patch svc tempo --type=strategic \
+    -p '{"spec":{"ports":[{"port":3100,"nodePort":30320}]}}' >/dev/null
 
 # ─── Mimir (monolithic mode) ────────────────────────────────────────────────
 printf '==> Installing Mimir %s (monolithic mode)\n' "$MIMIR_VERSION"

@@ -47,7 +47,7 @@ data:
       - name: Tempo
         type: tempo
         access: proxy
-        url: http://tempo.observability.svc.cluster.local:3200
+        url: http://tempo.observability.svc.cluster.local:3100
         editable: false
         jsonData:
           httpMethod: GET

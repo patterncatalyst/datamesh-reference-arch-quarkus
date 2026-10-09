@@ -43,7 +43,7 @@ KIALI_VERSION="${KIALI_VERSION:-2.23.0}"
 PROM_URL="http://mimir-nginx.${OBS_NS}.svc.cluster.local:80/prometheus"
 GRAFANA_IN_URL="http://grafana.${OBS_NS}.svc.cluster.local:80"
 GRAFANA_EXT_URL="http://localhost:3000"          # what a browser uses (published NodePort)
-TEMPO_URL="http://tempo.${OBS_NS}.svc.cluster.local:3200"
+TEMPO_URL="http://tempo.${OBS_NS}.svc.cluster.local:3100"   # tempo chart serves its HTTP API on 3100
 
 step() { printf '\n==> %s\n' "$1"; }
 
@@ -105,6 +105,11 @@ helm upgrade --install kiali-server kiali/kiali-server \
     --set external_services.tracing.internal_url="$TEMPO_URL" \
     --set external_services.tracing.use_grpc=false \
     --wait --timeout 5m
+
+# The kiali-server chart does not apply deployment.node_port; pin the UI port
+# (20001) to 30201, which setup-profile.sh publishes on 127.0.0.1:20001.
+kubectl -n "$ISTIO_SYSTEM" patch svc kiali --type=strategic \
+    -p '{"spec":{"ports":[{"port":20001,"nodePort":30201}]}}' >/dev/null
 
 # ─── Done ────────────────────────────────────────────────────────────────────
 

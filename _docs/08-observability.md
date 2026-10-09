@@ -241,7 +241,7 @@ instead of a separate Prometheus:
 
 ```bash
 PROM_URL="http://mimir-nginx.observability.svc.cluster.local:80/prometheus"
-TEMPO_URL="http://tempo.observability.svc.cluster.local:3200"
+TEMPO_URL="http://tempo.observability.svc.cluster.local:3100"
 
 helm upgrade --install kiali-server kiali/kiali-server \
     --namespace istio-system --version 2.23.0 \
