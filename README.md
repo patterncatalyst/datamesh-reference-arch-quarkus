@@ -74,13 +74,14 @@ mvn package -Pnative             # native build (GraalVM/Mandrel), per service
 
 ## The tutorial + decks
 
-The full narrative — twenty-one chapters across six parts — lives in
+The full narrative — twenty-two chapters across six parts — lives in
 [`_docs/`](_docs/) as a Jekyll site (start at
 [`_docs/00-index.md`](_docs/00-index.md) or the published site's homepage).
 It covers the data-mesh concepts, the services and their contracts,
 progressive delivery and observability, the anti-patterns, and a dedicated
 Quarkus deep-dive (capability tour, Spring Boot comparison, orchestration
-styles).
+styles). An optional appendix runs the core services on OpenShift Local
+(CRC); its scripts and Helm chart are in [`openshift/`](openshift/).
 
 Two companion decks for the "Building a Datamesh using Quarkus and
 Kubernetes" talk live in [`presentation/`](presentation/):
@@ -100,6 +101,8 @@ examples/        — runnable services (order, inventory, payment, shipping,
 demos/           — 19 demo-*.sh scripts + walkthrough.sh, one per capability
 tooling/         — Newman/Postman API collection + hey/ghz load scripts
 k8s/             — kustomize manifests for the local Kubernetes cluster
+openshift/       — optional OpenShift Local (CRC) appendix: scripts, Helm chart,
+                    evidence
 scripts/         — bootstrap/setup/teardown scripts for the local stack
 assets/diagrams/ — paired SVG + Excalidraw architecture diagrams
 presentation/    — the 101 and 201 decks (pptxgenjs)

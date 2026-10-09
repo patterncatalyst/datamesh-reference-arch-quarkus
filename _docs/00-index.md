@@ -19,7 +19,7 @@ chapter descriptions below.
 
 ## How the tutorial is organized
 
-The twenty-one chapters fall into six parts, each described in its own section below:
+The twenty-two chapters fall into six parts, each described in its own section below:
 **Part 0, Foundations**; **Part 1, Building data products**; **Part 2, Operating the
 mesh**; **Part 3, Lessons & close**; **Part 4, The Quarkus deep-dive**; and **Part 5,
 Appendices**.
@@ -110,6 +110,9 @@ stands on its own.
 - [**21 · The three engines, compared**]({{ '/docs/21-orchestration-engines-compared/' | relative_url }}) —
   A deeper comparison than Part 4's tour: Kafka choreography versus two shapes of
   orchestration, across coupling, failure handling, debuggability, and more.
+- [**22 · Running on OpenShift Local (CRC)**]({{ '/docs/22-running-on-openshift-crc/' | relative_url }}) —
+  The seven services, Kafka, Postgres and Apicurio on OpenShift Local: in-cluster
+  image builds, AMQ Streams from OperatorHub, restricted-v2, Routes, and a full teardown.
 
 ## Who this is for
 
