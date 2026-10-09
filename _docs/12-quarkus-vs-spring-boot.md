@@ -24,7 +24,7 @@ service would have cost to build in the framework most teams already know.
 
 ## What the twin is
 
-A standalone Spring Boot **4.0.8** project on the **same JDK 25** the rest of
+A standalone Spring Boot **4.1.1** project on the **same JDK 25** the rest of
 the repo targets. It is kept out of the Quarkus Maven build
 ([pom.xml]({{ site.repo_blob }}/examples/pom.xml)'s `<modules>` list runs from `domain-model` through
 `ai-rules-service` and does not mention `spring-boot-compare` anywhere) —
@@ -260,7 +260,7 @@ Results from one run follow.
 
 ## The numbers
 
-Both services were built under their packaged/`prod` profile. Single run on JDK 25.0.3 (Temurin), 2026-10-05:
+Both services were built under their packaged/`prod` profile. Single run on JDK 25.0.3 (Temurin), 2026-10-05, with Quarkus 3.39.5 and Spring Boot 4.0.8 (the repo now pins Quarkus 3.40.1 and Spring Boot 4.1.1; re-run `scripts/compare-quarkus-springboot.sh` to refresh these numbers):
 
 | Service | Startup (self-reported) | Startup (wall-clock) | Resident memory (RSS) |
 |---|---|---|---|

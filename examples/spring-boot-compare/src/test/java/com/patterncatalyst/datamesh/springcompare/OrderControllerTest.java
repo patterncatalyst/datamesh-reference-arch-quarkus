@@ -54,7 +54,7 @@ class OrderControllerTest {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18");
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18.6");
 
     @DynamicPropertySource
     static void overrideTimezone(DynamicPropertyRegistry registry) {

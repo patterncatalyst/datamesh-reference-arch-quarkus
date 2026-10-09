@@ -364,7 +364,7 @@ docker run -d --rm \
     -e POSTGRES_PASSWORD="$PG_PASSWORD" \
     -e POSTGRES_DB="$PG_DB" \
     -p "${PG_PORT}:5432" \
-    postgres:18 >/dev/null \
+    docker.io/library/postgres:18.6 >/dev/null \
     || fail "failed to start throwaway Postgres container ($PG_CONTAINER)"
 info "postgres container: $PG_CONTAINER (host port $PG_PORT)"
 

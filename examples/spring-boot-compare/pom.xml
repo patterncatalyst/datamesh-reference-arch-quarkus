@@ -15,7 +15,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.0.8</version>
+    <version>4.1.1</version>
     <relativePath/>
   </parent>
 
@@ -39,19 +39,20 @@
     <java.version>25</java.version>
     <datamesh.domain-contracts.version>1.0.0-SNAPSHOT</datamesh.domain-contracts.version>
 
-    <!-- grpc-protobuf 1.73.0 depends on protobuf-java 3.25.5 (confirmed via
+    <!-- grpc-protobuf 1.84.2 depends on protobuf-java 3.25.9 (confirmed via
          its published POM); protoc is pinned to the SAME version so the
          compiler generating the Java sources matches the protobuf-java
          runtime this module actually ships - mirrors the lockstep the
          contracts module keeps between its avro runtime and avro-maven-plugin. -->
-    <grpc.version>1.73.0</grpc.version>
-    <protobuf.version>3.25.5</protobuf.version>
+    <grpc.version>1.84.2</grpc.version>
+    <protobuf.version>3.25.9</protobuf.version>
     <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
-    <!-- Not managed by spring-boot-dependencies; latest stable on Maven
-         Central at the time of writing. -->
-    <apicurio-registry-serdes-avro-serde.version>2.6.9.Final</apicurio-registry-serdes-avro-serde.version>
+    <!-- Not managed by spring-boot-dependencies. Newest stable release on
+         the 2.6.x line (checked 2026-10-09, DRQ-029); the twin uses the v2
+         serde API, which Apicurio Registry 3.x still serves. -->
+    <apicurio-registry-serdes-avro-serde.version>2.6.13.Final</apicurio-registry-serdes-avro-serde.version>
   </properties>
 
   <dependencies>
