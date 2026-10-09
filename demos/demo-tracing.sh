@@ -40,7 +40,7 @@
 # missing. If the download fails (offline host), this demo fails loudly with
 # the exact manual-download command rather than silently skipping tracing.
 #
-# ── Tempo API shape (confirmed empirically against otel-lgtm:0.8.1) ────────
+# ── Tempo API shape (confirmed against otel-lgtm 0.8.1, re-checked on 0.36.0) ─
 # `GET /api/search?tags=service.name=<name>` returns `{"traces":[{"traceID":
 # ...,"rootServiceName":...,"rootTraceName":...}, ...]}`, newest first.
 # `GET /api/traces/<id>` returns the OTEL-COLLECTOR-INTERNAL "batches" shape
@@ -259,7 +259,7 @@ step "GET /api/traces/${TRACE_ID} -- parse span count and participating services
 TRACE_JSON="$(curl -fsS --max-time 10 "${TEMPO_BASE}/api/traces/${TRACE_ID}")" \
     || fail "GET ${TEMPO_BASE}/api/traces/${TRACE_ID} failed"
 
-# Tempo (otel-lgtm:0.8.1) answers with the Jaeger-style "batches" shape, with
+# Tempo (otel-lgtm 0.8.1, and 0.36.0 / Tempo 3.1.0) answers with the Jaeger-style "batches" shape, with
 # spans nested under EITHER "scopeSpans" or the older "instrumentationLibrarySpans"
 # key depending on exporter version -- parse both defensively (confirmed
 # live: this build uses "scopeSpans").

@@ -79,7 +79,7 @@
 # equivalent JAVA_TOOL_OPTIONS/JVM arg) is set wherever the image runs.
 #
 # ── Port plan (avoiding compose's host-published ports:
-# 5432/9092/9094/8081/3000/4317/4318/9090/3100/3200 — .env.example) ───────
+# 5432/9092/9094/8081/3000/4317/4318/19090/3100/3200 — .env.example) ──────
 #   order-service      HTTP 8091
 #   inventory-service  HTTP 8092, gRPC 9000 (canonical default, see above)
 set -uo pipefail
