@@ -56,7 +56,7 @@
 4. `oc login -u kubeadmin`, entering the password interactively.
 5. `oc new-project datamesh`.
 6. `install-infra`, `build-images`, `helm upgrade --install`, then `capture-evidence`.
-7. `helm uninstall`, delete the project, `crc stop`.
+7. `openshift/teardown.sh`: helm uninstall, delete KafkaTopics and the Kafka CR, delete the project, remove the AMQ Streams Subscription, CSV and CRDs, then `crc stop`.
 
 ## Acceptance (key)
 - **Build.** 7 builds complete and 7 ImageStreams tagged v1, with no host push.
@@ -74,12 +74,13 @@
 - **OperatorHub**: `redhat-operators` reports READY but lists 0 packages for about a minute after `crc start`, so the script must wait until the packagemanifest exists. Available: `servicemeshoperator3` (stable, v3.4.3), `openshift-custom-metrics-autoscaler-operator` (stable, v2.19.0-4) and `kiali-ossm` (stable, v2.27.5) for phase 2.
 - **Images via `oc import-image`** (the CRC pull secret covers registry.redhat.io): `rhel10/postgresql-16:10.2-1791491499` (runs as user 26; the sclorg image supports arbitrary UIDs), `rhel9/postgresql-16`, `ubi10/openjdk-25:1.24-15` and `quay.io/apicurio/apicurio-registry:3.2.4` (matches minikube) all import. Use rhel10, no fallback needed.
 - **review-service under prod** fails at boot with `'quarkus.oidc.auth-server-url' property must be configured`. With env `QUARKUS_OIDC_TENANT_ENABLED=false` it gets past OIDC (it then fails only on the DB we deliberately left unreachable). Decision: the chart sets that env var; `DELETE /reviews/{id}` returns 401 on CRC; application.properties stays unchanged. Record as a DRQ.
-- **Shared-cluster finding**: namespace `hfd-ocp` (helm-for-developers) is still running a Kafka, a CNPG Postgres and 2 apps (about 1.7 GiB requested; node at 58% memory requested). The user must decide (scale it down or leave it) before Wave 2. Do not touch it unasked.
+- **Shared-cluster finding, resolved**: namespace `hfd-ocp` (helm-for-developers) was still running. On the user's instruction, the namespace, the AMQ Streams and CNPG operators and their 21 CRDs were removed. A KafkaTopic finalizer (`strimzi.io/topic-operator`) blocked the namespace deletion and had to be cleared. CRC is now clean: no Subscriptions, CSVs, Strimzi/CNPG CRDs or non-system namespaces.
+- **Rule (user, 2026-10-09)**: this CRC is dedicated to datamesh. Cleanup after each use is mandatory. `teardown.sh` removes the Helm release, the project, the AMQ Streams Subscription and CSV, and the Strimzi CRDs (KafkaTopics and the Kafka CR go before the namespace), then runs `crc stop`. `install-infra.sh` installs AMQ Streams from scratch.
 - **Kubeconfig**: `crc start` writes the `crc-admin` context, so `oc config use-context crc-admin` replaces the interactive kubeadmin login. No password handling needed.
 
 ## Status (resume here)
 - 2026-10-09: Wave 0 done (above). CRC is running.
-- Next step: Wave 1 authoring. Wave 2 waits on the user's decision about `hfd-ocp`.
+- Next step: Wave 1 authoring (infra, chart, scripts and poms first, enough for the Wave 2 live run; the chapter, diagrams and deck follow the live run).
 - Rules:
   - One cluster at a time.
   - Secrets are never written to files or evidence.
