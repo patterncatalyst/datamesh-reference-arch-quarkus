@@ -30,4 +30,13 @@ Each item gets its own script under `openshift/platform/` and a chart flag defau
 3. Chapter 22 sections, diagram update, deck A7 slides, DRQ entries, PR.
 
 ## Status (resume here)
-- 2026-10-09: plan written. Next: Wave 0.
+- 2026-10-09: all six items scripted under `openshift/platform/` and live-verified individually on CRC (12 vCPU / 32 GiB):
+  - mesh: STRICT enforced (plaintext reset), canary 91/9 then 94/6 of 100, Kiali MTLS_ENABLED + graph with 11 workloads (Prometheus = otel-lgtm scraping :15020);
+  - keda: 0 -> 1 -> 0 (FQDN bootstrap fix);
+  - tracing: one trace gateway -> order (REST) -> inventory (gRPC), Grafana Route 200;
+  - AI: classify x3, triage x6 (Camel + Flow), MCP list/call;
+  - native: in-cluster Mandrel build ~2.5 min, 0.075 s / 31 MiB vs JVM 12.7 s / 325 MiB (Avro allow-list as native build arg);
+  - GitOps: Synced/Healthy, self-heal 2-3 s, password preserved.
+  - `capture-evidence.sh` runs all platform sections (`platform/evidence.sh`); full pass in one capture.
+  - Teardown: removes everything; fix added for the GitOps default instance (DISABLE_DEFAULT_ARGOCD_INSTANCE) after a stuck finalizer in the first run.
+- In progress: full clean cycle (teardown -> core -> install-platform -> evidence -> teardown + crc stop); then fill the chapter's cycle table and footer, deck/diagram (agent), validate, PR.
