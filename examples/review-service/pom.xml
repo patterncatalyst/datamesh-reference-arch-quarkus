@@ -102,4 +102,21 @@
       </plugin>
     </plugins>
   </build>
+
+  <!-- Appendix "Running on OpenShift Local (CRC)": -Popenshift adds
+       quarkus-openshift, which uploads target/quarkus-app to a binary S2I
+       build on the cluster (openshift/build-images.sh passes the build
+       flags). No local container engine is involved, and the default build
+       is unchanged. -->
+  <profiles>
+    <profile>
+      <id>openshift</id>
+      <dependencies>
+        <dependency>
+          <groupId>io.quarkus</groupId>
+          <artifactId>quarkus-openshift</artifactId>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 </project>
