@@ -13,5 +13,5 @@ group :jekyll_plugins do
   gem "jekyll-seo-tag"  # provides {% seo %} — used in _layouts/default.html
 end
 
-# Windows and macOS sometimes need this explicitly
+# Ruby 3.x no longer bundles webrick; `jekyll serve` needs it
 gem "webrick", "~> 1.8"

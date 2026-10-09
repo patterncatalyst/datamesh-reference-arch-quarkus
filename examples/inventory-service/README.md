@@ -122,5 +122,5 @@ at `/q/health`, `/q/health/live`, `/q/health/ready`.
 
 ```bash
 mvn -pl inventory-service -DskipTests package -f examples/pom.xml
-mvn -pl inventory-service test -f examples/pom.xml   # requires Docker/Podman for Dev Services
+mvn -pl inventory-service test -f examples/pom.xml   # requires Docker for Dev Services
 ```

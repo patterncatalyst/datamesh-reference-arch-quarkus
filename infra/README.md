@@ -110,7 +110,7 @@ same name/port a `Service` object would use in the minikube-stack handoff
 Both were verified live with `kafkacat -L` (see "Validation").
 
 `apache/kafka-native` is a from-scratch GraalVM-native build of the Kafka
-broker on Alpine/busybox — no JVM, no `kafka-broker-api-versions.sh`, no
+broker on Alpine/busybox — no JVM, no `kafka-broker-api-versions.sh`, no <!-- forbidden-ok -->
 `curl`/`wget`. `bash` IS present and supports `/dev/tcp`, which is what the
 `kafka` service's healthcheck uses instead.
 

@@ -624,9 +624,8 @@ The pieces, in the order the code uses them:
 - **`Linker.nativeLinker()`** is the linker for the current platform's C calling
   convention. It creates the Java-to-native bridge.
 - **`SymbolLookup`** finds a function's address from its name. `defaultLookup()`
-  searches the libraries the platform loads by default, which on Linux and
-  macOS includes libc. That is why the demo runs on those two systems and not
-  on Windows.
+  searches the libraries the platform loads by default, which on Linux
+  includes libc.
 - **`FunctionDescriptor`** describes the C signature with value layouts: `getpid`
   takes nothing and returns a `JAVA_INT`, and `strlen` takes an `ADDRESS` (a
   pointer) and returns a `JAVA_LONG` (`size_t`).

@@ -6,6 +6,10 @@ platform that `scripts/bootstrap.sh` brings up: Istio, KEDA, Strimzi/Kafka,
 CloudNativePG/Postgres and Apicurio in the `datamesh` namespace, and LGTM in
 `observability`.
 
+The application Services stay `ClusterIP`. Host access is through the platform
+NodePorts (Grafana, Kiali, Apicurio and the telemetry backends) that the profile
+publishes on `127.0.0.1`; `./scripts/show-endpoints.sh` lists them.
+
 The KEDA `ScaledObject`s (Kafka lag on notification-service, HTTP on
 graphql-gateway) live in `k8s/keda`. This directory ships the
 Deployments and Services they target.

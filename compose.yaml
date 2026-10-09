@@ -23,7 +23,7 @@
 # Quarkus 3.39.5 Dev Services defaults (the wire-compat crux).
 #
 # Requires the Docker Compose v2 CLI plugin (`docker compose`, not the
-# legacy `docker-compose` binary). Docker only — no podman (CLAUDE.md).
+# legacy `docker-compose` binary). Docker Engine only (see CLAUDE.md).
 
 services:
   # ─── Postgres (baseline) ─────────────────────────────────────────────────
@@ -106,7 +106,7 @@ services:
       - kafka-data:/opt/kafka/data
     mem_limit: 1g
     healthcheck:
-      # apache/kafka-native is an Alpine/busybox minimal image — no
+      # apache/kafka-native is an Alpine/busybox minimal image — no # forbidden-ok
       # kafka-broker-api-versions.sh, no curl/wget/nc symlink. bash IS
       # present and supports /dev/tcp, which gives a dependency-free TCP
       # reachability check (confirmed against the real image).

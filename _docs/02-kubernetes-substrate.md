@@ -86,10 +86,11 @@ resumes rather than fails. Reading top to bottom, it builds the platform tier in
 dependency order:
 
 1. **The `minikube` profile itself** ([setup-profile.sh]({{ site.repo_blob }}/scripts/setup-profile.sh)), driven by
-   `minikube start --driver=docker` — **Docker, not Podman**. This repo standardizes on
-   Docker for every container and compose workflow, so the `docker` driver flag is the
+   `minikube start --driver=docker` on **Docker Engine**. This repo uses
+   Docker Engine for every container and compose workflow, so the `docker` driver flag is the
    only container toolchain decision the substrate makes, and it is made once, at the
-   bottom.
+   bottom. The profile is created with the platform NodePorts published on
+   `127.0.0.1`, which is how the host reaches Grafana, Kiali and the other backends.
 2. **Istio** ([setup-istio.sh]({{ site.repo_blob }}/scripts/setup-istio.sh)), gated on `kubectl wait --for=condition=Available
    deploy/istiod` — nothing after this tier proceeds until the control plane is
    serving, not merely scheduled.
@@ -119,9 +120,9 @@ ENABLE_ISTIO=false ENABLE_KIALI=false ./scripts/bootstrap.sh
 Once the substrate is up, three more scripts round out the day-to-day loop:
 [cluster-status.sh]({{ site.repo_blob }}/scripts/cluster-status.sh) for a health
 summary across every tier,
-[tunnel-services.sh]({{ site.repo_blob }}/scripts/tunnel-services.sh) for stable
-NodePort-plus-SSH-tunnel access to services (not
-`kubectl port-forward`, which drops under load and doesn't survive a pod restart), and
+[show-endpoints.sh]({{ site.repo_blob }}/scripts/show-endpoints.sh) for the table of
+`http://localhost:<port>` URLs the published NodePorts serve (see
+[Reaching the stack]({{ '/docs/08-observability/' | relative_url }})), and
 [teardown.sh]({{ site.repo_blob }}/scripts/teardown.sh) to tear the whole profile
 down.
 
@@ -241,4 +242,4 @@ order-service template the others follow, and how each one is packaged and shipp
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `scripts/bootstrap.sh` was driven end to end on a local `minikube` cluster (podman driver, 24 GB / 16 CPU), bringing up all eight tiers healthy — the cluster itself, Istio, CloudNativePG + Postgres, Strimzi + Kafka, KEDA, the full LGTM stack, Kiali, and Apicurio (50/50 pods Running). The bring-up surfaced and fixed three bootstrap bugs along the way: the Strimzi Kafka CR pinned an unsupported Kafka version, Mimir rejected overlapping filesystem data dirs, and Apicurio's readiness probe used a health path its image doesn't serve. Re-run on 2026-10-06 with the docker driver on Docker Desktop (8 CPUs, so `MINIKUBE_CPUS=8`): all eight tiers came up with 50 pods Running after one fix, setup scripts that matched Helm repository names by prefix (an existing `grafana-community` repo hid a missing `grafana` repo). The service images then had to be built and loaded with `scripts/load-images.sh`; the cluster runs containerd, so the `minikube docker-env` route described in earlier revisions does not apply.*
+*Verification status: <span class="status status--verified">verified</span>. `scripts/bootstrap.sh` was driven end to end on a local `minikube` cluster (24 GB / 16 CPU), bringing up all eight tiers healthy — the cluster itself, Istio, CloudNativePG + Postgres, Strimzi + Kafka, KEDA, the full LGTM stack, Kiali, and Apicurio (50/50 pods Running). The bring-up surfaced and fixed three bootstrap bugs along the way: the Strimzi Kafka CR pinned an unsupported Kafka version, Mimir rejected overlapping filesystem data dirs, and Apicurio's readiness probe used a health path its image doesn't serve. Re-run on 2026-10-06 with the docker driver on Docker Desktop (8 CPUs, so `MINIKUBE_CPUS=8`): all eight tiers came up with 50 pods Running after one fix, setup scripts that matched Helm repository names by prefix (an existing `grafana-community` repo hid a missing `grafana` repo). The service images then had to be built and loaded with `scripts/load-images.sh`; the cluster runs containerd, so the `minikube docker-env` route described in earlier revisions does not apply. Host access through published NodePorts: re-verification pending.*
