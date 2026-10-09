@@ -88,7 +88,7 @@ report_ns cnpg-system     "cnpg-system (CloudNativePG operator)"
 step "Component readiness"
 
 if kubectl get crd clusters.postgresql.cnpg.io >/dev/null 2>&1; then
-    pg_status="$(kubectl get pods -n "$NS" -l "cnpg.io/cluster,role=primary" \
+    pg_status="$(kubectl get pods -n "$NS" -l "cnpg.io/cluster,cnpg.io/instanceRole=primary" \
         -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)"
     if [[ "$pg_status" == "True" ]]; then
         ok "Postgres (CNPG) primary is Ready"

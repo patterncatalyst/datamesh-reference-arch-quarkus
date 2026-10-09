@@ -36,14 +36,14 @@ NS="datamesh"
 PROFILE_NAME="${MINIKUBE_PROFILE:-datamesh}"
 ISTIO_SYSTEM="istio-system"
 OBS_NS="${OBS_NAMESPACE:-observability}"
-KIALI_VERSION="${KIALI_VERSION:-2.23.0}"
+KIALI_VERSION="${KIALI_VERSION:-2.33.0}"   # newest stable kiali-server chart (2026-10-09)
 
 # LGTM stack service endpoints (single-stack wiring targets — see setup-lgtm.sh
 # and scripts/grafana-datasources.yaml for the same URLs).
 PROM_URL="http://mimir-nginx.${OBS_NS}.svc.cluster.local:80/prometheus"
 GRAFANA_IN_URL="http://grafana.${OBS_NS}.svc.cluster.local:80"
 GRAFANA_EXT_URL="http://localhost:3000"          # what a browser uses (published NodePort)
-TEMPO_URL="http://tempo.${OBS_NS}.svc.cluster.local:3100"   # tempo chart serves its HTTP API on 3100
+TEMPO_URL="http://tempo.${OBS_NS}.svc.cluster.local:3200"   # Tempo 3 serves its HTTP API on 3200 (3100 before chart 3.x)
 
 step() { printf '\n==> %s\n' "$1"; }
 

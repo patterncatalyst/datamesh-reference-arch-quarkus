@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
 #
 # setup-istio.sh — install the Istio control plane into the datamesh cluster
-# via the upstream Helm charts (base + istiod), consistent with how every
-# other operator in this stack is installed (Strimzi, CNPG, KEDA all use
+# with Helm (base + istiod charts), consistent with how every other operator
+# in this stack is installed (Strimzi, CNPG, KEDA all use
 # `helm upgrade --install`). No istioctl dependency.
+#
+# Chart source: the pinned Istio release tarball. Istio 1.31 is not published
+# to the istio-release Helm repository (its index stops at 1.30.5 and
+# 1.31.0-rc.0; the 1.31.1 chart archives answer 404), so the charts come from
+# the release's own manifests/charts/ directory. The tarball is downloaded from
+# the GitHub release once, checked against its published .sha256, and kept at
+# ~/.local/share/istio-<version> (the same place minikube-on-fedora's
+# setup-istio.sh extracts it, so either repo reuses the other's download).
+# Nothing is written to ~/.local/bin.
+#
+# istioctl is optional here. If one is on PATH, its client version is checked
+# against ISTIO_VERSION, because a different istioctl misreports this control
+# plane; the matching binary is $ISTIO_HOME/bin/istioctl.
 #
 # Scope: control plane only, no ingress gateway (not needed for the
 # substrate; add `istio/gateway` later if an ingress path is needed).
@@ -46,7 +59,11 @@ set -euo pipefail
 NS="datamesh"
 PROFILE_NAME="datamesh"
 ISTIO_SYSTEM="istio-system"
-ISTIO_VERSION="${ISTIO_VERSION:-1.29.0}"
+ISTIO_VERSION="${ISTIO_VERSION:-1.31.1}"
+ISTIO_ARCH="${ISTIO_ARCH:-amd64}"
+ISTIO_HOME="${ISTIO_HOME:-${HOME}/.local/share/istio-${ISTIO_VERSION}}"
+BASE_CHART="${ISTIO_HOME}/manifests/charts/base"
+ISTIOD_CHART="${ISTIO_HOME}/manifests/charts/istio-control/istio-discovery"
 
 step() { printf '\n==> %s\n' "$1"; }
 
@@ -54,6 +71,8 @@ step() { printf '\n==> %s\n' "$1"; }
 
 command -v kubectl >/dev/null 2>&1 || { printf 'ERROR: kubectl not in PATH.\n' >&2; exit 1; }
 command -v helm    >/dev/null 2>&1 || { printf 'ERROR: helm not in PATH.\n' >&2; exit 1; }
+command -v curl    >/dev/null 2>&1 || { printf 'ERROR: curl not in PATH.\n' >&2; exit 1; }
+command -v sha256sum >/dev/null 2>&1 || { printf 'ERROR: sha256sum not in PATH.\n' >&2; exit 1; }
 
 current_context="$(kubectl config current-context 2>/dev/null || echo "")"
 if [[ "$current_context" != "$PROFILE_NAME" ]]; then
@@ -64,28 +83,70 @@ if [[ "$current_context" != "$PROFILE_NAME" ]]; then
     [[ "$answer" =~ ^[Yy] ]] || exit 1
 fi
 
-# ─── 1. istio helm repo ──────────────────────────────────────────────────────
+# ─── 1. Istio release (charts + istioctl), pinned and checksum-verified ──────
 
-step "Ensuring the istio helm repo is registered"
-if helm repo list 2>/dev/null | grep -q '^istio[[:space:]]'; then
-    helm repo update istio >/dev/null
+step "Ensuring Istio ${ISTIO_VERSION} is unpacked at ${ISTIO_HOME}"
+if [[ -f "${BASE_CHART}/Chart.yaml" && -f "${ISTIOD_CHART}/Chart.yaml" ]]; then
+    printf 'Already present.\n'
 else
-    helm repo add istio https://istio-release.storage.googleapis.com/charts
-    helm repo update istio >/dev/null
+    tarball="istio-${ISTIO_VERSION}-linux-${ISTIO_ARCH}.tar.gz"
+    url="https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/${tarball}"
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"' EXIT
+    curl -fsSL -o "${tmp}/${tarball}" "$url"
+    curl -fsSL -o "${tmp}/${tarball}.sha256" "${url}.sha256"
+    (cd "$tmp" && sha256sum -c "${tarball}.sha256") \
+        || { printf 'ERROR: checksum mismatch for %s\n' "$tarball" >&2; exit 1; }
+    mkdir -p "$(dirname "$ISTIO_HOME")"
+    tar -xzf "${tmp}/${tarball}" -C "$tmp"
+    rm -rf "$ISTIO_HOME"
+    mv "${tmp}/istio-${ISTIO_VERSION}" "$ISTIO_HOME"
+fi
+for chart in "$BASE_CHART" "$ISTIOD_CHART"; do
+    chart_version="$(sed -n 's/^version: *//p' "${chart}/Chart.yaml")"
+    [[ "$chart_version" == "$ISTIO_VERSION" ]] \
+        || { printf 'ERROR: %s is chart version %s, expected %s.\n' "$chart" "$chart_version" "$ISTIO_VERSION" >&2; exit 1; }
+done
+
+# istioctl is optional; a mismatched client misreports this control plane.
+if command -v istioctl >/dev/null 2>&1; then
+    istioctl_version="$(istioctl version --remote=false 2>/dev/null | head -1 \
+        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[^ ]*' | head -1 || true)"
+    if [[ "$istioctl_version" == "$ISTIO_VERSION" ]]; then
+        printf 'istioctl on PATH is %s, matching the pinned version.\n' "$istioctl_version"
+    else
+        printf 'WARNING: istioctl on PATH is %s, not the pinned %s.\n' "${istioctl_version:-unknown}" "$ISTIO_VERSION" >&2
+        printf '         Use %s/bin/istioctl for this mesh.\n' "$ISTIO_HOME" >&2
+    fi
 fi
 
-# ─── 2. base CRDs, then istiod ───────────────────────────────────────────────
+# ─── 2. Minor-version skip guard ─────────────────────────────────────────────
+# Istio upgrades in place one minor version at a time. A control plane two or
+# more minors behind (for example 1.29 -> 1.31) must be removed first.
+
+running_tag="$(kubectl get deployment istiod -n "$ISTIO_SYSTEM" \
+    -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null | sed 's/.*://' || true)"
+if [[ "$running_tag" =~ ^1\.([0-9]+)\. ]]; then
+    running_minor="${BASH_REMATCH[1]}"
+    pinned_minor="$(cut -d. -f2 <<<"$ISTIO_VERSION")"
+    if (( pinned_minor - running_minor > 1 )); then
+        printf 'ERROR: istiod %s is running; Istio cannot upgrade in place to %s (more than one minor version).\n' "$running_tag" "$ISTIO_VERSION" >&2
+        printf 'Remove it first: helm uninstall istiod istio-base -n %s, then re-run this script\n' "$ISTIO_SYSTEM" >&2
+        printf '(or recreate the cluster: ./scripts/setup-profile.sh --replace, then ./scripts/bootstrap.sh).\n' >&2
+        exit 1
+    fi
+fi
+
+# ─── 3. base CRDs, then istiod ───────────────────────────────────────────────
 
 step "Installing istio-base (CRDs) ${ISTIO_VERSION} into ${ISTIO_SYSTEM}"
-helm upgrade --install istio-base istio/base \
+helm upgrade --install istio-base "$BASE_CHART" \
     --namespace "$ISTIO_SYSTEM" --create-namespace \
-    --version "$ISTIO_VERSION" \
     --set defaultRevision=default
 
 step "Installing istiod ${ISTIO_VERSION}"
-helm upgrade --install istiod istio/istiod \
+helm upgrade --install istiod "$ISTIOD_CHART" \
     --namespace "$ISTIO_SYSTEM" \
-    --version "$ISTIO_VERSION" \
     --wait --timeout 5m
 
 step "Waiting for istiod to be Available"

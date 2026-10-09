@@ -99,14 +99,15 @@ enforcement point — they keep accepting their own operator's TLS/plaintext
 as before. Only the three meshed Deployments (and `order-service-v2`)
 are affected: they reject non-mTLS inbound traffic once their
 sidecar is up. See the comment block in `peer-authentication.yaml` for the
-full reasoning and the Istio 1.29 API-version check (`security.istio.io/v1`
-is stable, unchanged from 1.22+).
+full reasoning and the API-version check (`security.istio.io/v1` is stable,
+unchanged from 1.22+, and validates against the Istio 1.31.1 CRDs).
 
 Check with:
 
 ```bash
 kubectl get peerauthentication -n datamesh
-istioctl authn tls-check order-service.datamesh.svc.cluster.local   # if istioctl is available
+# optional, with the pinned istioctl (scripts/setup-istio.sh unpacks it):
+~/.local/share/istio-1.31.1/bin/istioctl x describe pod <order-service-pod> -n datamesh
 ```
 
 ## The order-service canary
@@ -159,8 +160,10 @@ invocation; verification on a live cluster is separate. What was checked:
 
 1. **YAML well-formedness** of every file in this directory via
    `python3 -c "import yaml; yaml.safe_load(...)"` (no cluster needed).
-2. **Field-level schema correctness**, reasoned against the Istio
-   1.29 CRDs and Kubernetes `apps/v1` `Deployment` schema: `PeerAuthentication`
+2. **Field-level schema correctness** against the Istio CRDs (re-checked
+   2026-10-09 by validating the `kubectl kustomize k8s/istio` output against
+   the CRDs the Istio 1.31.1 base chart renders) and the Kubernetes `apps/v1`
+   `Deployment` schema: `PeerAuthentication`
    `security.istio.io/v1` `mtls.mode: STRICT`; `DestinationRule`/
    `VirtualService` `networking.istio.io/v1` shapes match the fields already
    used in the `DestinationRule` and `VirtualService` in

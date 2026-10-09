@@ -20,14 +20,14 @@ set -euo pipefail
 
 NAMESPACE="keda"
 PROFILE_NAME="datamesh"
-KEDA_VERSION="${KEDA_VERSION:-2.19.0}"
-# 0.15.0 — matches the datamesh-reference-arch-python reference (proven there)
-# and enables HTTP/REST request-rate scaling for graphql-gateway. The v0.14.0
-# interceptor POST-forwarding panic (kedacore/http-add-on#1668, "invalid
-# concurrent Body.Read call") is CLOSED — introduced in 0.14.0 and fixed before
-# 0.15.0 (Jun 2025). 0.15.0 also adds HTTP/2 + gRPC scaling and cold-start
-# placeholder responses. (0.16.0 is newer but we track the python-proven pin.)
-KEDA_HTTP_VERSION="${KEDA_HTTP_VERSION:-0.15.0}"
+KEDA_VERSION="${KEDA_VERSION:-2.21.0}"
+# HTTP add-on 0.16.0, the newest stable release (DRQ-029; minikube-on-fedora
+# CAP-051 verified it live on Kubernetes v1.36.5). The v0.14.0 interceptor
+# POST-forwarding panic (kedacore/http-add-on#1668) was fixed in 0.15.0.
+# HTTPScaledObject stays on http.keda.sh/v1alpha1; it is deprecated in favor of
+# InterceptorRoute (0.14.0+) but still served, and InterceptorRoute is not
+# adopted here.
+KEDA_HTTP_VERSION="${KEDA_HTTP_VERSION:-0.16.0}"
 
 command -v kubectl >/dev/null 2>&1 || { printf 'ERROR: kubectl not in PATH.\n' >&2; exit 1; }
 command -v helm    >/dev/null 2>&1 || { printf 'ERROR: helm not in PATH.\n' >&2; exit 1; }
@@ -60,17 +60,17 @@ helm upgrade --install keda kedacore/keda \
 
 # ─── 3. KEDA HTTP add-on ─────────────────────────────────────────────────────
 printf '==> Installing the KEDA HTTP add-on %s into namespace %s\n' "$KEDA_HTTP_VERSION" "$NAMESPACE"
-# interceptor.replicas.waitTimeout (default 20s) is how long the interceptor
-# holds a request waiting for the scaled-from-zero workload to have a Ready
-# replica. 20s is too short for a JVM cold start (KEDA activation + image
-# pull + Quarkus boot + startupProbe), so requests 502 with "context deadline
-# exceeded" BEFORE a backend exists — which also starves KEDA of the stable
-# pending-request pressure it needs to activate promptly. 180s holds the
-# request through the whole cold start.
+# interceptor.readinessTimeout is how long the interceptor holds a request
+# waiting for the scaled-from-zero workload to have a Ready replica. It
+# replaces the deprecated interceptor.replicas.waitTimeout (chart 0.16.0).
+# Since 0.14.0 the default is 0 (disabled) and a timeout answers 504, not 502.
+# A JVM cold start (KEDA activation + image pull + Quarkus boot + startupProbe)
+# needs a bounded hold well above the old 20s default; 180s holds the request
+# through the whole cold start.
 helm upgrade --install keda-add-ons-http kedacore/keda-add-ons-http \
     --version "$KEDA_HTTP_VERSION" \
     --namespace "$NAMESPACE" \
-    --set interceptor.replicas.waitTimeout=180s \
+    --set interceptor.readinessTimeout=180s \
     --wait
 
 # ─── Done ────────────────────────────────────────────────────────────────────

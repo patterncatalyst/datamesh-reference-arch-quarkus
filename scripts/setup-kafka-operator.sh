@@ -8,6 +8,11 @@
 # Strimzi runs in KRaft mode (no ZooKeeper). Single node / replication factor
 # 1 — correct for a single-node minikube dev cluster, not for production.
 #
+# Strimzi 1.x serves only the kafka.strimzi.io/v1 API (v1beta2 is gone).
+# KRaft and node pools are the only mode, so the old strimzi.io/kraft and
+# strimzi.io/node-pools annotations are not set. The CRs below validate
+# against the strimzi-crds-1.2.0.yaml release asset.
+#
 # Idempotent: re-running upgrades the operator in place and re-applies the CR.
 #
 # Usage (from the project root):
@@ -16,10 +21,11 @@
 set -euo pipefail
 
 NS="datamesh"
-STRIMZI_VERSION="${STRIMZI_VERSION:-0.51.0}"
-# Strimzi 0.51.0 supports Kafka 4.1.0/4.1.1/4.2.0 (3.9.0 was dropped); 4.2.0
-# also matches the apache/kafka-native:4.2.0 image the compose stack uses.
-KAFKA_VERSION="${KAFKA_VERSION:-4.2.0}"
+STRIMZI_VERSION="${STRIMZI_VERSION:-1.2.0}"
+# Strimzi 1.2.0 supports Kafka 4.2.x and 4.3.x (4.1.x was dropped in 1.1.0);
+# 4.3.1 also matches the apache/kafka-native:4.3.1 image the compose stack
+# and the Dev Services use.
+KAFKA_VERSION="${KAFKA_VERSION:-4.3.1}"
 CLUSTER_NAME="datamesh"
 
 step() { printf '\n==> %s\n' "$1"; }
@@ -49,7 +55,7 @@ kubectl get crd | grep -i kafka.strimzi.io | head
 
 step "Applying the ${CLUSTER_NAME} Kafka cluster CR (single-node KRaft) into '${NS}'"
 kubectl apply -n "$NS" -f - <<EOF
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaNodePool
 metadata:
   name: dual-role
@@ -69,14 +75,11 @@ spec:
         size: 10Gi
         deleteClaim: true
 ---
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: Kafka
 metadata:
   name: ${CLUSTER_NAME}
   namespace: ${NS}
-  annotations:
-    strimzi.io/node-pools: enabled
-    strimzi.io/kraft: enabled
 spec:
   kafka:
     version: ${KAFKA_VERSION}

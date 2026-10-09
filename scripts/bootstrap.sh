@@ -29,7 +29,7 @@
 #   2. Istio control plane                           (ENABLE_ISTIO, default true)
 #   3. CloudNativePG operator + Postgres cluster CR  (ENABLE_POSTGRES, default true)
 #   4. Strimzi operator + Kafka cluster CR           (ENABLE_KAFKA, default true)
-#   5. KEDA core + HTTP add-on (pinned 0.15.0)       (ENABLE_KEDA, default true)
+#   5. KEDA core + HTTP add-on (pinned 0.16.0)       (ENABLE_KEDA, default true)
 #   6. LGTM observability stack                      (ENABLE_LGTM, default true)
 #      (Loki + Grafana + Tempo + Mimir + OTel Collector)
 #   7. Kiali mesh-topology UI                         (ENABLE_KIALI, default = ENABLE_ISTIO)
@@ -101,8 +101,13 @@ ok "profile up, context set, namespace $NS exists"
 # ─── Tier 2: Istio ──────────────────────────────────────────────────────────
 step "2/8 Istio control plane"
 if [[ "$ENABLE_ISTIO" == "true" ]]; then
-    if kubectl get ns istio-system >/dev/null 2>&1 && kubectl get deploy istiod -n istio-system >/dev/null 2>&1; then
-        ok "istiod already present"
+    # Skip only when istiod already runs the pinned version (ISTIO_VERSION in
+    # setup-istio.sh); otherwise setup-istio.sh upgrades it or explains why not.
+    pinned_istio="$(sed -n 's/^ISTIO_VERSION="${ISTIO_VERSION:-\([^}]*\)}"$/\1/p' scripts/setup-istio.sh)"
+    running_istio="$(kubectl get deploy istiod -n istio-system \
+        -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null | sed 's/.*://')"
+    if [[ -n "$running_istio" && "$running_istio" == "${ISTIO_VERSION:-$pinned_istio}" ]]; then
+        ok "istiod ${running_istio} already present"
     else
         ./scripts/setup-istio.sh || fail "istio setup failed"
     fi
@@ -131,13 +136,11 @@ else
 fi
 
 # ─── Tier 5: KEDA ───────────────────────────────────────────────────────────
-step "5/8 KEDA (core + HTTP add-on, pinned 0.15.0)"
+step "5/8 KEDA (core + HTTP add-on, pinned 0.16.0)"
 if [[ "$ENABLE_KEDA" == "true" ]]; then
-    if kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
-        ok "KEDA CRDs already present"
-    else
-        ./scripts/setup-keda.sh || fail "keda setup failed"
-    fi
+    # Always run: helm upgrade --install is idempotent and moves an existing
+    # install to the pinned chart versions.
+    ./scripts/setup-keda.sh || fail "keda setup failed"
 else
     skip "KEDA disabled"
 fi

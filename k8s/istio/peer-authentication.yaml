@@ -26,9 +26,10 @@
 # STRICT destination with no explicit `DestinationRule.trafficPolicy.tls`
 # needed here.
 #
-# Verified correct for Istio 1.29 (the version scripts/setup-istio.sh pins):
+# Verified correct for Istio 1.31.1 (the version scripts/setup-istio.sh pins):
 # `security.istio.io/v1` is the stable PeerAuthentication API version as of
-# 1.22+ and remains current in 1.29; `mtls.mode: STRICT` is unchanged.
+# 1.22+ and validates against the 1.31.1 base chart's CRD; `mtls.mode:
+# STRICT` is unchanged.
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:

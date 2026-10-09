@@ -8,12 +8,12 @@
 # (k8s/base/graphql-gateway.yaml — name/namespace/labels/port
 # copied verbatim: Service "graphql-gateway" port "http" = 8080).
 #
-# Schema is the KEDA HTTP add-on v0.15.0 API (http.keda.sh/v1alpha1,
-# kind: HTTPScaledObject) — verified against the v0.15.0 tag's CRD
-# (config/crd/bases/http.keda.sh_httpscaledobjects.yaml in
-# kedacore/http-add-on): hosts, pathPrefixes, scaleTargetRef, replicas, and
+# Schema is the KEDA HTTP add-on v0.16.0 API (http.keda.sh/v1alpha1,
+# kind: HTTPScaledObject) — validated against the CRD the keda-add-ons-http
+# 0.16.0 chart renders: hosts, pathPrefixes, scaleTargetRef, replicas, and
 # scalingMetric.requestRate{granularity,targetValue,window} all present and
-# unchanged. scaleTargetRef requires "service" plus exactly one of
+# unchanged. HTTPScaledObject is deprecated in favor of InterceptorRoute
+# (0.14.0+) but still served; this repo does not adopt InterceptorRoute yet. scaleTargetRef requires "service" plus exactly one of
 # "port"/"portName"; "name"/"kind"/"apiVersion" identify the workload to
 # scale (Deployment graphql-gateway, apps/v1).
 #

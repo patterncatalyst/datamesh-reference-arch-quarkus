@@ -13,7 +13,7 @@ exercise them are `demos/demo-keda-kafka.sh` and `demos/demo-keda-http.sh`.
 | File | Kind | Targets | Trigger |
 |---|---|---|---|
 | `consumer-scaledobject.yaml` | `ScaledObject` (`keda.sh/v1alpha1`, KEDA core) | Deployment `notification-service` | Kafka consumer-group lag on topic `order.placed` |
-| `gateway-httpscaledobject.yaml` | `HTTPScaledObject` (`http.keda.sh/v1alpha1`, KEDA HTTP add-on **0.15.0**) | Deployment/Service `graphql-gateway` | HTTP request rate |
+| `gateway-httpscaledobject.yaml` | `HTTPScaledObject` (`http.keda.sh/v1alpha1`, KEDA HTTP add-on **0.16.0**) | Deployment/Service `graphql-gateway` | HTTP request rate |
 | `kustomization.yaml` | — | groups both for `kubectl apply -k k8s/keda` | — |
 
 ## Prerequisites
@@ -21,15 +21,17 @@ exercise them are `demos/demo-keda-kafka.sh` and `demos/demo-keda-http.sh`.
 Both KEDA core and the HTTP add-on must already be installed with
 `./scripts/setup-keda.sh`, which installs both with helm:
 
-- KEDA core **2.19.0**.
-- KEDA HTTP add-on **0.15.0**. v0.14.0 shipped an interceptor panic on
+- KEDA core **2.21.0**.
+- KEDA HTTP add-on **0.16.0**. v0.14.0 shipped an interceptor panic on
   POST forwarding (kedacore/http-add-on#1668, "invalid concurrent Body.Read
-  call"); 0.15.0 fixes it and adds HTTP/2 and gRPC scaling.
-- `interceptor.replicas.waitTimeout` is raised from the 20s default to 180s.
-  The interceptor holds a request while a scaled-from-zero workload gets a
-  Ready replica, and a cold JVM boot (KEDA activation, image pull, Quarkus
-  start, startupProbe) exceeds 20s. With the default, requests fail with
-  502 "context deadline exceeded" before a backend exists.
+  call"); 0.15.0 fixed it. `HTTPScaledObject` is deprecated in favor of
+  `InterceptorRoute` but still served; it reports a standard `Ready`
+  condition in 0.16 (0.12 used `HTTPScaledObjectIsReady`).
+- `interceptor.readinessTimeout` is set to 180s (it replaces the deprecated
+  `interceptor.replicas.waitTimeout`). The interceptor holds a request while
+  a scaled-from-zero workload gets a Ready replica, and a cold JVM boot (KEDA
+  activation, image pull, Quarkus start, startupProbe) needs a bounded hold.
+  Since 0.14.0 the default is disabled and a timeout answers 504, not 502.
 
 The target Deployments/Services must already exist
 (`kubectl apply -k k8s/overlays/minikube`).
@@ -97,7 +99,7 @@ kubectl get httpscaledobject graphql-gateway-httpscaledobject -n datamesh
 # Requests must go through the KEDA HTTP add-on's interceptor proxy Service
 # in the keda namespace, with the Host header set to the hosts entry above
 # (demo-keda-http.sh automates this), e.g.:
-kubectl run -n datamesh curl-test --rm -it --image=curlimages/curl --restart=Never -- \
+kubectl run -n datamesh curl-test --rm -it --image=curlimages/curl:8.22.0 --restart=Never -- \
   curl -H "Host: graphql-gateway.datamesh.svc.cluster.local" \
   http://keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local:8080/graphql
 ```
@@ -120,11 +122,10 @@ without a cluster). Four checks were run:
    enough for kustomize to merge/emit.
 3. **Schema correctness against the actual CRDs**: every field was
    checked against the CRD definitions —
-   `keda.sh_scaledobjects.yaml` from the `kedacore/keda` `v2.19.0` tag
-   (the version `scripts/setup-keda.sh` installs) and
-   `http.keda.sh_httpscaledobjects.yaml` from the `kedacore/http-add-on`
-   `v0.15.0` tag (the pinned add-on version) — fetched directly from
-   GitHub. `scaleTargetRef.service` is required for `HTTPScaledObject`,
+   the `ScaledObject` CRD rendered by the `kedacore/keda` 2.21.0 chart
+   (the version `scripts/setup-keda.sh` installs) and the `HTTPScaledObject`
+   CRD rendered by the `keda-add-ons-http` 0.16.0 chart (the pinned add-on
+   version); re-checked 2026-10-09 for DRQ-029. `scaleTargetRef.service` is required for `HTTPScaledObject`,
    and exactly one of `port`/`portName` must be set, both satisfied here.
 4. Names/namespace/ports were copied verbatim from `k8s/base/*.yaml`
    (`k8s/base/*.yaml`).
