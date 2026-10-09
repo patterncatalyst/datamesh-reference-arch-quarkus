@@ -19,7 +19,7 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 | # | Step | Phase | Skills/MCP | Status |
 |---|------|-------|-----------|--------|
 | 1 | Lock toolchain & versions → decisions.md | A | lgtm-quarkus, quarkus-agent, camel-mcp | DONE |
-| 2 | Create `lgtm-docker-stack` skill (no podman) | A | mirror lgtm-podman/minikube-stack | DONE (merged lgtm-skills#13) |
+| 2 | Create `lgtm-docker-stack` skill (no podman) | A | mirror lgtm-podman/minikube-stack | DONE (merged lgtm-skills#13) | <!-- forbidden-ok -->
 | 3 | Scaffold Jekyll site | A | lgtm-jekyll | DONE (build 0 errors) |
 | 4 | CLAUDE.md + PRD + plans | A | — | DONE |
 | 5 | Example tree + shared domain-model | B | lgtm-quarkus, quarkus-agent | DONE (0b3e2ae; reactor + domain-model + contracts Avro/gRPC) |
@@ -35,6 +35,7 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 | 15 | Notion 1-hour abstract | E | Notion MCP | DONE (2026-10-06; "A Data Mesh That Runs on a Laptop (60 min)", house format, filed under Notion Abstracts) |
 | 16 | (optional) refresh lgtm-quarkus ancillary pins | E | — | DONE (quarkus-junit names lgtm-skills#23; image and tool pins #37, #39, #40, #47) |
 | 17 | Validate → publish to GitHub (after approval) | E | lgtm-github | DONE (repo public; all 5 walkthrough acts and `mvn verify` passed 2026-10-06) |
+| 18 | NodePorts published on loopback, Docker Engine on Fedora/RHEL, `forbidden-syntax.sh` gate (DRQ-016, DRQ-017; `_plans/nodeports-platform-plan.md`) | E | — | IN PROGRESS (branch `fix/nodeports-platform`; live verification pending) |
 
 ## Demo ↔ slide ↔ capability matrix
 
@@ -65,7 +66,7 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 - `_docs/` ≥ 16 chapters (00–10 mirrored + Quarkus-capability + Quarkus-vs-Spring-Boot), each with front-matter + verification footer.
 - Every required capability → exactly 1 demo + 1 slide; each demo has runnable README + passing test.
 - Code runs Quarkus 3.39.5 / JDK 25; `mvn verify` per service; ≥1 native build succeeds.
-- `lgtm-docker-stack` skill exists (SKILL.md + templates), no podman references.
+- `lgtm-docker-stack` skill exists (SKILL.md + templates), no podman references. <!-- forbidden-ok -->
 - CLAUDE.md states version matrix + per-task skill mapping; PRD.md + decisions.md present.
 - Deck builds with Quarkus code + Spring-Boot compare slides + one slide per demo; diagrams paired SVG+Excalidraw.
 - Notion 1-hour abstract page exists.

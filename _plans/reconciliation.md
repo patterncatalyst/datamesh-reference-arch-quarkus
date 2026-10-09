@@ -116,9 +116,12 @@ don't let it fall behind the build-plan step table in `build-plan.md`
 | `examples/.../scripts/restore-baseline.sh` | `scripts/restore-baseline.sh` | not ported | Not carried over; absent from build-plan |
 | `examples/.../scripts/teardown.sh` | `scripts/teardown.sh` | ported | Exists; not separately verified |
 | `examples/.../scripts/cluster-up.sh` / `cluster-status.sh` | `scripts/cluster-up.sh` / `cluster-status.sh` | ported | `cluster-up` landed as `setup-profile.sh` (verified via bootstrap 2026-10-06); `cluster-status.sh` exists, not separately verified |
-| `examples/.../scripts/tunnel-services.sh` | `scripts/tunnel-services.sh` | ported | Exists; not separately verified |
+| `demos/lib/endpoints.sh` + `scripts/show-endpoints.sh` (Python `examples/lgtm-datamesh/`) | `demos/lib/endpoints.sh` + `scripts/show-endpoints.sh` | unverified (pending live run) | Replaces the old forwarding helper (DRQ-016) |
 | `examples/.../scripts/publish-discovery-contracts.sh` | `scripts/publish-discovery-contracts.sh` | not ported | Not carried over; no OpenMetadata discovery here (chapter 4) |
-| `scripts/audit-fedora-prereqs.sh` | (evaluate: docker prereq audit) | not ported | Fedora/podman-specific; dropped, no docker audit written |
+| `scripts/audit-fedora-prereqs.sh` | (evaluate: docker prereq audit) | not ported | Fedora-specific audit; dropped, no docker audit written; `setup-profile.sh` pre-flight covers it |
+| `scripts/forbidden-syntax.sh` (Python repo) | `scripts/forbidden-syntax.sh` | unverified (pending live run) | Scans 1-5 ported plus scan 6 for other-OS mentions (DRQ-017) |
+| `.github/workflows/checks.yml` (Python repo) | `.github/workflows/checks.yml` | unverified (pending live run) | Runs the gate on push and pull request |
+| gRPC resolver fix (Python DRA-017/019) | (none) | not applicable | Quarkus clients use the JDK/Netty resolver and `INVENTORY_GRPC_HOST` is an FQDN |
 | `scripts/editorial-audit.sh` | `scripts/editorial-audit.sh` | not ported | Not carried over; `lgtm-professional-voice` scan covers it |
 | `scripts/test-template.sh` | `scripts/test-template.sh` | not ported | Not carried over; `scripts/run-all-tests.sh` is the test entry point |
 | _(none — new)_ | `tooling/newman/`, `tooling/load/` | verified | 2026-10-06 `run-all-tests.sh --load`: Newman 49/49; hey ~18k req/s all 200; ghz ~12k calls/s, 8 Unavailable + 1 Canceled; newman 6.2.2, hey v0.1.5, ghz v0.121.0 pinned |
@@ -175,7 +178,7 @@ content is explanatory or conceptual and was not run.
 | Artifact | Counterpart | Status | Notes |
 |---|---|---|---|
 | _(none — new)_ | `_docs/11-quarkus-capability-tour.md`: twelve-capability tour (was nine; ten in practice) | verified (adapted) | Adds JDK AOT cache (Leyden), Panama FFM, Panache patterns, Uni and imperative subsection. Native image verified 2026-10-06 via `demo-native.sh` (Mandrel builder container: 136 s build, 141 MB binary, 0.081 s startup, single run); Figures 11.6 and 11.7 draw the native and AOT cache build pipelines |
-| _(none — new)_ | `demos/demo-panama.sh`, `demos/jbang/PanamaFfm.java` | verified | Ran on JDK 25.0.3 with JBang 0.138.0: `PANAMA_GETPID` equals `JVM_PID`, `PANAMA_STRLEN` equals `JAVA_LENGTH` (31). Linux and macOS only (libc default lookup) |
+| _(none — new)_ | `demos/demo-panama.sh`, `demos/jbang/PanamaFfm.java` | verified | Ran on JDK 25.0.3 with JBang 0.138.0: `PANAMA_GETPID` equals `JVM_PID`, `PANAMA_STRLEN` equals `JAVA_LENGTH` (31). Linux only (libc default lookup) |
 | _(none — new)_ | JDK 25 AOT cache comparison: `scripts/compare-quarkus-springboot.sh --aot`, `_docs/12-quarkus-vs-spring-boot.md` | measured | Temurin 25.0.3, 2026-10-05, single run; startup, RSS, and cache size recorded in chapter 12. Not a benchmark |
 | _(none — new)_ | Figure `11-panache-patterns` | unverified | Explanatory; the `PanacheRepository` example in chapter 11 is illustrative and not run |
 | _(none — new)_ | Figure `11-uni-vs-imperative` | unverified | Explanatory; grounded in `InventoryGrpcService.checkStock` and `StockResource.get` |
