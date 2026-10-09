@@ -7,7 +7,7 @@ sibling `datamesh-reference-arch-python` decks):
 | Deck | Dir | Audience / use |
 |------|-----|----------------|
 | **101** | `datamesh-101/` | Concept-forward overview for Quarkus developers — data-architecture landscape, the four principles, Quarkus/Kubernetes teaser. 17 slides. |
-| **201** | `datamesh-201/` | Deep-dive with **live demos** and a large **appendix** — capability tour, the three orchestration engines, AI+rules triage, Quarkus-vs-Spring-Boot (JVM and JDK 25 AOT cache), platform/observability. 102 slides. |
+| **201** | `datamesh-201/` | Deep-dive with **live demos** and a large **appendix** — capability tour, the three orchestration engines, AI+rules triage, Quarkus-vs-Spring-Boot (JVM and JDK 25 AOT cache), platform/observability. 106 slides. |
 
 ## Build
 
@@ -17,7 +17,7 @@ Each deck dir is self-contained. From a deck dir:
 npm install            # pptxgenjs + sharp
 node raster.js         # SVG -> dpng/*.png (+ dims.json), reads ../../assets/diagrams/*.svg
 node build-101.js      # (101)  -> Datamesh_101-r1.1.pptx
-node build-deck.js     # (201)  -> Datamesh-201-Quarkus-r1.1.pptx
+node build-deck.js     # (201)  -> Datamesh-201-Quarkus-r1.2.pptx
 ```
 
 `raster.js` must run before the builder (the builder reads `dpng/dims.json`). The

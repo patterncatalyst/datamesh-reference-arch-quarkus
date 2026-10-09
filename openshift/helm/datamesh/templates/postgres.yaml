@@ -1,0 +1,75 @@
+# Postgres 16 on the Red Hat image (sclorg). It runs under restricted-v2 with
+# an arbitrary UID; the image is built for that. The Service keeps the
+# minikube name, datamesh-postgres-rw, so JDBC_URL reads the same.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: datamesh-postgres
+  labels:
+    app.kubernetes.io/name: datamesh-postgres
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  serviceName: datamesh-postgres-rw
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: datamesh-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: datamesh-postgres
+        app.kubernetes.io/part-of: datamesh
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.postgres.image }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRESQL_DATABASE
+              value: {{ .Values.postgres.database | quote }}
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef: {name: datamesh-postgres-app, key: username}
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: datamesh-postgres-app, key: password}
+          readinessProbe:
+            exec: {command: ["/usr/libexec/check-container"]}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec: {command: ["/usr/libexec/check-container", "--live"]}
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 512Mi}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/pgsql/data
+          {{- include "datamesh.containerSecurity" . | nindent 10 }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.postgres.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: datamesh-postgres-rw
+  labels:
+    app.kubernetes.io/name: datamesh-postgres
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/name: datamesh-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres

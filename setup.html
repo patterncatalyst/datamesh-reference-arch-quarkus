@@ -188,6 +188,18 @@ docker info</code></pre>
             container uses ports 3000, 3100, 3200, 4317 and 4318. Stop the cluster with
             <code>minikube stop -p datamesh</code> before running Compose demos.
         </p>
+
+        <h3>Optional: OpenShift Local (CRC)</h3>
+        <p>
+            The appendix <a href="{{ '/docs/22-running-on-openshift-crc/' | relative_url }}">Running on OpenShift Local</a>
+            runs the seven core services, Kafka, Postgres and Apicurio on a single-node
+            OpenShift 4.22 VM. It needs <code>crc</code> with a Red Hat pull secret,
+            <code>oc</code>, <code>helm</code>, <code>jq</code> and Maven with JDK 25; images are built
+            inside the cluster, so no container engine is involved. It was verified with
+            6 vCPUs, 20 GB of memory and an 80 GB disk. Run it instead of minikube, not
+            alongside it, and finish with <code>./openshift/teardown.sh</code>, which removes
+            everything it installed and stops CRC.
+        </p>
     </div>
 </section>
 

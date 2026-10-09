@@ -96,6 +96,7 @@ exclude:
   - examples/        # runnable Quarkus/Spring Boot code, not site content
   - scripts/
   - demos/           # demo-*.sh scripts referenced from demos.html
+  - openshift/       # OpenShift Local appendix scripts, chart and evidence
   - presentation/
   - README.md
   - LICENSE

@@ -1,4 +1,4 @@
-// Build the Datamesh 201 deep-dive deck — Quarkus + Kubernetes (r1.1).
+// Build the Datamesh 201 deep-dive deck — Quarkus + Kubernetes (r1.2).
 // Mirrors the structure of the sibling Python "Data Mesh on OpenShift" deck:
 // section dividers, diagram-forward content, code slides where code is the
 // lesson, one slide per demo, speaker notes on every slide, large appendix.
@@ -56,7 +56,7 @@ titleSlide({
   eyebrow: "Data Mesh · 201",
   title: "Building a Datamesh using Quarkus and Kubernetes",
   subtitle: "From the four principles to a running platform on Quarkus and Kubernetes: a capability tour, three orchestration engines, AI and rules triage, and live demos. No prior Quarkus experience required.",
-  breadcrumb: "Data Mesh · 201 · r1.1",
+  breadcrumb: "Data Mesh · 201 · r1.2",
   notes: "Welcome to the 201 deep-dive. The 101 deck makes the conceptual case for data mesh; this deck covers the running system: a Quarkus and Kubernetes reference architecture built on the shipping and order domain, with nineteen demo scripts behind it. No prior Quarkus experience is assumed. Each capability is introduced as it comes up, so the deck works as a Quarkus introduction as well as a data-mesh deep dive for anyone who has seen the 101. Expectations: a long walk, diagram-forward, with code where the code is the lesson. It states what works, what is opt-in, and the one capability documented as broken (in-process LLM tool calling).",
 });
 
@@ -697,8 +697,8 @@ wideDiagramSlide({ eyebrow: "The whole picture", title: "Analytical data: what i
 
 /* ====================== 11 · APPENDICES ====================== */
 (() => {
-  const s = divider({ num: "11", title: "Appendices", sub: "Six optional deep-dives, one topic each." });
-  s.addNotes("These mirror the six appendix chapters on the site. They are reference depth outside the main arc: scaling the WebSocket push, the gotchas, agentic-development recommendations, testing detail, in-memory versus Kafka messaging, and the three engines compared. Pull up whichever one a question lands on.");
+  const s = divider({ num: "11", title: "Appendices", sub: "Seven optional deep-dives, one topic each." });
+  s.addNotes("These mirror the seven appendix chapters on the site. They are reference depth outside the main arc: scaling the WebSocket push, the gotchas, agentic-development recommendations, testing detail, in-memory versus Kafka messaging, the three engines compared, and running the whole system on OpenShift Local. Pull up whichever one a question lands on.");
 })();
 
 diagramSlide({ eyebrow: "Appendix A1", title: "Scaling WebSocket push with Kafka",
@@ -745,6 +745,37 @@ diagramSlide({ eyebrow: "Appendix A6", title: "The three engines, compared",
   image: "21-three-engines-compare",
   caption: "Kafka choreography against two shapes of orchestration (a Camel route and a Quarkus Flow document), compared by sequence ownership, coupling, failure handling, debugging, and where the logic lives.",
   notes: "More detail than the three-engines section. Terminology stays exact: Kafka is choreography, with no central coordinator and each participant reacting to events; Camel and Quarkus Flow are both orchestration, with one component sequencing the steps. Failure handling in this project today is idempotent redelivery and exception propagation, not saga compensation." });
+
+diagramSlide({ eyebrow: "Appendix A7", title: "Running on OpenShift Local",
+  image: "22-crc-openshift-topology",
+  caption: "The same seven services in one project: two edge-TLS Routes in front, Kafka from AMQ Streams, Postgres 16 and Apicurio 3.2.4 behind, under restricted-v2.",
+  notes: "The deployed topology on OpenShift Local (CRC 4.22). The host browser or curl reaches two edge-TLS Routes: graphql-gateway-datamesh.apps-crc.testing and apicurio-datamesh.apps-crc.testing. The gateway calls order-service over REST on 8080 and inventory-service over gRPC on 9000, and order-service also calls inventory-service over gRPC. Kafka is the cluster named datamesh, from AMQ Streams 3.2.1 with Kafka 4.2.0 on one KRaft node; the operator sits in openshift-operators through OLM with a pinned CSV. The choreography is unchanged: order-service publishes order.placed, payment-service publishes payment.captured, shipping-service publishes shipment.dispatched, and notification-service also consumes order.placed. Postgres is a StatefulSet named datamesh-postgres-rw on the rhel10/postgresql-16 image, used by order, inventory, shipping, notification, and review. Apicurio 3.2.4 holds the Avro schemas. review-service runs with its OIDC tenant disabled. Everything runs under the restricted-v2 security context constraint." });
+
+diagramSlide({ eyebrow: "Appendix A7", title: "Building images inside the cluster",
+  image: "22-crc-image-build",
+  caption: "mvn package -Popenshift produces a fast-jar; a binary S2I build in the cluster turns it into an ImageStream tag the Deployment pulls.",
+  notes: "No local container engine is involved. mvn package -Popenshift builds the fast-jar in target/quarkus-app, and the quarkus-openshift extension uploads it as a binary build to a BuildConfig that uses the Source strategy. S2I runs inside the cluster on ubi10/openjdk-25:1.24-15, pushes to the internal registry, and tags the ImageStream as the service name with v1. The Deployment pulls image-registry.openshift-image-registry.svc:5000/datamesh/ the service name v1. The cluster never pulls from Maven Central, because Maven runs on the host. Seven services come out of one Maven reactor run in about three minutes; each in-cluster build takes about 15 seconds." });
+
+contentSlide({ eyebrow: "Appendix A7", title: "What changes on OpenShift",
+  bullets: [
+    { lead: "Security", sep: " — ", text: "restricted-v2 assigns the UID, so the chart sets no runAsUser." },
+    { lead: "Host access", sep: " — ", text: "Routes with edge TLS replace NodePorts on 127.0.0.1." },
+    { lead: "Images", sep: " — ", text: "built in the cluster by quarkus-openshift binary S2I." },
+    { lead: "Kafka", sep: " — ", text: "AMQ Streams from OperatorHub instead of Strimzi through Helm." },
+    { lead: "Postgres", sep: " — ", text: "a Postgres 16 StatefulSet on the Red Hat image instead of CloudNativePG." },
+    { lead: "review-service", sep: " — ", text: "runs with the OIDC tenant disabled; DELETE answers 401." },
+  ],
+  notes: "Six differences from the minikube path. First, the restricted-v2 security context constraint assigns the user ID from the namespace range, so the chart does not set runAsUser. Second, Routes with edge TLS on the apps-crc.testing domain replace NodePorts published on 127.0.0.1. Third, images are built in the cluster by the quarkus-openshift extension with binary S2I, not loaded from a local build. Fourth, Kafka comes from AMQ Streams in OperatorHub instead of Strimzi installed through Helm. Fifth, Postgres is a StatefulSet on the Red Hat PostgreSQL 16 image instead of CloudNativePG. Sixth, review-service runs with its OIDC tenant disabled, so DELETE /reviews/{id} answers 401. The decisions are DRQ-018 to DRQ-022." });
+
+contentSlide({ eyebrow: "Appendix A7", title: "What broke on the live run, and the fix",
+  bullets: [
+    { lead: "No BuildConfig", sep: " — ", text: "quarkus-container-image-openshift alone generated none; use the full quarkus-openshift extension." },
+    { lead: "Wrong tag", sep: " — ", text: "the output tag follows quarkus.openshift.version, not quarkus.container-image.tag." },
+    { lead: "Heap sizing", sep: " — ", text: "the S2I image reads JAVA_MAX_MEM_RATIO (default 80); set to 50." },
+    { lead: "Restarts", sep: " — ", text: "DB services restarted while Postgres initialised; a wait-for-postgres init container fixes it." },
+    { lead: "Deprecated API", sep: " — ", text: "v1beta2 Kafka is deprecated in AMQ Streams 3.2; moved to kafka.strimzi.io/v1." },
+  ],
+  notes: "Five problems found on the live run, each with its fix. Applying quarkus-container-image-openshift alone generated no BuildConfig, so the project uses the full quarkus-openshift extension. The output tag follows quarkus.openshift.version, not quarkus.container-image.tag. The S2I image reads JAVA_MAX_MEM_RATIO with a default of 80, which is too high for the pod limits, so it is set to 50. The database services restarted while Postgres was still initialising, which a wait-for-postgres init container fixed. The v1beta2 Kafka API is deprecated in AMQ Streams 3.2, so the CR moved to kafka.strimzi.io/v1. Status: verified 2026-10-09 on CRC 4.22.14 with a full clean cycle (teardown, install-infra, build-images, deploy, capture-evidence) in about 5.5 minutes. Teardown returns the cluster to clean." });
 
 /* ====================== APPENDIX ====================== */
 (() => {
@@ -874,4 +905,4 @@ diagramSlide({ eyebrow: "Appendix · background diagrams", title: "Operational v
   notes: "The 101 deck's version of the seam a mesh addresses. Traditionally the operational and analytical layers are separate technology stacks joined by pipelines. A mesh keeps the distinction but organizes it by domain: each domain owns its operational systems and the analytical products derived from them. The final slide of the deck covers the analytical half in more detail." });
 
 /* ============================ WRITE ============================ */
-L.writeDeck("Datamesh-201-Quarkus-r1.1.pptx").then((f) => console.log("WROTE", f));
+L.writeDeck("Datamesh-201-Quarkus-r1.2.pptx").then((f) => console.log("WROTE", f));

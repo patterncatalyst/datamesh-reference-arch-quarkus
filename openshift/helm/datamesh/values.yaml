@@ -1,0 +1,74 @@
+# values.yaml — datamesh on OpenShift Local.
+#
+# The env contract matches the minikube ConfigMap (k8s/base/config.yaml), so
+# the same %prod config in each service's application.properties works
+# unchanged. Service DNS names keep the minikube spelling:
+#   Kafka    datamesh-kafka-bootstrap  (Kafka CR "datamesh", install-infra.sh)
+#   Postgres datamesh-postgres-rw      (this chart's StatefulSet Service)
+#   Apicurio apicurio                  (this chart)
+
+# Images come from the internal registry: build-images.sh pushes
+# ImageStream tags <service>:<imageTag> into the release namespace.
+registry: image-registry.openshift-image-registry.svc:5000
+imageTag: v1
+
+# The ubi10/openjdk-25 S2I image starts the app with run-java.sh, which sizes
+# the heap as a percentage of the container memory limit. 50 leaves room for
+# metaspace, threads and Netty buffers inside the limits below.
+javaMaxMemRatio: "50"
+
+kafka:
+  bootstrap: datamesh-kafka-bootstrap:9092
+
+postgres:
+  image: registry.redhat.io/rhel10/postgresql-16:10.2-1791491499
+  database: datamesh
+  username: datamesh
+  storage: 2Gi
+
+apicurio:
+  image: quay.io/apicurio/apicurio-registry:3.2.4
+
+routes:
+  # Edge TLS on the router; plain HTTP redirects to HTTPS.
+  gateway: true
+  apicurio: true
+
+# One Deployment + Service per entry. Keys are the ImageStream names.
+#   db:           mount the Postgres credentials (QUARKUS_DATASOURCE_*)
+#   avroPackages: org.apache.avro.SERIALIZABLE_PACKAGES, as in the service's
+#                 Containerfile (run-java.sh does not read the Containerfile)
+#   grpcPort:     extra Service port (inventory's gRPC server)
+#   env:          service-specific environment
+services:
+  order-service:
+    db: true
+    avroPackages: capstone.order.v1
+    resources: {requests: {cpu: 150m, memory: 320Mi}, limits: {cpu: 750m, memory: 640Mi}}
+  inventory-service:
+    db: true
+    grpcPort: 9000
+    resources: {requests: {cpu: 150m, memory: 320Mi}, limits: {cpu: 750m, memory: 640Mi}}
+  payment-service:
+    avroPackages: capstone.order.v1,capstone.payment.v1
+    resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 512Mi}}
+  shipping-service:
+    db: true
+    avroPackages: capstone.payment.v1,capstone.shipping.v1
+    resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 512Mi}}
+  notification-service:
+    db: true
+    avroPackages: capstone.order.v1
+    resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 512Mi}}
+  review-service:
+    db: true
+    env:
+      # No OIDC provider runs on OpenShift Local. Disabling the default
+      # tenant lets the prod build start; DELETE /reviews/{id} then answers
+      # 401, and every other endpoint is unaffected.
+      QUARKUS_OIDC_TENANT_ENABLED: "false"
+    resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 512Mi}}
+  graphql-gateway:
+    env:
+      ORDER_SERVICE_URL: http://order-service:8080
+    resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 512Mi}}
