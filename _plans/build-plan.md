@@ -35,7 +35,7 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 | 15 | Notion 1-hour abstract | E | Notion MCP | DONE (2026-10-06; "A Data Mesh That Runs on a Laptop (60 min)", house format, filed under Notion Abstracts) |
 | 16 | (optional) refresh lgtm-quarkus ancillary pins | E | — | DONE (quarkus-junit names lgtm-skills#23; image and tool pins #37, #39, #40, #47) |
 | 17 | Validate → publish to GitHub (after approval) | E | lgtm-github | DONE (repo public; all 5 walkthrough acts and `mvn verify` passed 2026-10-06) |
-| 18 | NodePorts published on loopback, Docker Engine on Fedora/RHEL, `forbidden-syntax.sh` gate (DRQ-016, DRQ-017; `_plans/archive/nodeports-platform-plan.md`) | E | — | IN PROGRESS (branch `fix/nodeports-platform`; live verification pending) |
+| 18 | NodePorts published on loopback, Docker Engine on Fedora/RHEL, `forbidden-syntax.sh` gate (DRQ-016, DRQ-017; `_plans/archive/nodeports-platform-plan.md`) | E | — | DONE + live-verified 2026-10-09 (branch `fix/nodeports-platform`) |
 
 ## Demo ↔ slide ↔ capability matrix
 

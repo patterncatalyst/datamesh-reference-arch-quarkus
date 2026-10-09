@@ -320,4 +320,4 @@ see all of it working.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `demo-tracing.sh` passed, recording the cross-service trace against the compose otel-lgtm backend. The mesh/Kiali view is covered by the Kubernetes chapters, which still require a live cluster. Host access through published NodePorts: re-verification pending.*
+*Verification status: <span class="status status--verified">verified</span>. `demo-tracing.sh` passed, recording the cross-service trace against the compose otel-lgtm backend. The mesh/Kiali view is covered by the Kubernetes chapters, which still require a live cluster. Host access through NodePorts published on 127.0.0.1 was re-verified on 2026-10-09: Grafana (3000), Loki (3100), Tempo (3200), Mimir (9009), OTLP (4317/4318), Kiali (20001) and Apicurio (8084) all answered on loopback, and Grafana's Tempo datasource now points at Tempo's HTTP port 3100.*

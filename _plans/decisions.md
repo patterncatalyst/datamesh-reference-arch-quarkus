@@ -98,7 +98,7 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
   plan + build step 10 (demos 1:1 with slides, incl. DRQ-012) first, reassess
   before steps 11–13 (tutorial chapters, diagrams, deck). Demos are the
   hardest-to-fake artifact and feed the chapters and deck downstream.
-- **DRQ-016 — Host access: NodePorts published on 127.0.0.1 at profile creation.** Status: decided 2026-10-09; live verification pending.
+- **DRQ-016 — Host access: NodePorts published on 127.0.0.1 at profile creation.** Status: decided and live-verified 2026-10-09 (Docker Engine provided by Docker Desktop; see reconciliation).
   - **Context.** Host access used SSH tunnels, which disconnect when the cluster idles or is under load. <!-- forbidden-ok -->
   - **Decision.** Every host-facing service is a fixed NodePort, published when the profile is created: `minikube start -p datamesh --ports=127.0.0.1:<host>:<node>,...`. The host:nodePort map lives in `demos/lib/endpoints.sh`. Host ports are unchanged (Grafana stays at `http://127.0.0.1:3000`). Loopback only. `scripts/show-endpoints.sh` prints what is published and reachable. Changing the ports means recreating the profile with `setup-profile.sh --replace`.
   - **Rejected.**
@@ -110,7 +110,7 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
     - Exposing application Services: only platform endpoints are published.
     - Moving the nodePorts to 30000-30085: kept as a fallback if a fixed nodePort collides with a dynamically allocated one.
   - **Consequences.** Recreating the profile wipes loaded images (re-run `scripts/load-images.sh`). `scripts/forbidden-syntax.sh`, run by `.github/workflows/checks.yml`, fails the build on forwarding syntax. <!-- forbidden-ok -->
-- **DRQ-017 — Docker Engine on Fedora/RHEL hosts; host scope; compose/cluster exclusivity; devcontainer removed.** Status: decided 2026-10-09.
+- **DRQ-017 — Docker Engine on Fedora/RHEL hosts; host scope; compose/cluster exclusivity; devcontainer removed.** Status: decided and live-verified 2026-10-09: compose guard refused while the cluster ran; `walkthrough.sh --with-minikube` ACT 5 started the stopped profile and passed both KEDA demos.
   - Docker Engine is required. Docker Desktop is optional, as an example of a VM-based engine.
   - Supported hosts are Fedora or RHEL, bare metal or VM. No other OS is documented; scan 6 of `scripts/forbidden-syntax.sh` enforces it.
   - `.devcontainer/` is removed: ubuntu base, unpinned "latest" features, and forwardPorts. <!-- forbidden-ok -->
