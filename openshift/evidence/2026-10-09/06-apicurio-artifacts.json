@@ -1,0 +1,29 @@
+{
+  "artifacts": [
+    {
+      "createdOn": "2026-10-09T06:21:08Z",
+      "owner": "",
+      "artifactType": "AVRO",
+      "modifiedOn": "2026-10-09T06:21:08Z",
+      "modifiedBy": "",
+      "artifactId": "order.placed-value"
+    },
+    {
+      "createdOn": "2026-10-09T06:21:10Z",
+      "owner": "",
+      "artifactType": "AVRO",
+      "modifiedOn": "2026-10-09T06:21:10Z",
+      "modifiedBy": "",
+      "artifactId": "payment.captured-value"
+    },
+    {
+      "createdOn": "2026-10-09T06:21:11Z",
+      "owner": "",
+      "artifactType": "AVRO",
+      "modifiedOn": "2026-10-09T06:21:11Z",
+      "modifiedBy": "",
+      "artifactId": "shipment.dispatched-value"
+    }
+  ],
+  "count": 3
+}

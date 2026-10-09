@@ -1,0 +1,16 @@
+{
+  "data": {
+    "order": {
+      "id": "535c9586-0d05-41c1-bd16-4e4bb1f76611",
+      "customerId": "crc-evidence",
+      "itemSku": "CRC-WIDGET-4190389",
+      "quantity": 1,
+      "status": "PLACED",
+      "stock": {
+        "sku": "CRC-WIDGET-4190389",
+        "quantityOnHand": 12,
+        "available": true
+      }
+    }
+  }
+}

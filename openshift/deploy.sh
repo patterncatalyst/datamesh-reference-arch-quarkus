@@ -23,10 +23,13 @@ ok "release datamesh applied"
 step "Waiting for workloads"
 oc rollout status statefulset/datamesh-postgres -n "$NS" --timeout=300s >/dev/null || fail "Postgres not Ready"
 ok "datamesh-postgres Ready"
-oc wait deployment --all -n "$NS" -l app.kubernetes.io/part-of=datamesh \
-    --for=condition=Available --timeout=600s >/dev/null \
-    || fail "deployments not Available (oc get pods -n $NS)"
-ok "all deployments Available"
-oc get pods -n "$NS" -l app.kubernetes.io/part-of=datamesh \
+# rollout status, not condition=Available: on an upgrade the old ReplicaSet
+# stays Available until the new pods are Ready.
+for d in apicurio "${SERVICES[@]}"; do
+    oc rollout status "deployment/$d" -n "$NS" --timeout=600s >/dev/null \
+        || fail "deployment $d did not roll out (oc get pods -n $NS)"
+done
+ok "all deployments rolled out"
+oc get pods -n "$NS" -l app.kubernetes.io/part-of=datamesh --field-selector=status.phase=Running \
     -o custom-columns='POD:.metadata.name,READY:.status.containerStatuses[0].ready,RESTARTS:.status.containerStatuses[0].restartCount,UID:.spec.containers[0].securityContext.runAsUser,SCC:.metadata.annotations.openshift\.io/scc'
 oc get routes -n "$NS" -o custom-columns='ROUTE:.metadata.name,HOST:.spec.host'

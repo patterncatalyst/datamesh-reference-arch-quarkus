@@ -15,7 +15,7 @@ data:
   INVENTORY_GRPC_PORT: "9000"
   QUARKUS_PROFILE: "prod"
   JAVA_OPTS_APPEND: "-Duser.timezone=UTC"
-  JAVA_MAX_RAM_RATIO: {{ .Values.javaMaxRamRatio | quote }}
+  JAVA_MAX_MEM_RATIO: {{ .Values.javaMaxMemRatio | quote }}
 ---
 # Postgres credentials, under the name and keys CloudNativePG generates on
 # minikube (datamesh-postgres-app: username, password). The password is

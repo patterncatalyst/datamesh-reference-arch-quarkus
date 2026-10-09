@@ -16,7 +16,23 @@ spec:
       labels:
         app.kubernetes.io/name: {{ $name }}
         app.kubernetes.io/part-of: datamesh
+      annotations:
+        # Roll the pods when the shared env contract changes.
+        checksum/config: {{ include (print $.Template.BasePath "/config.yaml") $ | sha256sum }}
     spec:
+      {{- if $svc.db }}
+      # Hibernate connects at boot; without this the service exits once or
+      # twice while Postgres initialises. Reuses the service image (bash's
+      # /dev/tcp), so nothing extra is pulled.
+      initContainers:
+        - name: wait-for-postgres
+          image: "{{ $.Values.registry }}/{{ $.Release.Namespace }}/{{ $name }}:{{ $.Values.imageTag }}"
+          command: ["bash", "-c", "until (exec 3<>/dev/tcp/datamesh-postgres-rw/5432) 2>/dev/null; do echo waiting for datamesh-postgres-rw:5432; sleep 2; done"]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 64Mi}
+          {{- include "datamesh.containerSecurity" $ | nindent 10 }}
+      {{- end }}
       containers:
         - name: {{ $name }}
           image: "{{ $.Values.registry }}/{{ $.Release.Namespace }}/{{ $name }}:{{ $.Values.imageTag }}"

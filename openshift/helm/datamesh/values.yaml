@@ -15,7 +15,7 @@ imageTag: v1
 # The ubi10/openjdk-25 S2I image starts the app with run-java.sh, which sizes
 # the heap as a percentage of the container memory limit. 50 leaves room for
 # metaspace, threads and Netty buffers inside the limits below.
-javaMaxRamRatio: "50"
+javaMaxMemRatio: "50"
 
 kafka:
   bootstrap: datamesh-kafka-bootstrap:9092
