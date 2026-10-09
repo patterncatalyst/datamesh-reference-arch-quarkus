@@ -19,7 +19,9 @@ spec:
   triggers:
     - type: kafka
       metadata:
-        bootstrapServers: {{ .Values.kafka.bootstrap }}
+        # Fully qualified: the KEDA operator runs in openshift-keda, where the
+        # short Service name does not resolve.
+        bootstrapServers: datamesh-kafka-bootstrap.{{ .Release.Namespace }}.svc.cluster.local:9092
         consumerGroup: notification-service
         topic: order.placed
         lagThreshold: "5"
