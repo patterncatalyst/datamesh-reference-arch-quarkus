@@ -137,4 +137,45 @@ const band = (s, x, y, w, h, t, size = 14) => {
   save("22-crc-image-build", s);
 })();
 
+/* ========== 22c. PLATFORM TIER ========== */
+(() => {
+  const s = new SVG(1180, 612);
+  s.title("Platform tier on OpenShift Local");
+  const W = 360, xs = [30, 410, 790];
+  const top = 54, bh = 124, bot = 386;
+  const feat = (x, y, fam, head, lines, result) => {
+    boxL(s, x, y, W, bh, fam, head, lines);
+    s.text(x + 14, y + bh - 14, result, { size: 14, fill: FAM[fam].head, weight: 700 });
+  };
+  feat(xs[0], top, "blue", "Service Mesh 3 (Sail) + Kiali", ["Istio v1.30.5 · STRICT mTLS · canary 90/10"], "measured v1=94, v2=6 of 100");
+  feat(xs[1], top, "green", "Custom Metrics Autoscaler (KEDA)", ["notification-service scales on Kafka lag"], "0 to 1 in 15 s, back to 0 in ~3 min");
+  feat(xs[2], top, "orange", "OpenTelemetry + otel-lgtm", ["agent injected by annotation, no image change"], "one trace: gateway, REST, gRPC");
+  feat(xs[0], bot, "red", "Ollama + AI services", ["qwen2.5:3b · ai-mcp-service · ai-rules-service"], "classify, triage, MCP checks pass");
+  feat(xs[1], bot, "tan", "Native build in the cluster", ["order-service · Mandrel 25.0 BuildConfig"], "0.075 s and 31 MiB vs 12.7 s, 325 MiB");
+  feat(xs[2], bot, "gray", "OpenShift GitOps (Argo CD)", ["Application adopts the Helm release"], "self-heal restores deletes in 2-3 s");
+
+  // core
+  s.rect(30, 202, 1120, 160, "white");
+  s.text(46, 228, "Core · project datamesh · restricted-v2", { size: 16, weight: 700, fill: "#5a3a0a" });
+  const names = ["graphql-gateway", "order-service", "inventory-service", "payment-service", "shipping-service", "notification-service", "review-service"];
+  const pw = 144, gap = 12, x0 = 46;
+  names.forEach((n, i) => pillL(s, x0 + i * (pw + gap), 244, pw, n, i === 0 ? "blue" : "green", { h: 28, size: 12 }));
+  pillL(s, 46, 292, 300, "AMQ Streams Kafka 4.2.0 (KRaft)", "red", { h: 30, size: 13 });
+  pillL(s, 366, 292, 300, "Postgres 16 StatefulSet", "blue", { h: 30, size: 13 });
+  pillL(s, 686, 292, 300, "Apicurio 3.2.4", "orange", { h: 30, size: 13 });
+  s.text(1004, 313, "7 services", { size: 13, fill: "#666666", weight: 700 });
+
+  // arrows from core to boxes
+  xs.forEach((x) => {
+    const cx = x + W / 2;
+    s.arrow(cx, top + bh, cx, 202, { marker: "arrB", w: 1.6 });
+    s.arrow(cx, 362, cx, bot, { marker: "arrB", w: 1.6 });
+  });
+
+  band(s, 30, 536, 1120, 44, "every operator pinned: Manual approval + startingCSV; teardown returns CRC to clean");
+  s.text(590, 600, "OpenShift Local (CRC 4.22) · 12 vCPU / 32 GiB", { size: 13, anchor: "middle", fill: "#666666", italic: true });
+
+  save("22-crc-platform-tier", s);
+})();
+
 console.log("DONE");
