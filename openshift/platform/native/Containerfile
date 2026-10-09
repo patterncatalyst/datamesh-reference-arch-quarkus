@@ -1,0 +1,17 @@
+# In-cluster native build for order-service. The build context is
+# target/native-sources (made on the host with
+# -Pnative -Dquarkus.native.sources-only=true), so the cluster runs only
+# native-image: no Maven, no Maven Central.
+FROM quay.io/quarkus/ubi10-quarkus-mandrel-builder-image:jdk-25.0.4.1 AS build
+WORKDIR /project
+COPY --chown=quarkus:quarkus . .
+RUN native-image -J-Xmx6g $(cat native-image.args)
+
+# Runtime: the minimal UBI 10 image Quarkus publishes for native binaries.
+# Group 0 owns the binary so an arbitrary restricted-v2 UID can run it.
+FROM quay.io/quarkus/ubi10-quarkus-micro-image:2.0-2026-10-04
+WORKDIR /work
+COPY --from=build --chown=1001:0 --chmod=0775 /project/*-runner /work/application
+EXPOSE 8080
+USER 1001
+ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]

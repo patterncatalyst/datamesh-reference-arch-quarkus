@@ -4,6 +4,10 @@
 # and wait until every workload is Ready.
 #
 #   ./openshift/deploy.sh
+#   ./openshift/deploy.sh --set mesh.enabled=true   # extra helm flags
+#
+# Values set earlier are kept (--reset-then-reuse-values), so the platform
+# scripts under openshift/platform/ can each switch on their own flag.
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
@@ -17,7 +21,8 @@ done
 
 step "helm upgrade --install datamesh"
 helm upgrade --install datamesh "$OPENSHIFT_DIR/helm/datamesh" \
-    --namespace "$NS" --kube-context "$OCP_CONTEXT" >/dev/null || fail "helm upgrade --install failed"
+    --namespace "$NS" --kube-context "$OCP_CONTEXT" --reset-then-reuse-values "$@" >/dev/null \
+    || fail "helm upgrade --install failed"
 ok "release datamesh applied"
 
 step "Waiting for workloads"
@@ -25,9 +30,9 @@ oc rollout status statefulset/datamesh-postgres -n "$NS" --timeout=300s >/dev/nu
 ok "datamesh-postgres Ready"
 # rollout status, not condition=Available: on an upgrade the old ReplicaSet
 # stays Available until the new pods are Ready.
-for d in apicurio "${SERVICES[@]}"; do
-    oc rollout status "deployment/$d" -n "$NS" --timeout=600s >/dev/null \
-        || fail "deployment $d did not roll out (oc get pods -n $NS)"
+for d in $(oc get deployment -n "$NS" -l app.kubernetes.io/part-of=datamesh -o name); do
+    oc rollout status "$d" -n "$NS" --timeout=600s >/dev/null \
+        || fail "$d did not roll out (oc get pods -n $NS)"
 done
 ok "all deployments rolled out"
 oc get pods -n "$NS" -l app.kubernetes.io/part-of=datamesh --field-selector=status.phase=Running \

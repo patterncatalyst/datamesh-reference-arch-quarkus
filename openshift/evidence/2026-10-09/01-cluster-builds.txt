@@ -3,21 +3,28 @@ OpenShift version: 4.22.14
 MicroShift version: 4.22.13
 Server Version: 4.22.14
 Kubernetes Version: v1.35.6
-CSV                    PHASE
-amqstreams.v3.2.1-14   Succeeded
+CSV                                 PHASE
+amqstreams.v3.2.1-14                Succeeded
+kiali-operator.v2.27.5              Succeeded
+openshift-gitops-operator.v1.22.1   Succeeded
+opentelemetry-operator.v0.158.0-2   Succeeded
+servicemeshoperator3.v3.4.3         Succeeded
 kafka datamesh: version 4.2.0, Ready=True
 BUILD                    STATUS     FROM                                                                                                                  DURATION
+ai-mcp-service-1         Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   19000000000
+ai-rules-service-1       Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   18000000000
 graphql-gateway-1        Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   14000000000
-inventory-service-1      Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   14000000000
-notification-service-1   Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   17000000000
-order-service-1          Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   16000000000
+inventory-service-1      Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   15000000000
+notification-service-1   Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   15000000000
+order-service-1          Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   15000000000
+order-service-native-1   Complete   <none>                                                                                                                162000000000
 payment-service-1        Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   14000000000
 review-service-1         Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   14000000000
-shipping-service-1       Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   14000000000
-order-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/order-service@sha256:e503a92b25c5ddd847235bbafc083b0ae1efa3270a57f867912640b0c3e99a4a
-inventory-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/inventory-service@sha256:30440750d2963f5f4d94cf185d41fb44e223de2cc2cf3bd568d37c5b0d47af6a
-payment-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/payment-service@sha256:b6df1d8dc2ac53555b87cf2b9c3afc2d7d6b6264b6f2c6db84a1baee00fe7e05
-shipping-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/shipping-service@sha256:e38a54d3b0fcbc4ecc2de226ab3d7ffb2824684e0c41d491210b210476c65c53
-notification-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/notification-service@sha256:7152419d1466ddf66b02a2f79cb3564f247d11ca75180d9900125fbffc6a086d
-review-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/review-service@sha256:ef0cfa4d0438eef1dcbd1859e546c322faf5706980bd3b842c489dbe060c4d42
-graphql-gateway:v1 image-registry.openshift-image-registry.svc:5000/datamesh/graphql-gateway@sha256:8ea929b6cbd36d83f833c7314a2fff18636f2f58784c946e5537f5f294a506bb
+shipping-service-1       Complete   registry.access.redhat.com/ubi10/openjdk-25@sha256:5d88964ba6b7e3ee7b05f7bd01bc016d4046c7ec8121cbb4bd541034dca3b7b8   13000000000
+order-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/order-service@sha256:642f39137e48ccf33986d2234fd9d12ffbc97c3b3e02ac8bfdc4b52065c0e115
+inventory-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/inventory-service@sha256:1b3a0d679c39f76864fe2964c97a9419afab8d9108da8b2e1872c46aab9b7286
+payment-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/payment-service@sha256:91fcbfa2bb4177e80d6e193c8c36750eb8834cf80914fa10ec9c56d71b781549
+shipping-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/shipping-service@sha256:e16a030fdba944c5ec05f6f373aa4966d748b4fe53a5894799e6ec568631de71
+notification-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/notification-service@sha256:451f7ea103dd686dd05a968a2b563700115833f881f8164f5b4ddec6ecd649dd
+review-service:v1 image-registry.openshift-image-registry.svc:5000/datamesh/review-service@sha256:db44b9468fe4dabf8d2249e604d0dfcb9fe126847bfc88b5d88afc5346054da9
+graphql-gateway:v1 image-registry.openshift-image-registry.svc:5000/datamesh/graphql-gateway@sha256:1ac514517619d8f6d8351528b3e27dbaa5c8467a029bf6bda8f64638cd35490c
