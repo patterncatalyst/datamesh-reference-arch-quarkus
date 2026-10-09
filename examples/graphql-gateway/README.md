@@ -84,7 +84,7 @@ endpoint, which returns:
 ## Local run
 
 ```properties
-# defaults target port-forwards / local processes; override per environment.
+# defaults target local dev-mode processes; override per environment.
 # order-service runs on 8091 in this reactor's demos/compose stack --
 # 8081 is already taken by the Apicurio Schema Registry's compose host port
 # (infra/.env's APICURIO_PORT), so don't reuse it here.

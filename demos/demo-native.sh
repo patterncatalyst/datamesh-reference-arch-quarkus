@@ -95,7 +95,7 @@ else
 fi
 
 if (( HAVE_LOCAL_NATIVE == 0 && HAVE_CONTAINER_BUILD == 0 )); then
-    fail "no native toolchain available: no local GraalVM/Mandrel 'native-image' on PATH or \$GRAALVM_HOME, AND no working docker for quarkus.native.container-build. Install ONE of: (1) a GraalVM/Mandrel distribution for JDK 25 with native-image on PATH (e.g. 'sdk install java 25.<x>-graalce && sdk use java 25.<x>-graalce && gu install native-image', or a Mandrel-for-JDK25 distribution); or (2) Docker (or Podman) so Quarkus can run the native build inside its quay.io/quarkus Mandrel builder container. This demo does not build a JVM-mode substitute and call it native."
+    fail "no native toolchain available: no local GraalVM/Mandrel 'native-image' on PATH or \$GRAALVM_HOME, AND no working docker for quarkus.native.container-build. Install ONE of: (1) a GraalVM/Mandrel distribution for JDK 25 with native-image on PATH (e.g. 'sdk install java 25.<x>-graalce && sdk use java 25.<x>-graalce && gu install native-image', or a Mandrel-for-JDK25 distribution); or (2) Docker Engine so Quarkus can run the native build inside its quay.io/quarkus Mandrel builder container. This demo does not build a JVM-mode substitute and call it native."
 fi
 
 NATIVE_BUILD_ARGS=(-Pnative -pl order-service -am -DskipTests package)

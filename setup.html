@@ -65,7 +65,7 @@ permalink: /setup/
                 <tr>
                     <td>Container toolchain</td>
                     <td>Docker / Docker Compose</td>
-                    <td>Not podman — see the <code>lgtm-docker-stack</code> skill</td>
+                    <td>Docker Engine — see the <code>lgtm-docker-stack</code> skill</td>
                 </tr>
             </tbody>
         </table>
@@ -81,7 +81,7 @@ permalink: /setup/
         <ul>
             <li><strong>SDKMAN</strong> — manages JDK 25, Maven 3.9.x, JBang, and the Quarkus CLI</li>
             <li><strong>Quarkus CLI</strong> — <code>quarkus create</code>, <code>quarkus dev</code></li>
-            <li><strong>Docker</strong> and <strong>Docker Compose</strong> — the v2 CLI plugin, not podman</li>
+            <li><strong>Docker Engine</strong> and <strong>Docker Compose</strong> — the v2 CLI plugin</li>
             <li><strong>Camel CLI</strong> &amp; the <strong>Camel MCP server</strong> — Camel-on-Quarkus route prototyping and validation</li>
             <li><strong>Demo command-line tools</strong> — <code>curl</code>, <code>jq</code>, <code>grpcurl</code>, and <code>kcat</code> (Fedora: <code>sudo dnf install kcat</code>); <code>demos/walkthrough.sh</code> checks for them before it starts</li>
             <li>The <strong>Quarkus Agent MCP server</strong> — dev-loop tooling for Claude Code (project create, skills, docs search, logs)</li>
@@ -102,24 +102,31 @@ sdk install quarkus</code></pre>
     <div class="container" style="max-width: 42rem;">
         <h2 class="section-heading">Container engine sizing</h2>
         <p>
-            Everything here runs on one Docker engine: the Compose stack, Dev Services
+            Docker Engine on Fedora or RHEL (bare metal or VM) is required.
+            Everything here runs on that one engine: the Compose stack, Dev Services
             and Testcontainers during <code>mvn verify</code>, the Mandrel builder
             image for native builds, and minikube, which runs as a container under
-            its Docker driver. How much of the machine that engine can use depends
-            on how Docker is installed:
+            its Docker driver. The engine uses all host CPUs and memory and stores
+            images under <code>/var/lib/docker</code>, so there is nothing to size
+            beyond the host itself.
         </p>
-        <ul>
-            <li><strong>Docker Engine on Linux</strong> runs directly on the host. It
-                uses all host CPUs and memory and stores images under
-                <code>/var/lib/docker</code> on the host disk, so there is nothing to size.</li>
-            <li><strong>Docker Desktop</strong> (macOS, Windows, Linux) runs the engine
-                inside a VM with a fixed CPU count, memory limit, and virtual disk.
-                The defaults are too small for the full path.</li>
-        </ul>
+        <p>
+            Install Docker Engine and the Compose plugin for
+            <a href="https://docs.docker.com/engine/install/fedora/" rel="noopener">Fedora</a>
+            or <a href="https://docs.docker.com/engine/install/rhel/" rel="noopener">RHEL</a>,
+            then enable it and point the CLI at it:
+        </p>
+<pre><code>sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"   # log out and back in
+docker context use default
+docker info</code></pre>
+        <p>
+            Membership in the <code>docker</code> group is root-equivalent on the host.
+        </p>
 
         <table>
             <thead>
-                <tr><th>Workload</th><th>CPUs</th><th>Memory</th><th>Engine disk</th></tr>
+                <tr><th>Workload</th><th>CPUs</th><th>Memory</th><th>Disk</th></tr>
             </thead>
             <tbody>
                 <tr>
@@ -133,64 +140,54 @@ sdk install quarkus</code></pre>
             </tbody>
         </table>
         <p>
-            Disk runs out first. On a Docker Desktop VM with a 64 GB disk, both
-            the native-build demo and the Ollama image pull for the AI service
-            tests failed with <code>no space left on device</code>. With Docker
-            Engine, budget host memory the same way: at least 32 GB for the
-            minikube path, leaving room for the OS, IDE, and browser.
-        </p>
-
-        <h3>Option A: Docker Engine on Linux (no VM)</h3>
-        <p>
-            Install Docker Engine and the Compose plugin from
-            <a href="https://docs.docker.com/engine/install/" rel="noopener">docs.docker.com/engine/install</a>
-            for your distribution, then enable it and point the CLI at it:
-        </p>
-<pre><code>sudo systemctl enable --now docker.socket docker.service
-sudo usermod -aG docker "$USER"     # log out and back in afterwards
-docker context use default          # if Docker Desktop was installed before
-docker info | grep -E 'CPUs|Total Memory|Docker Root Dir'</code></pre>
-        <p>
-            If Docker Desktop is also installed, stop it (<code>docker desktop stop</code>)
-            so only one engine is in use. The two engines keep separate images and
-            volumes; switch back with <code>docker context use desktop-linux</code>.
-        </p>
-
-        <h3>Option B: resize Docker Desktop</h3>
-        <p>
-            In the dashboard: <strong>Settings → Resources → Advanced</strong>, set
-            CPUs, Memory, and Virtual disk limit, then <strong>Apply &amp; restart</strong>.
-            On Windows with the WSL 2 backend, CPU and memory come from
-            <code>%UserProfile%\.wslconfig</code> (<code>processors=</code>,
-            <code>memory=</code>, then <code>wsl --shutdown</code>) instead of these settings.
+            Disk runs out first; the native-build demo and the Ollama image pull for
+            the AI service tests need room. Budget host memory the same way: at least
+            32 GB for the minikube path, leaving room for the OS, IDE, and browser.
         </p>
         <p>
-            Without the dashboard, edit <code>settings-store.json</code> while Docker
-            Desktop is stopped. It lives at
-            <code>~/.docker/desktop/</code> on Linux,
-            <code>~/Library/Group Containers/group.com.docker/</code> on macOS, and
-            <code>%APPDATA%\Docker\</code> on Windows. The sizes are in MiB:
+            A VM-based engine such as Docker Desktop also works; size its VM larger
+            than the node and set <code>MINIKUBE_CPUS</code> / <code>MINIKUBE_MEMORY</code> to fit.
         </p>
-<pre><code>docker desktop stop                  # Docker Desktop 4.37+; otherwise quit from the tray
-cd ~/.docker/desktop                 # Linux path; see above for macOS/Windows
-cp settings-store.json settings-store.json.bak
-jq '.Cpus=8 | .MemoryMiB=28672 | .DiskSizeMiB=204800' settings-store.json.bak &gt; settings-store.json
-docker desktop start</code></pre>
-        <p>
-            The virtual disk can grow but not shrink. Confirm the new limits from
-            inside the VM:
-        </p>
-<pre><code>docker info | grep -E 'CPUs|Total Memory'
-docker run --rm alpine:3.22 df -h /</code></pre>
 
         <h3>Fitting minikube to the engine</h3>
         <p>
             <code>scripts/bootstrap.sh</code> starts minikube with 24 GB, 16 CPUs, and
-            an 80 GB disk. minikube cannot request more CPUs or memory than the
-            engine has, so override the defaults to fit. On an 8-CPU Docker Desktop VM:
+            and about 100 GB free under the Docker data root (<code>/var/lib/docker</code>; the docker driver ignores <code>--disk-size</code>). minikube cannot request more CPUs or memory than the
+            engine has, so override the defaults to fit. On an 8-CPU host:
         </p>
 <pre><code>MINIKUBE_CPUS=8 ./scripts/bootstrap.sh
-# also available: MINIKUBE_MEMORY (default 24g), MINIKUBE_DISK (default 80g)</code></pre>
+# also available: MINIKUBE_MEMORY (default 24g); MINIKUBE_DISK is ignored by the docker driver</code></pre>
+
+        <h3>Host access</h3>
+        <p>
+            The minikube profile publishes the platform NodePorts on
+            <code>127.0.0.1</code> when it is created, so the cluster is reached at the
+            same <code>localhost</code> URLs as the Compose stack:
+        </p>
+        <table>
+            <thead>
+                <tr><th>Service</th><th>URL</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Grafana</td><td><code>http://localhost:3000</code></td></tr>
+                <tr><td>OTLP gRPC / HTTP</td><td><code>localhost:4317</code> / <code>http://localhost:4318</code></td></tr>
+                <tr><td>Mimir</td><td><code>http://localhost:9009</code></td></tr>
+                <tr><td>Loki</td><td><code>http://localhost:3100</code></td></tr>
+                <tr><td>Tempo</td><td><code>http://localhost:3200</code></td></tr>
+                <tr><td>Kiali</td><td><code>http://localhost:20001/kiali</code></td></tr>
+                <tr><td>Apicurio</td><td><code>http://localhost:8084/apis/registry/v3</code></td></tr>
+            </tbody>
+        </table>
+        <p>
+            <code>./scripts/show-endpoints.sh</code> prints the status table. The ports
+            are fixed when the profile is created; <code>./scripts/setup-profile.sh --replace</code>
+            recreates it, which deletes the cluster, so re-run <code>./scripts/bootstrap.sh</code> afterwards.
+        </p>
+        <p>
+            Compose and the cluster cannot run together: the Compose <code>lgtm</code>
+            container uses ports 3000, 3100, 3200, 4317 and 4318. Stop the cluster with
+            <code>minikube stop -p datamesh</code> before running Compose demos.
+        </p>
     </div>
 </section>
 

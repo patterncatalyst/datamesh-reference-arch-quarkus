@@ -17,7 +17,7 @@ no open PRs here or in `patterncatalyst/lgtm-skills`.
 - **minikube `datamesh`** profile (docker driver, containerd runtime, 24 GB /
   8 CPUs): **stopped**, not deleted. `minikube start -p datamesh`, then
   `./scripts/load-images.sh` if the images need rebuilding. Global minikube
-  config `rootless: false`. The old `capstone` profile is deleted.
+  config is at its defaults. Recreated 2026-10-09 with NodePorts published on 127.0.0.1 (DRQ-016).
 - **Local `.env`** (git-ignored): copied from `.env.example` with
   `MIMIR_PORT=19090`, because Fedora's Cockpit holds 9090.
 - **Host tools**: `kcat` 1.7.1 installed (dnf). hey/ghz are not installed;
@@ -156,7 +156,7 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
     Dev Services tags == IT Testcontainers tags. `%prod` env-driven config in all
     services (`${KAFKA_BOOTSTRAP_SERVERS}`/`${APICURIO_REGISTRY_URL}`/`${JDBC_URL}`);
     Dev Services image-names pinned. Multi-stage UBI Containerfiles (order test-built).
-    `.devcontainer/` (JDK25/Maven3.9.9, DooD socket, joins the `datamesh-compose` network).
+    `.devcontainer/` (JDK25/Maven3.9.9, DooD socket, joins the `datamesh-compose` network); later removed (DRQ-017).
     `.dockerignore` added. **DEF-002 RESOLVED** — `OrderPlacedAvroWireIT` byte-asserts
     Avro magic byte, green in default `mvn verify`.
   - **Step 9 (minikube):** `scripts/` substrate (bootstrap + Strimzi/CNPG/KEDA/
@@ -204,7 +204,7 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
 
 ## Settled scope answers (do not re-ask)
 - Repo: local-first, PUBLIC, push only after approval.
-- Container toolchain: docker (lgtm-docker-stack), no podman.
+- Container toolchain: Docker Engine (lgtm-docker-stack).
 - Versions: Quarkus 3.39.5, JDK 25, platform-aligned Camel, langchain4j 1.14.1.
 - OIDC demo: attempt live (Keycloak Dev Service), fall back to deferred + log in decisions.md.
 - Spring Boot comparison: ONE runnable Spring Boot twin service + compare chapter/slides.

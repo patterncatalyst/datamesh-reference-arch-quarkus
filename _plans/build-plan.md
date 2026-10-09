@@ -19,13 +19,13 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 | # | Step | Phase | Skills/MCP | Status |
 |---|------|-------|-----------|--------|
 | 1 | Lock toolchain & versions → decisions.md | A | lgtm-quarkus, quarkus-agent, camel-mcp | DONE |
-| 2 | Create `lgtm-docker-stack` skill (no podman) | A | mirror lgtm-podman/minikube-stack | DONE (merged lgtm-skills#13) |
+| 2 | Create `lgtm-docker-stack` skill (no podman) | A | mirror lgtm-podman/minikube-stack | DONE (merged lgtm-skills#13) | <!-- forbidden-ok -->
 | 3 | Scaffold Jekyll site | A | lgtm-jekyll | DONE (build 0 errors) |
 | 4 | CLAUDE.md + PRD + plans | A | — | DONE |
 | 5 | Example tree + shared domain-model | B | lgtm-quarkus, quarkus-agent | DONE (0b3e2ae; reactor + domain-model + contracts Avro/gRPC) |
 | 6 | Port AI/MCP seed (42-ai-mcp) | B | lgtm-camel, lgtm-quarkus, camel-mcp | DONE + validated (compiles; DEF-001 pinned; Ollama IT pending Ollama) |
 | 7 | Quarkus data-product services (Panache/gRPC/GraphQL/Kafka) | B | lgtm-quarkus, quarkus-agent, camel-mcp | DONE + validated (mvn verify green: 21 tests, 0 fail; DEF-002 wire-byte test pending Phase C) |
-| 8 | Docker compose + Testcontainers + devcontainer | C | lgtm-docker-stack | DONE + validated (compose live-healthy: pg18/kafka-native4.2.0/apicurio3.1.7/lgtm; %prod env config; UBI Containerfiles; devcontainer; DEF-002 Avro-wire IT green) |
+| 8 | Docker compose + Testcontainers + devcontainer | C | lgtm-docker-stack | DONE + validated (compose live-healthy: pg18/kafka-native4.2.0/apicurio3.1.7/lgtm; %prod env config; UBI Containerfiles; devcontainer (later removed, DRQ-017); DEF-002 Avro-wire IT green) |
 | 9 | Minikube/K8s substrate + KEDA | C | lgtm-minikube-stack | DONE (substrate scripts + kustomize apps + KEDA scalers; CRD-schema-validated, no live cluster bring-up) |
 | 10 | Demos 1:1 with slides | D | lgtm-quarkus, lgtm-camel, MCPs | DONE (19 demos in five acts; all passed end to end 2026-10-06) |
 | 11 | Tutorial chapters (+ Spring-Boot compare; incl. DRQ-015 orchestration-styles chapter) | D | lgtm-tutorial, quarkus-agent, camel-mcp | DONE (22 chapters incl. ch12 Spring Boot compare, ch13 orchestration styles) |
@@ -35,6 +35,7 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 | 15 | Notion 1-hour abstract | E | Notion MCP | DONE (2026-10-06; "A Data Mesh That Runs on a Laptop (60 min)", house format, filed under Notion Abstracts) |
 | 16 | (optional) refresh lgtm-quarkus ancillary pins | E | — | DONE (quarkus-junit names lgtm-skills#23; image and tool pins #37, #39, #40, #47) |
 | 17 | Validate → publish to GitHub (after approval) | E | lgtm-github | DONE (repo public; all 5 walkthrough acts and `mvn verify` passed 2026-10-06) |
+| 18 | NodePorts published on loopback, Docker Engine on Fedora/RHEL, `forbidden-syntax.sh` gate (DRQ-016, DRQ-017; `_plans/archive/nodeports-platform-plan.md`) | E | — | DONE + live-verified 2026-10-09 (branch `fix/nodeports-platform`) |
 
 ## Demo ↔ slide ↔ capability matrix
 
@@ -65,7 +66,7 @@ See [decisions.md](decisions.md) for the version matrix and settled decisions (D
 - `_docs/` ≥ 16 chapters (00–10 mirrored + Quarkus-capability + Quarkus-vs-Spring-Boot), each with front-matter + verification footer.
 - Every required capability → exactly 1 demo + 1 slide; each demo has runnable README + passing test.
 - Code runs Quarkus 3.39.5 / JDK 25; `mvn verify` per service; ≥1 native build succeeds.
-- `lgtm-docker-stack` skill exists (SKILL.md + templates), no podman references.
+- `lgtm-docker-stack` skill exists (SKILL.md + templates), no podman references. <!-- forbidden-ok -->
 - CLAUDE.md states version matrix + per-task skill mapping; PRD.md + decisions.md present.
 - Deck builds with Quarkus code + Spring-Boot compare slides + one slide per demo; diagrams paired SVG+Excalidraw.
 - Notion 1-hour abstract page exists.

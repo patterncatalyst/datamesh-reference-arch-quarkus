@@ -275,7 +275,7 @@ quality as an engagement signal, external talks/posts that cite the repo.
   (`quarkus-camel-bom:3.39.5`, never a standalone Camel pin), langchain4j
   (Quarkiverse) 1.14.1. See `_plans/decisions.md` for the full version
   matrix and rationale.
-- **Docker, not podman**, for the container toolchain (DRQ-003).
+- **Docker Engine** for the container toolchain (DRQ-003, DRQ-017).
 - **UBI base images**, multi-stage builds.
 - **Kubernetes substrate** for the mesh/canary/autoscaling story, same as
   the Python reference; the verified runtime and any portability notes

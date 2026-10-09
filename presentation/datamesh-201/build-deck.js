@@ -235,7 +235,7 @@ diagramSlide({ eyebrow: "Quarkus capability tour", title: "Three ways to start a
 diagramSlide({ eyebrow: "Quarkus capability tour", title: "Panama: native calls without JNI",
   image: "11-panama-ffm",
   caption: "Java resolves a libc symbol, builds a downcall handle from a FunctionDescriptor, and passes off-heap memory owned by an Arena.",
-  notes: "The Foreign Function and Memory API (Project Panama, final in JDK 22) calls native libraries from Java without JNI. Linker.nativeLinker() gives the platform linker, defaultLookup() resolves symbols from libc, and downcallHandle(FunctionDescriptor) produces a MethodHandle. An Arena allocates off-heap MemorySegments, such as a C string, and frees them when it closes. JNI needs C glue, generated headers, and a separate native build; FFM needs none of those. JDK 25 warns unless --enable-native-access is set, which the demo passes. The default lookup covers libc on Linux and macOS." });
+  notes: "The Foreign Function and Memory API (Project Panama, final in JDK 22) calls native libraries from Java without JNI. Linker.nativeLinker() gives the platform linker, defaultLookup() resolves symbols from libc, and downcallHandle(FunctionDescriptor) produces a MethodHandle. An Arena allocates off-heap MemorySegments, such as a C string, and frees them when it closes. JNI needs C glue, generated headers, and a separate native build; FFM needs none of those. JDK 25 warns unless --enable-native-access is set, which the demo passes. The default lookup covers libc on Linux." });
 
 codeSlide({ eyebrow: "Quarkus capability tour", title: "Panama FFM in practice",
   subtitle: "getpid() and strlen() from libc",

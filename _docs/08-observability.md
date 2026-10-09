@@ -241,7 +241,7 @@ instead of a separate Prometheus:
 
 ```bash
 PROM_URL="http://mimir-nginx.observability.svc.cluster.local:80/prometheus"
-TEMPO_URL="http://tempo.observability.svc.cluster.local:3200"
+TEMPO_URL="http://tempo.observability.svc.cluster.local:3100"
 
 helm upgrade --install kiali-server kiali/kiali-server \
     --namespace istio-system --version 2.23.0 \
@@ -266,36 +266,47 @@ Once `order-service` is meshed and a [canary](/docs/06-progressive-delivery-mtls
 running, the same graph is where you can watch the v1/v2 traffic split live
 instead of inferring it from logs.
 
-## Reaching the stack: NodePort and SSH tunnel instead of `port-forward`
+## Reaching the stack: NodePorts published on 127.0.0.1
 
-Every backend above is installed as a `NodePort` Service at a fixed port — Grafana at
-`30300`, Tempo at `30320`, Mimir at `30009`, OTLP at `30417`/`30418`, Kiali at
-`30201` — and [tunnel-services.sh]({{ site.repo_blob }}/scripts/tunnel-services.sh) is how this repo reaches them from
-the host, instead of `kubectl port-forward`:
+Every backend above is installed as a `NodePort` Service at a fixed port. The
+`minikube` profile publishes each one on the host's loopback interface when it is
+created, so the URLs are the same ones the compose stack uses:
 
-```bash
-tunnel 3000 30300 "Grafana: http://localhost:3000 (admin/admin)"
-tunnel 3200 30320 "Tempo:   http://localhost:3200"
-tunnel 9009 30009 "Mimir:   http://localhost:9009"
-```
+| Service | Host URL | NodePort |
+|---|---|---|
+| Grafana | `http://localhost:3000` (admin/admin) | `30300` |
+| OTLP gRPC | `localhost:4317` | `30417` |
+| OTLP HTTP | `http://localhost:4318` | `30418` |
+| Mimir | `http://localhost:9009` | `30009` |
+| Loki | `http://localhost:3100` | `30100` |
+| Tempo | `http://localhost:3200` | `30320` |
+| Kiali | `http://localhost:20001/kiali` | `30201` |
+| Apicurio | `http://localhost:8084/apis/registry/v3` | `30084` |
 
-`tunnel()` opens a backgrounded SSH forward through the `minikube` node's own SSH
-server, rather than relying on `kubectl port-forward`'s kept-alive HTTP/2 stream —
-this repo's other scripts note that stream drops under load or after an idle timeout.
-Parameterizing that SSH connection correctly takes two lookups: the script resolves
-the private key with `minikube ssh-key -p datamesh` and the forwarded port with
-`docker port datamesh 22/tcp`. The second lookup is needed because on the `docker`
-driver the `minikube` node is itself a Docker container, so its SSH daemon is reached
-through whatever host port Docker has mapped to that container's `22/tcp`,
-not a fixed port. Each `tunnel` call is then one
-`ssh -L <local>:localhost:<node_port> -N -f` invocation against that resolved key and
-port, backgrounded with `-f` and kept alive with `ServerAliveInterval=30`/
-`ServerAliveCountMax=3`, so a briefly quiet tunnel is not dropped as dead. Re-running the script kills any previous tunnels first
-(`pkill -f 'ssh.*docker@127.0.0.1'`) before opening fresh ones, which is what makes it
-safe to re-run after a `minikube` restart changes the underlying SSH port. The same
-NodePort convention is what every `--set service.type=NodePort` in [setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh) and
-[setup-kiali.sh]({{ site.repo_blob }}/scripts/setup-kiali.sh) exists to set up; this script turns those
-fixed ports into stable `localhost` URLs in one command.
+[setup-profile.sh]({{ site.repo_blob }}/scripts/setup-profile.sh) passes the mappings to
+`minikube start` in the form
+`--ports=127.0.0.1:3000:30300,127.0.0.1:3200:30320,...`. The `127.0.0.1:` prefix is
+deliberate. Omitting the loopback address binds `0.0.0.0` and would expose
+Grafana, Loki and the other unauthenticated backends to the local network.
+Rejected alternatives: SSH tunnels, `kubectl port-forward` and `minikube tunnel`, which drop under load or on a pod restart. <!-- forbidden-ok -->
+
+`./scripts/show-endpoints.sh` prints the status table: each service, its URL, and
+whether it is answering. Use it after `bootstrap.sh` and whenever a URL does not respond.
+
+Two constraints follow from the design:
+
+- **Ports are fixed at creation.** Docker publishes them when the node container is
+  created, so they cannot be added to an existing profile.
+  `./scripts/setup-profile.sh --replace` recreates the profile with the current
+  mappings. That deletes the cluster, so re-run `./scripts/bootstrap.sh` afterwards.
+- **Compose and the cluster cannot run together.** The compose stack's `lgtm`
+  container uses host ports 3000, 3100, 3200, 4317 and 4318, which the cluster also
+  publishes. Stop the cluster with `minikube stop -p datamesh` before running compose
+  demos.
+
+The NodePort convention is what every `--set service.type=NodePort` in
+[setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh) and
+[setup-kiali.sh]({{ site.repo_blob }}/scripts/setup-kiali.sh) exists to set up.
 
 ## What it all adds up to
 
@@ -309,4 +320,4 @@ see all of it working.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `demo-tracing.sh` passed, recording the cross-service trace against the compose otel-lgtm backend. The mesh/Kiali view is covered by the Kubernetes chapters, which still require a live cluster.*
+*Verification status: <span class="status status--verified">verified</span>. `demo-tracing.sh` passed, recording the cross-service trace against the compose otel-lgtm backend. The mesh/Kiali view is covered by the Kubernetes chapters, which still require a live cluster. Host access through NodePorts published on 127.0.0.1 was re-verified on 2026-10-09: Grafana (3000), Loki (3100), Tempo (3200), Mimir (9009), OTLP (4317/4318), Kiali (20001) and Apicurio (8084) all answered on loopback, and Grafana's Tempo datasource now points at Tempo's HTTP port 3100.*

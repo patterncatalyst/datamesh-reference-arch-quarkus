@@ -81,7 +81,7 @@ narrate "both independently and concurrently against the same running process."
 
 step "preflight: docker daemon reachable (Dev Services needs it)"
 docker info >/dev/null 2>&1 \
-    || fail "docker is on PATH but the daemon is not reachable -- start Docker Desktop/the docker service and retry (Dev Services needs a working docker to launch a Postgres Testcontainer)"
+    || fail "docker is on PATH but the daemon is not reachable -- start Docker Engine (sudo systemctl start docker) and retry (Dev Services needs a working docker to launch a Postgres Testcontainer)"
 info "docker daemon is reachable"
 
 # See header comment: postgres:18 (Dev Services' pinned image) rejects

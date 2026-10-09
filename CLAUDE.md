@@ -31,7 +31,7 @@ coding task; decisions/plan changes go through the planning skill).
 | langchain4j (Quarkiverse) | **1.7.4** | Seed-matched; converges dev.langchain4j to 1.11.0 with no manual pin. Ollama tool-calling is an open upstream deferral (DEF-001), independent of version. |
 | Maven | 3.9.x | |
 | Base images | UBI (`ubi10/openjdk-25` builder + `-runtime`) | Multi-stage builds. |
-| Container toolchain | **docker** / docker compose | NOT podman — see `lgtm-docker-stack` skill. |
+| Container toolchain | **docker** / docker compose | NOT podman — see `lgtm-docker-stack` skill. | <!-- forbidden-ok -->
 
 ## Key conventions
 
@@ -50,8 +50,12 @@ coding task; decisions/plan changes go through the planning skill).
 - **Conventional Commits** for all commit messages (`feat:`, `fix:`,
   `docs:`, `chore:`, etc., with a scope where useful, e.g. `feat(order):`).
 - **No Co-authored-by or other attribution trailers** in git commits.
-- **Docker, not podman**, for every container/compose example in this
-  repo (`lgtm-docker-stack`, not `lgtm-podman-stack`).
+- **Docker, not podman**, for every container/compose example in this <!-- forbidden-ok -->
+  repo (`lgtm-docker-stack`, not `lgtm-podman-stack`). <!-- forbidden-ok -->
+- Host access = NodePorts published on 127.0.0.1 at profile creation (`demos/lib/endpoints.sh`,
+  `scripts/show-endpoints.sh`); never tunnels or port-forward <!-- forbidden-ok -->. Supported hosts: Fedora or RHEL
+  (bare metal or VM); never document another OS. Docker Engine is required; Docker Desktop is
+  optional. Run `bash scripts/forbidden-syntax.sh` before committing.
 - Diagrams are paired SVG + Excalidraw sources (see `lgtm-diagram-generator`),
   kept visually uniform across the site and deck.
 - Chapters end with a verification status footer (unverified until run in
@@ -94,7 +98,7 @@ a given kind of task in this repo. This mirrors the phase/skill column in
 | Tutorial chapter authoring / depth pass / packaging an iteration | `lgtm-tutorial` | — |
 | Quarkus service code (Panache, gRPC, GraphQL, Reactive Messaging, WebSockets.Next, OIDC, native) | `lgtm-quarkus` | `quarkus-agent` |
 | Camel routes / EIPs on Quarkus, langchain4j + MCP tool routes | `lgtm-camel` | `camel-mcp` (+ `quarkus-agent` for the Quarkus host app) |
-| Docker/compose infra, Testcontainers, Dev Services, devcontainers | `lgtm-docker-stack` | — |
+| Docker/compose infra, Testcontainers, Dev Services | `lgtm-docker-stack` | — |
 | Kubernetes/minikube substrate, Istio, KEDA, Strimzi, CloudNativePG | `lgtm-minikube-stack` | — |
 | Diagrams (architecture, sequence, topology figures) | `lgtm-diagram-generator` | — |
 | Presentation deck (pptx/docx) | `lgtm-presentation` | — |
@@ -133,8 +137,8 @@ introspection instead of guessing component/EIP syntax.
   `lgtm-quarkus` and `lgtm-camel` references) before relying on the rules
   above. If `claude mcp list` shows neither `quarkus-agent` nor `camel-mcp`,
   say so and use the published guides instead of guessing.
-- **Docker overrides the skills' Podman defaults.** The two skills default to
-  Podman (`Containerfile`, `podman compose`); this repo uses Docker and
+- **Docker overrides the skills' Podman defaults.** The two skills default to <!-- forbidden-ok -->
+  Podman (`Containerfile`, `podman compose`); this repo uses Docker and <!-- forbidden-ok -->
   `docker compose` (see Key conventions).
 
 ## Structure (evolving — see `_plans/build-plan.md` for the authoritative step list)

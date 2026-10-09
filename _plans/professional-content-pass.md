@@ -219,7 +219,7 @@ Run from repo root inside `bash -c`.
 ## Risks
 
 - AOT: training must exit cleanly or no cache — SIGTERM exit should work; fallback Spring `-Dspring.context.exit=onRefresh` / Quarkus shutdown, document asymmetry. Classpath mismatch silently falls back without `-XX:AOTMode=on`. RSS includes mmapped cache — report as measured. Confirm `quarkus.package.jar.aot.enabled` name before citing.
-- FFM on JDK 25 warns without `--enable-native-access`; `defaultLookup` libc is Linux/macOS — say so in the demo header.
+- FFM on JDK 25 warns without `--enable-native-access`; `defaultLookup` libc on Linux — say so in the demo header.
 - pptxgenjs mixed runs: bullet props on first run; check visually.
 - Factual claims on new diagrams (legacy WebSockets on Undertow, WebSockets.Next execution model, Uni threading) — confirm with Quarkus docs; event-bus and reconnect content marked illustrative/conceptual.
 - ~100 slides; 12-card tour is dense — 6×2 with ≥13px; split if unreadable.

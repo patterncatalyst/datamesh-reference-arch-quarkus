@@ -44,7 +44,10 @@ into one composed query surface.
 the Grafana LGTM observability stack) for day-to-day dev, plus a local Kubernetes
 cluster with Istio, KEDA, Strimzi (Kafka operator), and CloudNativePG
 (Postgres operator) for the Kubernetes-native demos — see `k8s/` and
-`scripts/bootstrap.sh`.
+`scripts/bootstrap.sh`. Supported hosts are Fedora or RHEL (bare metal or VM)
+with Docker Engine. The cluster publishes the platform NodePorts on `127.0.0.1`,
+so Grafana, Kiali and the other backends are at `http://localhost:<port>`;
+`./scripts/show-endpoints.sh` prints the table.
 
 ![Data mesh reference architecture](assets/diagrams/02-capstone-data-mesh.svg)
 

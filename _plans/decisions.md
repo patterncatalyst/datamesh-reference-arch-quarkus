@@ -16,12 +16,12 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
 | Camel | **platform-aligned** | Import `quarkus-camel-bom:3.39.5`; do NOT pin standalone Camel. |
 | langchain4j (Quarkiverse) | **1.7.4** | Reverted to the seed's version (was briefly 1.14.1). Gives a converged, seed-identical classpath (dev.langchain4j 1.11.0) with no manual pin. Version is NOT the cause of the tool-calling failure — see DEF-001. |
 | Maven | 3.9.x | |
-| Base images | UBI (`ubi10/openjdk-25` builder + `-runtime`) | Multi-stage; docker toolchain, NOT podman. |
+| Base images | UBI (`ubi10/openjdk-25` builder + `-runtime`) | Multi-stage; docker toolchain, NOT podman. | <!-- forbidden-ok -->
 
 ## Settled decisions
 
 - **DRQ-002 — Repo creation:** Build locally first. GitHub remote (github.com/patterncatalyst/datamesh-reference-arch-quarkus, **PUBLIC**) created + pushed ONLY after user approval.
-- **DRQ-003 — Container toolchain:** New skill `lgtm-docker-stack` (docker, docker compose, Testcontainers/Dev Services, devcontainers, minikube). No podman. Multi-stage images, prefer UBI.
+- **DRQ-003 — Container toolchain:** New skill `lgtm-docker-stack` (docker, docker compose, Testcontainers/Dev Services, devcontainers, minikube). No podman. Multi-stage images, prefer UBI. <!-- forbidden-ok -->
 - **DRQ-004 — Quarkus/JDK:** Latest stable Quarkus (3.39.5) + JDK 25.
 - **DRQ-005 — OIDC demo:** Attempt live (Keycloak Dev Service); if laptop budget too tight, document conceptually + log deferral here (mirrors python CAP-047 pattern).
 - **DRQ-006 — Spring Boot comparison:** Ship ONE runnable Spring Boot twin service for real side-by-side startup/memory/native numbers, plus comparison chapter + slides.
@@ -98,6 +98,27 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
   plan + build step 10 (demos 1:1 with slides, incl. DRQ-012) first, reassess
   before steps 11–13 (tutorial chapters, diagrams, deck). Demos are the
   hardest-to-fake artifact and feed the chapters and deck downstream.
+- **DRQ-016 — Host access: NodePorts published on 127.0.0.1 at profile creation.** Status: decided and live-verified 2026-10-09 (Docker Engine provided by Docker Desktop; see reconciliation).
+  - **Context.** Host access used SSH tunnels, which disconnect when the cluster idles or is under load. <!-- forbidden-ok -->
+  - **Decision.** Every host-facing service is a fixed NodePort, published when the profile is created: `minikube start -p datamesh --ports=127.0.0.1:<host>:<node>,...`. The host:nodePort map lives in `demos/lib/endpoints.sh`. Host ports are unchanged (Grafana stays at `http://127.0.0.1:3000`). Loopback only. `scripts/show-endpoints.sh` prints what is published and reachable. Changing the ports means recreating the profile with `setup-profile.sh --replace`.
+  - **Rejected.**
+    - Supervised SSH forwarding: keeps the moving part and adds a supervisor. <!-- forbidden-ok -->
+    - `kubectl port-forward` loops: they pin one pod and lose the connection between retries. <!-- forbidden-ok -->
+    - `minikube tunnel` with LoadBalancer Services: needs a long-running privileged process. <!-- forbidden-ok -->
+    - The bare `--ports=a:b` form: binds 0.0.0.0 and exposes the cluster to the network. <!-- forbidden-ok -->
+    - Renumbering host ports: breaks every documented URL.
+    - Exposing application Services: only platform endpoints are published.
+    - Moving the nodePorts to 30000-30085: kept as a fallback if a fixed nodePort collides with a dynamically allocated one.
+  - **Consequences.** Recreating the profile wipes loaded images (re-run `scripts/load-images.sh`). `scripts/forbidden-syntax.sh`, run by `.github/workflows/checks.yml`, fails the build on forwarding syntax. <!-- forbidden-ok -->
+- **DRQ-017 — Docker Engine on Fedora/RHEL hosts; host scope; compose/cluster exclusivity; devcontainer removed.** Status: decided and live-verified 2026-10-09: compose guard refused while the cluster ran; `walkthrough.sh --with-minikube` ACT 5 started the stopped profile and passed both KEDA demos.
+  - Docker Engine is required. Docker Desktop is optional, as an example of a VM-based engine.
+  - Supported hosts are Fedora or RHEL, bare metal or VM. No other OS is documented; scan 6 of `scripts/forbidden-syntax.sh` enforces it.
+  - `.devcontainer/` is removed: ubuntu base, unpinned "latest" features, and forwardPorts. <!-- forbidden-ok -->
+  - Compose and the cluster cannot run together (ports 3000, 3100, 3200, 4317, 4318). Guards: `demos/lib/_demo.sh` `compose_up`, `scripts/run-all-tests.sh` (preflight, for `--load`/`--all`), `tooling/newman/run-newman.sh`, the `demos/walkthrough.sh` preflight, and the `scripts/setup-profile.sh` pre-flight (free host ports, including before starting a stopped profile).
+  - Walkthrough ACT 5 (`--with-minikube`) starts the stopped profile.
+  - `scripts/load-images.sh` waits for rollouts and for terminating pods.
+  - The gRPC resolver lesson from the Python repo (DRA-017/019) does not apply: Quarkus clients use the JDK/Netty resolver, and `INVENTORY_GRPC_HOST` is an FQDN.
+  - Deferrals: DEF-003, DEF-004.
 
 ## Deferrals
 
@@ -121,6 +142,9 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
 
   **Options to revisit (Phase D or later):** (a) try a newer camel-quarkus / quarkus-langchain4j train where the JAX-RS enforcement or tool-provider wiring differs; (b) reproduce minimally and file upstream against camel-quarkus-support-langchain4j; (c) demonstrate tool-calling via the embedded MCP server path (external MCP client) instead of the in-process langchain4j-agent; (d) relax the IT to document-only if tool-calling is shown another way. Keep as a documented deferral until one lands.
 - **DEF-002 — Avro-on-the-wire — RESOLVED (byte-asserted, Phase C).** Was: config-proven only; no test read a raw record off a real broker. **Fix landed:** `OrderPlacedAvroWireIT` (order-service, Testcontainers Kafka `apache/kafka-native:4.2.0` + Apicurio `apicurio-registry:3.1.7`) produces a real `capstone.order.v1.OrderPlaced` with `AvroKafkaSerializer`, consumes with a vanilla `KafkaConsumer<byte[],byte[]>`, and asserts `value[0]==0x0` (Avro magic byte) + `value[0]!=0x7B` (not JSON) + schema id present; optional round-trip via `AvroKafkaDeserializer`. Proven to fail loudly if serde regresses to JSON. Runs in the default `mvn verify` (self-provisioning; no compose needed), failsafe execution bound in order-service. Note: Avro 1.12.x `ClassSecurityValidator` required `org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1` on the IT's failsafe execution (plain JUnit, no Quarkus bootstrap to auto-trust the package).
+
+- **DEF-003 — Bind compose ports on loopback — OPEN.** Compose publishes ports on all interfaces. Binding them to 127.0.0.1 would match DRQ-016 but changes `compose.yaml` for every demo; deferred until the compose path is next revised.
+- **DEF-004 — `imagePullPolicy: Never` plus restart — OPEN.** `load-images.sh` keeps `datamesh/<svc>:latest` with `IfNotPresent` and `minikube image load`. Switching to `Never` plus a Deployment restart would fail fast on a missing image; deferred.
 
 ## Test/build notes
 

@@ -131,8 +131,7 @@ repos diverge and which divergences are bugs to fix.
 
 Reading Part 0 needs nothing but a browser. Once you reach Part 1 and want to run
 the services rather than just read about them, you'll want: JDK 25 (`25-tem`),
-Maven 3.9.x, Docker plus the Compose v2 plugin (this repo standardizes on Docker,
-not Podman, for every compose and container workflow), and — only once you reach
+Maven 3.9.x, Docker Engine plus the Compose v2 plugin on Fedora or RHEL (bare metal or VM), and — only once you reach
 Part 2's Kubernetes material — `minikube` (a local single-node Kubernetes cluster), `kubectl`, and `helm`. The
 [Kubernetes substrate chapter]({{ '/docs/02-kubernetes-substrate/' | relative_url }})
 covers the heavier [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh) prerequisites (32 GB of host RAM

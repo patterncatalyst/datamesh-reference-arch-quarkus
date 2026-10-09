@@ -37,8 +37,22 @@
 #           compile, several minutes) is gated behind --with-native.
 #   ACT 5 — Platform: event-driven autoscaling (2): demo-keda-kafka,
 #           demo-keda-http. Both need the local Kubernetes cluster
-#           (scripts/bootstrap.sh), so both are gated behind
-#           --with-minikube and SKIPPED by default.
+#           (scripts/setup-profile.sh + scripts/bootstrap.sh), so both are
+#           gated behind --with-minikube and SKIPPED by default. ACT 5 always
+#           runs last, after every compose demo has run its compose_down.
+#           It STARTS the stopped `datamesh` profile (`minikube start -p
+#           datamesh`; the published NodePort bindings persist), verifies the
+#           profile publishes the required ports on 127.0.0.1, and resets the
+#           node's FORWARD policy if needed (ensure_node_forwarding). It fails
+#           with "create it: ./scripts/setup-profile.sh && ./scripts/bootstrap.sh"
+#           if no profile exists. Host access is by NodePorts published on
+#           127.0.0.1 (demos/lib/endpoints.sh): no helper process is started.
+#
+# ── Compose and the minikube profile are mutually exclusive ──────────────────
+# A running `datamesh` minikube profile holds host ports 3000/3100/3200/4317/
+# 4318 that the compose stack needs. If the profile is running and any
+# compose-based demo is selected, the preflight fails with:
+#   minikube stop -p datamesh
 #
 # Gating is per-DEMO, not per-act — ACT 4 is the clearest example: its three
 # default demos run unconditionally while its native demo is independently
@@ -67,7 +81,7 @@
 # ── Flags ────────────────────────────────────────────────────────────────────
 #   --with-ollama       run ACT2/ACT3's ollama-profile demos
 #   --with-native        run ACT4's demo-native (slow native compile)
-#   --with-minikube       run ACT5's KEDA demos (needs a live cluster)
+#   --with-minikube       run ACT5's KEDA demos (starts the stopped datamesh profile)
 #   --only <d[,d...]>    run only the named demo(s) (comma-separated)
 #   --skip <d[,d...]>    run every selected demo EXCEPT the named one(s)
 #   --from <demo|actN>   start at that demo (or the first demo of act N, e.g.
@@ -77,6 +91,12 @@
 #   --no-preflight       skip the environment/toolchain preflight sweep
 #   --no-pause / --auto  show no pauses at all (CI/self-test)
 #   -h / --help          list acts, demos, and flags, then exit
+#
+# ── Environment ──────────────────────────────────────────────────────────────
+#   PLATFORM_READY_TIMEOUT   seconds (default 600) ACT 5 waits for the pods in
+#                            the datamesh namespace and the KEDA and Strimzi
+#                            operators to be Ready after a start. On a failure
+#                            it prints `kubectl get pods -n datamesh` first.
 #
 # `--only` and `--skip` operate on demo NAMES (e.g. `demo-order`), are
 # mutually exclusive, and select the demo SET before gating is applied — a
@@ -103,7 +123,7 @@ ACT_LEDE=(
     "The identical shipping/order domain, coordinated three different ways: Kafka choreography (decentralized, no coordinator) vs a Camel route vs a Quarkus Flow workflow (two differently-shaped centralized orchestration engines). Needs --with-ollama."
     "langchain4j single-shot classification, an embedded Drools rules engine deciding FRAUD_HOLD/EXPEDITE/ROUTE_TO_WAREHOUSE, Camel EIPs, and the MCP tool-server surface -- including the known tool-calling limitation. Needs --with-ollama."
     "JBang single-file Camel prototyping, Quarkus continuous testing and Panama FFM native calls run every time (no compose, no cluster); a GraalVM/Mandrel native compile is opt-in behind --with-native (several minutes, pulls a builder image on first run)."
-    "KEDA autoscaling on Kafka consumer-group lag and on inbound HTTP (scale-to-zero), on the local Kubernetes cluster (scripts/bootstrap.sh). Needs --with-minikube."
+    "KEDA autoscaling on Kafka consumer-group lag and on inbound HTTP (scale-to-zero), on the local Kubernetes cluster (scripts/setup-profile.sh, scripts/bootstrap.sh). Runs last; starts the stopped datamesh profile. Needs --with-minikube."
 )
 
 # DEMO_ACT[i] / DEMO_NAMES[i] / DEMO_GATE[i] — one entry per demo, in act
@@ -148,8 +168,12 @@ DEMO_INFO[demo-jbang-prototype]=$'A complete Camel route in one Java file: no po
 DEMO_INFO[demo-continuous-testing]=$'Quarkus continuous testing: instant reruns with Dev Services provisioning infra, the fast end of the feedback-loop spectrum.\nWatch for: the banner "All 4 tests are passing". A missing banner fails the demo.\nJDK and Maven only; Dev Services starts its own containers.'
 DEMO_INFO[demo-panama]=$'A JBang script (JDK 25, no Maven) calls libc getpid() and strlen() through the FFM API and checks both against Java.\nWatch for: PANAMA_GETPID equal to JVM_PID, and PANAMA_STRLEN equal to JAVA_LENGTH (strlen counts UTF-8 bytes).\nNo docker; needs jbang.'
 DEMO_INFO[demo-native]=$'order-service compiled to a native executable and run with no JVM in the process.\nWatch for: the native boot log and a GET /orders response. Long-running: several minutes, longer on the first run while a 1-2 GB builder image is pulled.\nOne throwaway Postgres container (--with-native).'
-DEMO_INFO[demo-keda-kafka]=$'KEDA scales notification-service from zero on Kafka consumer-group lag, on the local Kubernetes cluster built by scripts/bootstrap.sh.\nWatch for: replicas climbing from zero on a lag burst, then returning to zero as the backlog drains.\nCluster context must be set (--with-minikube).'
-DEMO_INFO[demo-keda-http]=$'KEDA HTTP add-on scales graphql-gateway from zero on inbound request rate through its interceptor.\nWatch for: the scaled-to-zero deployment reaching at least one replica within budget. A scaled-to-zero workload reports unknown health until the first request; that is expected.\nCluster context must be set (--with-minikube).'
+DEMO_INFO[demo-keda-kafka]=$'KEDA scales notification-service from zero on Kafka consumer-group lag, on the local Kubernetes cluster built by scripts/setup-profile.sh and scripts/bootstrap.sh.\nWatch for: replicas climbing from zero on a lag burst, then returning to zero as the backlog drains.\nNeeds the datamesh profile (--with-minikube); the walkthrough starts it if stopped.'
+DEMO_INFO[demo-keda-http]=$'KEDA HTTP add-on scales graphql-gateway from zero on inbound request rate through its interceptor.\nWatch for: the scaled-to-zero deployment reaching at least one replica within budget. A scaled-to-zero workload reports unknown health until the first request; that is expected.\nNeeds the datamesh profile (--with-minikube); the walkthrough starts it if stopped.'
+
+# COMPOSE_DEMOS — the demos that call compose_up (they bind host ports 3000/
+# 3100/3200/4317/4318, which a running minikube profile also holds).
+COMPOSE_DEMOS="demo-order demo-grpc demo-graphql demo-kafka demo-tracing demo-websocket demo-orchestration-styles demo-ai-classify demo-ai-mcp demo-camel-integration demo-ai-triage"
 
 # _demo_index <name> — echoes the catalog index of a demo, or returns 1.
 _demo_index() {
@@ -215,7 +239,7 @@ EOF
 ${BOLD}Flags:${RST}
   --with-ollama         run ACT2/ACT3's ollama-profile demos (default: skipped)
   --with-native         run ACT4's demo-native, a real native compile (default: skipped)
-  --with-minikube       run ACT5's KEDA demos, needs a live cluster (default: skipped)
+  --with-minikube       run ACT5's KEDA demos; starts the stopped datamesh profile (default: skipped)
   --only <d[,d...]>     run only the named demo(s) (comma-separated, exact name)
   --skip <d[,d...]>     run every selected demo except the named one(s)
   --from <demo|actN>    start at that demo, or at the first demo of act N (act1..act5),
@@ -224,6 +248,11 @@ ${BOLD}Flags:${RST}
   --no-preflight        skip the environment/toolchain preflight sweep
   --no-pause, --auto    show no pauses at all (CI/self-test)
   -h, --help            show this help and exit
+
+${BOLD}Environment:${RST}
+  PLATFORM_READY_TIMEOUT  seconds ACT 5 waits for the pods in the datamesh namespace and
+                          the KEDA and Strimzi operators after a start (default 600; a
+                          VM-based engine can need more than 5 minutes)
 
 ${BOLD}Pacing:${RST}
   Each demo prints a header and 2-3 lines of context, then waits:
@@ -382,6 +411,111 @@ if [[ ${#ACTIVE_ACTS[@]} -eq 0 ]]; then
     fail "no demos selected -- check --only/--skip for a typo (valid names: $VALID_NAMES)"
 fi
 
+# ─── Scope: which compose demos and ACT 5 demos will actually run ───────────
+COMPOSE_IN_SCOPE=0
+ACT5_IN_SCOPE=0
+for (( i = 0; i < DEMO_COUNT; i++ )); do
+    name="${DEMO_NAMES[i]}"
+    is_selected "$name" || continue
+    gate_satisfied "${DEMO_GATE[i]}" || continue
+    _in_csv "$name" "${COMPOSE_DEMOS// /,}" && COMPOSE_IN_SCOPE=1
+    [[ "${DEMO_ACT[i]}" == "5" ]] && ACT5_IN_SCOPE=1
+done
+
+# PROFILE_STATE — running | stopped | absent (the profile's docker container).
+PROFILE_NAME="${MINIKUBE_PROFILE:-datamesh}"
+PROFILE_STATE="absent"
+if command -v docker >/dev/null 2>&1 && docker container inspect "$PROFILE_NAME" >/dev/null 2>&1; then
+    if [[ "$(docker container inspect -f '{{.State.Running}}' "$PROFILE_NAME" 2>/dev/null)" == "true" ]]; then
+        PROFILE_STATE="running"
+    else
+        PROFILE_STATE="stopped"
+    fi
+fi
+
+# prepare_platform — once, before the first ACT 5 demo: verify the published
+# NodePorts, start the profile if it is stopped, and guard node forwarding.
+PLATFORM_READY=0
+prepare_platform() {
+    (( PLATFORM_READY )) && return 0
+    # shellcheck source=lib/endpoints.sh
+    source "${SCRIPT_DIR}/lib/endpoints.sh"
+    docker_engine_ok || fail "Docker Engine is not reachable (sudo systemctl start docker)"
+    profile_container_exists \
+        || fail "the '${EP_PROFILE}' minikube profile does not exist -- create it: ./scripts/setup-profile.sh && ./scripts/bootstrap.sh"
+    check_published_ports || fail "the '${EP_PROFILE}' profile does not publish the required NodePorts (see the hint above)"
+    if ! profile_container_running || ! minikube status -p "$EP_PROFILE" >/dev/null 2>&1; then
+        # Stopped profile: it holds no listeners, so every host port must be
+        # free. A container that is still running but whose `minikube status`
+        # fails (wedged node) holds its own docker-proxy listeners: exempt them.
+        own_ports=""
+        if profile_container_running; then
+            own_ports="$(published_ports | awk '{print $2}' | tr '\n' ' ')"
+            narrate "the '${EP_PROFILE}' container is running but minikube status fails; restarting it"
+        else
+            narrate "starting the stopped '${EP_PROFILE}' profile (published NodePort bindings persist)"
+        fi
+        assert_host_ports_free "$own_ports" \
+            || fail "host ports needed by the '${EP_PROFILE}' profile are in use (something else is listening); stop other clusters and compose stacks first"
+        minikube start -p "$EP_PROFILE" || fail "minikube start -p ${EP_PROFILE} failed"
+        check_published_ports || fail "the '${EP_PROFILE}' profile does not publish the required NodePorts after start (see the hint above)"
+    fi
+    ensure_node_forwarding
+    kubectl config use-context "$EP_PROFILE" >/dev/null \
+        || fail "kubectl config use-context ${EP_PROFILE} failed"
+    # Readiness: a started profile needs a few minutes before the platform
+    # answers (longer on a VM-based engine). Tunable with PLATFORM_READY_TIMEOUT.
+    local ready_to="${PLATFORM_READY_TIMEOUT:-600}"
+    [[ "$ready_to" =~ ^[0-9]+$ ]] || fail "PLATFORM_READY_TIMEOUT must be a number of seconds (got '${ready_to}')"
+    narrate "waiting up to ${ready_to}s for the platform to be ready (pods in ${EP_APP_NS}, KEDA and Strimzi operators)"
+    # Wait on owners, not pods: KEDA scales graphql-gateway to zero, and a pod
+    # that is deleted mid-wait makes `kubectl wait pods --all` exit with
+    # NotFound. A Deployment at zero replicas still reports Available.
+    local what
+    for what in "deployment --all" "kafka/datamesh" "cluster.postgresql.cnpg.io/datamesh-postgres"; do
+        local cond=Ready; [[ "$what" == deployment* ]] && cond=Available
+        # shellcheck disable=SC2086  # $what is a resource plus optional --all
+        if ! kubectl --context "$EP_PROFILE" -n "$EP_APP_NS" wait --for=condition="$cond" $what \
+                --timeout="${ready_to}s"; then
+            kubectl --context "$EP_PROFILE" get pods -n "$EP_APP_NS" >&2 || true
+            fail "${what} in namespace ${EP_APP_NS} is not ${cond} after ${ready_to}s (raise PLATFORM_READY_TIMEOUT, or inspect: kubectl --context ${EP_PROFILE} get pods -n ${EP_APP_NS})"
+        fi
+    done
+    # Settle: after a cold start, services that booted before Postgres or Kafka
+    # was reachable crash-loop for a while even though their Deployment reads
+    # Available between restarts. Wait until the namespace's total container
+    # restart count stays unchanged for 30s.
+    local restarts_of='{range .items[*]}{range .status.containerStatuses[*]}{.restartCount}{" "}{end}{end}'
+    local prev="" cur stable=0 deadline=$((SECONDS + ready_to))
+    while (( SECONDS < deadline )); do
+        cur="$(kubectl --context "$EP_PROFILE" -n "$EP_APP_NS" get pods -o jsonpath="$restarts_of" 2>/dev/null \
+            | tr ' ' '\n' | awk '{ s += $1 } END { print s + 0 }')"
+        if [[ -n "$prev" && "$cur" == "$prev" ]]; then
+            stable=$((stable + 10))
+            (( stable >= 30 )) && break
+        else
+            stable=0
+        fi
+        prev="$cur"
+        sleep 10
+    done
+    (( stable >= 30 )) || {
+        kubectl --context "$EP_PROFILE" get pods -n "$EP_APP_NS" >&2 || true
+        fail "pods in namespace ${EP_APP_NS} kept restarting for ${ready_to}s (raise PLATFORM_READY_TIMEOUT, or inspect the restarting pods)"
+    }
+    if ! kubectl --context "$EP_PROFILE" wait --for=condition=Available deployment/keda-operator \
+            -n keda --timeout="${ready_to}s"; then
+        kubectl --context "$EP_PROFILE" get pods -n "$EP_APP_NS" >&2 || true
+        fail "the KEDA operator (namespace keda) is not Available after ${ready_to}s (raise PLATFORM_READY_TIMEOUT)"
+    fi
+    if ! kubectl --context "$EP_PROFILE" wait --for=condition=Available deployment/strimzi-cluster-operator \
+            -n "$EP_APP_NS" --timeout="${ready_to}s"; then
+        kubectl --context "$EP_PROFILE" get pods -n "$EP_APP_NS" >&2 || true
+        fail "the Strimzi operator (namespace ${EP_APP_NS}) is not Available after ${ready_to}s (raise PLATFORM_READY_TIMEOUT)"
+    fi
+    PLATFORM_READY=1
+}
+
 # ─── Preflight (unless --no-preflight) ──────────────────────────────────────
 if (( NO_PREFLIGHT )); then
     step "preflight: skipped (--no-preflight)"
@@ -398,6 +532,11 @@ else
     # shellcheck disable=SC2086
     UNION_CMDS="$(printf '%s\n' ${UNION_CMDS} | sort -u | tr '\n' ' ')"
     info "toolchain union for this run: ${UNION_CMDS:-<none>}"
+
+    # Compose and the running profile cannot coexist (shared host ports).
+    if (( COMPOSE_IN_SCOPE )) && [[ "$PROFILE_STATE" == "running" ]]; then
+        fail "the datamesh minikube profile is running and holds host ports 3000/3100/3200/4317/4318 that compose needs; stop it first: minikube stop -p ${MINIKUBE_PROFILE:-datamesh}"
+    fi
 
     if [[ "$UNION_CMDS" == *docker* ]]; then
         check "docker CLI present" "command -v docker >/dev/null 2>&1" \
@@ -436,11 +575,13 @@ else
             warn "no local native-image on PATH -- ACT4's native build falls back to container-build (docker; first run pulls a 1-2GB builder image, several minutes)"
         fi
     fi
-    if (( WITH_MINIKUBE )); then
-        if command -v minikube >/dev/null 2>&1 && minikube status -p datamesh >/dev/null 2>&1; then
-            info "minikube profile 'datamesh' appears to be running"
+    if (( ACT5_IN_SCOPE )); then
+        if [[ "$PROFILE_STATE" == "absent" ]]; then
+            fail "ACT 5 needs the '${PROFILE_NAME}' minikube profile and it does not exist -- create it: ./scripts/setup-profile.sh && ./scripts/bootstrap.sh"
+        elif [[ "$PROFILE_STATE" == "running" ]]; then
+            info "minikube profile '${PROFILE_NAME}' is running"
         else
-            warn "minikube profile 'datamesh' not detected -- ACT5 needs the local Kubernetes cluster (./scripts/bootstrap.sh); its demos will fail loudly if it is missing"
+            info "minikube profile '${PROFILE_NAME}' is stopped -- ACT 5 will start it after the compose demos finish"
         fi
     fi
 fi
@@ -499,6 +640,11 @@ for act_idx in "${!ACTIVE_ACTS[@]}"; do
             narrate "SKIP ${name} -- requires --with-${gate} (not passed; opt-in, skipped by design)"
             TOTAL_SKIP=$(( TOTAL_SKIP + 1 ))
             continue
+        fi
+
+        if [[ "${DEMO_ACT[i]}" == "5" ]]; then
+            # Runs after every compose demo's compose_down (ACT 5 is last).
+            prepare_platform
         fi
 
         act_any_ran=1

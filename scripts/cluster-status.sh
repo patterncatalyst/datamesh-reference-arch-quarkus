@@ -13,7 +13,7 @@
 
 set -uo pipefail
 
-PROFILE="datamesh"
+PROFILE="${MINIKUBE_PROFILE:-datamesh}"
 NS="datamesh"
 OBS_NS="${OBS_NAMESPACE:-observability}"
 
@@ -135,6 +135,12 @@ if kubectl get deploy apicurio -n "$NS" >/dev/null 2>&1; then
 else
     warn "Apicurio not found (disabled or not yet installed)"
 fi
+
+# ─── Host access (informational) ─────────────────────────────────────────────
+# show-endpoints.sh reports published ports and reachability. Its result never
+# changes this script's verdict or exit code.
+step "Host access (NodePorts published on 127.0.0.1)"
+"$(dirname "${BASH_SOURCE[0]}")/show-endpoints.sh" || warn "show-endpoints.sh reported a problem (informational; see above)"
 
 # ─── Verdict ─────────────────────────────────────────────────────────────────
 step "Verdict"

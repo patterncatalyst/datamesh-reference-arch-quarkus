@@ -3,23 +3,26 @@
 # bootstrap.sh — stand up the datamesh-reference-arch-quarkus minikube substrate
 # from a fresh node, in the correct order, with a health gate between each tier.
 #
+# SUPPORTED HOSTS: Fedora or RHEL (bare metal or VM), Docker Engine.
+#
 # HOST RESOURCE REQUIREMENTS (heavy profile — Istio + Kiali + KEDA + LGTM +
 # Strimzi + CNPG + Apicurio are ALL ON by default):
 #   - Host RAM:  >= 32 GB recommended (64 GB verified-comfortable). The
-#     minikube profile itself is sized at 24 GB / 16 vCPUs / 80 GB disk
+#     minikube profile itself is sized at 24 GB / 16 vCPUs (MINIKUBE_MEMORY /
+#     MINIKUBE_CPUS)
 #     (see setup-profile.sh); leave that much headroom over the profile's
 #     footprint for the host OS, IDE, browser, etc.
 #   - Host CPU:  >= 8 physical cores recommended; profile requests 16 vCPUs
 #     but minikube will spread across whatever the host actually has.
-#   - Host disk: >= 30 GB free beyond the profile's 80 GB disk image, for the
-#     container image cache and growing PVs.
+#   - Host disk: about 100 GB free under the Docker data root (/var/lib/docker)
+#     for the node, the container image cache and growing PVs.
 #   - Idle in-cluster footprint with every flag on (approximate, see
 #     references/opt-in-flags.md and references/lgtm-on-minikube-sizing.md in
 #     the lgtm-minikube-stack skill): Istio ~150 MiB, CNPG cluster ~200 MiB,
 #     Strimzi + Kafka ~600 MiB, KEDA ~150 MiB, LGTM (Loki+Grafana+Tempo+Mimir+
 #     Collector) ~1.4 GiB, Kiali ~100 MiB, Apicurio ~250 MiB — roughly
 #     ~2.9 GiB idle, comfortably inside the 24 GB profile.
-#   - Toolchain: minikube (--driver=docker), kubectl, helm, docker. No podman.
+#   - Toolchain: minikube (--driver=docker), kubectl, helm, docker. Docker Engine.
 #
 # Tiers (each gated on health before the next):
 #   1. minikube profile (docker driver)              —
@@ -44,7 +47,7 @@
 set -uo pipefail
 
 # ─── Configuration ──────────────────────────────────────────────────────────
-PROFILE="datamesh"
+PROFILE="${MINIKUBE_PROFILE:-datamesh}"
 NS="datamesh"
 OBS_NS="${OBS_NAMESPACE:-observability}"
 
@@ -172,8 +175,9 @@ cat <<EOF
 
     Service images:        ./scripts/load-images.sh   (build + load into the profile; the KEDA demos need them)
     Cluster status:        ./scripts/cluster-status.sh
-    Stable service access: ./scripts/tunnel-services.sh   (NodePort + SSH tunnel — NOT kubectl port-forward)
+    Host access:           NodePorts published on 127.0.0.1 (./scripts/show-endpoints.sh)
     Tear down the profile: ./scripts/teardown.sh
 
 EOF
+./scripts/show-endpoints.sh || fail "show-endpoints.sh reported a problem: a port is unpublished or the cluster is not reachable"
 printf '\n'

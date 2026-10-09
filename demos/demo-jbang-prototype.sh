@@ -31,7 +31,7 @@ demo_begin "demo-jbang-prototype"
 # instead of `require jbang`, so a missing jbang fails with an install hint
 # rather than silently passing.
 if ! command -v jbang >/dev/null 2>&1; then
-    fail "jbang is required for this demo but was not found on PATH. Install it with: curl -Ls https://sh.jbang.dev | bash (or: sdk install jbang, or: brew install jbangdev/tap/jbang) — then re-run this script. See https://www.jbang.dev/documentation/guide/latest/installation.html"
+    fail "jbang is required for this demo but was not found on PATH. Install it with: curl -Ls https://sh.jbang.dev | bash (or: sdk install jbang) — then re-run this script. See https://www.jbang.dev/documentation/guide/latest/installation.html"
 fi
 
 ROUTE_FILE="${SCRIPT_DIR}/jbang/HelloRoute.java"

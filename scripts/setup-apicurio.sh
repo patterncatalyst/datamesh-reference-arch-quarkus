@@ -90,6 +90,6 @@ kubectl rollout status -n "$NS" "deploy/$RELEASE" --timeout=120s
 
 printf '\n==> Apicurio Registry installed.\n\n'
 printf 'In-cluster endpoint: http://%s.%s.svc.cluster.local:8080/apis/registry/v3\n' "$RELEASE" "$NS"
-printf 'Stable host access (NodePort + SSH tunnel — see scripts/tunnel-services.sh):\n'
+printf 'Host access (NodePort published on 127.0.0.1; ./scripts/show-endpoints.sh):\n'
 printf '  UI at http://localhost:8084\n'
 printf '  API at http://localhost:8084/apis/registry/v3\n'
