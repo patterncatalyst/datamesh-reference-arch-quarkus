@@ -1,12 +1,12 @@
 POD                                     READY   RESTARTS   SCC             UID
-apicurio-6956b74c66-xph7b               true    0          restricted-v2   1000680000
-datamesh-dual-role-0                    true    0          restricted-v2   1000680000
-datamesh-postgres-0                     true    0          restricted-v2   1000680000
-graphql-gateway-6697c76458-9f4w8        true    0          restricted-v2   1000680000
-inventory-service-8694dc4bc-srzbs       true    0          restricted-v2   1000680000
-notification-service-5b96856d85-dzgx7   true    0          restricted-v2   1000680000
-order-service-77967b445d-k9jgp          true    0          restricted-v2   1000680000
-payment-service-5487495b7-d4d9t         true    0          restricted-v2   1000680000
-review-service-5c4db49778-2mj4s         true    0          restricted-v2   1000680000
-shipping-service-c6dbd7f6c-dfghr        true    0          restricted-v2   1000680000
-namespace uid-range: 1000680000/10000
+apicurio-6956b74c66-ws8h7               true    0          restricted-v2   1000700000
+datamesh-dual-role-0                    true    0          restricted-v2   1000700000
+datamesh-postgres-0                     true    0          restricted-v2   1000700000
+graphql-gateway-599db9d74d-mfv86        true    0          restricted-v2   1000700000
+inventory-service-7c64c5b4fd-mspxd      true    0          restricted-v2   1000700000
+notification-service-6d4bf8b84b-cs2xf   true    0          restricted-v2   1000700000
+order-service-5cbcfcdf5f-hnvxt          true    0          restricted-v2   1000700000
+payment-service-79b846b596-bg448        true    0          restricted-v2   1000700000
+review-service-5d486fddd5-kw6t6         true    0          restricted-v2   1000700000
+shipping-service-84ccf66977-9gxxs       true    0          restricted-v2   1000700000
+namespace uid-range: 1000700000/10000

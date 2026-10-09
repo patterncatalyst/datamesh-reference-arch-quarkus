@@ -17,7 +17,7 @@
   - Each of the 7 service poms gets an `openshift` Maven profile; nothing goes in the parent pom.
   - Needs no Docker and no podman, and the CRC VM never pulls from Maven Central. <!-- forbidden-ok -->
   - Rejected: (b) a Docker-strategy BuildConfig running mvn in the VM, (c) docker plus insecure-registries, (d) podman, which CLAUDE.md forbids. <!-- forbidden-ok -->
-  - The chart sets `JAVA_MAX_RAM_RATIO`, `JAVA_TOOL_OPTIONS` (the Avro packages per service) and, if needed, `JAVA_APP_JAR`, because the image runs `run-java.sh`, not the Containerfile entrypoint.
+  - The chart sets `JAVA_MAX_MEM_RATIO`, `JAVA_TOOL_OPTIONS` (the Avro packages per service), because the image runs `run-java.sh`, not the Containerfile entrypoint.
 - **Infra on 20 GB / 6 vCPU.**
   - Kafka: the AMQ Streams operator via OLM (fallback community Strimzi).
   - Postgres: StatefulSet on `registry.redhat.io/rhel10/postgresql-16` (fallback rhel9) under restricted-v2. Document the drift from 16 to 18.6.
@@ -79,8 +79,13 @@
 - **Kubeconfig**: `crc start` writes the `crc-admin` context, so `oc config use-context crc-admin` replaces the interactive kubeadmin login. No password handling needed.
 
 ## Status (resume here)
-- 2026-10-09: Wave 0 done (above). CRC is running.
-- Next step: Wave 1 authoring (infra, chart, scripts and poms first, enough for the Wave 2 live run; the chapter, diagrams and deck follow the live run).
+- 2026-10-09: Wave 0 done. Wave 1 scripts/chart/poms done and Wave 2 live run done:
+  - `openshift/` has lib.sh, install-infra.sh, build-images.sh, deploy.sh, capture-evidence.sh, teardown.sh, infra/, helm/datamesh/, README.md, evidence/2026-10-09/.
+  - Full clean cycle from an empty CRC: teardown 46s, install-infra 50s, build-images 182s, deploy 33s, capture-evidence 13s; all 7 checks green, zero restarts, UIDs from the namespace range.
+  - Live fixes folded in: quarkus-openshift (not container-image-openshift alone), quarkus.openshift.version for the tag, JAVA_MAX_MEM_RATIO, wait-for-postgres init container, config checksum, rollout-status wait, kafka.strimzi.io/v1.
+  - DRQ-018..022 written; `_config.yml` excludes openshift/.
+- Next step: Wave 3 fold-in (chapter 22, diagrams, deck A7 group, nav files, README), then Wave 4 validation and the PR. Phase 2 platform tier (OSSM3, CMA) and native are not started.
+- When finished with CRC: `./openshift/teardown.sh` (removes everything, then crc stop).
 - Rules:
   - One cluster at a time.
   - Secrets are never written to files or evidence.

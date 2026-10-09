@@ -1,14 +1,14 @@
-order 535c9586-0d05-41c1-bd16-4e4bb1f76611
+order 9cded459-df3c-4a42-b8d6-50be73dce6eb
 
 -- payment-service log
-2026-10-09 06:21:10,023 INFO  [com.patterncatalyst.datamesh.payment.PaymentProcessor] (executor-thread-1) Capturing payment pay-16d0cd6d-1761-4fb2-a9be-f499bd4fd916 for order 535c9586-0d05-41c1-bd16-4e4bb1f76611 (customer=crc-evidence, amount=9.99)
+2026-10-09 06:27:31,779 INFO  [com.patterncatalyst.datamesh.payment.PaymentProcessor] (executor-thread-1) Capturing payment pay-4fb534d2-f3c8-43cb-8a53-147e69384d85 for order 9cded459-df3c-4a42-b8d6-50be73dce6eb (customer=crc-evidence, amount=9.99)
 
 -- shipment table
- id | carrier | customer_id  |         dispatched_at         |   item_sku    |               order_id               | quantity |   status   | tracking_number 
-----+---------+--------------+-------------------------------+---------------+--------------------------------------+----------+------------+-----------------
-  1 | DHL     | crc-evidence | 2026-10-09 06:21:11.601641+00 | SKU-DOOHICKEY | 535c9586-0d05-41c1-bd16-4e4bb1f76611 |        4 | dispatched | DHB4EB96C6D318
+ id | carrier | customer_id  |         dispatched_at         | item_sku  |               order_id               | quantity |   status   | tracking_number 
+----+---------+--------------+-------------------------------+-----------+--------------------------------------+----------+------------+-----------------
+  1 | FedEx   | crc-evidence | 2026-10-09 06:27:34.286473+00 | SKU-GIZMO | 9cded459-df3c-4a42-b8d6-50be73dce6eb |        5 | dispatched | FEBB27A390D46A
 (1 row)
 
 
 -- notification-service GET /notifications
-[{"id":1,"orderId":"535c9586-0d05-41c1-bd16-4e4bb1f76611","eventType":"order.placed","customerId":"crc-evidence","itemSku":"CRC-WIDGET-4190389","quantity":1,"amount":9.99,"status":"PLACED","createdAt":"2026-10-09T06:21:07.718736Z"}]
+[{"id":1,"orderId":"9cded459-df3c-4a42-b8d6-50be73dce6eb","eventType":"order.placed","customerId":"crc-evidence","itemSku":"CRC-WIDGET-7028","quantity":1,"amount":9.99,"status":"PLACED","createdAt":"2026-10-09T06:27:29.560873Z"}]

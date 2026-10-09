@@ -120,6 +120,26 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
   - The gRPC resolver lesson from the Python repo (DRA-017/019) does not apply: Quarkus clients use the JDK/Netty resolver, and `INVENTORY_GRPC_HOST` is an FQDN.
   - Deferrals: DEF-003, DEF-004.
 
+- **DRQ-018 — OpenShift Local appendix: scope and tiering.** Status: decided; live-verified 2026-10-09 on CRC 4.22.14 (6 vCPU / 20 GiB).
+  - The appendix deploys the 7 core services (order, inventory, payment, shipping, notification, review, graphql-gateway), Postgres, Apicurio and Kafka. LGTM observability and the AI services are documented only; Istio (OSSM 3) and KEDA (CMA) are a phase 2 platform tier.
+  - The CRC is dedicated to this workshop: `openshift/teardown.sh` removes the Helm release, Kafka, the project, the AMQ Streams Subscription/CSV/InstallPlans and the Strimzi CRDs, then runs `crc stop`.
+  - Access uses the `crc-admin` kubeconfig context that `crc start` writes; no password is typed, printed or stored.
+- **DRQ-019 — OpenShift build path: quarkus-openshift binary S2I.** Status: decided; live-verified (7 builds, about 15 s each in-cluster, 154 s for the whole reactor).
+  - Each service pom has an `openshift` profile adding `quarkus-openshift`. `quarkus-container-image-openshift` alone generates no BuildConfig ("No OpenShift manifests were generated"), so the full extension is required; `quarkus.kubernetes.deploy=false` keeps it to build-and-push.
+  - Base image `registry.access.redhat.com/ubi10/openjdk-25:1.24-15` (the extension's default is ubi9). Output tag comes from `quarkus.openshift.version`; `quarkus.container-image.tag` alone leaves the project version.
+  - Rejected: a Docker-strategy BuildConfig running Maven in the VM (the VM would pull from Maven Central), pushing from a host engine to the exposed registry (needs an insecure-registry setting), and podman. <!-- forbidden-ok -->
+  - The S2I image starts the app with `run-java.sh`, not the Containerfile entrypoint, so the chart sets `JAVA_TOOL_OPTIONS` (Avro packages) and `JAVA_MAX_MEM_RATIO=50` (the image reads `JAVA_MAX_MEM_RATIO`, not `JAVA_MAX_RAM_RATIO`; the default is 80).
+- **DRQ-020 — OpenShift infra.** Status: decided; live-verified.
+  - Kafka: AMQ Streams `amqstreams.v3.2.1-14` from redhat-operators, channel `amq-streams-3.2.x`, Manual approval with `startingCSV` (the script approves only that InstallPlan). Kafka CR `datamesh` on the `kafka.strimzi.io/v1` API (v1beta2 is deprecated), Kafka 4.2.0, one KRaft dual-role node, no entity operator (topics auto-create, and teardown has no KafkaTopic finalizers).
+  - Postgres: StatefulSet on `registry.redhat.io/rhel10/postgresql-16:10.2-1791491499` under restricted-v2 (minikube runs CNPG with PostgreSQL 18.6; the drift is documented). Service `datamesh-postgres-rw` and Secret `datamesh-postgres-app` keep the minikube names, so the env contract is unchanged. The password is generated once by Helm (`lookup`) and never written down.
+  - Apicurio `quay.io/apicurio/apicurio-registry:3.2.4`, in memory, matching minikube.
+  - The DB services get a `wait-for-postgres` init container (bash `/dev/tcp`, same image) so they do not restart while Postgres initialises.
+- **DRQ-021 — OpenShift host access: Routes, no NodePorts.** Status: decided; live-verified.
+  - Edge-TLS Routes for graphql-gateway and Apicurio (`*-datamesh.apps-crc.testing`), HTTP redirected. Evidence uses `curl --cacert` with the cluster's ingress CA, never `--insecure`. Seeding and order creation go through `oc exec` into the service pod.
+  - Every pod runs under `restricted-v2` with a UID from the namespace range; the chart never sets `runAsUser`.
+- **DRQ-022 — review-service on OpenShift: OIDC tenant disabled.** Status: decided; live-verified.
+  - The prod build fails at boot with "'quarkus.oidc.auth-server-url' property must be configured" because no OIDC provider runs there. The chart sets `QUARKUS_OIDC_TENANT_ENABLED=false`; `DELETE /reviews/{id}` answers 401 and every other endpoint works. `application.properties` is unchanged.
+
 ## Deferrals
 
 - **DEF-001 — Ollama tool-calling does not fire in ai-mcp-service — OPEN (behavioral), with precise root cause; classpath side RESOLVED.**
