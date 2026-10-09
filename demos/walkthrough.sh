@@ -468,11 +468,41 @@ prepare_platform() {
     local ready_to="${PLATFORM_READY_TIMEOUT:-600}"
     [[ "$ready_to" =~ ^[0-9]+$ ]] || fail "PLATFORM_READY_TIMEOUT must be a number of seconds (got '${ready_to}')"
     narrate "waiting up to ${ready_to}s for the platform to be ready (pods in ${EP_APP_NS}, KEDA and Strimzi operators)"
-    if ! kubectl --context "$EP_PROFILE" wait --for=condition=Ready pods --all -n "$EP_APP_NS" \
-            --field-selector=status.phase!=Succeeded --timeout="${ready_to}s"; then
+    # Wait on owners, not pods: KEDA scales graphql-gateway to zero, and a pod
+    # that is deleted mid-wait makes `kubectl wait pods --all` exit with
+    # NotFound. A Deployment at zero replicas still reports Available.
+    local what
+    for what in "deployment --all" "kafka/datamesh" "cluster.postgresql.cnpg.io/datamesh-postgres"; do
+        local cond=Ready; [[ "$what" == deployment* ]] && cond=Available
+        # shellcheck disable=SC2086  # $what is a resource plus optional --all
+        if ! kubectl --context "$EP_PROFILE" -n "$EP_APP_NS" wait --for=condition="$cond" $what \
+                --timeout="${ready_to}s"; then
+            kubectl --context "$EP_PROFILE" get pods -n "$EP_APP_NS" >&2 || true
+            fail "${what} in namespace ${EP_APP_NS} is not ${cond} after ${ready_to}s (raise PLATFORM_READY_TIMEOUT, or inspect: kubectl --context ${EP_PROFILE} get pods -n ${EP_APP_NS})"
+        fi
+    done
+    # Settle: after a cold start, services that booted before Postgres or Kafka
+    # was reachable crash-loop for a while even though their Deployment reads
+    # Available between restarts. Wait until the namespace's total container
+    # restart count stays unchanged for 30s.
+    local restarts_of='{range .items[*]}{range .status.containerStatuses[*]}{.restartCount}{" "}{end}{end}'
+    local prev="" cur stable=0 deadline=$((SECONDS + ready_to))
+    while (( SECONDS < deadline )); do
+        cur="$(kubectl --context "$EP_PROFILE" -n "$EP_APP_NS" get pods -o jsonpath="$restarts_of" 2>/dev/null \
+            | tr ' ' '\n' | awk '{ s += $1 } END { print s + 0 }')"
+        if [[ -n "$prev" && "$cur" == "$prev" ]]; then
+            stable=$((stable + 10))
+            (( stable >= 30 )) && break
+        else
+            stable=0
+        fi
+        prev="$cur"
+        sleep 10
+    done
+    (( stable >= 30 )) || {
         kubectl --context "$EP_PROFILE" get pods -n "$EP_APP_NS" >&2 || true
-        fail "pods in namespace ${EP_APP_NS} are not Ready after ${ready_to}s (raise PLATFORM_READY_TIMEOUT, or inspect: kubectl --context ${EP_PROFILE} get pods -n ${EP_APP_NS})"
-    fi
+        fail "pods in namespace ${EP_APP_NS} kept restarting for ${ready_to}s (raise PLATFORM_READY_TIMEOUT, or inspect the restarting pods)"
+    }
     if ! kubectl --context "$EP_PROFILE" wait --for=condition=Available deployment/keda-operator \
             -n keda --timeout="${ready_to}s"; then
         kubectl --context "$EP_PROFILE" get pods -n "$EP_APP_NS" >&2 || true
