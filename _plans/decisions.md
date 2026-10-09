@@ -114,12 +114,11 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
   - Docker Engine is required. Docker Desktop is optional, as an example of a VM-based engine.
   - Supported hosts are Fedora or RHEL, bare metal or VM. No other OS is documented; scan 6 of `scripts/forbidden-syntax.sh` enforces it.
   - `.devcontainer/` is removed: ubuntu base, unpinned "latest" features, and forwardPorts. <!-- forbidden-ok -->
-  - Compose and the cluster cannot run together (ports 3000, 3100, 3200, 4317, 4318). Guards: `_demo.sh compose_up`, `tooling/newman/run-newman.sh`, and the `setup-profile.sh` pre-flight.
+  - Compose and the cluster cannot run together (ports 3000, 3100, 3200, 4317, 4318). Guards: `demos/lib/_demo.sh` `compose_up`, `scripts/run-all-tests.sh` (preflight, for `--load`/`--all`), `tooling/newman/run-newman.sh`, the `demos/walkthrough.sh` preflight, and the `scripts/setup-profile.sh` pre-flight (free host ports, including before starting a stopped profile).
   - Walkthrough ACT 5 (`--with-minikube`) starts the stopped profile.
   - `scripts/load-images.sh` waits for rollouts and for terminating pods.
   - The gRPC resolver lesson from the Python repo (DRA-017/019) does not apply: Quarkus clients use the JDK/Netty resolver, and `INVENTORY_GRPC_HOST` is an FQDN.
   - Deferrals: DEF-003, DEF-004.
-
 
 ## Deferrals
 

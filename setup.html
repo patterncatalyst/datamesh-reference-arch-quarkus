@@ -152,11 +152,11 @@ docker info</code></pre>
         <h3>Fitting minikube to the engine</h3>
         <p>
             <code>scripts/bootstrap.sh</code> starts minikube with 24 GB, 16 CPUs, and
-            an 80 GB disk. minikube cannot request more CPUs or memory than the
+            and about 100 GB free under the Docker data root (<code>/var/lib/docker</code>; the docker driver ignores <code>--disk-size</code>). minikube cannot request more CPUs or memory than the
             engine has, so override the defaults to fit. On an 8-CPU host:
         </p>
 <pre><code>MINIKUBE_CPUS=8 ./scripts/bootstrap.sh
-# also available: MINIKUBE_MEMORY (default 24g), MINIKUBE_DISK (default 80g)</code></pre>
+# also available: MINIKUBE_MEMORY (default 24g); MINIKUBE_DISK is ignored by the docker driver</code></pre>
 
         <h3>Host access</h3>
         <p>

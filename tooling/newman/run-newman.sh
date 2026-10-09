@@ -73,11 +73,12 @@ done
 
 require curl jq
 
-# Guard: the compose stack publishes 3000/3100/3200/4317/4318 on the host, the
-# same ports the minikube profile publishes. Refuse to start compose while the
-# profile's node container is running.
+# Guard: this runner targets the compose stack, which publishes
+# 3000/3100/3200/4317/4318 on the host, the same ports the minikube profile
+# publishes. Refuse to run while the profile's node container is running, since
+# it would answer on those ports instead of the compose stack.
 if [[ "$(docker container inspect -f '{{.State.Running}}' "${MINIKUBE_PROFILE:-datamesh}" 2>/dev/null)" == "true" ]]; then
-    fail "the datamesh minikube profile is running and holds ports 3000/3100/3200/4317/4318; stop it first: minikube stop -p datamesh"
+    fail "the datamesh minikube profile is running and holds ports 3000/3100/3200/4317/4318; stop it first: minikube stop -p ${MINIKUBE_PROFILE:-datamesh}"
 fi
 
 # ─── Resolve the Newman runner ──────────────────────────────────────────────

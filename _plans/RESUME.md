@@ -17,7 +17,7 @@ no open PRs here or in `patterncatalyst/lgtm-skills`.
 - **minikube `datamesh`** profile (docker driver, containerd runtime, 24 GB /
   8 CPUs): **stopped**, not deleted. `minikube start -p datamesh`, then
   `./scripts/load-images.sh` if the images need rebuilding. Global minikube
-  config is at its defaults. Recreated with published NodePorts in the fix/nodeports-platform work (DRQ-016).
+  config is at its defaults. Being recreated with published NodePorts (live run in progress; DRQ-016).
 - **Local `.env`** (git-ignored): copied from `.env.example` with
   `MIMIR_PORT=19090`, because Fedora's Cockpit holds 9090.
 - **Host tools**: `kcat` 1.7.1 installed (dnf). hey/ghz are not installed;
@@ -156,7 +156,7 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
     Dev Services tags == IT Testcontainers tags. `%prod` env-driven config in all
     services (`${KAFKA_BOOTSTRAP_SERVERS}`/`${APICURIO_REGISTRY_URL}`/`${JDBC_URL}`);
     Dev Services image-names pinned. Multi-stage UBI Containerfiles (order test-built).
-    `.devcontainer/` (JDK25/Maven3.9.9, DooD socket, joins the `datamesh-compose` network).
+    `.devcontainer/` (JDK25/Maven3.9.9, DooD socket, joins the `datamesh-compose` network); later removed (DRQ-017).
     `.dockerignore` added. **DEF-002 RESOLVED** — `OrderPlacedAvroWireIT` byte-asserts
     Avro magic byte, green in default `mvn verify`.
   - **Step 9 (minikube):** `scripts/` substrate (bootstrap + Strimzi/CNPG/KEDA/

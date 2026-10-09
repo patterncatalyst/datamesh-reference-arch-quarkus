@@ -86,7 +86,7 @@ resumes rather than fails. Reading top to bottom, it builds the platform tier in
 dependency order:
 
 1. **The `minikube` profile itself** ([setup-profile.sh]({{ site.repo_blob }}/scripts/setup-profile.sh)), driven by
-   `minikube start --driver=docker` on **Docker Engine**. This repo uses
+   `minikube start --driver=docker --container-runtime=containerd` on **Docker Engine**. This repo uses
    Docker Engine for every container and compose workflow, so the `docker` driver flag is the
    only container toolchain decision the substrate makes, and it is made once, at the
    bottom. The profile is created with the platform NodePorts published on
@@ -231,7 +231,7 @@ pattern and not production. A single node means every tier shares one machine's
 resources, which keeps the whole mesh runnable on one workstation but concentrates failure modes
 that a multi-node cluster would spread out. [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh)'s own header documents the resource budget this concentration
 demands: 32 GB of host RAM recommended (the `minikube` profile itself is sized at 24 GB /
-16 vCPUs / 80 GB disk) with roughly 2.9 GiB of idle in-cluster footprint once every tier
+16 vCPUs; about 100 GB free under the Docker data root) with roughly 2.9 GiB of idle in-cluster footprint once every tier
 is on. Where single-node realities bite beyond raw resource ceilings — node-level decay,
 the operational care a long-lived single-node cluster needs — those are operational
 gotchas specific to this deployment choice rather than to data mesh, and belong in the
@@ -242,4 +242,4 @@ order-service template the others follow, and how each one is packaged and shipp
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `scripts/bootstrap.sh` was driven end to end on a local `minikube` cluster (24 GB / 16 CPU), bringing up all eight tiers healthy — the cluster itself, Istio, CloudNativePG + Postgres, Strimzi + Kafka, KEDA, the full LGTM stack, Kiali, and Apicurio (50/50 pods Running). The bring-up surfaced and fixed three bootstrap bugs along the way: the Strimzi Kafka CR pinned an unsupported Kafka version, Mimir rejected overlapping filesystem data dirs, and Apicurio's readiness probe used a health path its image doesn't serve. Re-run on 2026-10-06 with the docker driver on Docker Desktop (8 CPUs, so `MINIKUBE_CPUS=8`): all eight tiers came up with 50 pods Running after one fix, setup scripts that matched Helm repository names by prefix (an existing `grafana-community` repo hid a missing `grafana` repo). The service images then had to be built and loaded with `scripts/load-images.sh`; the cluster runs containerd, so the `minikube docker-env` route described in earlier revisions does not apply. Host access through published NodePorts: re-verification pending.*
+*Verification status: <span class="status status--verified">verified</span>. `scripts/bootstrap.sh` was driven end to end on a local `minikube` cluster (24 GB / 16 CPU; the first run used the podman driver), bringing up all eight tiers healthy — the cluster itself, Istio, CloudNativePG + Postgres, Strimzi + Kafka, KEDA, the full LGTM stack, Kiali, and Apicurio (50/50 pods Running). The bring-up surfaced and fixed three bootstrap bugs along the way: the Strimzi Kafka CR pinned an unsupported Kafka version, Mimir rejected overlapping filesystem data dirs, and Apicurio's readiness probe used a health path its image doesn't serve. Re-run on 2026-10-06 with the docker driver on Docker Engine (provided by Docker Desktop on the authoring host; 8 CPUs, so `MINIKUBE_CPUS=8`): all eight tiers came up with 50 pods Running after one fix, setup scripts that matched Helm repository names by prefix (an existing `grafana-community` repo hid a missing `grafana` repo). The service images then had to be built and loaded with `scripts/load-images.sh`; the cluster runs containerd, so the `minikube docker-env` route described in earlier revisions does not apply. Host access through published NodePorts: re-verification pending.* <!-- forbidden-ok -->

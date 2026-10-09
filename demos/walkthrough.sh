@@ -434,10 +434,27 @@ prepare_platform() {
         || fail "the '${EP_PROFILE}' minikube profile does not exist -- create it: ./scripts/setup-profile.sh && ./scripts/bootstrap.sh"
     check_published_ports || fail "the '${EP_PROFILE}' profile does not publish the required NodePorts (see the hint above)"
     if ! profile_container_running; then
+        # A stopped profile holds no listeners: every host port must be free.
+        assert_host_ports_free "" \
+            || fail "host ports needed by the '${EP_PROFILE}' profile are in use (something else is listening); stop other clusters and compose stacks first"
         narrate "starting the stopped '${EP_PROFILE}' profile (published NodePort bindings persist)"
         minikube start -p "$EP_PROFILE" || fail "minikube start -p ${EP_PROFILE} failed"
+        check_published_ports || fail "the '${EP_PROFILE}' profile does not publish the required NodePorts after start (see the hint above)"
     fi
     ensure_node_forwarding
+    kubectl config use-context "$EP_PROFILE" >/dev/null \
+        || fail "kubectl config use-context ${EP_PROFILE} failed"
+    # Readiness: a started profile needs a few minutes before the platform answers.
+    narrate "waiting for the platform to be ready (pods in ${EP_APP_NS}, KEDA and Strimzi operators)"
+    kubectl --context "$EP_PROFILE" wait --for=condition=Ready pods --all -n "$EP_APP_NS" \
+        --field-selector=status.phase!=Succeeded --timeout=300s \
+        || fail "pods in namespace ${EP_APP_NS} are not Ready after 300s (kubectl --context ${EP_PROFILE} get pods -n ${EP_APP_NS})"
+    kubectl --context "$EP_PROFILE" wait --for=condition=Available deployment/keda-operator \
+        -n keda --timeout=180s \
+        || fail "the KEDA operator (namespace keda) is not Available after 180s"
+    kubectl --context "$EP_PROFILE" wait --for=condition=Available deployment/strimzi-cluster-operator \
+        -n "$EP_APP_NS" --timeout=180s \
+        || fail "the Strimzi operator (namespace ${EP_APP_NS}) is not Available after 180s"
     PLATFORM_READY=1
 }
 
@@ -460,7 +477,7 @@ else
 
     # Compose and the running profile cannot coexist (shared host ports).
     if (( COMPOSE_IN_SCOPE )) && [[ "$PROFILE_STATE" == "running" ]]; then
-        fail "the datamesh minikube profile is running and holds host ports 3000/3100/3200/4317/4318 that compose needs; stop it first: minikube stop -p datamesh"
+        fail "the datamesh minikube profile is running and holds host ports 3000/3100/3200/4317/4318 that compose needs; stop it first: minikube stop -p ${MINIKUBE_PROFILE:-datamesh}"
     fi
 
     if [[ "$UNION_CMDS" == *docker* ]]; then

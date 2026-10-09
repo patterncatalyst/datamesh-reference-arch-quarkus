@@ -8,12 +8,12 @@
 # HOST RESOURCE REQUIREMENTS (heavy profile — Istio + Kiali + KEDA + LGTM +
 # Strimzi + CNPG + Apicurio are ALL ON by default):
 #   - Host RAM:  >= 32 GB recommended (64 GB verified-comfortable). The
-#     minikube profile itself is sized at 24 GB / 16 vCPUs / 80 GB disk
+#     minikube profile itself is sized at 24 GB / 16 vCPUs / about 100 GB free under the Docker data root
 #     (see setup-profile.sh); leave that much headroom over the profile's
 #     footprint for the host OS, IDE, browser, etc.
 #   - Host CPU:  >= 8 physical cores recommended; profile requests 16 vCPUs
 #     but minikube will spread across whatever the host actually has.
-#   - Host disk: >= 30 GB free beyond the profile's 80 GB disk image, for the
+#   - Host disk: >= 30 GB free beyond the profile's about 100 GB free under the Docker data root image, for the
 #     container image cache and growing PVs.
 #   - Idle in-cluster footprint with every flag on (approximate, see
 #     references/opt-in-flags.md and references/lgtm-on-minikube-sizing.md in

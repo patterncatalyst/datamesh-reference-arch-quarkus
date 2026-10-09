@@ -4,7 +4,7 @@
 # demo scripts. Not executable on its own — it is meant
 # to be sourced from a demo-*.sh script, never run directly.
 #
-# Ported from the idiom in the Python sibling repo
+# Follows the same conventions as the Python sibling repo
 # (datamesh-reference-arch-python/examples/lgtm-datamesh/demos/
 # {walkthrough.sh,demo-order.sh,lib/endpoints.sh}):
 #   - `set -uo pipefail` (not `-e`) so a demo manages failures explicitly —
@@ -227,7 +227,7 @@ compose_up() {
     # The datamesh minikube profile publishes 3000/3100/3200/4317/4318 on the
     # host; compose binds the same ports, so both cannot run at once.
     if [[ "$(docker container inspect -f '{{.State.Running}}' "${MINIKUBE_PROFILE:-datamesh}" 2>/dev/null)" == "true" ]]; then
-        fail "the datamesh minikube profile is running and holds host ports 3000/3100/3200/4317/4318 that compose needs; stop it first: minikube stop -p datamesh"
+        fail "the datamesh minikube profile is running and holds host ports 3000/3100/3200/4317/4318 that compose needs; stop it first: minikube stop -p ${MINIKUBE_PROFILE:-datamesh}"
     fi
     local -a args=(-f "$COMPOSE_FILE")
     local p

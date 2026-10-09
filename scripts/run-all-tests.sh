@@ -174,6 +174,16 @@ if (( RUN_LOAD == 1 )); then
         "command -v newman >/dev/null 2>&1 || command -v npx >/dev/null 2>&1" \
         "npm install -g newman@6.2.2 (or ensure Node.js/npx is on PATH)"
 fi
+# Guard (only when a compose-using phase is selected: --load/--all => STACK-UP,
+# FUNCTIONAL, LOAD): the compose stack publishes 3000/3100/3200/4317/4318 on the
+# host, the same ports the minikube profile publishes. Refuse to run anything,
+# mvn included, while the profile's node container is running.
+if (( RUN_LOAD == 1 )); then
+    if [[ "$(docker container inspect -f '{{.State.Running}}' "${MINIKUBE_PROFILE:-datamesh}" 2>/dev/null)" == "true" ]]; then
+        PHASE_RESULT[preflight]="FAIL"
+        fail "the datamesh minikube profile is running and holds ports 3000/3100/3200/4317/4318 that the compose stack needs; stop it first: minikube stop -p ${MINIKUBE_PROFILE:-datamesh}"
+    fi
+fi
 if (( _DEMO_CHECK_FAILURES > 0 )); then
     PHASE_RESULT[preflight]="FAIL"
     fail "${_DEMO_CHECK_FAILURES} preflight check(s) failed (see fix hints above) -- aborting before running anything"
@@ -219,13 +229,6 @@ fi
 
 # ─── Phases 4-6: STACK-UP / FUNCTIONAL / LOAD (only --load/--all) ──────────
 if (( RUN_LOAD == 1 )); then
-    # Guard: the compose stack publishes 3000/3100/3200/4317/4318 on the host, the
-    # same ports the minikube profile publishes. Refuse to start compose while the
-    # profile's node container is running.
-    if [[ "$(docker container inspect -f '{{.State.Running}}' "${MINIKUBE_PROFILE:-datamesh}" 2>/dev/null)" == "true" ]]; then
-        fail "the datamesh minikube profile is running and holds ports 3000/3100/3200/4317/4318; stop it first: minikube stop -p datamesh"
-    fi
-
     # EXIT trap installed HERE, immediately before anything is brought up --
     # same idiom as demos/demo-order.sh/demo-graphql.sh's "this script owns
     # it" compose lifecycle, so Ctrl-C or any later failure still tears down

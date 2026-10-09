@@ -37,20 +37,26 @@ TP_APICURIO=8084;     NP_APICURIO=30084
 
 EP_PROFILE="${MINIKUBE_PROFILE:-datamesh}"
 
+# Namespaces, matching the setup scripts: setup-lgtm.sh honours OBS_NAMESPACE;
+# the datamesh namespace (Strimzi, Apicurio, workloads) is APP_NAMESPACE, or
+# DATAMESH_NS, default datamesh. Istio and Kiali stay in istio-system.
+EP_OBS_NS="${OBS_NAMESPACE:-observability}"
+EP_APP_NS="${APP_NAMESPACE:-${DATAMESH_NS:-datamesh}}"
+
 ENDPOINT_NAMES=(grafana otlp-grpc otlp-http mimir loki tempo kiali apicurio)
 
 # name → "host node namespace svc label [path]"  (svc/namespace used for Service
 # checks; the optional path is shown after the URL for display only)
 _endpoint_row() {
     case "$1" in
-        grafana)   echo "$TP_GRAFANA $NP_GRAFANA observability grafana Grafana" ;;
-        otlp-grpc) echo "$TP_OTLP_GRPC $NP_OTLP_GRPC observability otel-collector-opentelemetry-collector OTLP-gRPC" ;;
-        otlp-http) echo "$TP_OTLP_HTTP $NP_OTLP_HTTP observability otel-collector-opentelemetry-collector OTLP-HTTP" ;;
-        mimir)     echo "$TP_MIMIR $NP_MIMIR observability mimir-nginx Mimir" ;;
-        loki)      echo "$TP_LOKI $NP_LOKI observability loki-gateway Loki" ;;
-        tempo)     echo "$TP_TEMPO $NP_TEMPO observability tempo Tempo" ;;
+        grafana)   echo "$TP_GRAFANA $NP_GRAFANA $EP_OBS_NS grafana Grafana" ;;
+        otlp-grpc) echo "$TP_OTLP_GRPC $NP_OTLP_GRPC $EP_OBS_NS otel-collector-opentelemetry-collector OTLP-gRPC" ;;
+        otlp-http) echo "$TP_OTLP_HTTP $NP_OTLP_HTTP $EP_OBS_NS otel-collector-opentelemetry-collector OTLP-HTTP" ;;
+        mimir)     echo "$TP_MIMIR $NP_MIMIR $EP_OBS_NS mimir-nginx Mimir" ;;
+        loki)      echo "$TP_LOKI $NP_LOKI $EP_OBS_NS loki-gateway Loki" ;;
+        tempo)     echo "$TP_TEMPO $NP_TEMPO $EP_OBS_NS tempo Tempo" ;;
         kiali)     echo "$TP_KIALI $NP_KIALI istio-system kiali Kiali /kiali" ;;
-        apicurio)  echo "$TP_APICURIO $NP_APICURIO datamesh apicurio Apicurio /apis/registry/v3" ;;
+        apicurio)  echo "$TP_APICURIO $NP_APICURIO $EP_APP_NS apicurio Apicurio /apis/registry/v3" ;;
         *) return 1 ;;
     esac
 }
@@ -71,10 +77,17 @@ endpoint_url() {
 # separated, whitespace around items ignored) may be "p" (meaning p:p),
 # "hp:np" or "127.0.0.1:hp:np". Each port must be numeric 1-65535. Anything
 # else, including a 0.0.0.0: or other IP prefix, is an error: message on
-# stderr, return 1, nothing printed.
+# stderr, return 1, nothing printed. A host port or nodePort that duplicates
+# the built-in map or another extra entry is also an error.
 _extra_pairs() {
-    local item hp np out="" IFS=','
+    local item hp np out="" IFS=',' name row mhp mnp
     local -a extra
+    local seen_hp=" " seen_np=" "
+    for name in "${ENDPOINT_NAMES[@]}"; do
+        row="$(_endpoint_row "$name")"
+        IFS=" " read -r mhp mnp _ <<<"$row"
+        seen_hp+="${mhp} "; seen_np+="${mnp} "
+    done
     read -ra extra <<<"${EXTRA_NODE_PORTS:-}"
     for item in "${extra[@]}"; do
         item="${item#"${item%%[![:space:]]*}"}"; item="${item%"${item##*[![:space:]]}"}"
@@ -90,7 +103,17 @@ _extra_pairs() {
             printf 'endpoints: invalid EXTRA_NODE_PORTS item "%s": ports must be 1-65535\n' "$item" >&2
             return 1
         fi
-        out+="$((10#$hp)) $((10#$np))"$'\n'
+        hp=$((10#$hp)); np=$((10#$np))
+        if [[ "$seen_hp" == *" $hp "* ]]; then
+            printf 'endpoints: invalid EXTRA_NODE_PORTS item "%s": host port %s is already published (built-in map or an earlier extra)\n' "$item" "$hp" >&2
+            return 1
+        fi
+        if [[ "$seen_np" == *" $np "* ]]; then
+            printf 'endpoints: invalid EXTRA_NODE_PORTS item "%s": nodePort %s is already published (built-in map or an earlier extra)\n' "$item" "$np" >&2
+            return 1
+        fi
+        seen_hp+="${hp} "; seen_np+="${np} "
+        out+="${hp} ${np}"$'\n'
     done
     printf '%s' "$out"
 }
@@ -111,6 +134,32 @@ node_ports_arg() {
     done <<<"$extra"
     local IFS=','
     echo "${out[*]}"
+}
+
+# assert_host_ports_free [<own-host-ports>] — every host port in the map (plus
+# EXTRA_NODE_PORTS) must be free on the host. <own-host-ports> is a
+# space-separated list of ports to skip (ports this same profile currently
+# publishes while it is RUNNING). A stopped profile holds no listeners, so call
+# it with no argument before `minikube start` of a stopped profile. Prints one
+# error per busy port on stderr; returns 1 if any is busy or ss is missing.
+assert_host_ports_free() {
+    local own=" ${1:-} " pa spec hp busy=0
+    local -a specs
+    if ! command -v ss >/dev/null 2>&1; then
+        printf 'ERROR: ss not in PATH (iproute2); needed to check host ports are free.\n' >&2
+        return 1
+    fi
+    pa="$(node_ports_arg)" || return 1
+    IFS=',' read -ra specs <<<"$pa"
+    for spec in "${specs[@]}"; do
+        hp="$(cut -d: -f2 <<<"$spec")"
+        [[ "$own" == *" $hp "* ]] && continue
+        if [[ -n "$(ss -Htln "sport = :$hp" 2>/dev/null)" ]]; then
+            printf 'ERROR: host port %s is already in use: something else is listening; this workshop runs in isolation, so stop other clusters and compose stacks first.\n' "$hp" >&2
+            busy=1
+        fi
+    done
+    return "$busy"
 }
 
 # ─── Published-port inspection ───────────────────────────────────────────────
