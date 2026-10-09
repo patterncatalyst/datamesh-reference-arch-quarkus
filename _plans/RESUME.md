@@ -17,7 +17,7 @@ no open PRs here or in `patterncatalyst/lgtm-skills`.
 - **minikube `datamesh`** profile (docker driver, containerd runtime, 24 GB /
   8 CPUs): **stopped**, not deleted. `minikube start -p datamesh`, then
   `./scripts/load-images.sh` if the images need rebuilding. Global minikube
-  config has no rootless setting. Recreated with published NodePorts in the fix/nodeports-platform work (DRQ-016).
+  config is at its defaults. Recreated with published NodePorts in the fix/nodeports-platform work (DRQ-016).
 - **Local `.env`** (git-ignored): copied from `.env.example` with
   `MIMIR_PORT=19090`, because Fedora's Cockpit holds 9090.
 - **Host tools**: `kcat` 1.7.1 installed (dnf). hey/ghz are not installed;
