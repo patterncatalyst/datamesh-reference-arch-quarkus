@@ -22,6 +22,7 @@ fail() { printf '\n\xe2\x9c\x97 %s\n' "$1" >&2; exit 1; }
 require_crc() {
     command -v oc >/dev/null 2>&1 || fail "oc not on PATH: run eval \"\$(crc oc-env)\""
     command -v crc >/dev/null 2>&1 || fail "crc not on PATH"
+    command -v jq >/dev/null 2>&1 || fail "jq not on PATH"
     crc status 2>/dev/null | grep -q 'OpenShift:.*Running' || fail "OpenShift Local is not running: crc start"
     oc config use-context "$OCP_CONTEXT" >/dev/null 2>&1 \
         || fail "kubeconfig context $OCP_CONTEXT not found (crc start writes it)"
@@ -40,4 +41,28 @@ wait_for() {
         sleep 5; waited=$(( waited + 5 ))
     done
     ok "$what"
+}
+
+# install_operator <manifest> <namespace> <package> <csv>
+# Applies an OLM manifest (Subscription, plus Namespace and OperatorGroup
+# when the operator lives outside openshift-operators) whose Subscription
+# pins <csv> with installPlanApproval: Manual, approves only the InstallPlan
+# that lists <csv>, and waits for the CSV to succeed. Idempotent.
+install_operator() {
+    local manifest="$1" ns="$2" pkg="$3" csv="$4"
+    _csv_ok() { [[ "$(oc get csv "$csv" -n "$ns" -o jsonpath='{.status.phase}' 2>/dev/null)" == Succeeded ]]; }
+    _plan() {
+        oc get installplan -n "$ns" -o json 2>/dev/null | jq -r --arg c "$csv" \
+            '.items[] | select(.spec.clusterServiceVersionNames | index($c)) | .metadata.name' | head -1
+    }
+    _plan_proposed() { [[ -n "$(_plan)" ]]; }
+    if _csv_ok; then ok "$csv already Succeeded"; return 0; fi
+    # redhat-operators reports READY before it serves packages (about a
+    # minute after crc start), so wait for the package itself.
+    wait_for 300 "OperatorHub serves $pkg" oc get packagemanifest "$pkg" -n openshift-marketplace
+    oc apply -f "$manifest" >/dev/null || fail "apply $manifest"
+    wait_for 300 "InstallPlan for $csv proposed" _plan_proposed
+    oc patch installplan "$(_plan)" -n "$ns" --type merge -p '{"spec":{"approved":true}}' >/dev/null \
+        || fail "approve InstallPlan for $csv"
+    wait_for 600 "$csv Succeeded" _csv_ok
 }

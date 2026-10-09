@@ -34,12 +34,45 @@ routes:
   gateway: true
   apicurio: true
 
+# ── Platform tier (openshift/platform/install-platform.sh) ─────────────────
+# All off by default: a plain install renders only the core above.
+
+# OpenShift Service Mesh 3. Pods join through the istio.io/rev LABEL (Sail's
+# revisioned injection); namespace-wide mTLS is STRICT, the gateway is
+# PERMISSIVE because the Route delivers plaintext to it.
+mesh:
+  enabled: false
+  revision: default
+  canary:
+    enabled: false
+    v2Weight: 10
+
+# Custom Metrics Autoscaler (Red Hat's KEDA): Kafka-lag ScaledObject for
+# notification-service, the same trigger as k8s/keda/consumer-scaledobject.yaml.
+keda:
+  enabled: false
+
+# Red Hat build of OpenTelemetry: the operator injects the OpenTelemetry Java
+# agent (the same agent demo-tracing.sh attaches on compose), so no pom or
+# image changes. Traces go to grafana/otel-lgtm in this namespace.
+observability:
+  enabled: false
+  lgtmImage: docker.io/grafana/otel-lgtm:0.8.1
+
+# Ollama plus ai-mcp-service and ai-rules-service.
+ai:
+  enabled: false
+  ollamaImage: docker.io/ollama/ollama:0.35.1
+  model: qwen2.5:3b
+
 # One Deployment + Service per entry. Keys are the ImageStream names.
 #   db:           mount the Postgres credentials (QUARKUS_DATASOURCE_*)
 #   avroPackages: org.apache.avro.SERIALIZABLE_PACKAGES, as in the service's
 #                 Containerfile (run-java.sh does not read the Containerfile)
 #   grpcPort:     extra Service port (inventory's gRPC server)
 #   env:          service-specific environment
+#   ai:           deployed only when ai.enabled
+#   probe: tcp    no SmallRye Health extension; probe the HTTP port instead
 services:
   order-service:
     db: true
@@ -72,3 +105,17 @@ services:
     env:
       ORDER_SERVICE_URL: http://order-service:8080
     resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 512Mi}}
+  ai-mcp-service:
+    ai: true
+    probe: tcp
+    env:
+      QUARKUS_HTTP_PORT: "8080"
+      QUARKUS_LANGCHAIN4J_OLLAMA_BASE_URL: http://ollama:11434
+    resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 512Mi}}
+  ai-rules-service:
+    ai: true
+    probe: tcp
+    env:
+      QUARKUS_HTTP_PORT: "8080"
+      QUARKUS_LANGCHAIN4J_OLLAMA_BASE_URL: http://ollama:11434
+    resources: {requests: {cpu: 100m, memory: 384Mi}, limits: {cpu: 750m, memory: 768Mi}}

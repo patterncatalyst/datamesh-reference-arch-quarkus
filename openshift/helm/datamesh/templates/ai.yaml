@@ -1,0 +1,101 @@
+{{- if .Values.ai.enabled }}
+# Ollama for ai-mcp-service and ai-rules-service, the same version the
+# compose ollama profile pins. It runs under restricted-v2: HOME and the
+# model store point at the PVC, the only writable path it needs.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-models
+  labels:
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  labels:
+    app.kubernetes.io/name: ollama
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ollama
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ollama
+        app.kubernetes.io/part-of: datamesh
+    spec:
+      containers:
+        - name: ollama
+          image: {{ .Values.ai.ollamaImage }}
+          ports:
+            - {name: http, containerPort: 11434}
+          env:
+            - {name: HOME, value: /models}
+            - {name: OLLAMA_MODELS, value: /models/models}
+            - {name: OLLAMA_HOST, value: "0.0.0.0:11434"}
+          readinessProbe:
+            httpGet: {path: /api/version, port: http}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: "1", memory: 4Gi}
+            limits: {memory: 6Gi}
+          volumeMounts:
+            - {name: models, mountPath: /models}
+          {{- include "datamesh.containerSecurity" . | nindent 10 }}
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: ollama-models
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  labels:
+    app.kubernetes.io/name: ollama
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/name: ollama
+  ports:
+    - {name: http, port: 11434, targetPort: http}
+---
+# Pulls the model into the shared store through the Ollama API. A plain Job,
+# not a Helm hook, so helm does not block on a multi-GB download;
+# openshift/platform/install-ai.sh waits for it instead.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-pull-model
+  labels:
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  backoffLimit: 20
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ollama-pull-model
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: pull
+          image: {{ .Values.ai.ollamaImage }}
+          command: ["ollama", "pull", {{ .Values.ai.model | quote }}]
+          env:
+            - {name: OLLAMA_HOST, value: "http://ollama:11434"}
+            - {name: HOME, value: /tmp}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+          {{- include "datamesh.containerSecurity" . | nindent 10 }}
+{{- end }}

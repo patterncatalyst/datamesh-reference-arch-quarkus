@@ -1,4 +1,5 @@
 {{- range $name, $svc := .Values.services }}
+{{- if or (not $svc.ai) $.Values.ai.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,7 +8,9 @@ metadata:
     app.kubernetes.io/name: {{ $name }}
     {{- include "datamesh.labels" $ | nindent 4 }}
 spec:
+  {{- if not (and $.Values.keda.enabled (eq $name "notification-service")) }}
   replicas: 1
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ $name }}
@@ -16,9 +19,16 @@ spec:
       labels:
         app.kubernetes.io/name: {{ $name }}
         app.kubernetes.io/part-of: datamesh
+        {{- if $.Values.mesh.enabled }}
+        istio.io/rev: {{ $.Values.mesh.revision }}
+        version: v1
+        {{- end }}
       annotations:
         # Roll the pods when the shared env contract changes.
         checksum/config: {{ include (print $.Template.BasePath "/config.yaml") $ | sha256sum }}
+        {{- if $.Values.observability.enabled }}
+        instrumentation.opentelemetry.io/inject-java: "datamesh-java"
+        {{- end }}
     spec:
       {{- if $svc.db }}
       # Hibernate connects at boot; without this the service exits once or
@@ -64,6 +74,15 @@ spec:
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}
+          {{- if eq ($svc.probe | default "http") "tcp" }}
+          startupProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 10
+          {{- else }}
           startupProbe:
             httpGet: {path: /q/health/started, port: http}
             initialDelaySeconds: 5
@@ -77,6 +96,7 @@ spec:
             httpGet: {path: /q/health/live, port: http}
             periodSeconds: 10
             failureThreshold: 3
+          {{- end }}
           resources:
             {{- toYaml $svc.resources | nindent 12 }}
           {{- include "datamesh.containerSecurity" $ | nindent 10 }}
@@ -101,4 +121,5 @@ spec:
       targetPort: grpc
     {{- end }}
 ---
+{{- end }}
 {{- end }}

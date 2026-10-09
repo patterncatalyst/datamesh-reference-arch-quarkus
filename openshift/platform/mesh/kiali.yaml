@@ -1,0 +1,26 @@
+# Kiali (kiali-ossm) for the mesh topology. auth.strategy anonymous suits a
+# single-user local cluster: the console and API need no OpenShift token.
+# No Prometheus runs on OpenShift Local by default, so the traffic graph has
+# no metrics; workloads, services, sidecar status and the mTLS/Istio config
+# validations come from the Kubernetes API and work without it.
+apiVersion: kiali.io/v1alpha1
+kind: Kiali
+metadata:
+  name: kiali
+  namespace: istio-system
+spec:
+  auth:
+    strategy: anonymous
+  deployment:
+    cluster_wide_access: false
+    discovery_selectors:
+      default:
+        - matchLabels:
+            kubernetes.io/metadata.name: datamesh
+  external_services:
+    prometheus:
+      enabled: false
+    grafana:
+      enabled: false
+    tracing:
+      enabled: false

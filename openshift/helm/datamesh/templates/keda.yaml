@@ -1,0 +1,28 @@
+{{- if .Values.keda.enabled }}
+# Same trigger as k8s/keda/consumer-scaledobject.yaml on minikube. The Custom
+# Metrics Autoscaler ships core KEDA only; the HTTP add-on that scales the
+# gateway on minikube has no CMA counterpart.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: notification-service
+  labels:
+    app.kubernetes.io/name: notification-service
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: notification-service
+  pollingInterval: 15
+  cooldownPeriod: 120
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: {{ .Values.kafka.bootstrap }}
+        consumerGroup: notification-service
+        topic: order.placed
+        lagThreshold: "5"
+        offsetResetPolicy: earliest
+        allowIdleConsumers: "false"
+{{- end }}

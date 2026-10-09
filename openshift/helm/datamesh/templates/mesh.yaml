@@ -1,0 +1,115 @@
+{{- if .Values.mesh.enabled }}
+# Namespace-wide mTLS: every meshed workload accepts only mesh traffic.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  labels:
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  mtls:
+    mode: STRICT
+---
+# The OpenShift router is not in the mesh, so the Route delivers plaintext to
+# the gateway. STRICT here would answer every Route request with a 502.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: graphql-gateway-permissive
+  labels:
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: graphql-gateway
+  mtls:
+    mode: PERMISSIVE
+{{- if .Values.mesh.canary.enabled }}
+{{- $svc := index .Values.services "order-service" }}
+---
+# order-service v2: the same image under a version: v2 label, so the
+# weighted split below is observable per pod (Chapter 6's canary).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service-v2
+  labels:
+    app.kubernetes.io/name: order-service
+    version: v2
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: order-service
+      version: v2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: order-service
+        app.kubernetes.io/part-of: datamesh
+        istio.io/rev: {{ .Values.mesh.revision }}
+        version: v2
+    spec:
+      containers:
+        - name: order-service
+          image: "{{ .Values.registry }}/{{ .Release.Namespace }}/order-service:{{ .Values.imageTag }}"
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: datamesh-app-config
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Dorg.apache.avro.SERIALIZABLE_PACKAGES={{ $svc.avroPackages }}"
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef: {name: datamesh-postgres-app, key: username}
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: datamesh-postgres-app, key: password}
+          startupProbe:
+            httpGet: {path: /q/health/started, port: http}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /q/health/ready, port: http}
+            periodSeconds: 10
+          resources:
+            {{- toYaml $svc.resources | nindent 12 }}
+          {{- include "datamesh.containerSecurity" . | nindent 10 }}
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: order-service
+  labels:
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  host: order-service
+  subsets:
+    - name: v1
+      labels: {version: v1}
+    - name: v2
+      labels: {version: v2}
+---
+# Mesh-internal split: applies to sidecar-to-sidecar calls (the gateway's
+# REST client). OSSM 3 provisions no ingress gateway; the edge is the Route.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-service
+  labels:
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - order-service
+  http:
+    - route:
+        - destination: {host: order-service, subset: v1}
+          weight: {{ sub 100 .Values.mesh.canary.v2Weight }}
+        - destination: {host: order-service, subset: v2}
+          weight: {{ .Values.mesh.canary.v2Weight }}
+{{- end }}
+{{- end }}
