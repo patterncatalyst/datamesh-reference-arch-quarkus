@@ -67,13 +67,19 @@
 - **Evidence.** Contains no tokens or passwords.
 - **Maven.** The default `mvn verify` still passes, and application.properties is unchanged.
 
+## Wave 0 results (2026-10-09, CRC 4.22.14, 6 vCPU / 20 GiB)
+- **Config keys** (quarkus.io container-image guide; the local doc search needs a container engine and Docker was stopped): `quarkus.openshift.base-jvm-image` (default `ubi9/openjdk-25:1.24`, so override it), `quarkus.openshift.build-strategy` (default `binary`), `quarkus.openshift.jvm-arguments`, `quarkus.openshift.jar-file-name`, `quarkus.openshift.build-timeout` (default 5M).
+- **Base image**: pin `registry.access.redhat.com/ubi10/openjdk-25:1.24-15`. It has the S2I labels `io.openshift.s2i.scripts-url=image:///usr/libexec/s2i` and `io.openshift.tags=builder,java`.
+- **Operators already installed cluster-wide** in `openshift-operators` (from earlier CRC work): AMQ Streams `amqstreams.v3.2.1-14` (Subscription `amq-streams`, channel stable) and CNPG `cloudnative-pg.v1.30.1`. `install-infra.sh` must detect and reuse an existing Subscription rather than create a second one, and teardown must leave both operators in place. AMQ Streams 3.2 ships Kafka 4.1 and 4.2, so pin Kafka 4.2.0.
+- **OperatorHub**: `redhat-operators` reports READY but lists 0 packages for about a minute after `crc start`, so the script must wait until the packagemanifest exists. Available: `servicemeshoperator3` (stable, v3.4.3), `openshift-custom-metrics-autoscaler-operator` (stable, v2.19.0-4) and `kiali-ossm` (stable, v2.27.5) for phase 2.
+- **Images via `oc import-image`** (the CRC pull secret covers registry.redhat.io): `rhel10/postgresql-16:10.2-1791491499` (runs as user 26; the sclorg image supports arbitrary UIDs), `rhel9/postgresql-16`, `ubi10/openjdk-25:1.24-15` and `quay.io/apicurio/apicurio-registry:3.2.4` (matches minikube) all import. Use rhel10, no fallback needed.
+- **review-service under prod** fails at boot with `'quarkus.oidc.auth-server-url' property must be configured`. With env `QUARKUS_OIDC_TENANT_ENABLED=false` it gets past OIDC (it then fails only on the DB we deliberately left unreachable). Decision: the chart sets that env var; `DELETE /reviews/{id}` returns 401 on CRC; application.properties stays unchanged. Record as a DRQ.
+- **Shared-cluster finding**: namespace `hfd-ocp` (helm-for-developers) is still running a Kafka, a CNPG Postgres and 2 apps (about 1.7 GiB requested; node at 58% memory requested). The user must decide (scale it down or leave it) before Wave 2. Do not touch it unasked.
+- **Kubeconfig**: `crc start` writes the `crc-admin` context, so `oc config use-context crc-admin` replaces the interactive kubeadmin login. No password handling needed.
+
 ## Status (resume here)
-- 2026-10-09: plan saved on branch `docs/openshift-crc-appendix`, cut from main 9d4207f after #52 merged. No work started.
-- Next step: Wave 0 probes on CRC.
-  - Stop minikube `datamesh`. Stop Docker Desktop to free RAM; the JVM build path doesn't need it.
-  - `crc start`, then `eval $(crc oc-env)`.
-  - `oc login -u kubeadmin` with the password entered interactively. Never print or record it.
-  - Run the probes listed under Waves.
+- 2026-10-09: Wave 0 done (above). CRC is running.
+- Next step: Wave 1 authoring. Wave 2 waits on the user's decision about `hfd-ocp`.
 - Rules:
   - One cluster at a time.
   - Secrets are never written to files or evidence.
