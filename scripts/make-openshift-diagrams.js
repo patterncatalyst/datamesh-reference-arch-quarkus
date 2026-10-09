@@ -105,8 +105,8 @@ const band = (s, x, y, w, h, t, size = 14) => {
   s.arrow(958, ry + rh, 1034, r2, { marker: "arr", w: 1.6 });
 
   // lane 3: data
-  boxL(s, 210, 440, 480, 84, "blue", "Postgres StatefulSet datamesh-postgres-rw", ["rhel10/postgresql-16", "used by order, inventory, shipping, notification, review"]);
-  boxL(s, 710, 440, 420, 84, "orange", "Apicurio 3.2.4", ["Avro schemas for the Kafka producers and", "consumers (in-cluster Service); Route for the host"]);
+  boxL(s, 210, 440, 480, 84, "blue", "Postgres StatefulSet datamesh-postgres-rw", ["rhel10/postgresql-18", "used by order, inventory, shipping, notification, review"]);
+  boxL(s, 710, 440, 420, 84, "orange", "Apicurio 3.3.3", ["Avro schemas for the Kafka producers and", "consumers (in-cluster Service); Route for the host"]);
 
   save("22-crc-openshift-topology", s);
 })();
@@ -161,8 +161,8 @@ const band = (s, x, y, w, h, t, size = 14) => {
   const pw = 144, gap = 12, x0 = 46;
   names.forEach((n, i) => pillL(s, x0 + i * (pw + gap), 244, pw, n, i === 0 ? "blue" : "green", { h: 28, size: 12 }));
   pillL(s, 46, 292, 300, "AMQ Streams Kafka 4.2.0 (KRaft)", "red", { h: 30, size: 13 });
-  pillL(s, 366, 292, 300, "Postgres 16 StatefulSet", "blue", { h: 30, size: 13 });
-  pillL(s, 686, 292, 300, "Apicurio 3.2.4", "orange", { h: 30, size: 13 });
+  pillL(s, 366, 292, 300, "PostgreSQL 18 StatefulSet", "blue", { h: 30, size: 13 });
+  pillL(s, 686, 292, 300, "Apicurio 3.3.3", "orange", { h: 30, size: 13 });
   s.text(1004, 313, "7 services", { size: 13, fill: "#666666", weight: 700 });
 
   // arrows from core to boxes
