@@ -16,8 +16,8 @@
 #   - scripts/setup-istio.sh   (istiod)
 #   - scripts/setup-lgtm.sh    (Mimir + Grafana + Tempo in the observability ns)
 #
-# ACCESS CONVENTION: NodePort + SSH tunnel (scripts/tunnel-services.sh), not
-# `kubectl port-forward`. The `deployment.service_type`/`deployment.node_port`
+# ACCESS CONVENTION: NodePort published on 127.0.0.1 at profile creation
+# (setup-profile.sh; map in demos/lib/endpoints.sh). The `deployment.service_type`/`deployment.node_port`
 # --set keys below match the kiali-server chart's values schema as of the
 # pinned version; unverified against a live install (see setup-lgtm.sh header
 # for why — minikube bring-up was not executed in this step).
@@ -28,13 +28,12 @@
 #   ./scripts/setup-kiali.sh
 #
 # Then view:
-#   ./scripts/tunnel-services.sh
-#   open http://localhost:20001/kiali   (Graph -> namespace: datamesh)
+#   http://localhost:20001/kiali   (Graph -> namespace: datamesh)
 
 set -euo pipefail
 
 NS="datamesh"
-PROFILE_NAME="datamesh"
+PROFILE_NAME="${MINIKUBE_PROFILE:-datamesh}"
 ISTIO_SYSTEM="istio-system"
 OBS_NS="${OBS_NAMESPACE:-observability}"
 KIALI_VERSION="${KIALI_VERSION:-2.23.0}"
@@ -43,7 +42,7 @@ KIALI_VERSION="${KIALI_VERSION:-2.23.0}"
 # and scripts/grafana-datasources.yaml for the same URLs).
 PROM_URL="http://mimir-nginx.${OBS_NS}.svc.cluster.local:80/prometheus"
 GRAFANA_IN_URL="http://grafana.${OBS_NS}.svc.cluster.local:80"
-GRAFANA_EXT_URL="http://localhost:3000"          # what a browser uses (tunnel-services.sh)
+GRAFANA_EXT_URL="http://localhost:3000"          # what a browser uses (published NodePort)
 TEMPO_URL="http://tempo.${OBS_NS}.svc.cluster.local:3200"
 
 step() { printf '\n==> %s\n' "$1"; }
@@ -110,9 +109,8 @@ helm upgrade --install kiali-server kiali/kiali-server \
 # ─── Done ────────────────────────────────────────────────────────────────────
 
 step "Kiali is installed and wired to the LGTM observability stack."
-printf '\nView the mesh topology (NodePort + SSH tunnel, not port-forward):\n'
-printf '  ./scripts/tunnel-services.sh\n'
-printf '  open http://localhost:20001/kiali   (Graph -> namespace: %s)\n' "$NS"
+printf '\nView the mesh topology (NodePort published on 127.0.0.1):\n'
+printf '  http://localhost:20001/kiali   (Graph -> namespace: %s)\n' "$NS"
 printf '\nNote: the live traffic graph only shows edges while traffic is flowing —\n'
 printf 'the mesh graph is quiet until a service is opted into the mesh (see\n'
 printf 'setup-istio.sh) and is receiving traffic.\n'

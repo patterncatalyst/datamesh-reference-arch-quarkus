@@ -78,10 +78,35 @@ minikube image ls -p "$PROFILE" | grep -E 'datamesh/' || true
 # Deployments scaled to zero by KEDA have no pods to restart; they use the new
 # image the next time they scale up.
 if command -v kubectl >/dev/null 2>&1; then
+    restarted=()
     for svc in "${SERVICES[@]}"; do
-        if kubectl get deployment "$svc" -n "$NS" >/dev/null 2>&1; then
-            kubectl rollout restart "deployment/${svc}" -n "$NS" >/dev/null \
-                && printf '  restarted deployment/%s\n' "$svc"
+        if kubectl --context "$PROFILE" get deployment "$svc" -n "$NS" >/dev/null 2>&1; then
+            if kubectl --context "$PROFILE" rollout restart "deployment/${svc}" -n "$NS" >/dev/null; then
+                printf '  restarted deployment/%s\n' "$svc"
+                restarted+=("$svc")
+            fi
+        fi
+    done
+    # Wait for the restarted rollouts so callers never hit a pod that is still
+    # being replaced (the mesh answers 503 until the new pod is in the
+    # endpoints). A Deployment scaled to zero finishes immediately. Waiting is
+    # best effort: a failed kubectl call here warns and never aborts the load.
+    for dep in "${restarted[@]+"${restarted[@]}"}"; do
+        kubectl --context "$PROFILE" rollout status "deploy/${dep}" -n "$NS" --timeout=180s >/dev/null \
+            || printf '    WARN: deploy/%s did not finish rolling out within 180s\n' "$dep" >&2
+        # Then wait up to 120s for the replaced pods to finish terminating:
+        # while an old pod drains, a request on the NodePort can still land on
+        # it and get a 503 from its sidecar.
+        sel="$(kubectl --context "$PROFILE" get deploy "$dep" -n "$NS" \
+            -o go-template='{{range $k, $v := .spec.selector.matchLabels}}{{$k}}={{$v}},{{end}}' 2>/dev/null)" || true
+        sel="${sel%,}"
+        if [[ -n "$sel" ]]; then
+            for _ in $(seq 1 60); do
+                terminating="$(kubectl --context "$PROFILE" get pods -n "$NS" -l "$sel" \
+                    -o go-template='{{range .items}}{{if .metadata.deletionTimestamp}}x{{end}}{{end}}' 2>/dev/null)" || true
+                [[ -z "$terminating" ]] && break
+                sleep 2
+            done
         fi
     done
 fi

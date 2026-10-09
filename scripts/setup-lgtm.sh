@@ -21,9 +21,9 @@
 #   metrics -> Mimir (mimir-nginx.<obs_ns>.svc:80, /api/v1/push)
 #
 # ACCESS CONVENTION (repo-wide — see references/ports-and-endpoints.md in the
-# lgtm-minikube-stack skill): stable host access is via NodePort + SSH tunnel
-# (scripts/tunnel-services.sh), not `kubectl port-forward` (drops under load
-# / idle timeouts). Each chart below is installed with a NodePort service at
+# lgtm-minikube-stack skill): host access is via NodePorts published on
+# 127.0.0.1 when the minikube profile is created (setup-profile.sh); the
+# canonical map is demos/lib/endpoints.sh. Each chart below is installed with a NodePort service at
 # the fixed port from that allocation map. NOTE: these --set overrides use
 # each chart's documented values-schema key as of the pinned chart version
 # below; they have not been verified against a live install in this
@@ -198,7 +198,7 @@ helm upgrade --install grafana grafana/grafana \
 
 # ─── Done ───────────────────────────────────────────────────────────────────
 printf '\n==> LGTM stack installed in the %s namespace.\n\n' "$NAMESPACE"
-printf 'Stable host access (NodePort + SSH tunnel — see scripts/tunnel-services.sh):\n'
+printf 'Host access (NodePorts published on 127.0.0.1; ./scripts/show-endpoints.sh):\n'
 printf '  Grafana: http://localhost:3000  (admin/admin)\n'
 printf '  Tempo:   http://localhost:3200\n'
 printf '  Loki:    http://localhost:3100\n'
