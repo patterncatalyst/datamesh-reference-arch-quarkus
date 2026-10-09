@@ -50,6 +50,10 @@ spec:
         app.kubernetes.io/part-of: datamesh
         istio.io/rev: {{ .Values.mesh.revision }}
         version: v2
+      {{- if .Values.observability.enabled }}
+      annotations:
+        instrumentation.opentelemetry.io/inject-java: "datamesh-java"
+      {{- end }}
     spec:
       containers:
         - name: order-service

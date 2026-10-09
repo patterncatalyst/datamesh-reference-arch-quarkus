@@ -1,8 +1,8 @@
 # Kiali (kiali-ossm) for the mesh topology. auth.strategy anonymous suits a
 # single-user local cluster: the console and API need no OpenShift token.
-# No Prometheus runs on OpenShift Local by default, so the traffic graph has
-# no metrics; workloads, services, sidecar status and the mTLS/Istio config
-# validations come from the Kubernetes API and work without it.
+# No Prometheus runs on OpenShift Local by default. install-observability.sh
+# points Kiali at otel-lgtm's Prometheus, which scrapes the sidecars, so the
+# traffic graph works once observability is installed too.
 apiVersion: kiali.io/v1alpha1
 kind: Kiali
 metadata:

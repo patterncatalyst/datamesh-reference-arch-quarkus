@@ -58,6 +58,79 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: lgtm
+{{- if .Values.mesh.enabled }}
+---
+# With the mesh on, otel-lgtm's Prometheus also scrapes the sidecars'
+# merged metrics (port 15020, outside mTLS) so Kiali can draw the traffic
+# graph from it. The otlp and storage blocks are the image's own defaults.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lgtm-prometheus
+  labels:
+    {{- include "datamesh.labels" . | nindent 4 }}
+data:
+  prometheus.yaml: |
+    otlp:
+      promote_resource_attributes:
+        - service.instance.id
+        - service.name
+        - service.namespace
+        - service.version
+        - k8s.deployment.name
+        - k8s.namespace.name
+        - k8s.pod.name
+    storage:
+      tsdb:
+        out_of_order_time_window: 10m
+    scrape_configs:
+      - job_name: istio-sidecars
+        scrape_interval: 15s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [{{ .Release.Namespace }}]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: lgtm-pod-discovery
+  labels:
+    {{- include "datamesh.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: lgtm-pod-discovery
+  labels:
+    {{- include "datamesh.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: lgtm-pod-discovery
+subjects:
+  - kind: ServiceAccount
+    name: lgtm
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -86,6 +159,7 @@ spec:
             - {name: otlp-grpc, containerPort: 4317}
             - {name: otlp-http, containerPort: 4318}
             - {name: tempo, containerPort: 3200}
+            - {name: prometheus, containerPort: 9090}
           readinessProbe:
             httpGet: {path: /api/health, port: grafana}
             initialDelaySeconds: 15
@@ -95,6 +169,16 @@ spec:
             limits: {memory: 2Gi}
           securityContext:
             runAsUser: 0
+          {{- if .Values.mesh.enabled }}
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /otel-lgtm/prometheus.yaml
+              subPath: prometheus.yaml
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: lgtm-prometheus
+          {{- end }}
 ---
 apiVersion: v1
 kind: Service
@@ -111,6 +195,7 @@ spec:
     - {name: otlp-grpc, port: 4317, targetPort: otlp-grpc}
     - {name: otlp-http, port: 4318, targetPort: otlp-http}
     - {name: tempo, port: 3200, targetPort: tempo}
+    - {name: prometheus, port: 9090, targetPort: prometheus}
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
