@@ -41,7 +41,7 @@ silently. See the header comment in `lib/_demo.sh` for the full helper list
 | Demo | Capability | What it asserts |
 |------|-----------|------------------|
 | `demo-jbang-prototype.sh` | JBang scripting / Camel CLI prototyping | A JBang-run script produces the expected output without a full Maven build |
-| `demo-panama.sh` | Panama FFM API (JEP 454), JBang script | libc `getpid()` and `strlen()` called from Java through `Linker.nativeLinker()`; the results equal the JVM's own pid and the UTF-8 byte length (Linux/macOS) |
+| `demo-panama.sh` | Panama FFM API (JEP 454), JBang script | libc `getpid()` and `strlen()` called from Java through `Linker.nativeLinker()`; the results equal the JVM's own pid and the UTF-8 byte length (Linux) |
 | `demo-continuous-testing.sh` | Quarkus continuous testing + Dev Services | `quarkus:dev` continuous testing reruns and turns green after a code edit, with Dev Services bringing up its own backing container automatically |
 | `demo-native.sh` *(opt-in — native)* | Native compilation (GraalVM/Mandrel) | A native binary builds, boots, and serves HTTP 200 on a real endpoint |
 

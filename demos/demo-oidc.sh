@@ -62,7 +62,7 @@ narrate "+ @RolesAllowed(\"admin\") check, proven with tokens end to end."
 
 step "preflight: docker daemon reachable (Dev Services needs it for Postgres + Keycloak)"
 docker info >/dev/null 2>&1 \
-    || fail "docker is on PATH but the daemon is not reachable -- start Docker Desktop/the docker service and retry"
+    || fail "docker is on PATH but the daemon is not reachable -- start Docker Engine (sudo systemctl start docker) and retry"
 info "docker daemon is reachable"
 
 # postgres:18 (Dev Services' pinned image) rejects legacy Olson TZ ids like

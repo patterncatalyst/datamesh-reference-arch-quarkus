@@ -6,7 +6,7 @@
 #
 # Ported from the idiom in the Python sibling repo
 # (datamesh-reference-arch-python/examples/lgtm-datamesh/demos/
-# {walkthrough.sh,demo-order.sh,lib/tunnels.sh}):
+# {walkthrough.sh,demo-order.sh,lib/endpoints.sh}):
 #   - `set -uo pipefail` (not `-e`) so a demo manages failures explicitly —
 #     via `fail` — and can dump diagnostics instead of aborting mid-assertion
 #     on some unrelated command's non-zero exit.
@@ -211,12 +211,24 @@ assert_json_field() {
         || fail "expected '$filter' == '$expected', got '$actual' (json: $json)"
 }
 
+# require_docker_engine — fail fast with the Fedora/RHEL start hint when the
+# Docker Engine does not answer.
+require_docker_engine() {
+    docker info >/dev/null 2>&1 \
+        || fail "Docker Engine is not reachable; start it: sudo systemctl start docker (and make sure your user is in the docker group)"
+}
+
 # ─── docker compose wrapper (repo-root compose.yaml) ────────────────────────
 
 # compose_up [profile...] — `docker compose -f <repo-root>/compose.yaml
 # [--profile p]... up -d`. No args = baseline only (postgres, kafka,
 # apicurio, otel-lgtm). Pass e.g. `tools` or `ollama` to add a profile.
 compose_up() {
+    # The datamesh minikube profile publishes 3000/3100/3200/4317/4318 on the
+    # host; compose binds the same ports, so both cannot run at once.
+    if [[ "$(docker container inspect -f '{{.State.Running}}' "${MINIKUBE_PROFILE:-datamesh}" 2>/dev/null)" == "true" ]]; then
+        fail "the datamesh minikube profile is running and holds host ports 3000/3100/3200/4317/4318 that compose needs; stop it first: minikube stop -p datamesh"
+    fi
     local -a args=(-f "$COMPOSE_FILE")
     local p
     for p in "$@"; do

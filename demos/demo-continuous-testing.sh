@@ -51,7 +51,7 @@ BASE_URL="http://localhost:${PORT}"
 
 step "preflight: docker daemon reachable (Dev Services needs it)"
 docker info >/dev/null 2>&1 \
-    || fail "docker is on PATH but the daemon is not reachable — start Docker Desktop/the docker service and retry (Dev Services needs a working docker to launch Postgres/Kafka/Apicurio Testcontainers)"
+    || fail "docker is on PATH but the daemon is not reachable — start Docker Engine (sudo systemctl start docker) and retry (Dev Services needs a working docker to launch Postgres/Kafka/Apicurio Testcontainers)"
 info "docker daemon is reachable"
 
 narrate "starting order-service in 'mvn quarkus:dev' with continuous testing set"

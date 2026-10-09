@@ -18,7 +18,7 @@ import static java.lang.foreign.ValueLayout.JAVA_LONG;
  * Calls two libc functions through the Foreign Function & Memory API
  * (JEP 454, final in JDK 22): no JNI, no C glue, no native build step.
  * Resolves symbols from the platform C library via the linker's default
- * lookup, so it runs on Linux and macOS.
+ * lookup, so it runs on Linux.
  */
 public class PanamaFfm {
 

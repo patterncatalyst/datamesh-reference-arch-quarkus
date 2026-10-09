@@ -6,7 +6,7 @@
 # Memory API (Project Panama, JEP 454, final in JDK 22) using the JBang
 # script demos/jbang/PanamaFfm.java. Symbols come from the platform C
 # library via Linker.nativeLinker().defaultLookup(), so this demo runs on
-# Linux and macOS only (not Windows).
+# Linux (Fedora or RHEL hosts).
 #
 # Asserts that the native results match what the JVM reports itself:
 # getpid() == ProcessHandle.current().pid() and strlen(s) == the UTF-8 byte
@@ -20,7 +20,7 @@ demo_begin "demo-panama"
 # require() prints a generic install hint that does not apply to jbang, so
 # this preflight carries its own.
 if ! command -v jbang >/dev/null 2>&1; then
-    fail "jbang is required for this demo but was not found on PATH. Install it with: curl -Ls https://sh.jbang.dev | bash (or: sdk install jbang, or: brew install jbangdev/tap/jbang) — then re-run this script. See https://www.jbang.dev/documentation/guide/latest/installation.html"
+    fail "jbang is required for this demo but was not found on PATH. Install it with: curl -Ls https://sh.jbang.dev | bash (or: sdk install jbang) — then re-run this script. See https://www.jbang.dev/documentation/guide/latest/installation.html"
 fi
 
 SRC="${SCRIPT_DIR}/jbang/PanamaFfm.java"
