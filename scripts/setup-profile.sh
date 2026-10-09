@@ -223,12 +223,22 @@ fi
 if profile_container_exists && (( ! REPLACE )); then
     # Existing profile kept as-is: its published ports must already be right.
     check_published_ports || exit 1
-    if profile_container_running; then
+    if profile_container_running && minikube status -p "$PROFILE_NAME" >/dev/null 2>&1; then
         printf '==> Profile %s already exists and is running. Pass --replace to recreate (deletes the cluster; re-run ./scripts/bootstrap.sh afterwards).\n' "$PROFILE_NAME"
     else
-        printf '==> Profile %s exists but is stopped. Starting it.\n' "$PROFILE_NAME"
-        # A stopped profile holds no listeners: every host port must be free.
-        assert_host_ports_free "" || exit 1
+        # Stopped, or the node container is still running but minikube reports
+        # it unhealthy (wedged apiserver/etcd): `minikube start` clears both.
+        own_ports=""
+        if profile_container_running; then
+            # The running container holds its own docker-proxy listeners:
+            # those ports are the profile's, not a conflict.
+            printf '==> Profile %s exists, its container is running but minikube status fails. Restarting it.\n' "$PROFILE_NAME"
+            own_ports="$(published_ports | awk '{print $2}' | tr '\n' ' ')"
+        else
+            printf '==> Profile %s exists but is stopped. Starting it.\n' "$PROFILE_NAME"
+        fi
+        # Every other host port must be free (a stopped profile holds none).
+        assert_host_ports_free "$own_ports" || exit 1
         minikube start -p "$PROFILE_NAME"
         check_published_ports || exit 1
     fi

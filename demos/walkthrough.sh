@@ -92,6 +92,12 @@
 #   --no-pause / --auto  show no pauses at all (CI/self-test)
 #   -h / --help          list acts, demos, and flags, then exit
 #
+# ── Environment ──────────────────────────────────────────────────────────────
+#   PLATFORM_READY_TIMEOUT   seconds (default 600) ACT 5 waits for the pods in
+#                            the datamesh namespace and the KEDA and Strimzi
+#                            operators to be Ready after a start. On a failure
+#                            it prints `kubectl get pods -n datamesh` first.
+#
 # `--only` and `--skip` operate on demo NAMES (e.g. `demo-order`), are
 # mutually exclusive, and select the demo SET before gating is applied — a
 # gated demo named in `--only` without its flag still shows the SKIP path
@@ -242,6 +248,11 @@ ${BOLD}Flags:${RST}
   --no-preflight        skip the environment/toolchain preflight sweep
   --no-pause, --auto    show no pauses at all (CI/self-test)
   -h, --help            show this help and exit
+
+${BOLD}Environment:${RST}
+  PLATFORM_READY_TIMEOUT  seconds ACT 5 waits for the pods in the datamesh namespace and
+                          the KEDA and Strimzi operators after a start (default 600; a
+                          VM-based engine can need more than 5 minutes)
 
 ${BOLD}Pacing:${RST}
   Each demo prints a header and 2-3 lines of context, then waits:
@@ -433,28 +444,45 @@ prepare_platform() {
     profile_container_exists \
         || fail "the '${EP_PROFILE}' minikube profile does not exist -- create it: ./scripts/setup-profile.sh && ./scripts/bootstrap.sh"
     check_published_ports || fail "the '${EP_PROFILE}' profile does not publish the required NodePorts (see the hint above)"
-    if ! profile_container_running; then
-        # A stopped profile holds no listeners: every host port must be free.
-        assert_host_ports_free "" \
+    if ! profile_container_running || ! minikube status -p "$EP_PROFILE" >/dev/null 2>&1; then
+        # Stopped profile: it holds no listeners, so every host port must be
+        # free. A container that is still running but whose `minikube status`
+        # fails (wedged node) holds its own docker-proxy listeners: exempt them.
+        own_ports=""
+        if profile_container_running; then
+            own_ports="$(published_ports | awk '{print $2}' | tr '\n' ' ')"
+            narrate "the '${EP_PROFILE}' container is running but minikube status fails; restarting it"
+        else
+            narrate "starting the stopped '${EP_PROFILE}' profile (published NodePort bindings persist)"
+        fi
+        assert_host_ports_free "$own_ports" \
             || fail "host ports needed by the '${EP_PROFILE}' profile are in use (something else is listening); stop other clusters and compose stacks first"
-        narrate "starting the stopped '${EP_PROFILE}' profile (published NodePort bindings persist)"
         minikube start -p "$EP_PROFILE" || fail "minikube start -p ${EP_PROFILE} failed"
         check_published_ports || fail "the '${EP_PROFILE}' profile does not publish the required NodePorts after start (see the hint above)"
     fi
     ensure_node_forwarding
     kubectl config use-context "$EP_PROFILE" >/dev/null \
         || fail "kubectl config use-context ${EP_PROFILE} failed"
-    # Readiness: a started profile needs a few minutes before the platform answers.
-    narrate "waiting for the platform to be ready (pods in ${EP_APP_NS}, KEDA and Strimzi operators)"
-    kubectl --context "$EP_PROFILE" wait --for=condition=Ready pods --all -n "$EP_APP_NS" \
-        --field-selector=status.phase!=Succeeded --timeout=300s \
-        || fail "pods in namespace ${EP_APP_NS} are not Ready after 300s (kubectl --context ${EP_PROFILE} get pods -n ${EP_APP_NS})"
-    kubectl --context "$EP_PROFILE" wait --for=condition=Available deployment/keda-operator \
-        -n keda --timeout=180s \
-        || fail "the KEDA operator (namespace keda) is not Available after 180s"
-    kubectl --context "$EP_PROFILE" wait --for=condition=Available deployment/strimzi-cluster-operator \
-        -n "$EP_APP_NS" --timeout=180s \
-        || fail "the Strimzi operator (namespace ${EP_APP_NS}) is not Available after 180s"
+    # Readiness: a started profile needs a few minutes before the platform
+    # answers (longer on a VM-based engine). Tunable with PLATFORM_READY_TIMEOUT.
+    local ready_to="${PLATFORM_READY_TIMEOUT:-600}"
+    [[ "$ready_to" =~ ^[0-9]+$ ]] || fail "PLATFORM_READY_TIMEOUT must be a number of seconds (got '${ready_to}')"
+    narrate "waiting up to ${ready_to}s for the platform to be ready (pods in ${EP_APP_NS}, KEDA and Strimzi operators)"
+    if ! kubectl --context "$EP_PROFILE" wait --for=condition=Ready pods --all -n "$EP_APP_NS" \
+            --field-selector=status.phase!=Succeeded --timeout="${ready_to}s"; then
+        kubectl --context "$EP_PROFILE" get pods -n "$EP_APP_NS" >&2 || true
+        fail "pods in namespace ${EP_APP_NS} are not Ready after ${ready_to}s (raise PLATFORM_READY_TIMEOUT, or inspect: kubectl --context ${EP_PROFILE} get pods -n ${EP_APP_NS})"
+    fi
+    if ! kubectl --context "$EP_PROFILE" wait --for=condition=Available deployment/keda-operator \
+            -n keda --timeout="${ready_to}s"; then
+        kubectl --context "$EP_PROFILE" get pods -n "$EP_APP_NS" >&2 || true
+        fail "the KEDA operator (namespace keda) is not Available after ${ready_to}s (raise PLATFORM_READY_TIMEOUT)"
+    fi
+    if ! kubectl --context "$EP_PROFILE" wait --for=condition=Available deployment/strimzi-cluster-operator \
+            -n "$EP_APP_NS" --timeout="${ready_to}s"; then
+        kubectl --context "$EP_PROFILE" get pods -n "$EP_APP_NS" >&2 || true
+        fail "the Strimzi operator (namespace ${EP_APP_NS}) is not Available after ${ready_to}s (raise PLATFORM_READY_TIMEOUT)"
+    fi
     PLATFORM_READY=1
 }
 
