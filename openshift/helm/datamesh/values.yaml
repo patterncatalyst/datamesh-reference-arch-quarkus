@@ -21,13 +21,15 @@ kafka:
   bootstrap: datamesh-kafka-bootstrap:9092
 
 postgres:
-  image: registry.redhat.io/rhel10/postgresql-16:10.2-1791491499
+  # PostgreSQL 18, the newest Red Hat stream (Red Hat container catalog,
+  # built 2026-10-08), matching the 18.x minor used on compose and minikube.
+  image: registry.redhat.io/rhel10/postgresql-18:10.2-1791491063
   database: datamesh
   username: datamesh
   storage: 2Gi
 
 apicurio:
-  image: quay.io/apicurio/apicurio-registry:3.2.4
+  image: quay.io/apicurio/apicurio-registry:3.3.3
 
 routes:
   # Edge TLS on the router; plain HTTP redirects to HTTPS.
@@ -57,7 +59,7 @@ keda:
 # image changes. Traces go to grafana/otel-lgtm in this namespace.
 observability:
   enabled: false
-  lgtmImage: docker.io/grafana/otel-lgtm:0.8.1
+  lgtmImage: docker.io/grafana/otel-lgtm:0.36.0
 
 # order-service as a native executable (openshift/platform/build-native.sh
 # pushes order-service-native:<imageTag>). The OpenTelemetry Java agent does
@@ -68,7 +70,7 @@ native:
 # Ollama plus ai-mcp-service and ai-rules-service.
 ai:
   enabled: false
-  ollamaImage: docker.io/ollama/ollama:0.35.1
+  ollamaImage: docker.io/ollama/ollama:0.40.2
   model: qwen2.5:3b
 
 # One Deployment + Service per entry. Keys are the ImageStream names.

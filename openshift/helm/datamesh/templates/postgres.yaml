@@ -1,4 +1,4 @@
-# Postgres 16 on the Red Hat image (sclorg). It runs under restricted-v2 with
+# PostgreSQL 18 on the Red Hat image (sclorg). It runs under restricted-v2 with
 # an arbitrary UID; the image is built for that. The Service keeps the
 # minikube name, datamesh-postgres-rw, so JDBC_URL reads the same.
 apiVersion: apps/v1

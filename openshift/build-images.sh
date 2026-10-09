@@ -27,7 +27,8 @@ modules="$(IFS=,; echo "${targets[*]}")"
 
 step "Building ${#targets[@]} image(s) in-cluster: $modules"
 # quarkus.openshift.version sets the BuildConfig's output tag; in 3.39.5
-# quarkus.container-image.tag alone leaves it at the project version.
+# (re-check on 3.40.1 at the next CRC run) quarkus.container-image.tag alone
+# leaves it at the project version.
 ( cd "$REPO_ROOT/examples" && mvn -B -q -pl "$modules" -am package -DskipTests -Popenshift \
     -Dquarkus.container-image.build=true \
     -Dquarkus.container-image.tag="$TAG" \
