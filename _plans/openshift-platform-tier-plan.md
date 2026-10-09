@@ -5,7 +5,7 @@ User, 2026-10-09: the CRC appendix must also cover service mesh, autoscaling, ob
 ## Rules (unchanged from the core appendix)
 - CRC is dedicated to datamesh; `teardown.sh` must also remove everything this tier adds (operators, CSVs, CRDs, namespaces), then `crc stop`.
 - No password handling: `crc-admin` context only. Evidence passes the secret scrub.
-- Pinned versions only. No port-forward or tunnels; Routes or `oc exec`. Fedora/RHEL only. No container engine on the host.
+- Pinned versions only. No port-forward or tunnels; Routes or `oc exec`. Fedora/RHEL only. No container engine on the host. <!-- forbidden-ok -->
 - Every item live-verified on CRC before it is documented as verified.
 
 ## Sizing
