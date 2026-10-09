@@ -1,0 +1,64 @@
+# Kafka for the datamesh project on OpenShift Local.
+#
+# Same shape as the minikube cluster (scripts/setup-kafka-operator.sh): a
+# Kafka CR named "datamesh", one KRaft dual-role node, a plain listener on
+# 9092. That keeps the bootstrap address the services already use:
+#   datamesh-kafka-bootstrap.datamesh.svc.cluster.local:9092
+#
+# Differences from minikube, both to fit a 20 GiB / 6 vCPU CRC:
+#   - no entityOperator: topics are auto-created on first produce, as in the
+#     compose stack, and teardown has no KafkaTopic finalizers to wait on;
+#   - explicit requests and limits, and a smaller volume.
+#
+# kafka.strimzi.io/v1: node pools and KRaft are the only mode, so the
+# v1beta2 strimzi.io/node-pools and strimzi.io/kraft annotations are gone.
+#
+# No securityContext is set: the operator's pods run under the restricted-v2
+# SCC with a UID from the namespace range.
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: dual-role
+  namespace: datamesh
+  labels:
+    strimzi.io/cluster: datamesh
+spec:
+  replicas: 1
+  roles:
+    - controller
+    - broker
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      memory: 1536Mi
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 5Gi
+        deleteClaim: true
+---
+apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: datamesh
+  namespace: datamesh
+spec:
+  kafka:
+    version: 4.2.0
+    metadataVersion: 4.2-IV1
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+    config:
+      auto.create.topics.enable: true
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      default.replication.factor: 1
+      min.insync.replicas: 1
