@@ -31,12 +31,13 @@ Each item gets its own script under `openshift/platform/` and a chart flag defau
 
 ## Status (resume here)
 - 2026-10-09: all six items scripted under `openshift/platform/` and live-verified individually on CRC (12 vCPU / 32 GiB):
-  - mesh: STRICT enforced (plaintext reset), canary 91/9 then 94/6 of 100, Kiali MTLS_ENABLED + graph with 11 workloads (Prometheus = otel-lgtm scraping :15020);
+  - mesh: STRICT enforced (plaintext reset), canary 91/9 and 94/6 of 100 in two runs, Kiali MTLS_ENABLED + graph with 10-11 workloads (Prometheus = otel-lgtm scraping :15020);
   - keda: 0 -> 1 -> 0 (FQDN bootstrap fix);
   - tracing: one trace gateway -> order (REST) -> inventory (gRPC), Grafana Route 200;
   - AI: classify x3, triage x6 (Camel + Flow), MCP list/call;
-  - native: in-cluster Mandrel build ~2.5 min, 0.075 s / 31 MiB vs JVM 12.7 s / 325 MiB (Avro allow-list as native build arg);
+  - native: in-cluster Mandrel build ~2.5 min, 0.075-0.077 s / 29-31 MiB vs JVM 8-12.7 s / 200-325 MiB across runs (Avro allow-list as native build arg);
   - GitOps: Synced/Healthy, self-heal 2-3 s, password preserved.
   - `capture-evidence.sh` runs all platform sections (`platform/evidence.sh`); full pass in one capture.
   - Teardown: removes everything; fix added for the GitOps default instance (DISABLE_DEFAULT_ARGOCD_INSTANCE) after a stuck finalizer in the first run.
-- In progress: full clean cycle (teardown -> core -> install-platform -> evidence -> teardown + crc stop); then fill the chapter's cycle table and footer, deck/diagram (agent), validate, PR.
+- Full clean cycle done: teardown 213s, install-infra 50s, build-images 179s, deploy 33s, install-platform 837s, capture-evidence 418s (all core + platform checks, scrub clean), teardown 266s with "CRC is clean" and crc stop. Final numbers (in the chapter, deck, diagram): canary 91/9, Kiali 10 workloads, KEDA 0->1 in 16s and back to 0 at 181s, native 0.077s/29MiB vs JVM 7.97s/200MiB, self-heal 2s.
+- Next: validate and open the PR.

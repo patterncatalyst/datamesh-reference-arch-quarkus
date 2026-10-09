@@ -147,11 +147,11 @@ const band = (s, x, y, w, h, t, size = 14) => {
     boxL(s, x, y, W, bh, fam, head, lines);
     s.text(x + 14, y + bh - 14, result, { size: 14, fill: FAM[fam].head, weight: 700 });
   };
-  feat(xs[0], top, "blue", "Service Mesh 3 (Sail) + Kiali", ["Istio v1.30.5 · STRICT mTLS · canary 90/10"], "measured v1=94, v2=6 of 100");
+  feat(xs[0], top, "blue", "Service Mesh 3 (Sail) + Kiali", ["Istio v1.30.5 · STRICT mTLS · canary 90/10"], "measured v1=91, v2=9 of 100");
   feat(xs[1], top, "green", "Custom Metrics Autoscaler (KEDA)", ["notification-service scales on Kafka lag"], "0 to 1 in 15 s, back to 0 in ~3 min");
   feat(xs[2], top, "orange", "OpenTelemetry + otel-lgtm", ["agent injected by annotation, no image change"], "one trace: gateway, REST, gRPC");
   feat(xs[0], bot, "red", "Ollama + AI services", ["qwen2.5:3b · ai-mcp-service · ai-rules-service"], "classify, triage, MCP checks pass");
-  feat(xs[1], bot, "tan", "Native build in the cluster", ["order-service · Mandrel 25.0 BuildConfig"], "0.075 s and 31 MiB vs 12.7 s, 325 MiB");
+  feat(xs[1], bot, "tan", "Native build in the cluster", ["order-service · Mandrel 25.0 BuildConfig"], "0.077 s and 29 MiB vs 8.0 s, 200 MiB");
   feat(xs[2], bot, "gray", "OpenShift GitOps (Argo CD)", ["Application adopts the Helm release"], "self-heal restores deletes in 2-3 s");
 
   // core

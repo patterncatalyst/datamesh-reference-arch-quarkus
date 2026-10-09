@@ -453,9 +453,9 @@ Verified:
   is reset (curl exit 56); the same call from the meshed gateway pod
   answers 200, and the Route still answers 200.
 - **Canary.** Of 100 requests from the gateway, Istio's own
-  `istio_requests_total` counters on the two pods counted v1=94, v2=6.
+  `istio_requests_total` counters on the two pods counted v1=91, v2=9.
 - **Kiali** (anonymous access on this single-user cluster) reports the
-  namespace `MTLS_ENABLED`, and its traffic graph shows all 11 workloads.
+  namespace `MTLS_ENABLED`, and its traffic graph shows all 10 workloads.
 
 The graph needs Prometheus, which OpenShift Local does not run. When the
 mesh and tracing are both installed, `otel-lgtm`'s built-in Prometheus also
@@ -515,7 +515,8 @@ Two details:
 Verified: one GraphQL request through the Route produced a single trace in
 Tempo with spans from `graphql-gateway`, the order-service it called over
 REST and `inventory-service` over gRPC, plus their database queries. The
-agent propagates W3C trace context across REST, gRPC and the mesh.
+agent propagates W3C trace context across REST, gRPC and the mesh. Once order-service runs native (below), its spans come only from the JVM
+canary, because a native binary cannot load the agent.
 
 ### The AI services: Ollama, classification, triage and MCP
 
@@ -580,8 +581,8 @@ time and checks that it reached `native-image.args`:
 The repository's `demo-native.sh` never sends a Kafka message, so this only
 showed up here.
 
-Verified: the native order-service started in 0.075 s and used 31 MiB,
-against 12.7 s and 325 MiB for the JVM `order-service-v2` beside it. The JVM
+Verified: the native order-service started in 0.077 s and used 29 MiB,
+against 8.0 s and 200 MiB for the JVM `order-service-v2` beside it. The JVM
 pod also carries the OpenTelemetry agent; a native binary cannot load a
 Java agent, so the native pod is not annotated for injection. An order
 placed through the native pod went through payment and shipping.
@@ -652,7 +653,10 @@ prepared, on a namespace left behind by another workshop.
 
 ## The whole cycle
 
-From an empty CRC, the full cycle ran without intervention:
+Two full cycles ran on 2026-10-09, each from an empty cluster and without
+intervention.
+
+**Core only** (6 vCPUs, 20 GiB):
 
 | Step | Time |
 |---|---|
@@ -662,6 +666,36 @@ From an empty CRC, the full cycle ran without intervention:
 | `deploy.sh` | 33 s |
 | `capture-evidence.sh` | 13 s |
 
+**Core plus the whole platform tier** (12 vCPUs, 32 GiB):
+
+| Step | Time |
+|---|---|
+| `teardown.sh --keep-running` (from the full platform) | 213 s |
+| `install-infra.sh` | 50 s |
+| `build-images.sh` | 179 s |
+| `deploy.sh` | 33 s |
+| `platform/install-platform.sh` | 837 s |
+| &nbsp;&nbsp;mesh with canary · autoscaling · tracing · AI | 244 · 42 · 127 · 102 s |
+| &nbsp;&nbsp;native build · deploy native · GitOps | 176 · 20 · 125 s |
+| `capture-evidence.sh` (all 6 core and 6 platform sections) | 418 s |
+| `teardown.sh` (everything, then `crc stop`) | 266 s |
+
+The capture is long mostly because it waits for KEDA's cooldown to return
+notification-service to zero.
+
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. On 2026-10-09 the full cycle above ran on OpenShift Local 2.64.0 (OpenShift 4.22.14, Kubernetes 1.35.6) with 6 vCPUs and 20 GiB: AMQ Streams `amqstreams.v3.2.1-14`, Kafka 4.2.0, seven in-cluster builds on `ubi10/openjdk-25:1.24-15`, all pods Ready under `restricted-v2` with zero restarts, the gateway Route healthy, GraphQL stitching order and stock, the order to payment to shipment choreography for one order ID, and three Apicurio artifacts. The secret scrub passed. Evidence is in `openshift/evidence/2026-10-09/`. Teardown returned the cluster to clean and stopped it. Single run; the service mesh, autoscaling, observability and native tiers are not covered.*
+*Verification status: <span class="status status--verified">verified</span>. On 2026-10-09 both cycles above ran on OpenShift Local 2.64.0 (OpenShift 4.22.14, Kubernetes 1.35.6).*
+
+*The core run used AMQ Streams `amqstreams.v3.2.1-14`, Kafka 4.2.0 and seven in-cluster builds on `ubi10/openjdk-25:1.24-15`. All pods were Ready under `restricted-v2` with zero restarts, the gateway Route was healthy, GraphQL stitched order and stock, the order went through payment and shipping for one order ID, and Apicurio held three artifacts.*
+
+*The platform run, on the same core, recorded:*
+
+- *the mesh rejecting plaintext under STRICT mTLS, a 91/9 canary split for 90/10, and Kiali reporting the namespace `MTLS_ENABLED` with 10 workloads in its graph;*
+- *notification-service scaling 0 to 1 to 0;*
+- *one trace across the gateway and inventory-service (the native order-service carries no agent);*
+- *classify, triage and MCP matching the compose demos;*
+- *the native order-service starting in 0.077 s at 29 MiB against 8.0 s and 200 MiB for the JVM pod;*
+- *Argo CD Synced, restoring a deleted ConfigMap in 2 s.*
+
+*The secret scrub passed, evidence is in `openshift/evidence/2026-10-09/`, and teardown removed every operator, CRD and namespace, then stopped CRC. Single run of each. Not covered: OpenShift's own monitoring stack, and Tekton pipelines.*

@@ -795,12 +795,12 @@ contentSlide({ eyebrow: "Appendix A7", title: "Platform tier: what it took",
 
 contentSlide({ eyebrow: "Appendix A7", title: "Native vs JVM on OpenShift Local",
   bullets: [
-    { lead: "Startup", sep: " — ", text: "0.075 s native against 12.7 s for the JVM pod." },
-    { lead: "Working set", sep: " — ", text: "31 MiB native against 325 MiB for the JVM pod." },
+    { lead: "Startup", sep: " — ", text: "0.077 s native against 8.0 s for the JVM pod." },
+    { lead: "Working set", sep: " — ", text: "29 MiB native against 200 MiB for the JVM pod." },
     { lead: "Build", sep: " — ", text: "compiled in the cluster in about 2.5 min by a Mandrel 25.0 builder image." },
     { lead: "Fairness", sep: " — ", text: "the JVM pod also carries the OpenTelemetry agent; an Envoy sidecar runs beside both." },
   ],
-  notes: "Measured on OpenShift Local for order-service. The native pod starts in 0.075 seconds; the JVM pod takes 12.7 seconds. The native working set is 31 MiB against 325 MiB for the JVM. The host generates the native sources, and a BuildConfig runs native-image from a Mandrel 25.0 builder image inside the cluster, which takes about two and a half minutes. Two caveats keep the comparison honest: the JVM pod also carries the OpenTelemetry Java agent, which adds startup time and memory, and an Envoy sidecar from the mesh runs beside both pods, so the sidecar cost is the same on each side. The Avro allow-list had to be supplied as a native build argument." });
+  notes: "Measured on OpenShift Local for order-service. The native pod starts in 0.077 seconds; the JVM pod takes 8.0 seconds. The native working set is 29 MiB against 200 MiB for the JVM. The host generates the native sources, and a BuildConfig runs native-image from a Mandrel 25.0 builder image inside the cluster, which takes about two and a half minutes. Two caveats keep the comparison honest: the JVM pod also carries the OpenTelemetry Java agent, which adds startup time and memory, and an Envoy sidecar from the mesh runs beside both pods, so the sidecar cost is the same on each side. The Avro allow-list had to be supplied as a native build argument." });
 
 /* ====================== APPENDIX ====================== */
 (() => {
