@@ -105,7 +105,11 @@ else
     narrate "no local native-image found -- building order-service native via"
     narrate "quarkus.native.container-build=true (docker). This pulls a Mandrel"
     narrate "builder image on first use (~1-2GB) and can take several minutes."
-    NATIVE_BUILD_ARGS+=(-Dquarkus.native.container-build=true)
+    # Pin the builder image: Quarkus's default is the floating
+    # ubi9-quarkus-mandrel-builder-image:jdk-25. This is the newest UBI 10
+    # Mandrel for JDK 25, the same one openshift/platform/native/Containerfile uses.
+    NATIVE_BUILD_ARGS+=(-Dquarkus.native.container-build=true
+        -Dquarkus.native.builder-image=quay.io/quarkus/ubi10-quarkus-mandrel-builder-image:jdk-25.0.4.1)
 fi
 
 BUILD_LOGFILE="$(mktemp -t demo-native-build-log-XXXXXX)"
