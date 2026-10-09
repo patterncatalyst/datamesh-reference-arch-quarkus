@@ -17,7 +17,7 @@ no open PRs here or in `patterncatalyst/lgtm-skills`.
 - **minikube `datamesh`** profile (docker driver, containerd runtime, 24 GB /
   8 CPUs): **stopped**, not deleted. `minikube start -p datamesh`, then
   `./scripts/load-images.sh` if the images need rebuilding. Global minikube
-  config `rootless: false`. The old `capstone` profile is deleted.
+  config has no rootless setting. Recreated with published NodePorts in the fix/nodeports-platform work (DRQ-016).
 - **Local `.env`** (git-ignored): copied from `.env.example` with
   `MIMIR_PORT=19090`, because Fedora's Cockpit holds 9090.
 - **Host tools**: `kcat` 1.7.1 installed (dnf). hey/ghz are not installed;
@@ -204,7 +204,7 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
 
 ## Settled scope answers (do not re-ask)
 - Repo: local-first, PUBLIC, push only after approval.
-- Container toolchain: docker (lgtm-docker-stack), no podman.
+- Container toolchain: Docker Engine (lgtm-docker-stack).
 - Versions: Quarkus 3.39.5, JDK 25, platform-aligned Camel, langchain4j 1.14.1.
 - OIDC demo: attempt live (Keycloak Dev Service), fall back to deferred + log in decisions.md.
 - Spring Boot comparison: ONE runnable Spring Boot twin service + compare chapter/slides.
