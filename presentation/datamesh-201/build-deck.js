@@ -777,6 +777,31 @@ contentSlide({ eyebrow: "Appendix A7", title: "What broke on the live run, and t
   ],
   notes: "Five problems found on the live run, each with its fix. Applying quarkus-container-image-openshift alone generated no BuildConfig, so the project uses the full quarkus-openshift extension. The output tag follows quarkus.openshift.version, not quarkus.container-image.tag. The S2I image reads JAVA_MAX_MEM_RATIO with a default of 80, which is too high for the pod limits, so it is set to 50. The database services restarted while Postgres was still initialising, which a wait-for-postgres init container fixed. The v1beta2 Kafka API is deprecated in AMQ Streams 3.2, so the CR moved to kafka.strimzi.io/v1. Status: verified 2026-10-09 on CRC 4.22.14 with a full clean cycle (teardown, install-infra, build-images, deploy, capture-evidence) in about 5.5 minutes. Teardown returns the cluster to clean." });
 
+diagramSlide({ eyebrow: "Appendix A7", title: "The platform tier on OpenShift Local",
+  image: "22-crc-platform-tier",
+  caption: "Six operators on top of the core: Service Mesh 3, the Custom Metrics Autoscaler, OpenTelemetry, Ollama, an in-cluster native build, and OpenShift GitOps.",
+  notes: "The core is unchanged: seven Quarkus services, AMQ Streams Kafka, Postgres 16, and Apicurio. Around it sit six platform features, each with a verified result. Service Mesh 3 (Sail) runs Istio v1.30.5 with STRICT mTLS and a 90/10 canary on order-service; the measured split was 94 to v1 and 6 to v2 over 100 requests, and Kiali draws the graph from otel-lgtm's Prometheus scraping sidecar port 15020. The Custom Metrics Autoscaler, Red Hat's KEDA, scales notification-service from 0 to 1 on Kafka lag within 15 seconds and back to 0 about three minutes after the burst; the topic has one partition, so the maximum is one replica. The Red Hat build of OpenTelemetry injects the OpenTelemetry Java agent by annotation with no image change, and traces land in grafana/otel-lgtm 0.8.1; one trace spans graphql-gateway, order-service over REST, and inventory-service over gRPC. Ollama 0.35.1 with qwen2.5:3b backs ai-mcp-service and ai-rules-service, built in the cluster; classify, triage through Camel and Quarkus Flow, and the MCP checks pass. order-service is compiled to native in the cluster with a Mandrel 25.0 builder image. OpenShift GitOps adopts the Helm release from GitHub and self-heal restores deleted resources in two to three seconds. Every operator is pinned with Manual approval and a startingCSV, and teardown removes everything and stops CRC. The cluster is CRC 4.22 with 12 vCPU and 32 GiB." });
+
+contentSlide({ eyebrow: "Appendix A7", title: "Platform tier: what it took",
+  bullets: [
+    { lead: "Service mesh", sep: " — ", text: "Service Mesh 3 injects by namespace label; the gateway needs PERMISSIVE mTLS for the Route." },
+    { lead: "Autoscaling", sep: " — ", text: "Custom Metrics Autoscaler needs the fully qualified Kafka bootstrap, since KEDA runs in openshift-keda." },
+    { lead: "Tracing", sep: " — ", text: "the OTel operator injects the agent; otel-lgtm runs under anyuid with no seccomp profile." },
+    { lead: "AI", sep: " — ", text: "Ollama runs under restricted-v2 with HOME and OLLAMA_MODELS on a PVC." },
+    { lead: "Native", sep: " — ", text: "the Avro allow-list must be a native build argument, not runtime configuration." },
+    { lead: "GitOps", sep: " — ", text: "Argo CD ignores the Postgres password field so syncs never rotate it." },
+  ],
+  notes: "One OpenShift-native piece and one non-obvious fix per feature. Mesh: OpenShift Service Mesh 3 injects sidecars through a label on the namespace rather than an annotation on each pod, and the ingress gateway has to accept plain traffic from the Route, so it is PERMISSIVE while the rest of the mesh is STRICT. Autoscaling: the Custom Metrics Autoscaler runs in openshift-keda, so a short Kafka bootstrap name does not resolve; the trigger uses the fully qualified service name. Tracing: the Red Hat build of OpenTelemetry operator injects the Java agent by annotation; grafana/otel-lgtm needs the anyuid SCC and no seccomp profile. AI: Ollama runs under restricted-v2 with a random user ID, so HOME and OLLAMA_MODELS point at a persistent volume claim the user can write. Native: the Avro class allow-list has to be passed as a native build argument, because it is read at image build time. GitOps: the Argo CD Application ignores the Postgres password field in the generated secret, so a sync never rotates the password. The full write-up is in chapter 22 and the decisions are DRQ-023 to DRQ-028." });
+
+contentSlide({ eyebrow: "Appendix A7", title: "Native vs JVM on OpenShift Local",
+  bullets: [
+    { lead: "Startup", sep: " — ", text: "0.075 s native against 12.7 s for the JVM pod." },
+    { lead: "Working set", sep: " — ", text: "31 MiB native against 325 MiB for the JVM pod." },
+    { lead: "Build", sep: " — ", text: "compiled in the cluster in about 2.5 min by a Mandrel 25.0 builder image." },
+    { lead: "Fairness", sep: " — ", text: "the JVM pod also carries the OpenTelemetry agent; an Envoy sidecar runs beside both." },
+  ],
+  notes: "Measured on OpenShift Local for order-service. The native pod starts in 0.075 seconds; the JVM pod takes 12.7 seconds. The native working set is 31 MiB against 325 MiB for the JVM. The host generates the native sources, and a BuildConfig runs native-image from a Mandrel 25.0 builder image inside the cluster, which takes about two and a half minutes. Two caveats keep the comparison honest: the JVM pod also carries the OpenTelemetry Java agent, which adds startup time and memory, and an Envoy sidecar from the mesh runs beside both pods, so the sidecar cost is the same on each side. The Avro allow-list had to be supplied as a native build argument." });
+
 /* ====================== APPENDIX ====================== */
 (() => {
   const s = divider({ num: "—", title: "Appendix", sub: "The full demo matrix, a known limitation in detail, infrastructure reference, a glossary, and background diagrams." });
