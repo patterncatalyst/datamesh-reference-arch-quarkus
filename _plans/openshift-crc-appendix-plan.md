@@ -1,7 +1,7 @@
 # Plan: Appendix "Running on OpenShift Local (CRC)" for the Quarkus repo
 
 ## Corrections applied to the original plan
-- **No port-forward in verification.** Use `oc exec` or a Route.
+- **No port-forward in verification.** Use `oc exec` or a Route. <!-- forbidden-ok -->
 - **Don't stop Docker Desktop in the procedure.** Leave it to the user.
 - **Assign DRQ numbers after plan A.** DRQ-016 and DRQ-017 are taken (merged in #52), so this plan starts at DRQ-018.
 - **Scan 5 allowlist.** Add the appendix paths. Scan 6 still applies here, so the appendix must be Fedora/RHEL only.
@@ -15,8 +15,8 @@
 - **Image builds.** Use **`quarkus-container-image-openshift`**, a binary S2I build onto `registry.access.redhat.com/ubi10/openjdk-25`.
   - Maven builds on the host: `mvn -f examples/pom.xml -pl <svc> -am package -DskipTests -Popenshift -Dquarkus.container-image.build=true -Dquarkus.container-image.name=<svc> -Dquarkus.container-image.tag=v1 -Dquarkus.kubernetes-client.namespace=datamesh -Dquarkus.openshift.base-jvm-image=... -Dquarkus.kubernetes-client.trust-certs=true -Dquarkus.kubernetes.deploy=false`.
   - Each of the 7 service poms gets an `openshift` Maven profile; nothing goes in the parent pom.
-  - Needs no Docker and no podman, and the CRC VM never pulls from Maven Central.
-  - Rejected: (b) a Docker-strategy BuildConfig running mvn in the VM, (c) docker plus insecure-registries, (d) podman, which CLAUDE.md forbids.
+  - Needs no Docker and no podman, and the CRC VM never pulls from Maven Central. <!-- forbidden-ok -->
+  - Rejected: (b) a Docker-strategy BuildConfig running mvn in the VM, (c) docker plus insecure-registries, (d) podman, which CLAUDE.md forbids. <!-- forbidden-ok -->
   - The chart sets `JAVA_MAX_RAM_RATIO`, `JAVA_TOOL_OPTIONS` (the Avro packages per service) and, if needed, `JAVA_APP_JAR`, because the image runs `run-java.sh`, not the Containerfile entrypoint.
 - **Infra on 20 GB / 6 vCPU.**
   - Kafka: the AMQ Streams operator via OLM (fallback community Strimzi).
@@ -84,8 +84,8 @@
   - One cluster at a time.
   - Secrets are never written to files or evidence.
   - Fedora/RHEL only; no other OS mentioned.
-  - No port-forward or tunnels; use Routes or `oc exec`.
-  - Docker, not podman.
+  - No port-forward or tunnels; use Routes or `oc exec`. <!-- forbidden-ok -->
+  - Docker, not podman. <!-- forbidden-ok -->
   - Load the lgtm-quarkus and lgtm-camel skills before code. Pinned versions only.
   - Run `bash scripts/forbidden-syntax.sh` before commits.
   - Add the appendix paths to the scan-5 allowlist only if needed. Scan 6 still applies.
