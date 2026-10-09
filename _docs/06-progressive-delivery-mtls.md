@@ -46,17 +46,27 @@ changes, what doesn't, and what the opt-in requires.
 ## Installing the mesh: [setup-istio.sh]({{ site.repo_blob }}/scripts/setup-istio.sh)
 
 The control plane is installed the same way every other operator in this stack is —
-`helm upgrade --install`, no `istioctl` dependency:
+`helm upgrade --install`, no `istioctl` dependency. Istio 1.31 is not published to
+the `istio-release` Helm repository, so the script downloads the pinned 1.31.1
+release tarball once, checks it against the published `.sha256`, and installs the
+`base` and `istiod` charts the release ships:
 
 ```bash
-helm upgrade --install istio-base istio/base \
-    --namespace istio-system --create-namespace \
-    --version 1.29.0 --set defaultRevision=default
+ISTIO_HOME=~/.local/share/istio-1.31.1     # unpacked by setup-istio.sh
 
-helm upgrade --install istiod istio/istiod \
-    --namespace istio-system --version 1.29.0 \
+helm upgrade --install istio-base "$ISTIO_HOME/manifests/charts/base" \
+    --namespace istio-system --create-namespace \
+    --set defaultRevision=default
+
+helm upgrade --install istiod "$ISTIO_HOME/manifests/charts/istio-control/istio-discovery" \
+    --namespace istio-system \
     --wait --timeout 5m
 ```
+
+Two checks run alongside: if an `istioctl` is on `PATH`, its client version must
+match 1.31.1 or the script warns and points at `$ISTIO_HOME/bin/istioctl`; and an
+`istiod` more than one minor version behind (for example 1.29) is refused, because
+Istio upgrades in place one minor version at a time.
 
 The script runs a short preflight before either `helm upgrade` fires: it checks that
 `kubectl config current-context` matches the `datamesh` `minikube` profile (a local
@@ -139,7 +149,7 @@ force existing pods to roll. Every Kubernetes mutating-admission mechanism has t
 template, then force a new generation of pods to pick it up. A pod that keeps running unmeshed right after the label is added
 has not failed; it is waiting for that rollout.
 
-Istio 1.29+ (the version this script pins) uses **native sidecars**: `istio-proxy`
+Istio 1.29+ (this script pins 1.31.1) uses **native sidecars**: `istio-proxy`
 runs as an `initContainer` with `restartPolicy: Always`, not as a second ordinary
 container. This changes how you check mesh membership. A meshed pod still shows
 `2/2 Ready` in `kubectl get pods`, but a membership check that only inspects
@@ -379,4 +389,4 @@ capacity to demand — including scaling all the way down to zero — with KEDA.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. Driven end to end on a local Kubernetes cluster (`minikube`). The injection fix is confirmed: Istio's `object.sidecar-injector.istio.io` webhook has an `objectSelector` matching `sidecar.istio.io/inject In ["true"]`, which is evaluated against pod *labels*, never annotations — so the pod-annotation form this chapter originally specified injected nothing in the unlabeled `datamesh` namespace, while the pod-template *label* form injects the native sidecar (`istio-init` + `istio-proxy`). `kubectl apply -k k8s/istio` applied cleanly: `order-service`, `notification-service`, and `graphql-gateway` came up meshed (2/2) while the operator-managed infra (Postgres, Kafka, Apicurio) stayed unmeshed. mTLS was enforced: a meshed client reached `order-service` with every request reported `connection_security_policy=mutual_tls` (20/20 `200`s), while a non-meshed plaintext client was rejected by the `STRICT` `PeerAuthentication` (`http_code=000`, connection reset), and unmeshed infra kept working. The canary split was observed at the Envoy layer as 63 requests to `v1` and 7 to `v2` out of 70 — the `VirtualService`'s 90/10 weighting.*
+*Verification status: <span class="status status--verified">verified</span>. Driven end to end on a local Kubernetes cluster (`minikube`). The injection fix is confirmed: Istio's `object.sidecar-injector.istio.io` webhook has an `objectSelector` matching `sidecar.istio.io/inject In ["true"]`, which is evaluated against pod *labels*, never annotations — so the pod-annotation form this chapter originally specified injected nothing in the unlabeled `datamesh` namespace, while the pod-template *label* form injects the native sidecar (`istio-init` + `istio-proxy`). `kubectl apply -k k8s/istio` applied cleanly: `order-service`, `notification-service`, and `graphql-gateway` came up meshed (2/2) while the operator-managed infra (Postgres, Kafka, Apicurio) stayed unmeshed. mTLS was enforced: a meshed client reached `order-service` with every request reported `connection_security_policy=mutual_tls` (20/20 `200`s), while a non-meshed plaintext client was rejected by the `STRICT` `PeerAuthentication` (`http_code=000`, connection reset), and unmeshed infra kept working. The canary split was observed at the Envoy layer as 63 requests to `v1` and 7 to `v2` out of 70 — the `VirtualService`'s 90/10 weighting. Versions moved on 2026-10-09 to Kubernetes v1.36.5, Istio 1.31.1, KEDA 2.21.0 / HTTP add-on 0.16.0, Strimzi 1.2.0 (Kafka 4.3.1), CloudNativePG 1.30.1 and the newest LGTM charts (DRQ-029); this chapter is not yet re-verified on those pins.*

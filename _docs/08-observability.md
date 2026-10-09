@@ -54,33 +54,40 @@ and the cost this stack is built to avoid.
 
 ## Installing the stack: [setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh)
 
-Every component runs in **monolithic / single-binary mode**, because this is a
-single-node local Kubernetes cluster (`minikube`). Production deployments would run each backend's distributed
-mode (separate ingester/distributor/querier processes), which pays off only once
-there are nodes to spread the load across:
+Loki and Tempo run in **single-binary mode**, because this is a single-node local
+Kubernetes cluster (`minikube`); Mimir uses the `mimir-distributed` chart with one
+small replica per component. Production deployments spread those components across
+nodes. The OSS Loki, Tempo and Grafana charts now live in the `grafana-community`
+repository (the `grafana/loki` chart became the Grafana Enterprise Logs chart);
+`mimir-distributed` stays in `grafana`:
 
 ```bash
-helm upgrade --install loki grafana/loki \
-    --version 6.16.0 --namespace observability \
+helm upgrade --install loki grafana-community/loki \
+    --version 18.15.1 --namespace observability \
     --set deploymentMode=SingleBinary \
     --set 'loki.storage.type=filesystem'
 
-helm upgrade --install tempo grafana/tempo \
-    --version 1.10.0 --namespace observability \
+helm upgrade --install tempo grafana-community/tempo \
+    --version 3.1.0 --namespace observability \
     --set 'tempo.storage.trace.backend=local'
 
 helm upgrade --install mimir grafana/mimir-distributed \
-    --version 5.4.0 --namespace observability \
-    --set 'mimir.structuredConfig.common.storage.backend=filesystem'
+    --version 6.2.1 --namespace observability \
+    --set 'mimir.structuredConfig.common.storage.backend=filesystem' \
+    --set 'gateway.service.nameOverride=mimir-nginx'
 
-helm upgrade --install grafana grafana/grafana \
-    --version 8.5.0 --namespace observability \
+helm upgrade --install grafana grafana-community/grafana \
+    --version 13.4.0 --namespace observability \
     --set 'sidecar.datasources.enabled=true' \
     --set 'sidecar.dashboards.enabled=true'
 ```
 
+Mimir chart 6.x replaced its nginx proxy with a `gateway`; `nameOverride` keeps the
+`mimir-nginx` Service name the Collector, Grafana and Kiali use. Tempo 3 serves its
+HTTP API on port 3200 (the 1.x chart used 3100).
+
 Four backends, one convention each: Loki for logs, Tempo for traces, Mimir for
-metrics — all filesystem-backed, all single-replica — and Grafana wired with the
+metrics — all filesystem-backed — and Grafana wired with the
 sidecar pattern so it picks up any ConfigMap labeled `grafana_datasource: "1"` or
 `grafana_dashboard: "1"` without a manual provisioning step per dashboard.
 
@@ -241,10 +248,10 @@ instead of a separate Prometheus:
 
 ```bash
 PROM_URL="http://mimir-nginx.observability.svc.cluster.local:80/prometheus"
-TEMPO_URL="http://tempo.observability.svc.cluster.local:3100"
+TEMPO_URL="http://tempo.observability.svc.cluster.local:3200"
 
 helm upgrade --install kiali-server kiali/kiali-server \
-    --namespace istio-system --version 2.23.0 \
+    --namespace istio-system --version 2.33.0 \
     --set external_services.prometheus.url="$PROM_URL" \
     --set external_services.tracing.provider=tempo \
     --set external_services.tracing.internal_url="$TEMPO_URL"
@@ -320,4 +327,4 @@ see all of it working.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `demo-tracing.sh` passed, recording the cross-service trace against the compose otel-lgtm backend. The mesh/Kiali view is covered by the Kubernetes chapters, which still require a live cluster. Host access through NodePorts published on 127.0.0.1 was re-verified on 2026-10-09: Grafana (3000), Loki (3100), Tempo (3200), Mimir (9009), OTLP (4317/4318), Kiali (20001) and Apicurio (8084) all answered on loopback, and Grafana's Tempo datasource now points at Tempo's HTTP port 3100.*
+*Verification status: <span class="status status--verified">verified</span>. `demo-tracing.sh` passed, recording the cross-service trace against the compose otel-lgtm backend. The mesh/Kiali view is covered by the Kubernetes chapters, which still require a live cluster. Host access through NodePorts published on 127.0.0.1 was re-verified on 2026-10-09: Grafana (3000), Loki (3100), Tempo (3200), Mimir (9009), OTLP (4317/4318), Kiali (20001) and Apicurio (8084) all answered on loopback, and Grafana's Tempo datasource now points at Tempo's HTTP port 3100. On 2026-10-09 (DRQ-029) the compose backend moved to otel-lgtm 0.36.0 (stack healthy, Tempo trace API unchanged) and the cluster stack to the newest charts, where Tempo's HTTP port is 3200 again; the cluster side is not yet re-verified on those pins.*

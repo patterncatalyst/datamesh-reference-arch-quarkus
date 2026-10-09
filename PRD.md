@@ -271,9 +271,9 @@ quality as an engagement signal, external talks/posts that cite the repo.
 
 ### Technical constraints
 
-- **Quarkus 3.39.5 / JDK 25**, platform-aligned Camel
-  (`quarkus-camel-bom:3.39.5`, never a standalone Camel pin), langchain4j
-  (Quarkiverse) 1.14.1. See `_plans/decisions.md` for the full version
+- **Quarkus 3.40.1 (LTS) / JDK 25**, platform-aligned Camel
+  (`quarkus-camel-bom:3.40.1`, never a standalone Camel pin) and langchain4j
+  (the platform `quarkus-langchain4j-bom:3.40.1`). See `_plans/decisions.md` for the full version
   matrix and rationale.
 - **Docker Engine** for the container toolchain (DRQ-003, DRQ-017).
 - **UBI base images**, multi-stage builds.
@@ -293,7 +293,7 @@ for every significant architectural choice.
 
 ### Dependencies
 
-Quarkus 3.39.5, the quarkus-camel-bom, Quarkiverse langchain4j 1.14.1,
+Quarkus 3.40.1, the quarkus-camel-bom, the platform quarkus-langchain4j-bom,
 Docker/Docker Compose, and — for the substrate-level demos — minikube,
 Istio, Strimzi, CloudNativePG, KEDA. Version pins live in
 `_plans/decisions.md` and the setup scripts; `_plans/reconciliation.md`
@@ -305,9 +305,9 @@ tracks any deferred items relative to the Python reference.
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|------------|------------|
-| langchain4j 1.14.1 API drift (empty `toolExecutions`) | Medium | Medium | Assert non-empty tool executions in `demo-ai-mcp.sh`; pin version explicitly |
+| langchain4j API drift (empty `toolExecutions`, DEF-001) | Medium | Medium | Assert non-empty tool executions in `demo-ai-mcp.sh`; pin version explicitly |
 | Native build reflection/resource failures | High | Medium | Native build runs in CI, not just JVM `mvn verify` |
-| Camel platform-BOM skew | Medium | Low | `dependency:tree` check; import only `quarkus-camel-bom:3.39.5` |
+| Camel platform-BOM skew | Medium | Low | `dependency:tree` check; import only `quarkus-camel-bom:3.40.1` |
 | Laptop resource exhaustion (Ollama + Kafka + Postgres + LGTM stack + OIDC) | Medium | Medium | Per-demo Docker Compose profiles; OIDC/Ollama opt-in demos |
 | Readers conflate the Quarkus reference with a Spring Boot indictment | Medium | Low | Comparison chapter states measured numbers and scope explicitly; no editorializing beyond the data |
 | Reference drifts from the Python sibling repo unnoticed | Medium | Medium | `_plans/reconciliation.md` kept current as a living checklist |

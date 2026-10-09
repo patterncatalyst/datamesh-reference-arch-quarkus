@@ -44,22 +44,23 @@ short, KEDA drives an HPA for the `1`-to-`N` range; its operator alone handles
 {% include excalidraw.html file="07-hpa-vs-keda" alt="Diagram comparing the stock Kubernetes HPA scaling on CPU/memory with KEDA driving an HPA from external signals (Kafka lag, HTTP rate) and handling the zero-to-one activation the HPA cannot do on its own" caption="Figure 7.1 — the stock HPA vs. KEDA's two-tier scale-to-zero model" %}
 
 [setup-keda.sh]({{ site.repo_blob }}/scripts/setup-keda.sh) installs both pieces: KEDA core and
-the KEDA HTTP add-on, pinned to `2.19.0` and `0.15.0` respectively —
+the KEDA HTTP add-on, pinned to `2.21.0` and `0.16.0` respectively —
 
 ```bash
 helm upgrade --install keda kedacore/keda \
-    --version 2.19.0 --namespace keda --create-namespace --wait
+    --version 2.21.0 --namespace keda --create-namespace --wait
 
 helm upgrade --install keda-add-ons-http kedacore/keda-add-ons-http \
-    --version 0.15.0 --namespace keda \
-    --set interceptor.replicas.waitTimeout=180s --wait
+    --version 0.16.0 --namespace keda \
+    --set interceptor.readinessTimeout=180s --wait
 ```
 
-The script's comment explains the `waitTimeout=180s` override: the add-on's default (20s) is shorter than a cold
-JVM boot (image pull + Quarkus startup + `startupProbe`), so without the override, a
-request to a scaled-to-zero service would 502 with "context deadline exceeded" before a
-replica ever came up, and that starved KEDA of the pending-request pressure it needs to
-activate promptly in the first place.
+The script's comment explains the `readinessTimeout=180s` setting (it replaces the
+deprecated `interceptor.replicas.waitTimeout`): it bounds how long the interceptor holds a
+request while a scaled-to-zero service gets a Ready replica. A cold JVM boot (image pull,
+Quarkus startup, `startupProbe`) takes well over the old 20 s default. Since add-on 0.14.0
+the default is disabled and a timeout answers 504, not 502. `HTTPScaledObject` is
+deprecated in favor of `InterceptorRoute` but still served, and this repo keeps it.
 
 This repo wires up **two** scalers of different kinds on two different
 products. The manifests live in [keda]({{ site.repo_tree }}/k8s/keda) and target Deployments that already
@@ -302,4 +303,4 @@ products.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. Observed directly on a local Kubernetes cluster (`minikube`): both ScaledObjects drive their targets to zero at rest (`notification-service` and `graphql-gateway` sit at 0 replicas), and `notification-service` scales up from zero on Kafka consumer-group lag — placing valid orders emits `order.placed`, lag crosses the threshold, and KEDA activates the ScaledObject and scales the deployment 0→1. Driving this surfaced a bug in `demo-keda-kafka.sh` (it posted orders for an unseeded SKU, so order placement 409'd and produced no events), now fixed by seeding stock before the burst. Re-run on 2026-10-06 through `demos/walkthrough.sh --from act5 --with-minikube`: both demos passed. `demo-keda-kafka` scaled `notification-service` 0→1 on lag from 60 orders and drained back to 0 after the cooldown; `demo-keda-http` scaled `graphql-gateway` 0→1 through the interceptor, and all 120 GraphQL requests returned 200, including the first, held during the cold start. That run fixed three demo bugs: the HTTP load targeted the interceptor proxy on port 80 instead of 8080, it sent a bare GET that the gateway answers with 405, and both demos started from one running replica, which drained the burst before KEDA's 15 s poll saw any load. Each demo now scales its target to zero and waits out KEDA's scale-down window before the burst. Single run.*
+*Verification status: <span class="status status--verified">verified</span>. Observed directly on a local Kubernetes cluster (`minikube`): both ScaledObjects drive their targets to zero at rest (`notification-service` and `graphql-gateway` sit at 0 replicas), and `notification-service` scales up from zero on Kafka consumer-group lag — placing valid orders emits `order.placed`, lag crosses the threshold, and KEDA activates the ScaledObject and scales the deployment 0→1. Driving this surfaced a bug in `demo-keda-kafka.sh` (it posted orders for an unseeded SKU, so order placement 409'd and produced no events), now fixed by seeding stock before the burst. Re-run on 2026-10-06 through `demos/walkthrough.sh --from act5 --with-minikube`: both demos passed. `demo-keda-kafka` scaled `notification-service` 0→1 on lag from 60 orders and drained back to 0 after the cooldown; `demo-keda-http` scaled `graphql-gateway` 0→1 through the interceptor, and all 120 GraphQL requests returned 200, including the first, held during the cold start. That run fixed three demo bugs: the HTTP load targeted the interceptor proxy on port 80 instead of 8080, it sent a bare GET that the gateway answers with 405, and both demos started from one running replica, which drained the burst before KEDA's 15 s poll saw any load. Each demo now scales its target to zero and waits out KEDA's scale-down window before the burst. Single run. Versions moved on 2026-10-09 to Kubernetes v1.36.5, Istio 1.31.1, KEDA 2.21.0 / HTTP add-on 0.16.0, Strimzi 1.2.0 (Kafka 4.3.1), CloudNativePG 1.30.1 and the newest LGTM charts (DRQ-029); this chapter is not yet re-verified on those pins.*
