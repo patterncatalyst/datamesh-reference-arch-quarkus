@@ -1,5 +1,6 @@
 {{- range $name, $svc := .Values.services }}
 {{- if or (not $svc.ai) $.Values.ai.enabled }}
+{{- $native := and $.Values.native.enabled (eq $name "order-service") }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -26,7 +27,7 @@ spec:
       annotations:
         # Roll the pods when the shared env contract changes.
         checksum/config: {{ include (print $.Template.BasePath "/config.yaml") $ | sha256sum }}
-        {{- if $.Values.observability.enabled }}
+        {{- if and $.Values.observability.enabled (not $native) }}
         instrumentation.opentelemetry.io/inject-java: "datamesh-java"
         {{- end }}
     spec:
@@ -45,7 +46,13 @@ spec:
       {{- end }}
       containers:
         - name: {{ $name }}
+          {{- if $native }}
+          image: "{{ $.Values.registry }}/{{ $.Release.Namespace }}/{{ $name }}-native:{{ $.Values.imageTag }}"
+          # The Avro allow-list is compiled in (build-native.sh): Avro reads it
+          # during native-image's build-time class initialisation.
+          {{- else }}
           image: "{{ $.Values.registry }}/{{ $.Release.Namespace }}/{{ $name }}:{{ $.Values.imageTag }}"
+          {{- end }}
           imagePullPolicy: Always
           ports:
             - name: http

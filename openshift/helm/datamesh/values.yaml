@@ -59,6 +59,12 @@ observability:
   enabled: false
   lgtmImage: docker.io/grafana/otel-lgtm:0.8.1
 
+# order-service as a native executable (openshift/platform/build-native.sh
+# pushes order-service-native:<imageTag>). The OpenTelemetry Java agent does
+# not apply to a native binary, so its pod is not annotated for injection.
+native:
+  enabled: false
+
 # Ollama plus ai-mcp-service and ai-rules-service.
 ai:
   enabled: false
