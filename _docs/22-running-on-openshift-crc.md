@@ -2,8 +2,8 @@
 title: "Appendix: running on OpenShift Local (CRC)"
 order: 22
 part: Appendices
-description: "The seven Quarkus services, Kafka, Postgres and Apicurio on OpenShift Local: images built inside the cluster with quarkus-openshift, AMQ Streams from OperatorHub, restricted-v2 pods, edge-TLS Routes, and a teardown that leaves the cluster clean."
-duration: 40 minutes
+description: "The seven Quarkus services, Kafka, Postgres and Apicurio on OpenShift Local, then the platform tier: Service Mesh 3 with a canary, the Custom Metrics Autoscaler, OpenTelemetry tracing, the AI services, a native build and GitOps, all built and verified inside the cluster, with a teardown that leaves it clean."
+duration: 60 minutes
 marker: "22"
 ---
 
@@ -24,24 +24,29 @@ optional: nothing else in the tutorial depends on it, and it is the Red Hat
 counterpart to the minikube path rather than a replacement for it.
 
 Everything lives under [`openshift/`](https://github.com/patterncatalyst/datamesh-reference-arch-quarkus/tree/main/openshift):
-five scripts, two infra manifests and one Helm chart. The decisions behind
-them are DRQ-018 to DRQ-022 in `_plans/decisions.md`.
+the core scripts, `openshift/platform/` for the platform tier, and one Helm
+chart. The decisions behind them are DRQ-018 to DRQ-028 in
+`_plans/decisions.md`.
 
 ![The datamesh project on OpenShift Local: seven services, Kafka, Postgres and Apicurio under restricted-v2, with two edge-TLS Routes]({{ '/assets/diagrams/22-crc-openshift-topology.svg' | relative_url }})
 
 ## Scope
 
-| In this appendix | Not in this appendix |
-|---|---|
-| The 7 services, built in the cluster | LGTM observability (Grafana, Loki, Tempo, Mimir) |
-| Kafka via the AMQ Streams operator | Istio (OpenShift Service Mesh 3) and KEDA (Custom Metrics Autoscaler) |
-| Postgres 16 and Apicurio 3.2.4 | The AI services (Ollama, MCP, rules triage) |
-| Routes, health, GraphQL, the Kafka choreography | A native build |
+The appendix has two tiers. The **core** is everything a plain
+`helm upgrade --install` of the chart deploys. The **platform tier** adds the
+rest of the stack the minikube chapters use, one opt-in script at a time.
 
-The mesh and autoscaling operators are available in OperatorHub on CRC 4.22
-(`servicemeshoperator3` and `openshift-custom-metrics-autoscaler-operator`
-were both present when this appendix was written), but they are not wired
-up here.
+| Core | Platform tier (`openshift/platform/`) |
+|---|---|
+| The 7 services, built in the cluster | Service mesh: OpenShift Service Mesh 3, Kiali, the order-service canary |
+| Kafka via the AMQ Streams operator | Autoscaling: the Custom Metrics Autoscaler (Red Hat's KEDA) |
+| Postgres 16 and Apicurio 3.2.4 | Tracing: the Red Hat build of OpenTelemetry and `grafana/otel-lgtm` |
+| Routes, health, GraphQL, the Kafka choreography | The AI services: Ollama, classification, rules triage, MCP |
+| | A native order-service, compiled inside the cluster |
+| | GitOps: OpenShift GitOps (Argo CD) owning the release |
+
+Every platform feature is a chart flag that defaults to `false`, so the core
+renders exactly as it did without them.
 
 ## Prerequisites
 
@@ -58,12 +63,13 @@ virtualisation. You need:
 You do not need a container engine. The images are built inside the
 cluster.
 
-Size the VM before its first start. This appendix was verified with 6 vCPUs,
-20 GiB and an 80 GB disk:
+Size the VM before its first start. The core was verified with 6 vCPUs and
+20 GiB; the platform tier needs 12 vCPUs and 32 GiB (Ollama alone requests
+4 GiB, and the native build pod up to 8 GiB). The disk is 80 GB either way:
 
 ```bash
-crc config set cpus 6
-crc config set memory 20480
+crc config set cpus 12        # 6 for the core only
+crc config set memory 32768   # 20480 for the core only
 crc config set disk-size 80
 crc setup
 crc start --pull-secret-file ~/pull-secret.txt
@@ -384,9 +390,232 @@ shipping-service derives them deterministically from the order ID
 | `deploy.sh` reported success while new pods were starting | `condition=Available` was satisfied by the old ReplicaSet | `oc rollout status` per Deployment |
 | Deprecation warnings on apply | AMQ Streams 3.2 deprecates `kafka.strimzi.io/v1beta2` | Move the CRs to `kafka.strimzi.io/v1` |
 | review-service would not start | No OIDC provider in prod | `QUARKUS_OIDC_TENANT_ENABLED=false` |
+| ScaledObject `Ready=False`, `no such host` | KEDA runs in `openshift-keda`, where the short Kafka name does not resolve | Fully qualified `bootstrapServers` |
+| Native order-service: `SecurityException: Forbidden capstone...` on every send | Avro reads its allow-list during native-image's build-time initialisation | Pass it with `quarkus.native.additional-build-args` |
+| A request to a pod IP was reset | A pod-IP call leaves the client sidecar as plaintext, and the target is STRICT | Call the Service name |
+| (avoided) Postgres password replaced on every Argo CD sync | `lookup` returns nothing under `helm template` | `ignoreDifferences` on the password plus `RespectIgnoreDifferences=true` |
 
 After these fixes, a fresh install from an empty cluster comes up with zero
 restarts.
+
+## The platform tier
+
+`openshift/platform/install-platform.sh` runs the six steps below in order,
+on top of a deployed core; each step is also its own script. Every operator
+goes through the same `install_operator` helper in `openshift/lib.sh` that
+installs AMQ Streams: a Subscription pinned with `startingCSV` and
+`installPlanApproval: Manual`, and only the InstallPlan that names that CSV
+is approved.
+
+| Operator | CSV | Channel |
+|---|---|---|
+| OpenShift Service Mesh 3 | `servicemeshoperator3.v3.4.3` | `stable-3.4` |
+| Kiali | `kiali-operator.v2.27.5` | `stable` |
+| Custom Metrics Autoscaler | `custom-metrics-autoscaler.v2.19.0-4` | `stable` |
+| Red Hat build of OpenTelemetry | `opentelemetry-operator.v0.158.0-2` | `stable` |
+| OpenShift GitOps | `openshift-gitops-operator.v1.22.1` | `gitops-1.22` |
+
+`capture-evidence.sh` detects which features are installed and checks each
+one; the results are in `openshift/evidence/<date>/11-mesh.txt` to
+`16-gitops.txt`.
+
+![The platform tier around the core: Service Mesh 3, the Custom Metrics Autoscaler, OpenTelemetry with otel-lgtm, Ollama and the AI services, a native order-service, and OpenShift GitOps]({{ '/assets/diagrams/22-crc-platform-tier.svg' | relative_url }})
+
+### Service mesh: OpenShift Service Mesh 3
+
+[Chapter 6]({{ '/docs/06-progressive-delivery-mtls/' | relative_url }}) runs
+Istio 1.29.0 from `istioctl` on minikube. OpenShift's mesh is OSSM 3, built on
+the Sail operator: `install-mesh.sh` creates an `IstioCNI` and an `Istio` CR,
+both pinned to **v1.30.5**. OSSM 3.4.3 offers v1.26 to v1.30, not 1.29, so
+v1.30.5 is the nearest newer release. The CRD also accepts `v1.30-latest`;
+that floats, so it is not used.
+
+Pods join the mesh through the `istio.io/rev: default` **label** that the
+chart's `mesh.enabled` flag adds; Sail's revisioned injection matches
+labels. On Kubernetes 1.35 Istio injects `istio-proxy` as a native sidecar
+(an init container that keeps running), ordered before `wait-for-postgres`,
+so that check already goes through the proxy. Kafka, Postgres and Apicurio
+stay outside the mesh.
+
+Namespace-wide mTLS is `STRICT`, with one exception: `graphql-gateway` is
+`PERMISSIVE`, because the OpenShift router is not in the mesh and the Route
+delivers plaintext. Without it every Route request would fail.
+
+`install-mesh.sh --canary` adds `order-service-v2` (the same image, label
+`version: v2`) with a `DestinationRule` and a 90/10 `VirtualService`. OSSM 3
+provisions no ingress gateway and the edge is already the Route, so the
+split applies to mesh-internal calls, which is how the gateway reaches
+order-service.
+
+Verified:
+
+- **mTLS.** A plaintext call from the unmeshed Apicurio pod to order-service
+  is reset (curl exit 56); the same call from the meshed gateway pod
+  answers 200, and the Route still answers 200.
+- **Canary.** Of 100 requests from the gateway, Istio's own
+  `istio_requests_total` counters on the two pods counted v1=94, v2=6.
+- **Kiali** (anonymous access on this single-user cluster) reports the
+  namespace `MTLS_ENABLED`, and its traffic graph shows all 11 workloads.
+
+The graph needs Prometheus, which OpenShift Local does not run. When the
+mesh and tracing are both installed, `otel-lgtm`'s built-in Prometheus also
+scrapes the sidecars' merged metrics port (15020, which Istio leaves out of
+mTLS), and `install-observability.sh` points Kiali at it.
+
+### Autoscaling: the Custom Metrics Autoscaler
+
+[Chapter 7]({{ '/docs/07-elastic-and-resilient/' | relative_url }}) scales
+notification-service from zero on Kafka consumer lag with KEDA. On OpenShift
+the same API comes from the Custom Metrics Autoscaler: `install-keda.sh`
+installs the operator into `openshift-keda`, creates a `KedaController`, and
+the chart's `keda.enabled` flag adds the same `ScaledObject` as
+`k8s/keda/consumer-scaledobject.yaml`. The chart also stops setting
+`replicas` on notification-service, so Helm and the HPA do not fight.
+
+One change was needed: the trigger's `bootstrapServers` must be the fully
+qualified name
+(`datamesh-kafka-bootstrap.datamesh.svc.cluster.local:9092`). KEDA's
+operator runs in `openshift-keda`, where the short name the services use
+does not resolve, and the ScaledObject stayed `Ready=False` with
+`no such host` until it was qualified.
+
+Verified: idle at 0 replicas, 15 orders scaled it to 1 within 15 seconds,
+the lag drained, and the cooldown returned it to 0 three minutes after the
+burst. It stops at one replica because the auto-created `order.placed` topic
+has one partition, and KEDA does not scale a consumer group past its
+partition count.
+
+The KEDA HTTP add-on that scales the gateway on minikube is not part of the
+Custom Metrics Autoscaler, so that scaler has no counterpart here.
+
+### Tracing: the OpenTelemetry Java agent and otel-lgtm
+
+No service has `quarkus-opentelemetry`. On compose,
+[Chapter 8]({{ '/docs/08-observability/' | relative_url }})'s tracing demo
+attaches the OpenTelemetry Java agent with `-javaagent`. OpenShift does the
+same thing without touching an image: the Red Hat build of OpenTelemetry
+operator injects the agent into every pod annotated
+`instrumentation.opentelemetry.io/inject-java: datamesh-java`. The chart's
+`observability.enabled` flag adds that annotation and an `Instrumentation`
+CR that sends traces to `grafana/otel-lgtm:0.8.1`, the compose image, which
+gets a Grafana Route.
+
+Two details:
+
+- **otel-lgtm runs as root**, so it uses the `anyuid` SCC through its own
+  ServiceAccount, and is the one pod outside `restricted-v2`. Its
+  `securityContext` sets `runAsUser: 0` and nothing else: `anyuid` allows
+  no seccomp profile, and adding one silently lands the pod back on
+  `restricted-v2`, where Grafana cannot write its data directory.
+- **Helm creates the Deployments before the Instrumentation CR**, so pods
+  started in the same upgrade can miss the injection webhook.
+  `install-observability.sh` restarts any annotated Deployment whose pod
+  lacks the agent's init container.
+
+Verified: one GraphQL request through the Route produced a single trace in
+Tempo with spans from `graphql-gateway`, the order-service it called over
+REST and `inventory-service` over gRPC, plus their database queries. The
+agent propagates W3C trace context across REST, gRPC and the mesh.
+
+### The AI services: Ollama, classification, triage and MCP
+
+`install-ai.sh` builds `ai-mcp-service` and `ai-rules-service` in the
+cluster like the other seven. The chart's `ai.enabled` flag then deploys:
+
+- `ollama/ollama:0.35.1`, the compose profile's version, with a 10 Gi
+  volume;
+- a Job that pulls `qwen2.5:3b`;
+- the two services, pointed at it with `QUARKUS_LANGCHAIN4J_OLLAMA_BASE_URL`.
+
+Ollama runs under `restricted-v2` once `HOME` and `OLLAMA_MODELS` point at
+the volume. Neither AI service has a health extension, so the chart probes
+their HTTP port over TCP.
+
+Verified, with the same inputs and expected answers as the compose demos:
+
+- `demo-ai-classify.sh`'s three orders came back PERISHABLE, HAZARDOUS and
+  FRAGILE;
+- `demo-ai-triage.sh`'s three orders came back ROUTE_TO_WAREHOUSE, EXPEDITE
+  and FRAUD_HOLD, from both the Camel route (`/api/orders/triage`) and the
+  Quarkus Flow workflow (`/api/orders/triage-flow`);
+- `demo-ai-mcp.sh`'s session listed the `order-status` tool and returned
+  SHIPPED for ORD-001.
+
+### A native order-service, compiled in the cluster
+
+The host has no `native-image` and no container engine, so
+`build-native.sh` splits the work:
+
+1. The host runs Maven with `-Pnative -Dquarkus.native.sources-only=true`.
+   That produces `target/native-sources`: the jar, its libraries and a
+   `native-image.args` file.
+2. A Docker-strategy binary build uploads that directory and runs
+   `native-image` in `quarkus/ubi10-quarkus-mandrel-builder-image:jdk-25.0.4.1`
+   (Mandrel for GraalVM 25.0, the version Quarkus records in
+   `graalvm.version`). The binary is copied onto
+   `quarkus/ubi10-quarkus-micro-image:2.0-2026-10-04`.
+3. The image is pushed as `order-service-native:v1`. The build pod gets 4 to
+   8 GiB of memory, and the cluster still never contacts Maven Central.
+
+The chart's `native.enabled` flag switches order-service to that image, and
+`native-image` took just over two minutes. On the first run, every order
+failed to publish:
+
+```
+SRMSG18260: Unable to recover from the serialization failure (topic: order.placed) ...
+java.lang.SecurityException: Forbidden capstone...
+```
+
+Avro's `ClassSecurityValidator` reads `org.apache.avro.SERIALIZABLE_PACKAGES`
+in a static initializer, and Quarkus initialises that class while
+`native-image` runs. The allow-list therefore has to be in the image
+builder's JVM; the `-D` the JVM image gets through `JAVA_TOOL_OPTIONS`
+arrives too late for a native binary. `build-native.sh` passes it at build
+time and checks that it reached `native-image.args`:
+
+```bash
+-Dquarkus.native.additional-build-args="-J-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1"
+```
+
+The repository's `demo-native.sh` never sends a Kafka message, so this only
+showed up here.
+
+Verified: the native order-service started in 0.075 s and used 31 MiB,
+against 12.7 s and 325 MiB for the JVM `order-service-v2` beside it. The JVM
+pod also carries the OpenTelemetry agent; a native binary cannot load a
+Java agent, so the native pod is not annotated for injection. An order
+placed through the native pod went through payment and shipping.
+
+### GitOps: OpenShift GitOps owns the release
+
+`install-gitops.sh` installs OpenShift GitOps, labels the project
+`argocd.argoproj.io/managed-by=openshift-gitops`, and creates an Argo CD
+`Application`. The Application renders `openshift/helm/datamesh` from this
+repository on GitHub with the values the running release already has, and
+adopts its resources. From then on Argo CD keeps the cluster equal to git,
+with automated sync, prune and self-heal.
+
+One setting is essential. Argo CD renders charts with `helm template`, where
+Helm's `lookup` returns nothing, so the chart would mint a new Postgres
+password on every sync. The Application therefore ignores that one field
+and tells the sync to respect the ignore:
+
+```json
+"ignoreDifferences": [{"kind": "Secret", "name": "datamesh-postgres-app",
+                       "jsonPointers": ["/data/password"]}],
+"syncOptions": ["RespectIgnoreDifferences=true", "ApplyOutOfSyncOnly=true"]
+```
+
+Verified:
+
+- the Application went Synced and Healthy;
+- deleting the `datamesh-app-config` ConfigMap, a VirtualService, or
+  scaling payment-service to zero was reverted within two to three seconds;
+- after adoption, a restarted DB service logged in to Postgres with no
+  authentication failure, so the password was untouched.
+
+`install-gitops.sh` tracks `main` by default. The verification run tracked
+this appendix's branch before it merged.
 
 ## Tearing it down
 
@@ -400,15 +629,21 @@ everything the other scripts added, not just the Helm release:
 
 In order, it does the following:
 
-1. uninstalls the Helm release;
-2. deletes the Kafka cluster while the operator can still process its
-   finalizers;
+1. deletes the Argo CD Application, whose finalizer prunes what Argo CD
+   manages, so nothing re-creates what follows;
+2. uninstalls the Helm release while KEDA and OpenTelemetry can still
+   clear their finalizers, then deletes the Kafka cluster while AMQ Streams
+   can;
 3. deletes the `datamesh` project, which takes the builds, ImageStreams and
    PVCs with it;
-4. removes the AMQ Streams Subscription, CSV and InstallPlans;
-5. deletes the Strimzi CRDs;
-6. reports any Subscription or namespace that is still left;
-7. stops CRC, unless `--keep-running` was given.
+4. deletes the Kiali, Istio, IstioCNI, KedaController and Argo CD
+   instances, again while their operators run;
+5. for each operator, reads the CRDs its CSV owns, then removes the
+   Subscription, CSV, InstallPlans and those CRDs;
+6. deletes the CRDs no CSV owns (Istio's, which the Sail operator creates)
+   and the operator namespaces;
+7. reports any Subscription, CSV, namespace or platform CRD still left;
+8. stops CRC, unless `--keep-running` was given.
 
 The order matters. If the project is deleted first, any KafkaTopic keeps a
 `strimzi.io/topic-operator` finalizer that nothing is left to remove, and

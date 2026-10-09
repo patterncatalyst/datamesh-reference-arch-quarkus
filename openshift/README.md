@@ -20,9 +20,27 @@ eval "$(crc oc-env)"
 ./openshift/install-infra.sh      # project, AMQ Streams operator, Kafka
 ./openshift/build-images.sh       # 7 binary S2I builds -> ImageStream tags v1
 ./openshift/deploy.sh             # Helm chart: services, Postgres, Apicurio, Routes
+./openshift/platform/install-platform.sh   # optional: the platform tier (below)
 ./openshift/capture-evidence.sh   # checks + evidence/<date>/, with a secret scrub
 ./openshift/teardown.sh           # remove everything above, then crc stop
 ```
+
+## Platform tier (optional)
+
+Needs CRC at 12 vCPUs and 32 GiB (`crc config set cpus 12`, `crc config set memory 32768`).
+Each step is its own script; `install-platform.sh` runs them in this order.
+
+| Script | Adds | Chart flag |
+|---|---|---|
+| `platform/install-mesh.sh [--canary]` | OSSM 3 (Istio v1.30.5), Kiali, STRICT mTLS, order-service canary 90/10 | `mesh.enabled`, `mesh.canary.enabled` |
+| `platform/install-keda.sh` | Custom Metrics Autoscaler; notification-service 0 -> N on Kafka lag | `keda.enabled` |
+| `platform/install-observability.sh` | OpenTelemetry operator injects the Java agent; `grafana/otel-lgtm:0.8.1` + Grafana Route | `observability.enabled` |
+| `platform/install-ai.sh` | Ollama 0.35.1 + qwen2.5:3b, ai-mcp-service, ai-rules-service | `ai.enabled` |
+| `platform/build-native.sh`, then `deploy.sh --set native.enabled=true` | order-service compiled to native inside the cluster | `native.enabled` |
+| `platform/install-gitops.sh [revision]` | OpenShift GitOps; an Argo CD Application owns the release | (Application) |
+
+Operators are pinned in `platform/subscriptions/` (Manual approval, `startingCSV`).
+`capture-evidence.sh` checks whichever of these are installed.
 
 ## What is here
 
@@ -32,6 +50,7 @@ eval "$(crc oc-env)"
 | `infra/amq-streams-subscription.yaml` | AMQ Streams `amqstreams.v3.2.1-14`, Manual approval. |
 | `infra/kafka.yaml` | Kafka CR `datamesh` (`kafka.strimzi.io/v1`), Kafka 4.2.0, one KRaft node. |
 | `helm/datamesh/` | Chart: 7 Deployments from one `services:` map, Postgres 16, Apicurio 3.2.4, two Routes. |
+| `platform/` | The platform tier: one script per feature, pinned subscriptions, `evidence.sh`. |
 | `evidence/` | Output of `capture-evidence.sh`. No passwords or tokens; the script checks. |
 
 ## Differences from minikube
@@ -45,4 +64,4 @@ eval "$(crc oc-env)"
 | Pod security | `runAsUser: 185` | `restricted-v2`, UID from the namespace range |
 | review-service | not deployed | OIDC tenant disabled; `DELETE /reviews/{id}` answers 401 |
 
-The decisions are DRQ-018 to DRQ-022 in `_plans/decisions.md`.
+The decisions are DRQ-018 to DRQ-028 in `_plans/decisions.md`.

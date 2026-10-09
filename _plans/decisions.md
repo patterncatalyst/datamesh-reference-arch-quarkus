@@ -140,6 +140,33 @@ Records the settled decisions (DRQ-NNN) for this build. Convert relative dates t
 - **DRQ-022 — review-service on OpenShift: OIDC tenant disabled.** Status: decided; live-verified.
   - The prod build fails at boot with "'quarkus.oidc.auth-server-url' property must be configured" because no OIDC provider runs there. The chart sets `QUARKUS_OIDC_TENANT_ENABLED=false`; `DELETE /reviews/{id}` answers 401 and every other endpoint works. `application.properties` is unchanged.
 
+- **DRQ-023 — OpenShift platform tier: service mesh.** Status: decided; live-verified 2026-10-09 on CRC 4.22.14 (12 vCPU / 32 GiB).
+  - OSSM 3 (`servicemeshoperator3.v3.4.3`, channel `stable-3.4`) with `Istio` and `IstioCNI` pinned to `v1.30.5`. OSSM 3.4.3 offers v1.26 to v1.30, not minikube's 1.29.0, and `v1.30-latest` floats, so it is not used.
+  - Pods join with the `istio.io/rev: default` label (chart `mesh.enabled`); `istio-proxy` is a native sidecar ordered before `wait-for-postgres`. Infra stays unmeshed.
+  - `PeerAuthentication` STRICT for the namespace, PERMISSIVE for `graphql-gateway` (the Route delivers plaintext).
+  - Canary (`mesh.canary.enabled`): `order-service-v2` + DestinationRule + 90/10 VirtualService, mesh-internal (no ingress gateway in OSSM 3).
+  - Kiali `kiali-operator.v2.27.5`, anonymous auth (single-user local cluster). Its Prometheus is otel-lgtm's, which scrapes the sidecars' port 15020 when the mesh is on.
+- **DRQ-024 — OpenShift platform tier: autoscaling.** Status: decided; live-verified.
+  - Custom Metrics Autoscaler `custom-metrics-autoscaler.v2.19.0-4` in `openshift-keda` with a `KedaController`; chart `keda.enabled` adds minikube's Kafka-lag ScaledObject and stops setting `replicas` on notification-service.
+  - `bootstrapServers` is fully qualified: KEDA runs in `openshift-keda`, where the short name does not resolve.
+  - CMA ships core KEDA only; the gateway's HTTP scaler has no counterpart.
+- **DRQ-025 — OpenShift platform tier: tracing.** Status: decided; live-verified.
+  - Red Hat build of OpenTelemetry `opentelemetry-operator.v0.158.0-2` injects the OpenTelemetry Java agent (annotation `instrumentation.opentelemetry.io/inject-java`), matching the compose demo's `-javaagent` approach with no pom or image change. Traces only.
+  - Backend `grafana/otel-lgtm:0.8.1` (the compose image) under `anyuid` with `runAsUser: 0` and no seccomp profile; Grafana Route.
+  - `install-observability.sh` restarts Deployments whose pods missed injection (Helm creates Deployments before the Instrumentation CR).
+- **DRQ-026 — OpenShift platform tier: AI services.** Status: decided; live-verified.
+  - `ollama/ollama:0.35.1` (compose's pin) under restricted-v2 with `HOME`/`OLLAMA_MODELS` on a 10 Gi PVC; `qwen2.5:3b` pulled by a plain Job (not a Helm hook, so helm does not block on the download).
+  - ai-mcp-service and ai-rules-service built in-cluster like the core; TCP probes (no health extension); `QUARKUS_HTTP_PORT=8080`.
+- **DRQ-027 — OpenShift platform tier: native build in the cluster.** Status: decided; live-verified.
+  - Host: `-Pnative -Dquarkus.native.sources-only=true`. Cluster: Docker-strategy binary build, `native-image` in `ubi10-quarkus-mandrel-builder-image:jdk-25.0.4.1`, runtime `ubi10-quarkus-micro-image:2.0-2026-10-04`, 4-8 GiB build pod. No container engine on the host, no Maven Central from the cluster.
+  - Avro's allow-list must be a native build argument (`-J-Dorg.apache.avro.SERIALIZABLE_PACKAGES=...` via `quarkus.native.additional-build-args`): ClassSecurityValidator is initialised at image build time, so a runtime `-D` leaves every send failing with "Forbidden capstone...". `demo-native.sh` never produces to Kafka, so it does not catch this.
+  - Native pod not annotated for the Java agent.
+- **DRQ-028 — OpenShift platform tier: GitOps.** Status: decided; live-verified.
+  - OpenShift GitOps `openshift-gitops-operator.v1.22.1`; the default Argo CD instance manages the project via `argocd.argoproj.io/managed-by`.
+  - The Application renders `openshift/helm/datamesh` from GitHub (default `main`) with the release's current values and adopts its resources; automated sync, prune, self-heal.
+  - `ignoreDifferences` on `datamesh-postgres-app` `/data/password` with `RespectIgnoreDifferences=true`: under `helm template` the chart's `lookup` returns nothing and would rotate the password on every sync.
+  - Teardown deletes the Application first, then removes every platform operator with the CRDs its CSV owns, Istio's CRDs, and the operator namespaces.
+
 ## Deferrals
 
 - **DEF-001 — Ollama tool-calling does not fire in ai-mcp-service — OPEN (behavioral), with precise root cause; classpath side RESOLVED.**

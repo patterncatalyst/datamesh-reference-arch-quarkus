@@ -71,7 +71,14 @@ has_crd kialis.kiali.io && oc delete kiali --all -n istio-system --wait=true --t
 has_crd istios.sailoperator.io && oc delete istio --all --wait=true --timeout=300s >/dev/null 2>&1
 has_crd istiocnis.sailoperator.io && oc delete istiocni --all --wait=true --timeout=300s >/dev/null 2>&1
 has_crd kedacontrollers.keda.sh && oc delete kedacontroller --all -n openshift-keda --wait=true --timeout=300s >/dev/null 2>&1
-has_crd argocds.argoproj.io && oc delete argocd --all -n openshift-gitops --wait=true --timeout=300s >/dev/null 2>&1
+# The GitOps operator re-creates its default Argo CD instance if that is
+# simply deleted. Telling it not to run one makes the operator remove the
+# instance itself, finalizer included, before the operator goes.
+if oc get subscriptions.operators.coreos.com openshift-gitops-operator -n openshift-gitops-operator >/dev/null 2>&1; then
+    oc patch subscriptions.operators.coreos.com openshift-gitops-operator -n openshift-gitops-operator --type merge \
+        -p '{"spec":{"config":{"env":[{"name":"DISABLE_DEFAULT_ARGOCD_INSTANCE","value":"true"}]}}}' >/dev/null
+    wait_for 300 "default Argo CD instance removed by its operator" gone argocd openshift-gitops -n openshift-gitops
+fi
 ok "Kiali, Istio, IstioCNI, KedaController and Argo CD instances removed"
 
 step "4/6 Operators"
