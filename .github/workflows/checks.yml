@@ -1,0 +1,23 @@
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v5
+
+      - name: Forbidden syntax
+        run: bash scripts/forbidden-syntax.sh
+
+      - name: Shell syntax check
+        run: |
+          find scripts demos tooling -name '*.sh' -type f -print0 | xargs -0 -n1 bash -n
