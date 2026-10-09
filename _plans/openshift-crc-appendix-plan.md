@@ -52,8 +52,8 @@
 ## Live
 1. `minikube stop -p datamesh`.
 2. `crc start`, then `eval $(crc oc-env)`.
-3. `crc console --credentials`. Never record its output.
-4. `oc login -u kubeadmin`, entering the password interactively.
+3. `oc config use-context crc-admin` (written by `crc start`; no password needed).
+4. (no step: the kubeadmin login is not used)
 5. `oc new-project datamesh`.
 6. `install-infra`, `build-images`, `helm upgrade --install`, then `capture-evidence`.
 7. `openshift/teardown.sh`: helm uninstall, delete KafkaTopics and the Kafka CR, delete the project, remove the AMQ Streams Subscription, CSV and CRDs, then `crc stop`.
@@ -84,7 +84,9 @@
   - Full clean cycle from an empty CRC: teardown 46s, install-infra 50s, build-images 182s, deploy 33s, capture-evidence 13s; all 7 checks green, zero restarts, UIDs from the namespace range.
   - Live fixes folded in: quarkus-openshift (not container-image-openshift alone), quarkus.openshift.version for the tag, JAVA_MAX_MEM_RATIO, wait-for-postgres init container, config checksum, rollout-status wait, kafka.strimzi.io/v1.
   - DRQ-018..022 written; `_config.yml` excludes openshift/.
-- Next step: Wave 3 fold-in (chapter 22, diagrams, deck A7 group, nav files, README), then Wave 4 validation and the PR. Phase 2 platform tier (OSSM3, CMA) and native are not started.
+- Wave 3 done: chapter `_docs/22-running-on-openshift-crc.md`, diagrams `22-crc-openshift-topology` and `22-crc-image-build` (`scripts/make-openshift-diagrams.js`), deck Appendix A7 (4 slides, r1.2), `_parts/appendices.md`, `00-index`, `setup.html`, README.
+- Wave 4: forbidden-syntax OK; chapter links and images resolve; the `openshift` profile adds quarkus-openshift only with -Popenshift; secret grep of the branch diff clean. The Jekyll build runs in the Pages workflow (local gems not installed). The default `mvn verify` was not re-run locally (needs a container engine for Dev Services); only the poms changed, inside an inactive profile.
+- Next: PR. Not started: phase 2 platform tier (OSSM3, CMA), native build, GitOps Application.
 - When finished with CRC: `./openshift/teardown.sh` (removes everything, then crc stop).
 - Rules:
   - One cluster at a time.

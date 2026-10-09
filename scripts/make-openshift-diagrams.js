@@ -100,13 +100,13 @@ const band = (s, x, y, w, h, t, size = 14) => {
   // second row
   const r2 = 362;
   pillL(s, 358, r2, 182, "notification-service", "green", { h: rh });
-  s.arrow(449, r2, 449, ry + rh, { marker: "arr", w: 1.6, dash: "5 3" });
+  s.arrow(449, ry + rh, 449, r2, { marker: "arr", w: 1.6, dash: "5 3" });
   pillL(s, 954, r2, 160, "shipment.dispatched", "white", { h: rh });
   s.arrow(958, ry + rh, 1034, r2, { marker: "arr", w: 1.6 });
 
   // lane 3: data
   boxL(s, 210, 440, 480, 84, "blue", "Postgres StatefulSet datamesh-postgres-rw", ["rhel10/postgresql-16", "used by order, inventory, shipping, notification, review"]);
-  boxL(s, 710, 440, 420, 84, "orange", "Apicurio 3.2.4", ["Avro schemas, used by Kafka producers", "and consumers; reached through its Route"]);
+  boxL(s, 710, 440, 420, 84, "orange", "Apicurio 3.2.4", ["Avro schemas for the Kafka producers and", "consumers (in-cluster Service); Route for the host"]);
 
   save("22-crc-openshift-topology", s);
 })();
