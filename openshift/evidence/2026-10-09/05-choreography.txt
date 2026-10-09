@@ -1,18 +1,18 @@
-order 64858a9a-8c5e-41f5-94f4-cfd748df38ac
+order ad345df9-8f1a-4256-b349-d97c7f0c8ba0
 
 -- payment-service log
-2026-10-09 07:57:44,764 INFO  [com.patterncatalyst.datamesh.payment.PaymentProcessor] (executor-thread-1) Capturing payment pay-b5f97a8a-a6a0-4418-b441-b2a18e65ad74 for order 64858a9a-8c5e-41f5-94f4-cfd748df38ac (customer=crc-evidence, amount=9.99)
+2026-10-09 20:27:35,168 INFO  [com.patterncatalyst.datamesh.payment.PaymentProcessor] (executor-thread-1) Capturing payment pay-fee20f70-7e0c-477d-a2c2-bf84b46ccd45 for order ad345df9-8f1a-4256-b349-d97c7f0c8ba0 (customer=crc-evidence, amount=9.99)
 
 -- shipment table
- id | carrier | customer_id  |         dispatched_at         | item_sku  |               order_id               | quantity |   status   | tracking_number 
-----+---------+--------------+-------------------------------+-----------+--------------------------------------+----------+------------+-----------------
-  1 | FedEx   | crc-evidence | 2026-10-09 07:57:49.168135+00 | SKU-GIZMO | 64858a9a-8c5e-41f5-94f4-cfd748df38ac |        4 | dispatched | FE82A76D1D48F3
+ id | carrier | customer_id  |         dispatched_at         |  item_sku  |               order_id               | quantity |   status   | tracking_number 
+----+---------+--------------+-------------------------------+------------+--------------------------------------+----------+------------+-----------------
+  1 | USPS    | crc-evidence | 2026-10-09 20:27:43.850861+00 | SKU-WIDGET | ad345df9-8f1a-4256-b349-d97c7f0c8ba0 |        3 | dispatched | US3E073789ECA6
 (1 row)
 
 
 -- notification table (written by notification-service)
                order_id               |  event_type  | status 
 --------------------------------------+--------------+--------
- 64858a9a-8c5e-41f5-94f4-cfd748df38ac | order.placed | PLACED
+ ad345df9-8f1a-4256-b349-d97c7f0c8ba0 | order.placed | PLACED
 (1 row)
 

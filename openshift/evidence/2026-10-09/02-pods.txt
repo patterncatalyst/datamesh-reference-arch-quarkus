@@ -1,16 +1,16 @@
-POD                                 READY   RESTARTS   SCC             UID
-ai-mcp-service-6644fc6f54-286qk     true    0          restricted-v2   1000730000
-ai-rules-service-5455787556-scbk4   true    0          restricted-v2   1000730000
-apicurio-6956b74c66-l572w           true    0          restricted-v2   1000730000
-datamesh-dual-role-0                true    0          restricted-v2   1000730000
-datamesh-postgres-0                 true    0          restricted-v2   1000730000
-graphql-gateway-847fbcbd95-6ppzz    true    0          restricted-v2   1000730000
-inventory-service-d967995b9-8xpvq   true    0          restricted-v2   1000730000
-lgtm-6b76769f55-8krxw               true    0          anyuid          0
-ollama-765dbb7b76-xw6jq             true    0          restricted-v2   1000730000
-order-service-5d7b4b5777-wxkgt      true    0          restricted-v2   1000730000
-order-service-v2-d79c648df-4p9tc    true    0          restricted-v2   1000730000
-payment-service-6867549bb7-x2t4g    true    0          restricted-v2   1000730000
-review-service-6b7657f7b8-l8kzg     true    0          restricted-v2   1000730000
-shipping-service-654fb76f96-8t8tq   true    0          restricted-v2   1000730000
-namespace uid-range: 1000730000/10000
+POD                                  READY   RESTARTS   SCC             UID
+ai-mcp-service-6588959585-vmr96      true    0          restricted-v2   1000650000
+ai-rules-service-75fccdf7f8-pj9r6    true    0          restricted-v2   1000650000
+apicurio-5d59b94dfb-5bb85            true    0          restricted-v2   1000650000
+datamesh-dual-role-0                 true    0          restricted-v2   1000650000
+datamesh-postgres-0                  true    0          restricted-v2   1000650000
+graphql-gateway-7f86bf5c6b-s98tj     true    0          restricted-v2   1000650000
+inventory-service-56b8c7c58d-dblh2   true    0          restricted-v2   1000650000
+lgtm-5dcbf6d949-7j4pc                true    0          anyuid          0
+ollama-6c64c8b6bc-mrpng              true    0          restricted-v2   1000650000
+order-service-8574bcb48d-ssh5s       true    0          restricted-v2   1000650000
+order-service-v2-d79c648df-fg2r4     true    0          restricted-v2   1000650000
+payment-service-7d986586b6-tdg7s     true    0          restricted-v2   1000650000
+review-service-7d954f676c-7hqcf      true    0          restricted-v2   1000650000
+shipping-service-78db89b696-zrgnk    true    0          restricted-v2   1000650000
+namespace uid-range: 1000650000/10000

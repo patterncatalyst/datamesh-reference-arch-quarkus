@@ -1,7 +1,7 @@
 NAME          ID              SIZE      MODIFIED       
-qwen2.5:3b    357c53fb659c    1.9 GB    11 minutes ago    
-classify fresh strawberries -> {"category":"PERISHABLE","priority":"MEDIUM","fulfillmentType":"STANDARD"}
-classify industrial sulfuric acid, corrosive chemical -> {"category":"HAZARDOUS","priority":"HIGH","fulfillmentType":"SAME_DAY"}
+qwen2.5:3b    357c53fb659c    1.9 GB    14 minutes ago    
+classify fresh strawberries -> {"category":"PERISHABLE","priority":"HIGH","fulfillmentType":"SAME_DAY"}
+classify industrial sulfuric acid, corrosive chemical -> {"category":"HAZARDOUS","priority":"CRITICAL","fulfillmentType":"SAME_DAY"}
 classify antique crystal wine glasses -> {"category":"FRAGILE","priority":"MEDIUM","fulfillmentType":"STANDARD"}
 /api/orders/triage -> {"decision":"ROUTE_TO_WAREHOUSE","reason":"No fraud-hold or expedite condition matched; standard fulfillment"}
 /api/orders/triage -> {"decision":"EXPEDITE","reason":"Order amount >= 1000 with a LOW risk signal"}

@@ -5,20 +5,20 @@ servicemeshoperator3.v3.4.3         Succeeded
 
 -- pods: init containers (istio-proxy runs as a native sidecar)
 POD                                     REV       VERSION   INIT
-ai-mcp-service-6644fc6f54-286qk         default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
-ai-rules-service-5455787556-scbk4       default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
-apicurio-6956b74c66-l572w               <none>    <none>    <none>
+ai-mcp-service-6588959585-vmr96         default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+ai-rules-service-75fccdf7f8-pj9r6       default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+apicurio-5d59b94dfb-5bb85               <none>    <none>    <none>
 datamesh-postgres-0                     <none>    <none>    <none>
-graphql-gateway-847fbcbd95-6ppzz        default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
-inventory-service-d967995b9-8xpvq       default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
-lgtm-6b76769f55-8krxw                   <none>    <none>    <none>
-notification-service-5cd4d54594-bj65g   default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
-ollama-765dbb7b76-xw6jq                 <none>    <none>    <none>
-order-service-5d7b4b5777-wxkgt          default   v1        istio-validation,istio-proxy,wait-for-postgres
-order-service-v2-d79c648df-4p9tc        default   v2        istio-validation,istio-proxy
-payment-service-6867549bb7-x2t4g        default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
-review-service-6b7657f7b8-l8kzg         default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
-shipping-service-654fb76f96-8t8tq       default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+graphql-gateway-7f86bf5c6b-s98tj        default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+inventory-service-56b8c7c58d-dblh2      default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+lgtm-5dcbf6d949-7j4pc                   <none>    <none>    <none>
+notification-service-7b9fc7856c-hschz   default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+ollama-6c64c8b6bc-mrpng                 <none>    <none>    <none>
+order-service-8574bcb48d-ssh5s          default   v1        istio-validation,istio-proxy,wait-for-postgres
+order-service-v2-d79c648df-fg2r4        default   v2        istio-validation,istio-proxy
+payment-service-7d986586b6-tdg7s        default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+review-service-7d954f676c-7hqcf         default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+shipping-service-78db89b696-zrgnk       default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
 
 -- PeerAuthentication
 NAME                         MODE
@@ -27,7 +27,7 @@ graphql-gateway-permissive   PERMISSIVE
 
 -- plaintext from unmeshed apicurio pod to order-service: 000 exit=56
 
--- canary: 100 requests from graphql-gateway -> v1=91 v2=9 (VirtualService 90/10)
+-- canary: 100 requests from graphql-gateway -> v1=87 v2=13 (VirtualService 90/10)
 
 -- Kiali: namespace TLS MTLS_ENABLED
--- Kiali graph workloads: datamesh-postgres, graphql-gateway, inventory-service, lgtm, order-service, order-service-v2, payment-service, review-service, shipping-service, unknown
+-- Kiali graph workloads: datamesh-dual-role-0, datamesh-postgres, graphql-gateway, inventory-service, lgtm, notification-service, order-service, order-service-v2, payment-service, review-service, shipping-service, unknown

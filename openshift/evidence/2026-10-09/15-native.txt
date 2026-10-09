@@ -1,11 +1,11 @@
 BUILD                    STATUS     DURATION
-order-service-native-1   Complete   162000000000
-image image-registry.openshift-image-registry.svc:5000/datamesh/order-service-native@sha256:1676afbeb92d49bfb75759ddf547e226e278e952c4e56c6e67978095e8df4a14
+order-service-native-1   Complete   188000000000
+image image-registry.openshift-image-registry.svc:5000/datamesh/order-service-native@sha256:5bfe248953c26af37749c87acdc40621dcc51ccc10e60514935fb013a445946b
 
 -- startup
-2026-10-09 07:56:51,309 INFO  [io.quarkus] (main) order-service 1.0.0-SNAPSHOT native (powered by Quarkus 3.39.5) started in 0.077s. Listening on: http://0.0.0.0:8080
-2026-10-09 07:49:14,564 INFO  [io.quarkus] (main) order-service 1.0.0-SNAPSHOT on JVM (powered by Quarkus 3.39.5) started in 7.970s. Listening on: http://0.0.0.0:8080
+2026-10-09 20:26:13,036 INFO  [io.quarkus] (main) order-service 1.0.0-SNAPSHOT native (powered by Quarkus 3.40.1) started in 0.122s. Listening on: http://0.0.0.0:8080
+2026-10-09 20:17:16,163 INFO  [io.quarkus] (main) order-service 1.0.0-SNAPSHOT on JVM (powered by Quarkus 3.40.1) started in 9.486s. Listening on: http://0.0.0.0:8080
 
 -- working set (kubelet stats)
-order-service-v2-d79c648df-4p9tc: 200 MiB
-order-service-5d7b4b5777-wxkgt: 29 MiB
+order-service-8574bcb48d-ssh5s: 30 MiB
+order-service-v2-d79c648df-fg2r4: 215 MiB
