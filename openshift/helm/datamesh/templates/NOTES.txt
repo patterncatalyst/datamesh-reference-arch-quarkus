@@ -1,0 +1,8 @@
+datamesh is deploying into {{ .Release.Namespace }}.
+
+  Watch it come up:  oc get pods -n {{ .Release.Namespace }} -w
+  Route hosts:       oc get routes -n {{ .Release.Namespace }}
+  GraphQL:           https://<graphql-gateway route host>/graphql
+  Apicurio:          https://<apicurio route host>/apis/registry/v3/search/artifacts
+  Evidence:          ./openshift/capture-evidence.sh
+  Tear down:         ./openshift/teardown.sh

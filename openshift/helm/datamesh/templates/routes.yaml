@@ -1,0 +1,39 @@
+# Host access on OpenShift Local is through the router, not NodePorts:
+# https://<route>-<namespace>.apps-crc.testing, edge TLS, HTTP redirected.
+{{- if .Values.routes.gateway }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: graphql-gateway
+  labels:
+    app.kubernetes.io/name: graphql-gateway
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  to:
+    kind: Service
+    name: graphql-gateway
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}
+{{- if .Values.routes.apicurio }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: apicurio
+  labels:
+    app.kubernetes.io/name: apicurio-registry
+    {{- include "datamesh.labels" . | nindent 4 }}
+spec:
+  to:
+    kind: Service
+    name: apicurio
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}

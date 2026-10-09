@@ -1,0 +1,9 @@
+apiVersion: v2
+name: datamesh
+description: >-
+  The datamesh reference architecture's 7 Quarkus services, Postgres and
+  Apicurio on OpenShift Local (CRC). Kafka comes from the AMQ Streams operator
+  (openshift/install-infra.sh); images come from openshift/build-images.sh.
+type: application
+version: 0.1.0
+appVersion: "v1"

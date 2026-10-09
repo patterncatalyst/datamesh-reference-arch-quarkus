@@ -1,0 +1,38 @@
+# Shared env contract: the same keys as the minikube ConfigMap
+# (k8s/base/config.yaml), resolved to this namespace's Services.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datamesh-app-config
+  labels:
+    {{- include "datamesh.labels" . | nindent 4 }}
+data:
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.kafka.bootstrap | quote }}
+  APICURIO_REGISTRY_URL: "http://apicurio:8080/apis/registry/v3"
+  JDBC_URL: "jdbc:postgresql://datamesh-postgres-rw:5432/{{ .Values.postgres.database }}"
+  QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://datamesh-postgres-rw:5432/{{ .Values.postgres.database }}"
+  INVENTORY_GRPC_HOST: "inventory-service"
+  INVENTORY_GRPC_PORT: "9000"
+  QUARKUS_PROFILE: "prod"
+  JAVA_OPTS_APPEND: "-Duser.timezone=UTC"
+  JAVA_MAX_RAM_RATIO: {{ .Values.javaMaxRamRatio | quote }}
+---
+# Postgres credentials, under the name and keys CloudNativePG generates on
+# minikube (datamesh-postgres-app: username, password). The password is
+# generated once at install and kept across upgrades via lookup; it is
+# never written to values, files or evidence.
+{{- $secret := lookup "v1" "Secret" .Release.Namespace "datamesh-postgres-app" }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: datamesh-postgres-app
+  labels:
+    {{- include "datamesh.labels" . | nindent 4 }}
+type: Opaque
+data:
+  username: {{ .Values.postgres.username | b64enc | quote }}
+  {{- if $secret }}
+  password: {{ index $secret.data "password" | quote }}
+  {{- else }}
+  password: {{ randAlphaNum 24 | b64enc | quote }}
+  {{- end }}
