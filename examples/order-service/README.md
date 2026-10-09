@@ -42,7 +42,7 @@ checks with zero extra config).
 - **`OrderResource`** -- wires the above: check stock, persist, emit,
   respond.
 
-## Verified Quarkus 3.39.5 configuration
+## Verified Quarkus configuration (checked on 3.39.5; builds on 3.40.1)
 
 Checked with `quarkus_searchDocs` against this project's pinned Quarkus
 version:
@@ -107,8 +107,8 @@ modules built concurrently.
 
 `OrderPlacedAvroWireIT` is a plain JUnit integration test that verifies
 `order.placed` is Avro on the wire and not JSON. It starts its own
-Testcontainers Kafka (`apache/kafka-native:4.2.0`) and Apicurio Registry
-(`quay.io/apicurio/apicurio-registry:3.1.7`), so it does not need
+Testcontainers Kafka (`apache/kafka-native:4.3.1`) and Apicurio Registry
+(`quay.io/apicurio/apicurio-registry:3.3.3`), so it does not need
 `docker compose up`.
 
 - It produces a real `capstone.order.v1.OrderPlaced` with

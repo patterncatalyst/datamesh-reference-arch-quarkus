@@ -42,9 +42,12 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  *       array elicits a {@code tool_calls} response from both {@code qwen2.5:3b}
  *       and {@code qwen2.5:7b-instruct}); tool registration and tag matching (the
  *       ai-tool route is tagged {@code shipping}, the agent filters on
- *       {@code shipping}); and langchain4j versions (classpath matches the seed
- *       exactly — Quarkiverse 1.7.4, dev.langchain4j 1.11.0, camel 4.22.0 /
- *       camel-quarkus 3.39.0; the seed itself ships no test asserting this).</li>
+ *       {@code shipping}); and langchain4j versions (reproduced on the seed's
+ *       classpath — Quarkiverse 1.7.4, dev.langchain4j 1.11.0, camel 4.22.0 /
+ *       camel-quarkus 3.39.0 — and again on 2026-10-09 on the Quarkus 3.40.1
+ *       platform train: quarkus-langchain4j 1.13.3, dev.langchain4j 1.19.3,
+ *       camel 4.22.1 / camel-quarkus 3.40.0, Ollama 0.40.2; the seed itself
+ *       ships no test asserting this).</li>
  * </ul>
  * The IT is opt-in ({@code -Dollama.tests.enabled=true}) and is not bound into the
  * default {@code mvn verify}, so the deferral does not break the reactor build.

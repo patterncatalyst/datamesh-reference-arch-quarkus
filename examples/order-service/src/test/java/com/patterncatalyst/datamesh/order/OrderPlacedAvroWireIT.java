@@ -39,8 +39,8 @@ import io.apicurio.registry.serde.avro.AvroSerdeConfig;
  * Byte-level proof that {@code order.placed} is Avro on
  * the wire, not JSON. Self-provisions its own Kafka + Apicurio Registry
  * Testcontainers (pinned to the exact tags step 8a validated in
- * {@code infra/README.md} / {@code compose.yaml} -- {@code apache/kafka-native:4.2.0}
- * and {@code quay.io/apicurio/apicurio-registry:3.1.7} -- so the broker and
+ * {@code infra/README.md} / {@code compose.yaml} -- {@code apache/kafka-native:4.3.1}
+ * and {@code quay.io/apicurio/apicurio-registry:3.3.3} -- so the broker and
  * registry behavior this test exercises matches both Quarkus Dev Services
  * and the standalone compose stack, matching the wire-compat requirement).
  *
@@ -68,11 +68,11 @@ class OrderPlacedAvroWireIT {
     private static final String TOPIC = "order.placed";
 
     @Container
-    static KafkaContainer kafka = new KafkaContainer("apache/kafka-native:4.2.0");
+    static KafkaContainer kafka = new KafkaContainer("apache/kafka-native:4.3.1");
 
     @Container
     static GenericContainer<?> apicurio = new GenericContainer<>(
-            DockerImageName.parse("quay.io/apicurio/apicurio-registry:3.1.7"))
+            DockerImageName.parse("quay.io/apicurio/apicurio-registry:3.3.3"))
             .withExposedPorts(8080)
             // infra/README.md ("Apicurio Registry storage"): 3.1.7 removed the
             // plain in-memory "mem" storage kind used by older 3.0.x images

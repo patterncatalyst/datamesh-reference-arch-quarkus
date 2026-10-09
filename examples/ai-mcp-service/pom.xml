@@ -22,8 +22,8 @@
     that tool, and an embedded MCP server exposing shipping-tagged tools to
     external MCP clients. Ported from the enterprise-integration-patterns-
     with-camel "42-ai-mcp" seed onto this reactor's pinned BOMs
-    (quarkus-camel-bom 3.39.5, quarkus-langchain4j-bom 1.14.1 -- see the
-    langchain4j API drift notes in this module's README). All BOM versions
+    (quarkus-camel-bom 3.40.1, the platform quarkus-langchain4j-bom 3.40.1 --
+    see the langchain4j version notes in this module's README). All BOM versions
     are inherited from the parent; this module does NOT declare its own
     dependencyManagement.
   </description>

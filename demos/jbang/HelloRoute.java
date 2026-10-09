@@ -12,7 +12,7 @@
 // `jbang demos/jbang/HelloRoute.java` resolves the //DEPS above from Maven
 // Central and runs main() below. Every dependency is pinned to a supported
 // stable release: Camel 4.22.1 (the latest patch on the 4.22 line that the
-// quarkus-camel-bom 3.39.5 platform pins) and slf4j-simple 2.0.20. The script
+// quarkus-camel-bom 3.40.1 platform pins) and slf4j-simple 2.0.20. The script
 // runs from a local file only — no remote catalog alias or GitHub-hosted
 // launcher is fetched, so jbang has nothing to ask the presenter to trust.
 //

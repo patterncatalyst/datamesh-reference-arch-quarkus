@@ -81,11 +81,11 @@ import io.apicurio.registry.serde.avro.AvroSerdeConfig;
 class OrderChoreographyChainIT {
 
     @Container
-    static KafkaContainer kafka = new KafkaContainer("apache/kafka-native:4.2.0");
+    static KafkaContainer kafka = new KafkaContainer("apache/kafka-native:4.3.1");
 
     @Container
     static GenericContainer<?> apicurio = new GenericContainer<>(
-            DockerImageName.parse("quay.io/apicurio/apicurio-registry:3.1.7"))
+            DockerImageName.parse("quay.io/apicurio/apicurio-registry:3.3.3"))
             .withExposedPorts(8080)
             .withEnv("APICURIO_STORAGE_KIND", "sql")
             .withEnv("APICURIO_STORAGE_SQL_KIND", "h2")

@@ -27,7 +27,7 @@
 
   <properties>
     <!-- org.apache.avro:avro itself is version-managed by the imported
-         quarkus-bom (currently 1.12.2 under quarkus-bom 3.39.5); only the
+         quarkus-bom (currently 1.12.2 under quarkus-bom 3.40.1); only the
          avro-maven-plugin build plugin needs an explicit version here,
          kept in lock-step with that managed avro runtime version. -->
     <avro.version>1.12.2</avro.version>

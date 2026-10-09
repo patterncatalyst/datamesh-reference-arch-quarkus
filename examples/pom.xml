@@ -20,35 +20,32 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-    <!-- JDK 25, Quarkus 3.39.5, Maven 3.9.x -->
+    <!-- JDK 25, Quarkus 3.40.1 (LTS), Maven 3.9.x -->
     <maven.compiler.release>25</maven.compiler.release>
 
     <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-    <quarkus.platform.version>3.39.5</quarkus.platform.version>
+    <quarkus.platform.version>3.40.1</quarkus.platform.version>
 
     <quarkus-camel-bom.group-id>io.quarkus.platform</quarkus-camel-bom.group-id>
-    <quarkus-camel-bom.version>3.39.5</quarkus-camel-bom.version>
+    <quarkus-camel-bom.version>3.40.1</quarkus-camel-bom.version>
 
-    <quarkus-langchain4j-bom.group-id>io.quarkiverse.langchain4j</quarkus-langchain4j-bom.group-id>
-    <!-- Pinned to the seed's version (42-ai-mcp). 1.7.4 lets the
-         Quarkiverse BOM manage the whole dev.langchain4j family at 1.11.0 with no
-         manual pin — the exact, converged classpath the
-         enterprise-integration-patterns-with-camel seed runs (dev.langchain4j
-         1.11.0, Quarkiverse 1.7.4, camel 4.22.0 / camel-quarkus 3.39.0). The
-         earlier 1.14.1 bump needed a forced dev.langchain4j-bom:1.20.2 to converge
-         its split core/ollama versions, which added a manual pin and its own
-         breakage; 1.7.4 avoids all of that.
-         NOTE: version is NOT the cause of the Ollama tool-calling failure. The
-         empty-toolExecutions behaviour reproduces on every version tried
-         and is an upstream integration issue — camel-quarkus-support-langchain4j
-         forces the JAX-RS HTTP client factory globally, and the agent's tool-call
-         round trip never fires. The behavioural IT is opt-in and deferred; see
-         the ai-mcp-service AgentProducers javadoc. -->
-    <quarkus-langchain4j-bom.version>1.7.4</quarkus-langchain4j-bom.version>
+    <quarkus-langchain4j-bom.group-id>io.quarkus.platform</quarkus-langchain4j-bom.group-id>
+    <!-- The platform's own quarkus-langchain4j-bom (DRQ-029), at the platform
+         version: it pins quarkus-langchain4j 1.13.3 and dev.langchain4j 1.19.3,
+         the train camel-quarkus 3.40.0 is built and tested against. The earlier
+         Quarkiverse 1.7.4 override (the 42-ai-mcp seed's version) no longer
+         builds: camel-quarkus 3.40.0's langchain4j deployment needs
+         ExcludeFromImpliedAiServiceBuildItem, which 1.7.4 does not ship.
+         NOTE: version is NOT the cause of the Ollama tool-calling failure
+         (DEF-001). camel-quarkus-support-langchain4j forces the JAX-RS HTTP
+         client factory globally, and the agent's tool-call round trip never
+         fires. The behavioural IT is opt-in and deferred; see the
+         ai-mcp-service AgentProducers javadoc. -->
+    <quarkus-langchain4j-bom.version>${quarkus.platform.version}</quarkus-langchain4j-bom.version>
 
-    <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
-    <surefire-plugin.version>3.5.2</surefire-plugin.version>
+    <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+    <surefire-plugin.version>3.6.0</surefire-plugin.version>
   </properties>
 
   <!-- All 11 modules below are implemented; this is a full reactor build. -->
@@ -68,21 +65,13 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- BOM import ORDER is load-bearing, and mirrors the 42-ai-mcp
-           seed exactly. quarkus-langchain4j-bom:1.7.4 is imported FIRST so it wins
-           version mediation for the entire langchain4j surface:
-             - quarkus-langchain4j-core -> 1.7.4 (else quarkus-camel-bom drags it
-               to 1.13.3, splitting the Quarkiverse deployment/runtime pair and
-               throwing NoSuchMethodError in AiServicesProcessor at build time),
-             - dev.langchain4j.* -> 1.11.0 (the converged train the seed ships).
-           No manual dev.langchain4j-bom pin is needed — the seed has none, and a
-           forced dev.langchain4j-bom:1.20.2 (a previous over-fix) added a split of
-           its own. camel-quarkus-langchain4j-agent:3.39.0 is the same artifact the
-           seed ships against 1.11.0, so the down-mediation is API-safe. Child
-           modules must never re-declare or re-pin these imports.
-           This ordering gives a clean, seed-identical classpath; it does NOT make
-           Ollama tool-calling fire — that is the separate upstream issue
-           documented above. -->
+      <!-- BOM import order: quarkus-langchain4j-bom first, then quarkus-bom,
+           then quarkus-camel-bom. All three are the same platform release
+           (DRQ-029), so they agree on the langchain4j surface
+           (quarkus-langchain4j 1.13.3, dev.langchain4j 1.19.3) and the order no
+           longer decides any version. Child modules must never re-declare or
+           re-pin these imports. The order does NOT make Ollama tool-calling
+           fire; that is the separate upstream issue documented above. -->
       <dependency>
         <groupId>${quarkus-langchain4j-bom.group-id}</groupId>
         <artifactId>quarkus-langchain4j-bom</artifactId>

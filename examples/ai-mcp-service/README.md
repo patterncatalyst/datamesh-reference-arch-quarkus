@@ -7,8 +7,8 @@ onto this reactor's pinned BOMs:
 
 | BOM | Seed | This module |
 |---|---|---|
-| `quarkus-camel-bom` | 3.39.3 | **3.39.5** (parent-pinned) |
-| `quarkus-langchain4j-bom` | 1.7.4 | **1.7.4** (parent-pinned, seed-matched) |
+| `quarkus-camel-bom` | 3.39.3 | **3.40.1** (parent-pinned) |
+| `quarkus-langchain4j-bom` | 1.7.4 (Quarkiverse) | **3.40.1** (`io.quarkus.platform`, parent-pinned; quarkus-langchain4j 1.13.3) |
 
 All BOM versions come from the parent (`../pom.xml`). This module declares no
 `<dependencyManagement>` of its own.
@@ -31,26 +31,27 @@ The embedded MCP server (`camel-quarkus-mcp-server`) publishes every
 `shipping`-tagged `ai-tool` route (i.e. `order-status`) to external MCP
 clients; see `quarkus.camel.mcp-server.*` in `application.properties`.
 
-## langchain4j versions (seed-matched, converged)
+## langchain4j versions (platform-aligned)
 
-The parent pins `quarkus-langchain4j-bom:1.7.4` and imports it **first** in
-`dependencyManagement`, which yields a clean, fully converged classpath that
-matches the seed exactly:
+The parent imports the platform's own `io.quarkus.platform:quarkus-langchain4j-bom`
+at the platform version (3.40.1, DRQ-029), so langchain4j comes from the same
+platform release as Quarkus and Camel Quarkus:
 
 ```
-io.quarkiverse.langchain4j:quarkus-langchain4j-*  -> 1.7.4
-dev.langchain4j:langchain4j-* (core/ollama/http-client/mcp/...) -> 1.11.0
-org.apache.camel:camel-langchain4j-agent(-api)    -> 4.22.0
-org.apache.camel.quarkus:camel-quarkus-langchain4j-agent -> 3.39.0
+io.quarkiverse.langchain4j:quarkus-langchain4j-*  -> 1.13.3
+dev.langchain4j:langchain4j-* (core/ollama/http-client/...) -> 1.19.3
+dev.langchain4j:langchain4j-mcp/-embeddings/-guardrails -> 1.19.3-beta29
+org.apache.camel:camel-langchain4j-agent(-api)    -> 4.22.1
+org.apache.camel.quarkus:camel-quarkus-langchain4j-agent -> 3.40.0
 ```
 
-No manual `dev.langchain4j-bom` pin is needed — the import order alone keeps the
-whole family at 1.11.0 (a brief 1.14.1 experiment required a forced
-`dev.langchain4j-bom:1.20.2` to converge a split core/ollama graph and is not
-used). The `OllamaChatModel` / `Agent` / `AgentConfiguration` /
-`AgentWithoutMemory` APIs this module uses are stable across these versions and
-compile as-is. See `../pom.xml` for the BOM import order, which matters, and
-the repo root for the version matrix.
+The earlier seed-matched override (Quarkiverse 1.7.4, dev.langchain4j 1.11.0)
+no longer builds: camel-quarkus 3.40.0's langchain4j deployment module needs
+`ExcludeFromImpliedAiServiceBuildItem`, which 1.7.4 does not ship. The
+`-betaNN` modules are how langchain4j publishes its incubating modules; the
+platform BOM manages them, as it did before (`1.11.0-beta19`). The
+`OllamaChatModel` / `Agent` / `AgentConfiguration` / `AgentWithoutMemory` APIs
+this module uses compile as-is. No manual `dev.langchain4j-bom` pin is needed.
 
 ## Known limitation: Ollama tool calling does not fire on this stack
 
@@ -66,8 +67,10 @@ Quarkiverse JAX-RS HTTP client factory globally
 `OllamaChatModel`'s transport and `base-url` are not honoured and the agent's
 tool-calling round trip never fires. Ruled out: model capability (a direct
 `/api/chat` curl with a `tools` array returns `tool_calls`), tool/tag
-registration, langchain4j version (reproduces on all; classpath matches the
-seed, which ships no test asserting this), and an explicit JDK HTTP client.
+registration, langchain4j version (reproduces on all, including the seed's
+classpath and, re-run 2026-10-09, the Quarkus 3.40.1 platform train with
+Ollama 0.40.2; the seed ships no test asserting this), and an explicit JDK
+HTTP client.
 
 The IT is `*IT` (Surefire skips it), gated behind `-Dollama.tests.enabled=true`,
 and failsafe is **not** bound in this module, so the default `mvn verify` never
