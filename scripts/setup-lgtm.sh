@@ -284,7 +284,7 @@ helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
 
 # ─── Grafana (with datasources + dashboards pre-provisioned) ────────────────
 printf '==> Installing Grafana %s\n' "$GRAFANA_VERSION"
-helm upgrade --install grafana grafana/grafana \
+helm upgrade --install grafana grafana-community/grafana \
     --version "$GRAFANA_VERSION" \
     --namespace "$NAMESPACE" \
     --wait \
