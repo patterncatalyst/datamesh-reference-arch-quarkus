@@ -9,7 +9,8 @@
 # CRDs (Cluster, Pooler, Backup, ... — always cluster-scoped) and runs a
 # controller in cnpg-system that reconciles those CRs across every namespace.
 #
-# The Cluster CR pins postgresql.parameters.timezone=UTC (matches
+# The Cluster CR pins the PostgreSQL image (PG_IMAGE, 18.6, the same minor as
+# the compose stack and Dev Services) and postgresql.parameters.timezone=UTC (matches
 # the Testcontainers/Dev Services convention elsewhere in this repo; avoids
 # the "invalid value for parameter TimeZone" boot failure some hosts trigger
 # with legacy Olson zone ids like US/Eastern).
@@ -28,7 +29,9 @@ set -euo pipefail
 NS="${1:-datamesh}"
 PROFILE_NAME="datamesh"
 OPERATOR_NS="cnpg-system"
-CHART_VERSION="${CNPG_CHART_VERSION:-0.23.0}"
+CHART_VERSION="${CNPG_CHART_VERSION:-0.29.1}"   # operator 1.30.1
+# PostgreSQL image for the Cluster, pinned instead of the operator default.
+PG_IMAGE="${PG_IMAGE:-ghcr.io/cloudnative-pg/postgresql:18.6-standard-trixie}"
 RELEASE_NAME="cnpg"
 CLUSTER_NAME="${CLUSTER_NAME:-datamesh-postgres}"
 PG_DATABASE="${PG_DATABASE:-datamesh}"
@@ -89,6 +92,7 @@ metadata:
   namespace: ${NS}
 spec:
   instances: 1
+  imageName: ${PG_IMAGE}
   storage:
     size: 5Gi
   postgresql:
@@ -103,7 +107,8 @@ EOF
 step "Waiting for the Postgres primary to be Ready (can take a couple minutes)"
 pg_ready=0
 for i in $(seq 1 72); do
-    status="$(kubectl get pods -n "$NS" -l "cnpg.io/cluster=${CLUSTER_NAME},role=primary" \
+    # cnpg.io/instanceRole replaces the deprecated role label (CNPG 1.30).
+    status="$(kubectl get pods -n "$NS" -l "cnpg.io/cluster=${CLUSTER_NAME},cnpg.io/instanceRole=primary" \
         -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)"
     if [[ "$status" == "True" ]]; then
         pg_ready=1

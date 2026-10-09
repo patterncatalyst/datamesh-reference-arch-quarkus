@@ -223,7 +223,7 @@ contentSlide({ eyebrow: "Quarkus capability tour", title: "Continuous testing",
   bullets: [
     { lead: "mvn quarkus:dev", text: "with quarkus.test.continuous-testing=enabled reruns a module's tests on every save." },
     { lead: "Dev Services", text: "starts the Testcontainers those tests need (Postgres, Kafka, Apicurio) with no docker compose and no .env.", lvl: 1 },
-    { text: "The demo parses the Quarkus 3.39.5 pass banner in order-service's dev log and asserts passing == run. A missing banner fails the demo.", lvl: 1 },
+    { text: "The demo parses the Quarkus continuous-testing pass banner in order-service's dev log and asserts passing == run. A missing banner fails the demo.", lvl: 1 },
   ],
   notes: "DEMO 7 of 19. What it does: continuous testing and native compilation sit at opposite ends of the feedback-loop spectrum: instant, infra-provisioned reruns on one end and a multi-minute ahead-of-time compile on the other. Dev Services applies only to the former. A demo that cannot observe its target capability should fail rather than claim less than it set out to, so a missing banner fails this one. What to show: the banner line 'All 4 tests are passing (0 skipped), 4 tests were run in 8318ms.' Infra: bare (JDK 25 and Maven only; Dev Services starts its own containers). Fallback: the recorded banner line." });
 
@@ -429,7 +429,7 @@ contentSlide({ eyebrow: "AI + rules triage", title: "Tool calling through the MC
 /* ====================== 05 · QUARKUS VS. SPRING BOOT ====================== */
 (() => {
   const s = divider({ num: "05", title: "Quarkus vs. Spring Boot", sub: "The same order-service data product, rebuilt as a Spring Boot twin and measured side by side on the JVM, with and without the AOT cache." });
-  s.addNotes("The one section that steps outside Quarkus. A runnable Spring Boot 4.0.8 twin on the same JDK 25, with a matched dependency surface (REST, JPA as the Panache equivalent, Kafka and Avro, gRPC client), so the numbers reflect the framework and not a difference in scope. No demo-springboot.sh exists. The comparison is run by scripts/compare-quarkus-springboot.sh, with an --aot mode for the JDK 25 AOT cache.");
+  s.addNotes("The one section that steps outside Quarkus. A runnable Spring Boot 4.1.1 twin on the same JDK 25 (the measured numbers came from Spring Boot 4.0.8 and Quarkus 3.39.5), with a matched dependency surface (REST, JPA as the Panache equivalent, Kafka and Avro, gRPC client), so the numbers reflect the framework and not a difference in scope. No demo-springboot.sh exists. The comparison is run by scripts/compare-quarkus-springboot.sh, with an --aot mode for the JDK 25 AOT cache.");
 })();
 
 diagramSlide({ eyebrow: "Quarkus vs. Spring Boot", title: "Same workload, same JVM, two startup paths",
@@ -486,7 +486,7 @@ diagramSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "The 
 diagramSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "Elastic products: scale on lag, even to zero",
   image: "07-keda-lag",
   caption: "The KEDA Kafka-lag scaler polls consumer-group lag on order.placed and scales notification-service from zero to N replicas once lag crosses the threshold, then back to zero after the cooldown.",
-  notes: "Why not CPU: a consumer idling at 0% CPU with a 10,000-message backlog should scale up, and CPU cannot see that; lag can. scripts/setup-keda.sh installs KEDA core 2.19.0 through Helm. Scale to zero means an elastic data product costs nothing while idle." });
+  notes: "Why not CPU: a consumer idling at 0% CPU with a 10,000-message backlog should scale up, and CPU cannot see that; lag can. scripts/setup-keda.sh installs KEDA core 2.21.0 through Helm. Scale to zero means an elastic data product costs nothing while idle." });
 
 contentSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "Scaling on Kafka lag",
   subtitle: "Zero to N replicas and back on Kubernetes",
@@ -500,7 +500,7 @@ contentSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "Scal
 diagramSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "The KEDA HTTP add-on, as a system",
   image: "07-keda-http-addon",
   caption: "The interceptor proxy buffers requests to graphql-gateway and reports request rate to the external scaler, which drives the HTTPScaledObject's zero-to-N activation.",
-  notes: "The HTTP add-on is a small system, not one component: an interceptor proxy sits in front of the scaled Deployment, buffers requests while the Deployment is at zero, and reports rate to an external scaler. It is pinned to 0.15.0 because v0.14.0 shipped a panic (upstream issue #1668) that 0.15.0 fixes, and 0.15.0 adds HTTP/2 and gRPC support. The interceptor's default wait timeout of 20 s is shorter than a cold JVM boot, so interceptor.replicas.waitTimeout is raised to 180 s; without that, a wake-up request returns 502 with 'context deadline exceeded' before a replica is ready. The k8s/keda README records both details." });
+  notes: "The HTTP add-on is a small system, not one component: an interceptor proxy sits in front of the scaled Deployment, buffers requests while the Deployment is at zero, and reports rate to an external scaler. It is pinned to 0.16.0, the newest stable release; v0.14.0 shipped a panic (upstream issue #1668) that 0.15.0 fixed. A cold JVM boot needs the interceptor to hold the wake-up request, so interceptor.readinessTimeout (which replaces the deprecated interceptor.replicas.waitTimeout) is set to 180 s; since 0.14.0 the default is disabled and a timeout answers 504, not 502. The k8s/keda README records both details." });
 
 diagramSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "Elastic reads: scaling on request volume",
   image: "07-keda-http",
@@ -511,7 +511,7 @@ contentSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "Scal
   subtitle: "The KEDA HTTP add-on wakes graphql-gateway on demand",
   demoRef: "demos/demo-keda-http.sh",
   bullets: [
-    { lead: "KEDA HTTP add-on", text: "scales graphql-gateway from zero on inbound request rate: k8s/base/graphql-gateway.yaml and k8s/keda/gateway-httpscaledobject.yaml (http.keda.sh/v1alpha1, add-on 0.15.0)." },
+    { lead: "KEDA HTTP add-on", text: "scales graphql-gateway from zero on inbound request rate: k8s/base/graphql-gateway.yaml and k8s/keda/gateway-httpscaledobject.yaml (http.keda.sh/v1alpha1, add-on 0.16.0)." },
     { text: "The interceptor's wait timeout is raised from 20 s to 180 s to cover a cold JVM boot.", lvl: 1 },
     { text: "Asserted: a scaled-to-zero deployment reaches at least one replica within a 240-second budget.", lvl: 1 },
   ],
@@ -525,7 +525,7 @@ contentSlide({ eyebrow: "Platform: self-serve, elastic, resilient", title: "Scal
 
 diagramSlide({ eyebrow: "Governance, mesh, observability", title: "Istio: control plane in, selective injection",
   image: "06-istio-mesh",
-  caption: "The Istio control plane is installed cluster-wide through Helm (1.29.0). The datamesh namespace is left unlabeled for auto-injection; sidecar membership is opted in per Deployment.",
+  caption: "The Istio control plane is installed cluster-wide through Helm (1.31.1, charts from the checksum-verified release tarball). The datamesh namespace is left unlabeled for auto-injection; sidecar membership is opted in per Deployment.",
   notes: "scripts/setup-istio.sh installs istio-base and istiod with helm upgrade --install, then waits for kubectl rollout status deployment/istiod to reach Available instead of trusting Helm's --wait. Injection is selective: namespace-wide injection breaks Job pods (the sidecar never exits, so the job hangs at 1/2) and collides with CloudNativePG's own Postgres TLS. Each Deployment opts in through the sidecar.istio.io/inject: \"true\" label on its pod template. Mutation happens at pod admission, not at kubectl apply, so a running pod needs a rollout restart to pick it up." });
 
 diagramSlide({ eyebrow: "Governance, mesh, observability", title: "mTLS between meshed services, and what stays outside",
@@ -535,7 +535,7 @@ diagramSlide({ eyebrow: "Governance, mesh, observability", title: "mTLS between 
 
 diagramSlide({ eyebrow: "Governance, mesh, observability", title: "The LGTM stack: four backends, one Collector",
   image: "08-observability-stack",
-  caption: "Loki, Tempo, Mimir, and Grafana, filesystem-backed and single-replica, fed by one shared OpenTelemetry Collector (grafana/otel-lgtm:0.8.1).",
+  caption: "Loki, Tempo, Mimir, and Grafana, filesystem-backed and single-replica, fed by one shared OpenTelemetry Collector (on compose, all of it in grafana/otel-lgtm:0.36.0).",
   notes: "LGTM is part of the always-on compose baseline and is not profile-gated, unlike the lgtm-docker-stack skill's default template: docker compose up -d with no flag brings it up. Automatic platform behavior (autoscaling, mesh routing, retries) is only reassuring if you can watch it happen, and this stack makes it visible." });
 
 diagramSlide({ eyebrow: "Governance, mesh, observability", title: "Three signals, correlated across a domain",
@@ -748,8 +748,8 @@ diagramSlide({ eyebrow: "Appendix A6", title: "The three engines, compared",
 
 diagramSlide({ eyebrow: "Appendix A7", title: "Running on OpenShift Local",
   image: "22-crc-openshift-topology",
-  caption: "The same seven services in one project: two edge-TLS Routes in front, Kafka from AMQ Streams, Postgres 16 and Apicurio 3.2.4 behind, under restricted-v2.",
-  notes: "The deployed topology on OpenShift Local (CRC 4.22). The host browser or curl reaches two edge-TLS Routes: graphql-gateway-datamesh.apps-crc.testing and apicurio-datamesh.apps-crc.testing. The gateway calls order-service over REST on 8080 and inventory-service over gRPC on 9000, and order-service also calls inventory-service over gRPC. Kafka is the cluster named datamesh, from AMQ Streams 3.2.1 with Kafka 4.2.0 on one KRaft node; the operator sits in openshift-operators through OLM with a pinned CSV. The choreography is unchanged: order-service publishes order.placed, payment-service publishes payment.captured, shipping-service publishes shipment.dispatched, and notification-service also consumes order.placed. Postgres is a StatefulSet named datamesh-postgres-rw on the rhel10/postgresql-16 image, used by order, inventory, shipping, notification, and review. Apicurio 3.2.4 holds the Avro schemas. review-service runs with its OIDC tenant disabled. Everything runs under the restricted-v2 security context constraint." });
+  caption: "The same seven services in one project: two edge-TLS Routes in front, Kafka from AMQ Streams, PostgreSQL 18 and Apicurio 3.3.3 behind, under restricted-v2.",
+  notes: "The deployed topology on OpenShift Local (CRC 4.22). The host browser or curl reaches two edge-TLS Routes: graphql-gateway-datamesh.apps-crc.testing and apicurio-datamesh.apps-crc.testing. The gateway calls order-service over REST on 8080 and inventory-service over gRPC on 9000, and order-service also calls inventory-service over gRPC. Kafka is the cluster named datamesh, from AMQ Streams 3.2.1 with Kafka 4.2.0 on one KRaft node; the operator sits in openshift-operators through OLM with a pinned CSV. The choreography is unchanged: order-service publishes order.placed, payment-service publishes payment.captured, shipping-service publishes shipment.dispatched, and notification-service also consumes order.placed. Postgres is a StatefulSet named datamesh-postgres-rw on the rhel10/postgresql-18 image, used by order, inventory, shipping, notification, and review. Apicurio 3.3.3 holds the Avro schemas. review-service runs with its OIDC tenant disabled. Everything runs under the restricted-v2 security context constraint." });
 
 diagramSlide({ eyebrow: "Appendix A7", title: "Building images inside the cluster",
   image: "22-crc-image-build",
@@ -762,7 +762,7 @@ contentSlide({ eyebrow: "Appendix A7", title: "What changes on OpenShift",
     { lead: "Host access", sep: " — ", text: "Routes with edge TLS replace NodePorts on 127.0.0.1." },
     { lead: "Images", sep: " — ", text: "built in the cluster by quarkus-openshift binary S2I." },
     { lead: "Kafka", sep: " — ", text: "AMQ Streams from OperatorHub instead of Strimzi through Helm." },
-    { lead: "Postgres", sep: " — ", text: "a Postgres 16 StatefulSet on the Red Hat image instead of CloudNativePG." },
+    { lead: "Postgres", sep: " — ", text: "a PostgreSQL 18 StatefulSet on the Red Hat image instead of CloudNativePG." },
     { lead: "review-service", sep: " — ", text: "runs with the OIDC tenant disabled; DELETE answers 401." },
   ],
   notes: "Six differences from the minikube path. First, the restricted-v2 security context constraint assigns the user ID from the namespace range, so the chart does not set runAsUser. Second, Routes with edge TLS on the apps-crc.testing domain replace NodePorts published on 127.0.0.1. Third, images are built in the cluster by the quarkus-openshift extension with binary S2I, not loaded from a local build. Fourth, Kafka comes from AMQ Streams in OperatorHub instead of Strimzi installed through Helm. Fifth, Postgres is a StatefulSet on the Red Hat PostgreSQL 16 image instead of CloudNativePG. Sixth, review-service runs with its OIDC tenant disabled, so DELETE /reviews/{id} answers 401. The decisions are DRQ-018 to DRQ-022." });
@@ -780,7 +780,7 @@ contentSlide({ eyebrow: "Appendix A7", title: "What broke on the live run, and t
 diagramSlide({ eyebrow: "Appendix A7", title: "The platform tier on OpenShift Local",
   image: "22-crc-platform-tier",
   caption: "Six operators on top of the core: Service Mesh 3, the Custom Metrics Autoscaler, OpenTelemetry, Ollama, an in-cluster native build, and OpenShift GitOps.",
-  notes: "The core is unchanged: seven Quarkus services, AMQ Streams Kafka, Postgres 16, and Apicurio. Around it sit six platform features, each with a verified result. Service Mesh 3 (Sail) runs Istio v1.30.5 with STRICT mTLS and a 90/10 canary on order-service; the measured split was 94 to v1 and 6 to v2 over 100 requests, and Kiali draws the graph from otel-lgtm's Prometheus scraping sidecar port 15020. The Custom Metrics Autoscaler, Red Hat's KEDA, scales notification-service from 0 to 1 on Kafka lag within 15 seconds and back to 0 about three minutes after the burst; the topic has one partition, so the maximum is one replica. The Red Hat build of OpenTelemetry injects the OpenTelemetry Java agent by annotation with no image change, and traces land in grafana/otel-lgtm 0.8.1; one trace spans graphql-gateway, order-service over REST, and inventory-service over gRPC. Ollama 0.35.1 with qwen2.5:3b backs ai-mcp-service and ai-rules-service, built in the cluster; classify, triage through Camel and Quarkus Flow, and the MCP checks pass. order-service is compiled to native in the cluster with a Mandrel 25.0 builder image. OpenShift GitOps adopts the Helm release from GitHub and self-heal restores deleted resources in two to three seconds. Every operator is pinned with Manual approval and a startingCSV, and teardown removes everything and stops CRC. The cluster is CRC 4.22 with 12 vCPU and 32 GiB." });
+  notes: "The core is unchanged: seven Quarkus services, AMQ Streams Kafka, PostgreSQL, and Apicurio. Around it sit six platform features, each with a verified result. Service Mesh 3 (Sail) runs Istio v1.30.5 with STRICT mTLS and a 90/10 canary on order-service; the measured split was 94 to v1 and 6 to v2 over 100 requests, and Kiali draws the graph from otel-lgtm's Prometheus scraping sidecar port 15020. The Custom Metrics Autoscaler, Red Hat's KEDA, scales notification-service from 0 to 1 on Kafka lag within 15 seconds and back to 0 about three minutes after the burst; the topic has one partition, so the maximum is one replica. The Red Hat build of OpenTelemetry injects the OpenTelemetry Java agent by annotation with no image change, and traces land in grafana/otel-lgtm (0.36.0 now; the run used 0.8.1); one trace spans graphql-gateway, order-service over REST, and inventory-service over gRPC. Ollama (0.40.2 now; the run used 0.35.1) with qwen2.5:3b backs ai-mcp-service and ai-rules-service, built in the cluster; classify, triage through Camel and Quarkus Flow, and the MCP checks pass. order-service is compiled to native in the cluster with a Mandrel 25.0 builder image. OpenShift GitOps adopts the Helm release from GitHub and self-heal restores deleted resources in two to three seconds. Every operator is pinned with Manual approval and a startingCSV, and teardown removes everything and stops CRC. The cluster is CRC 4.22 with 12 vCPU and 32 GiB." });
 
 contentSlide({ eyebrow: "Appendix A7", title: "Platform tier: what it took",
   bullets: [
@@ -842,16 +842,16 @@ contentSlide({ eyebrow: "Appendix · known limitation", title: "Known limitation
     { head: true, text: "Ruled out" },
     { text: "Model capability, tool registration and tag matching, and the langchain4j version, including the seed-matched classpath.", color: C.ink },
   ],
-  notes: "Symptom detail: the tool-executions header is absent. Root cause detail: the property is set before any model bean is constructed, so the two levers a caller has (a hand-built OllamaChatModel with an explicit base-url, and an explicit httpClientBuilder(new JdkHttpClientBuilder()) override) were both tried and neither changed the outcome. Ruled out: a direct Ollama /api/chat call with a tools array returns tool_calls for qwen2.5:3b and qwen2.5:7b-instruct; the tags line up; the defect reproduces across every langchain4j combination tried. The classpath side is resolved: quarkus-langchain4j-bom:1.7.4 is imported first, so the dev.langchain4j family converges at 1.11.0 with no manual pin. The limitation does not block the build: the test is named *IT (surefire skips it), gated behind -Dollama.tests.enabled=true, and failsafe is not bound in ai-mcp-service, so mvn verify never needs Ollama. Options to revisit: a newer camel-quarkus and quarkus-langchain4j train where the enforcement differs, an upstream issue against camel-quarkus-support-langchain4j, and continuing to demonstrate tool calling through the embedded MCP server, which this deck does." });
+  notes: "Symptom detail: the tool-executions header is absent. Root cause detail: the property is set before any model bean is constructed, so the two levers a caller has (a hand-built OllamaChatModel with an explicit base-url, and an explicit httpClientBuilder(new JdkHttpClientBuilder()) override) were both tried and neither changed the outcome. Ruled out: a direct Ollama /api/chat call with a tools array returns tool_calls for qwen2.5:3b and qwen2.5:7b-instruct; the tags line up; the defect reproduces across every langchain4j combination tried. The classpath is platform-aligned: the platform quarkus-langchain4j-bom 3.40.1 pins quarkus-langchain4j 1.13.3 and dev.langchain4j 1.19.3, and the defect still reproduces on that train (re-tested 2026-10-09 with Ollama 0.40.2). The limitation does not block the build: the test is named *IT (surefire skips it), gated behind -Dollama.tests.enabled=true, and failsafe is not bound in ai-mcp-service, so mvn verify never needs Ollama. Options to revisit: an upstream issue against camel-quarkus-support-langchain4j, and continuing to demonstrate tool calling through the embedded MCP server, which this deck does." });
 
 contentSlide({ eyebrow: "Appendix · infra", title: "compose.yaml services and .env image tags",
   bullets: [
     { head: true, text: "Baseline services (no --profile flag)" },
-    { text: "postgres (postgres:18, TZ=UTC) · kafka (apache/kafka-native:4.2.0, KRaft) · apicurio (apicurio-registry:3.1.7) · lgtm (grafana/otel-lgtm:0.8.1, always on)." },
+    { text: "postgres (postgres:18.6, TZ=UTC) · kafka (apache/kafka-native:4.3.1, KRaft) · apicurio (apicurio-registry:3.3.3) · lgtm (grafana/otel-lgtm:0.36.0, always on)." },
     { head: true, text: "Opt-in profiles" },
     { text: "--profile tools: kafka-ui (kafbat/kafka-ui) · --profile ollama: ollama (ollama/ollama)." },
     { head: true, text: "Image tags" },
-    { text: "Each tag in .env equals the tag Quarkus 3.39.5 Dev Services pulls by default, so quarkus:dev, mvn verify, and this compose stack behave the same.", color: C.ink },
+    { text: "Each tag in .env equals the image every service pins for Dev Services, so quarkus:dev, mvn verify, and this compose stack behave the same.", color: C.ink },
     { text: "postgres:18 rejects legacy Olson timezone ids such as US/Eastern from a non-UTC host; TZ=UTC on the container and -Duser.timezone=UTC on every JVM keep mvn verify green.", color: C.ink },
   ],
   notes: "The standing infrastructure behind every compose-tier demo. docker compose up -d from the repo root, after cp .env.example .env, brings up the whole baseline. The Kafka listeners are PLAINTEXT and INTERNAL. The tag match was confirmed by inspecting the build-time config classes inside the cached Dev Services deployment jars." });

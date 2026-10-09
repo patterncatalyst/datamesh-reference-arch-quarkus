@@ -5,6 +5,22 @@ description: Read this FIRST after a context compaction or restart to resume the
 
 # RESUME — datamesh-reference-arch-quarkus build
 
+## Platform refresh — 2026-10-09, branch `feat/newest-stable-platform` (DRQ-029)
+
+Every pin moved to its newest stable release; `_plans/decisions.md` DRQ-029 has
+the full list and sources. Headline versions: Quarkus 3.40.1 (LTS), Camel
+Quarkus 3.40.0 / Camel 4.22.1, platform langchain4j BOM (quarkus-langchain4j
+1.13.3), Spring Boot twin 4.1.1, `ubi10/openjdk-25:1.24-15`; compose
+kafka-native 4.3.1, Apicurio 3.3.3, postgres 18.6, otel-lgtm 0.36.0, Ollama
+0.40.2, Prometheus on host 19090; minikube v1.39.0 with Kubernetes v1.36.5,
+Istio 1.31.1, KEDA 2.21.0 / HTTP add-on 0.16.0, Strimzi 1.2.0 (Kafka 4.3.1),
+CloudNativePG 1.30.1, lean Mimir 6.2.1 (no ingest storage), Kiali 2.33.0; CRC
+images otel-lgtm 0.36.0, Ollama 0.40.2, Apicurio 3.3.3, `rhel10/postgresql-18`.
+`mvn verify` and the compose stack are verified; the minikube and CRC runs on
+the new pins are pending (minikube first, then CRC). DEF-001 still reproduces.
+The sections below are the earlier session log and keep the versions of their
+time.
+
 ## Current state — 2026-10-06, end of session (read this section first)
 
 **Build complete, public, and fully exercised.** All 19 demos across the five
@@ -205,7 +221,7 @@ site + runnable examples + demos aligned 1:1 to slides + tutorial + deck + Notio
 ## Settled scope answers (do not re-ask)
 - Repo: local-first, PUBLIC, push only after approval.
 - Container toolchain: Docker Engine (lgtm-docker-stack).
-- Versions: Quarkus 3.39.5, JDK 25, platform-aligned Camel, langchain4j 1.14.1.
+- Versions: Quarkus 3.40.1 (LTS), JDK 25, platform-aligned Camel and langchain4j (DRQ-029; was Quarkus 3.39.5).
 - OIDC demo: attempt live (Keycloak Dev Service), fall back to deferred + log in decisions.md.
 - Spring Boot comparison: ONE runnable Spring Boot twin service + compare chapter/slides.
 - Notion: 1-hour talk abstract in user's abstract format (Step 15).

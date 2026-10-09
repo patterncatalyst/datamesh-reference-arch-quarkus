@@ -204,6 +204,6 @@ Runs on the local Kubernetes cluster rather than the compose stack. It needs
 KEDA scalers applied (`demos/demo-keda-kafka.sh` applies both). It pauses
 `notification-service`'s ScaledObject at two replicas, runs
 `demos/jbang/WsReconnectClient.java` in-cluster
-(`eclipse-temurin:25.0.4_7-jdk`), deletes the replica holding the client's
+(`eclipse-temurin:25.0.4.1_1-jdk`), deletes the replica holding the client's
 socket, and asserts reconnect, catch-up without duplicates, and delivery of
 the next order. The pause is removed on exit.

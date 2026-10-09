@@ -25,12 +25,13 @@ coding task; decisions/plan changes go through the planning skill).
 
 | Component | Version | Notes |
 |-----------|---------|-------|
-| Quarkus | **3.39.5** | Current latest stable (4.0.0 is Beta only). |
-| JDK | **25** (`25-tem`) | Supported on Quarkus 3.39.x. |
-| Camel | **platform-aligned** | Import `quarkus-camel-bom:3.39.5`; do NOT pin a standalone Camel version. |
-| langchain4j (Quarkiverse) | **1.7.4** | Seed-matched; converges dev.langchain4j to 1.11.0 with no manual pin. Ollama tool-calling is an open upstream deferral (DEF-001), independent of version. |
+| Quarkus | **3.40.1** | Current LTS and newest stable (4.0.0 is Beta only). |
+| JDK | **25** (`25-tem`) | Supported on Quarkus 3.40.x. |
+| Camel | **platform-aligned** | Import `quarkus-camel-bom:3.40.1` (Camel Quarkus 3.40.0, Camel 4.22.1); do NOT pin a standalone Camel version. |
+| langchain4j | **platform-aligned** | Import the platform `io.quarkus.platform:quarkus-langchain4j-bom:3.40.1` (quarkus-langchain4j 1.13.3, dev.langchain4j 1.19.3). Ollama tool-calling is an open upstream deferral (DEF-001), independent of version. |
 | Maven | 3.9.x | |
-| Base images | UBI (`ubi10/openjdk-25` builder + `-runtime`) | Multi-stage builds. |
+| Base images | UBI 10 (`ubi10/openjdk-25:1.24-15` builder + `-runtime:1.24-15`) | Multi-stage builds, exact tags. |
+| Kubernetes | **v1.36.5** on minikube v1.39.0 (kubectl v1.36.5) | Istio 1.31.1, KEDA 2.21.0 + HTTP add-on 0.16.0, Strimzi 1.2.0 (Kafka 4.3.1), CloudNativePG 1.30.1; see DRQ-029. |
 | Container toolchain | **docker** / docker compose | NOT podman — see `lgtm-docker-stack` skill. | <!-- forbidden-ok -->
 
 ## Key conventions
@@ -127,7 +128,7 @@ introspection instead of guessing component/EIP syntax.
   `<latest>`/`<release>` can point at a prerelease; check the version list.
   Inside Maven modules the platform BOM pins versions; JBang `//DEPS` sit
   outside it and are pinned explicitly to the BOM's line (e.g. Camel 4.22.x
-  for `quarkus-camel-bom` 3.39.5).
+  for `quarkus-camel-bom` 3.40.1).
 - **No JBang catalog aliases** (`name@org`, e.g. `camel@apache/camel`). They
   fetch unpinned scripts from GitHub and make JBang prompt the user to trust
   the source, including a GUI dialog on the desktop. Use pinned Maven

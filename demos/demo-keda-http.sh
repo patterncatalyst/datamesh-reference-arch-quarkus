@@ -9,16 +9,15 @@
 #   k8s/base/graphql-gateway.yaml          — the Deployment/Service KEDA scales
 #   k8s/keda/gateway-httpscaledobject.yaml — the HTTPScaledObject
 #                                             (http.keda.sh/v1alpha1, KEDA HTTP
-#                                             add-on 0.15.0)
+#                                             add-on 0.16.0)
 #   k8s/overlays/minikube/                 — the app overlay (images ->
 #                                             the cluster's docker daemon)
 #   scripts/bootstrap.sh                   — brings up the cluster (`minikube` profile)
 #                                             ("datamesh") + the KEDA tier
 #                                             (scripts/setup-keda.sh, pins the
-#                                             HTTP add-on to 0.15.0 — matches the
-#                                             python reference; the v0.14.0
-#                                             interceptor panic #1668 is fixed
-#                                             before 0.15.0)
+#                                             HTTP add-on to 0.16.0; the v0.14.0
+#                                             interceptor panic #1668 was fixed
+#                                             in 0.15.0)
 #
 # HTTPScaledObject (see k8s/keda/gateway-httpscaledobject.yaml and its header
 # comment for full sourcing): targets Deployment/Service graphql-gateway
@@ -47,7 +46,7 @@
 #
 # ── Static validation vs. standalone `kustomize` ─────────────────────────────
 # Same reasoning as demo-keda-kafka.sh's header: this environment has no
-# standalone `kustomize` binary (only kubectl's bundled kustomize v5.7.1 —
+# standalone `kustomize` binary (only kubectl's bundled kustomize v5.8.1 —
 # confirmed via `kubectl version --client`), matching k8s/keda/README.md's
 # own documented validation method ("Rendering was verified with `kubectl
 # kustomize ...` — no cluster required for that check"). This demo `require`s
@@ -62,9 +61,9 @@
 # forwards (or queues, while cold-starting a replica) every request matching
 # hosts/pathPrefixes regardless of what graphql-gateway ultimately returns.
 # A GraphQL query against /graphql with no body/variables will typically
-# come back as an HTTP 4xx from graphql-gateway itself (or a 502 while no
-# replica is up yet and the interceptor is still waiting on
-# interceptor.replicas.waitTimeout=180s, per scripts/setup-keda.sh) — either
+# come back as an HTTP 4xx from graphql-gateway itself (or a 504 if no
+# replica is Ready within interceptor.readinessTimeout=180s, per
+# scripts/setup-keda.sh; 0.14.0+ answers a timeout with 504, not 502) — either
 # way, the request still counts toward requestRate and still demonstrates
 # scale-from-zero. This demo does not assert on the HTTP status code it gets
 # back, only on the resulting replica count (a real, positive-content
@@ -224,7 +223,7 @@ LOADGEN_POD="demo-keda-http-loadgen-$$"
 # GraphQL POST ({__typename}), so a served request returns 200; a bare GET
 # returns 405 from the gateway. The first request waits in the interceptor
 # while the gateway starts from zero, so --max-time (30 s) covers a JVM cold
-# start and still bounds the burst below interceptor.replicas.waitTimeout=180s
+# start and still bounds the burst below interceptor.readinessTimeout=180s
 # (scripts/setup-keda.sh).
 LOADGEN_SCRIPT="i=0; while [ \$i -lt 120 ]; do curl -s -o /dev/null --max-time 30 -w '%{http_code} ' -H 'Host: ${SCALED_HOST}' -H 'Content-Type: application/json' -d '{\"query\":\"{__typename}\"}' http://${INTERCEPTOR_HOST}:${INTERCEPTOR_PORT}/graphql; i=\$((i+1)); done; echo"
 
@@ -235,7 +234,7 @@ _cleanup_loadgen_pod() {
 }
 trap '_cleanup_loadgen_pod; _demo_exit_trap' EXIT
 
-kubectl run "$LOADGEN_POD" -n "$NS" --restart=Never --image=curlimages/curl:8.11.1 \
+kubectl run "$LOADGEN_POD" -n "$NS" --restart=Never --image=curlimages/curl:8.22.0 \
     --command -- /bin/sh -c "$LOADGEN_SCRIPT" \
     || fail "failed to start load-generator pod ${LOADGEN_POD}"
 

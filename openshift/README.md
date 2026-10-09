@@ -34,12 +34,17 @@ Each step is its own script; `install-platform.sh` runs them in this order.
 |---|---|---|
 | `platform/install-mesh.sh [--canary]` | OSSM 3 (Istio v1.30.5), Kiali, STRICT mTLS, order-service canary 90/10 | `mesh.enabled`, `mesh.canary.enabled` |
 | `platform/install-keda.sh` | Custom Metrics Autoscaler; notification-service 0 -> N on Kafka lag | `keda.enabled` |
-| `platform/install-observability.sh` | OpenTelemetry operator injects the Java agent; `grafana/otel-lgtm:0.8.1` + Grafana Route | `observability.enabled` |
-| `platform/install-ai.sh` | Ollama 0.35.1 + qwen2.5:3b, ai-mcp-service, ai-rules-service | `ai.enabled` |
+| `platform/install-observability.sh` | OpenTelemetry operator injects the Java agent; `grafana/otel-lgtm:0.36.0` + Grafana Route | `observability.enabled` |
+| `platform/install-ai.sh` | Ollama 0.40.2 + qwen2.5:3b, ai-mcp-service, ai-rules-service | `ai.enabled` |
 | `platform/build-native.sh`, then `deploy.sh --set native.enabled=true` | order-service compiled to native inside the cluster | `native.enabled` |
 | `platform/install-gitops.sh [revision]` | OpenShift GitOps; an Argo CD Application owns the release | (Application) |
 
 Operators are pinned in `platform/subscriptions/` (Manual approval, `startingCSV`).
+The CSV pins resolve only against a running cluster's catalog, so they were not
+moved with the 2026-10-09 image bumps (DRQ-029); re-check them at the next CRC run
+(`oc get packagemanifest <name> -n openshift-marketplace`). The Istio CR stays at
+v1.30.5, the newest version OSSM 3.4.3 offers, and Kafka stays at 4.2.0, the
+newest AMQ Streams 3.2 supports.
 `capture-evidence.sh` checks whichever of these are installed.
 
 ## What is here
@@ -49,7 +54,7 @@ Operators are pinned in `platform/subscriptions/` (Manual approval, `startingCSV
 | `lib.sh` | Shared helpers; pins the `crc-admin` context and refuses any other cluster. |
 | `infra/amq-streams-subscription.yaml` | AMQ Streams `amqstreams.v3.2.1-14`, Manual approval. |
 | `infra/kafka.yaml` | Kafka CR `datamesh` (`kafka.strimzi.io/v1`), Kafka 4.2.0, one KRaft node. |
-| `helm/datamesh/` | Chart: 7 Deployments from one `services:` map, Postgres 16, Apicurio 3.2.4, two Routes. |
+| `helm/datamesh/` | Chart: 7 Deployments from one `services:` map, PostgreSQL 18, Apicurio 3.3.3, two Routes. |
 | `platform/` | The platform tier: one script per feature, pinned subscriptions, `evidence.sh`. |
 | `evidence/` | Output of `capture-evidence.sh`. No passwords or tokens; the script checks. |
 
@@ -59,8 +64,8 @@ Operators are pinned in `platform/subscriptions/` (Manual approval, `startingCSV
 |---|---|---|
 | Images | `docker build` + `minikube image load` | `quarkus-openshift` binary S2I on `ubi10/openjdk-25:1.24-15` |
 | Host access | NodePorts published on 127.0.0.1 | Edge-TLS Routes on `*.apps-crc.testing` |
-| Kafka | Strimzi 0.51.0 via Helm | AMQ Streams 3.2.1 via OperatorHub |
-| Postgres | CloudNativePG, PostgreSQL 18.6 | StatefulSet, `rhel10/postgresql-16` |
+| Kafka | Strimzi 1.2.0 via Helm, Kafka 4.3.1 | AMQ Streams 3.2.1 via OperatorHub, Kafka 4.2.0 |
+| Postgres | CloudNativePG, PostgreSQL 18.6 | StatefulSet, `rhel10/postgresql-18` |
 | Pod security | `runAsUser: 185` | `restricted-v2`, UID from the namespace range |
 | review-service | not deployed | OIDC tenant disabled; `DELETE /reviews/{id}` answers 401 |
 

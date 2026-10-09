@@ -29,7 +29,7 @@
 # gRPC server, so only the HTTP port is exposed here.
 
 # --- Stage 1: build ---------------------------------------------------
-FROM registry.access.redhat.com/ubi10/openjdk-25 AS build
+FROM registry.access.redhat.com/ubi10/openjdk-25:1.24-15 AS build
 
 WORKDIR /build
 
@@ -51,7 +51,7 @@ RUN mvn -q -pl domain-model,contracts -am install -DskipTests
 RUN mvn -q -f spring-boot-compare/pom.xml package -DskipTests
 
 # --- Stage 2: runtime ---------------------------------------------------
-FROM registry.access.redhat.com/ubi10/openjdk-25-runtime AS runtime
+FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24-15 AS runtime
 
 WORKDIR /deployments
 COPY --from=build --chown=185 /build/examples/spring-boot-compare/target/spring-boot-compare-*.jar ./app.jar

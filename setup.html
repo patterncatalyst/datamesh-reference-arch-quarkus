@@ -34,23 +34,23 @@ permalink: /setup/
             <tbody>
                 <tr>
                     <td>Quarkus</td>
-                    <td>3.39.5</td>
-                    <td>Current latest stable (4.0.0 is Beta only)</td>
+                    <td>3.40.1</td>
+                    <td>Current LTS and newest stable (4.0.0 is Beta only)</td>
                 </tr>
                 <tr>
                     <td>JDK</td>
                     <td>25 (<code>25-tem</code>)</td>
-                    <td>Supported on Quarkus 3.39.x</td>
+                    <td>Supported on Quarkus 3.40.x</td>
                 </tr>
                 <tr>
                     <td>Camel</td>
                     <td>platform-aligned</td>
-                    <td>Imported via <code>quarkus-camel-bom:3.39.5</code> — no standalone Camel version pin</td>
+                    <td>Imported via <code>quarkus-camel-bom:3.40.1</code> (Camel Quarkus 3.40.0, Camel 4.22.1) — no standalone Camel version pin</td>
                 </tr>
                 <tr>
-                    <td>langchain4j (Quarkiverse)</td>
-                    <td>1.7.4</td>
-                    <td>Seed-matched; converges <code>dev.langchain4j</code> to 1.11.0 with no manual pin. Watch for tool-calling API drift, especially against Ollama</td>
+                    <td>langchain4j</td>
+                    <td>platform-aligned</td>
+                    <td>Imported via the platform <code>quarkus-langchain4j-bom:3.40.1</code> (quarkus-langchain4j 1.13.3, <code>dev.langchain4j</code> 1.19.3). Ollama tool calling is an open upstream deferral (DEF-001)</td>
                 </tr>
                 <tr>
                     <td>Maven</td>
@@ -59,7 +59,7 @@ permalink: /setup/
                 </tr>
                 <tr>
                     <td>Base images</td>
-                    <td>UBI (<code>ubi10/openjdk-25</code>)</td>
+                    <td>UBI 10 (<code>ubi10/openjdk-25:1.24-15</code>)</td>
                     <td>Multi-stage builder + runtime images</td>
                 </tr>
                 <tr>
@@ -219,10 +219,11 @@ docker compose up -d
 cd examples/&lt;service&gt;
 mvn quarkus:dev</code></pre>
         <p>
-            Host ports come from <code>.env</code>. On Fedora and RHEL, the Cockpit
-            web console listens on 9090, which <code>.env.example</code> assigns to
-            Mimir; set <code>MIMIR_PORT=19090</code> (or any free port) in
-            <code>.env</code> before <code>docker compose up</code>.
+            Host ports come from <code>.env</code>. Fedora Server and RHEL enable the
+            Cockpit web console on 9090, so <code>.env.example</code> publishes
+            Prometheus on <code>MIMIR_PORT=19090</code>. An older <code>.env</code>
+            copied before this change still says 9090; update it or copy the
+            template again.
         </p>
         <p>
             For the Kubernetes substrate (Istio, KEDA, Strimzi,

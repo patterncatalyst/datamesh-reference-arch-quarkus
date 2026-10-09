@@ -27,7 +27,7 @@
 # gRPC server, so only the HTTP port is exposed here.
 
 # ─── Stage 1: build (reactor-aware) ──────────────────────────────────────
-FROM registry.access.redhat.com/ubi10/openjdk-25 AS build
+FROM registry.access.redhat.com/ubi10/openjdk-25:1.24-15 AS build
 
 WORKDIR /build
 
@@ -46,7 +46,7 @@ WORKDIR /build/examples
 RUN mvn -q -pl order-service -am package -DskipTests
 
 # ─── Stage 2: runtime ────────────────────────────────────────────────────
-FROM registry.access.redhat.com/ubi10/openjdk-25-runtime AS runtime
+FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24-15 AS runtime
 
 # Quarkus's fast-jar layout separates the app into layers (lib/, quarkus/,
 # app/) that map naturally onto container image layers — dependencies rarely

@@ -20,7 +20,7 @@
 set -euo pipefail
 
 NS="${1:-datamesh}"
-APICURIO_VERSION="${APICURIO_VERSION:-3.2.4}"
+APICURIO_VERSION="${APICURIO_VERSION:-3.3.3}"
 RELEASE="apicurio"
 
 command -v kubectl >/dev/null 2>&1 || { printf 'ERROR: kubectl not in PATH.\n' >&2; exit 1; }
@@ -61,9 +61,10 @@ spec:
             limits:
               memory: 1Gi
           readinessProbe:
-            # Apicurio Registry 3.2.4's image does not expose SmallRye health at
-            # /q/health; the registry API's lightweight system-info endpoint is a
-            # reliable readiness signal (returns 200 once the app is serving).
+            # Apicurio Registry 3.3.3 serves health only on its management port
+            # (9000, /health/ready); the registry API's lightweight system-info
+            # endpoint on 8080 is a reliable readiness signal on every 3.x
+            # (returns 200 once the app is serving).
             httpGet:
               path: /apis/registry/v3/system/info
               port: 8080

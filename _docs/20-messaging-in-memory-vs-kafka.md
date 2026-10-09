@@ -218,8 +218,9 @@ agree on nothing except the topic name, the Avro schema registered in
 Apicurio, and the broker: both point `kafka.bootstrap.servers` at the
 same address. In dev and test mode, neither service sets
 `kafka.bootstrap.servers` or `apicurio.registry.url` at all — Quarkus Dev
-Services starts an ephemeral `apache/kafka-native:4.2.0` broker and an
-`apicurio/apicurio-registry:3.1.7` container automatically and wires both
+Services starts an ephemeral `apache/kafka-native:4.3.1` broker and an
+`apicurio/apicurio-registry:3.3.3` container (the images each service pins with
+`quarkus.*.devservices.image-name`) automatically and wires both
 services to it. The `%prod` profile makes the cross-process
 contract explicit, in both services' `application.properties`:
 

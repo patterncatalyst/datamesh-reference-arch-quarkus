@@ -71,7 +71,7 @@ kubectl apply -k k8s/overlays/minikube
 ```
 
 Rendering was verified with `kubectl kustomize k8s/overlays/minikube`
-(kustomize v5.7.1, bundled in kubectl v1.35.3). The check is client-side
+(kustomize v5.8.1, bundled in kubectl v1.36.5; re-checked 2026-10-09). The check is client-side
 templating and needs no cluster.
 
 ## Env contract

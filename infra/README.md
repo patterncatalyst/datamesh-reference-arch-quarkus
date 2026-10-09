@@ -39,19 +39,27 @@ docker compose down -v                 # stop AND wipe volumes
 ## Image tags — the wire-compat crux
 
 **Requirement:** `POSTGRES_IMAGE`, `KAFKA_IMAGE`, and `APICURIO_IMAGE` in
-`.env` (repo root) MUST equal the exact tags Quarkus 3.39.5 Dev Services
-pulls by default, so `mvn verify` (Testcontainers/Dev Services) and this
-standalone compose stack exercise identical broker/registry/database
-behavior. Each service's Containerfiles/`application.properties` should
-pin the SAME tags into `quarkus.*.devservices.image-name` where relevant.
+`.env` (repo root) MUST equal the images every service pins into
+`quarkus.*.devservices.image-name` and the order-service Testcontainers ITs
+use, so `mvn verify` (Testcontainers/Dev Services) and this standalone
+compose stack exercise identical broker/registry/database behavior.
 
-| Component | Pinned tag | Quarkus 3.39.5 Dev Services default | Confirmed by |
+Since DRQ-029 (2026-10-09) the pins are the newest stable releases, newer than
+the Quarkus 3.40.1 defaults, which is why every service sets `image-name`
+explicitly. Bump the four places together (`.env.example`, the services'
+`application.properties`, the order-service ITs, `scripts/setup-*.sh`) and
+re-run `mvn verify -f examples/pom.xml`.
+
+| Component | Pinned tag | Quarkus 3.40.1 Dev Services default | Why the pin differs |
 |---|---|---|---|
-| Postgres | `docker.io/library/postgres:18` | same | see below |
-| Kafka | `docker.io/apache/kafka-native:4.2.0` | same (provider `upstream-kafka-native`, the default) | see below |
-| Apicurio Registry | `quay.io/apicurio/apicurio-registry:3.1.7` | same | see below |
+| Postgres | `docker.io/library/postgres:18.6` | `docker.io/library/postgres:18` (floating) | exact pin |
+| Kafka | `docker.io/apache/kafka-native:4.3.1` | `docker.io/apache/kafka-native:4.2.0` (provider `upstream-kafka-native`) | newest stable; matches Strimzi's Kafka 4.3.1 |
+| Apicurio Registry | `quay.io/apicurio/apicurio-registry:3.3.3` | `quay.io/apicurio/apicurio-registry:3.1.7` | newest stable; matches the minikube install |
 
-### How each tag was confirmed
+The services' Apicurio client/serde libraries stay at the platform-managed
+3.1.7 (`apicurio-registry-avro-serde-kafka`), which speaks the same v3 API.
+
+### How the defaults were read (originally for 3.39.5; re-read for 3.40.1)
 
 Live Maven dependency resolution against this project's actual
 `io.quarkus:quarkus-bom:3.39.5` (not guessed, not web-searched) — the
@@ -122,12 +130,20 @@ template value, valid on older 3.0.x Apicurio images) fails hard on
 for value mem` — confirmed by actually running the pinned image. Fixed to
 `APICURIO_STORAGE_KIND=sql` + `APICURIO_STORAGE_SQL_KIND=h2`: an embedded,
 in-memory H2 database, functionally equivalent (ephemeral, wiped on
-restart) to the removed `mem` variant.
+restart) to the removed `mem` variant. Still the case on 3.3.3.
+
+On 3.3.3 the health endpoints moved to the management interface:
+`http://localhost:9000/health/ready` answers 200, while
+`http://localhost:8080/health/ready` answers 404. The compose healthcheck
+uses port 9000; the minikube readiness probe and the ITs use
+`/apis/registry/v3/system/info` on 8080, which works on every 3.x.
 
 ## LGTM (`lgtm` service) gotchas found while validating
 
-Two issues surfaced only by actually running `grafana/otel-lgtm:0.8.1`,
-not by reading the lgtm-docker-stack skill's generic templates:
+These surfaced only by actually running the image (first `grafana/otel-lgtm:0.8.1`,
+re-checked on `0.36.0` on 2026-10-09), not by reading the lgtm-docker-stack
+skill's generic templates. 0.36.0 bundles Grafana 13.2.3, Loki 3.7.8, Tempo
+3.1.0, Prometheus 3.15.0, Pyroscope 2.3.1 and OpenTelemetry Collector 0.162.0:
 
 1. **Collector exporter endpoints.** The base `otelcol-collector-base.yaml`
    skill template targets Tempo's query API (`:3200`) and Mimir's
@@ -139,7 +155,12 @@ not by reading the lgtm-docker-stack skill's generic templates:
    (not 3200), (b) export metrics to Mimir's OTLP ingest path
    `/api/v1/otlp` via the `otlphttp` exporter (not
    `prometheusremotewrite` at `/api/v1/write`), and (c) scrape its own
-   `:8888` self-metrics endpoint into the same metrics pipeline. Diagnosed
+   `:8888` self-metrics endpoint into the same metrics pipeline.
+   **0.36.0:** `run-all.sh` instead polls the collector's `health_check`
+   extension at `127.0.0.1:13133/ready`; without that extension the stack
+   never reports ready. The exporters are named `otlp_http/<signal>` (the
+   image's `run-otelcol.sh` overlay references those names). Both are in
+   `infra/otelcol/config.yaml`. Diagnosed
    by dumping the image's own shipped default config (`docker run
    --entrypoint sh grafana/otel-lgtm:0.8.1 -c "cat
    /otel-lgtm/otelcol-config.yaml"`) and matching `infra/otelcol/config.yaml`
@@ -158,7 +179,12 @@ not by reading the lgtm-docker-stack skill's generic templates:
 3. **Healthcheck tool.** The generic skill template's `lgtm` healthcheck
    uses `wget`; this image (RHEL 9-based) doesn't ship `wget`, only
    `curl` — confirmed via `docker exec ... command -v wget` returning
-   nothing. Healthcheck test switched to `curl -sf`.
+   nothing. Healthcheck test switched to `curl -sf`. 0.36.0 is still RHEL
+   9-based with `curl`.
+4. **Pyroscope.** 0.36.0 also runs Pyroscope and ships a Pyroscope
+   datasource in its own `grafana-datasources.yaml`. The mounted file
+   replaces it, so the Pyroscope datasource is not provisioned here; nothing
+   in this repo sends profiles.
 
 **No service emits OTLP yet.** Quarkus OTel instrumentation lands in
 a later phase. Until then, Grafana's application
@@ -198,6 +224,20 @@ profile). The default `POSTGRES_DB` (`appdb`) is left as a generic/shared
 database for ad hoc `psql` exploration. See `infra/db/init/00-init.sql`.
 
 ## Validation performed
+
+**Re-validated 2026-10-09 (DRQ-029)** with `docker compose --env-file
+.env.example up -d --wait` on Docker Engine 29.8.2: postgres 18.6, kafka-native
+4.3.1, Apicurio 3.3.3 and otel-lgtm 0.36.0 all reach `healthy` (after the
+Apicurio healthcheck moved to port 9000); the five per-service databases exist
+with `timezone` UTC; `kcat` round-trips a record on `localhost:9092`;
+`/apis/registry/v3/system/info` reports 3.3.3; Grafana provisions the repo's
+Tempo/Loki/Prometheus datasources; Prometheus answers on host port 19090; an
+OTLP/HTTP span reaches Tempo and `/api/traces/<id>` still returns the
+`batches` shape demo-tracing parses. `mvn verify` ran the order-service
+Testcontainers ITs (Avro magic byte on the wire) against kafka-native 4.3.1 and
+Apicurio 3.3.3. The `ollama` and `tools` profiles were not brought up.
+
+The original validation, on the earlier pins:
 
 All of the following were run live in this environment (Docker Engine
 29.8.1 available), not just config-parsed:

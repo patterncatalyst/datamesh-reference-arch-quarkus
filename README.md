@@ -1,7 +1,7 @@
 # Data Mesh Reference Architecture · Quarkus
 
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
-![Quarkus](https://img.shields.io/badge/Quarkus-3.39.5-blue)
+![Quarkus](https://img.shields.io/badge/Quarkus-3.40.1-blue)
 ![JDK](https://img.shields.io/badge/JDK-25-orange)
 
 A **runnable data-mesh reference architecture** on **Quarkus + Camel +

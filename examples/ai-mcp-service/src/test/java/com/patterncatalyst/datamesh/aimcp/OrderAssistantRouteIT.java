@@ -67,7 +67,7 @@ class OrderAssistantRouteIT {
         assertNotNull(toolExecutions, "Expected the " + Headers.TOOL_EXECUTIONS + " header to be present");
         assertFalse(toolExecutions.isEmpty(),
                 "Expected the agent to call the order-status tool at least once "
-                        + "(toolExecutions was empty -- this is exactly the langchain4j "
-                        + "1.7.4 -> 1.14.1 regression this port had to guard against)");
+                        + "(toolExecutions was empty -- the open upstream deferral DEF-001, "
+                        + "see _plans/decisions.md)");
     }
 }

@@ -16,6 +16,7 @@
 #   MINIKUBE_CPUS     node CPUs             (default 16)
 #   MINIKUBE_DISK     node disk size        (default 80g)
 #   MINIKUBE_PROFILE  profile name          (default datamesh)
+#   KUBERNETES_VERSION node Kubernetes      (default v1.36.5, pinned)
 # The docker driver ignores --disk-size: node data lives under the engine's
 # data root (/var/lib/docker by default), so keep about 100 GB free there.
 #
@@ -40,6 +41,10 @@ CPUS="${MINIKUBE_CPUS:-16}"
 DISK="${MINIKUBE_DISK:-80g}"
 RUNTIME="containerd"
 DRIVER="docker"
+# Pinned node Kubernetes version (DRQ-029). minikube v1.39.0 + kubectl v1.36.5
+# is the combination minikube-on-fedora verified live on 2026-10-09.
+KUBERNETES_VERSION="${KUBERNETES_VERSION:-v1.36.5}"
+MINIKUBE_FLOOR="v1.39.0"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../demos/lib/endpoints.sh
@@ -159,14 +164,22 @@ if (( VM_ENGINE == 0 )); then
     fi
 fi
 
-# 9. minikube version floor (verified on 1.38.1).
+# 9. minikube version floor (verified on v1.39.0 with Kubernetes v1.36.5).
 mk_version="$(minikube version --short 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' || echo v0.0.0)"
-if [[ "$(printf '%s\n' "v1.36.0" "$mk_version" | sort -V | head -1)" != "v1.36.0" ]]; then
-    printf 'ERROR: minikube %s is too old (need >= 1.36; verified on 1.38.1, older releases are untested).\n' "$mk_version" >&2
-    printf 'Install a current minikube (e.g. to ~/.local/bin).\n' >&2
+if [[ "$(printf '%s\n' "$MINIKUBE_FLOOR" "$mk_version" | sort -V | head -1)" != "$MINIKUBE_FLOOR" ]]; then
+    printf 'ERROR: minikube %s is too old (need >= %s for Kubernetes %s).\n' "$mk_version" "$MINIKUBE_FLOOR" "$KUBERNETES_VERSION" >&2
+    printf 'Install minikube %s (e.g. to ~/.local/bin).\n' "$MINIKUBE_FLOOR" >&2
     exit 1
 fi
 printf '==> minikube version OK (%s)\n' "$mk_version"
+
+# kubectl should match the node version (kubectl supports one minor of skew;
+# the pinned pair is kubectl v1.36.5 against Kubernetes v1.36.5).
+kc_version="$(kubectl version --client 2>/dev/null | sed -n 's/^Client Version: //p')"
+if [[ "$kc_version" != "$KUBERNETES_VERSION" ]]; then
+    printf 'WARNING: kubectl is %s; this profile runs Kubernetes %s. Install kubectl %s.\n' \
+        "${kc_version:-unknown}" "$KUBERNETES_VERSION" "$KUBERNETES_VERSION" >&2
+fi
 
 # 10. An existing profile must already use the docker driver and containerd.
 if (( ! REPLACE )); then
@@ -189,6 +202,21 @@ except Exception:
         printf 'ERROR: profile %s was created with %s; recreate it: ./scripts/setup-profile.sh --replace (or minikube delete -p %s)\n' \
             "$PROFILE_NAME" "$prof_mismatch" "$PROFILE_NAME" >&2
         exit 1
+    fi
+    # An existing profile keeps the Kubernetes version it was created with.
+    prof_k8s="$(minikube profile list -o json 2>/dev/null \
+        | python3 -c '
+import json, sys
+try:
+    for p in json.load(sys.stdin).get("valid", []):
+        if p.get("Name") == sys.argv[1]:
+            print((p.get("Config") or {}).get("KubernetesConfig", {}).get("KubernetesVersion", ""))
+except Exception:
+    pass
+' "$PROFILE_NAME" 2>/dev/null || true)"
+    if [[ -n "$prof_k8s" && "$prof_k8s" != "$KUBERNETES_VERSION" ]]; then
+        printf 'WARNING: profile %s runs Kubernetes %s, not the pinned %s.\n' "$PROFILE_NAME" "$prof_k8s" "$KUBERNETES_VERSION" >&2
+        printf '  Recreate it to move: ./scripts/setup-profile.sh --replace (deletes the cluster; re-run ./scripts/bootstrap.sh).\n' >&2
     fi
 fi
 
@@ -266,8 +294,8 @@ if (( REPLACE )); then
     minikube delete -p "$PROFILE_NAME"
 fi
 
-printf '==> Starting %s profile (%s RAM, %s CPUs, %s disk, %s driver, %s runtime)\n' \
-    "$PROFILE_NAME" "$MEMORY" "$CPUS" "$DISK" "$DRIVER" "$RUNTIME"
+printf '==> Starting %s profile (Kubernetes %s, %s RAM, %s CPUs, %s disk, %s driver, %s runtime)\n' \
+    "$PROFILE_NAME" "$KUBERNETES_VERSION" "$MEMORY" "$CPUS" "$DISK" "$DRIVER" "$RUNTIME"
 
 printf '==> Publishing NodePorts on 127.0.0.1: %s\n' "$PORTS_ARG"
 
@@ -278,6 +306,7 @@ minikube start -p "$PROFILE_NAME" \
     --disk-size="$DISK" \
     --driver="$DRIVER" \
     --container-runtime="$RUNTIME" \
+    --kubernetes-version="$KUBERNETES_VERSION" \
     --addons=metrics-server
 
 check_published_ports || {

@@ -364,15 +364,15 @@ docker run -d --rm \
     -e POSTGRES_PASSWORD="$PG_PASSWORD" \
     -e POSTGRES_DB="$PG_DB" \
     -p "${PG_PORT}:5432" \
-    postgres:18 >/dev/null \
+    docker.io/library/postgres:18.6 >/dev/null \
     || fail "failed to start throwaway Postgres container ($PG_CONTAINER)"
 info "postgres container: $PG_CONTAINER (host port $PG_PORT)"
 
 for (( i = 0; i < 30; i++ )); do
-    docker exec "$PG_CONTAINER" pg_isready -U "$PG_USER" -d "$PG_DB" >/dev/null 2>&1 && break
+    docker exec "$PG_CONTAINER" pg_isready -h 127.0.0.1 -U "$PG_USER" -d "$PG_DB" >/dev/null 2>&1 && break
     sleep 1
 done
-docker exec "$PG_CONTAINER" pg_isready -U "$PG_USER" -d "$PG_DB" >/dev/null 2>&1 \
+docker exec "$PG_CONTAINER" pg_isready -h 127.0.0.1 -U "$PG_USER" -d "$PG_DB" >/dev/null 2>&1 \
     || fail "throwaway Postgres container did not become ready within 30s"
 info "throwaway Postgres is ready"
 

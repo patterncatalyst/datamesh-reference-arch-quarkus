@@ -79,10 +79,10 @@ trap '_cleanup; _demo_exit_trap' EXIT
 
 step "preflight: compose Postgres (inventorydb) reachable"
 for (( i = 0; i < 30; i++ )); do
-    docker exec datamesh-postgres pg_isready -U "${POSTGRES_USER:-appuser}" -d inventorydb >/dev/null 2>&1 && break
+    docker exec datamesh-postgres pg_isready -h 127.0.0.1 -U "${POSTGRES_USER:-appuser}" -d inventorydb >/dev/null 2>&1 && break
     sleep 1
 done
-docker exec datamesh-postgres pg_isready -U "${POSTGRES_USER:-appuser}" -d inventorydb >/dev/null 2>&1 \
+docker exec datamesh-postgres pg_isready -h 127.0.0.1 -U "${POSTGRES_USER:-appuser}" -d inventorydb >/dev/null 2>&1 \
     || fail "compose Postgres (inventorydb) did not become ready within 30s"
 
 step "build inventory-service (mvn -DskipTests package)"

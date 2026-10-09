@@ -19,16 +19,18 @@
 #                                               # KRaft cluster-id resets, DBs wiped)
 #
 # Image tags are pinned ONCE in .env — see .env and infra/README.md for the
-# exact Kafka/Apicurio/Postgres tags and how they were confirmed to match
-# Quarkus 3.39.5 Dev Services defaults (the wire-compat crux).
+# exact Kafka/Apicurio/Postgres tags. They equal the images every service pins
+# for Dev Services (quarkus.*.devservices.image-name) and the order-service
+# Testcontainers ITs use (the wire-compat crux).
 #
 # Requires the Docker Compose v2 CLI plugin (`docker compose`, not the
 # legacy `docker-compose` binary). Docker Engine only (see CLAUDE.md).
 
 services:
   # ─── Postgres (baseline) ─────────────────────────────────────────────────
-  # postgres:18 pinned to match Quarkus 3.39.5 Dev Services' default
-  # PostgresImageSelector image exactly (see infra/README.md). TZ=UTC /
+  # postgres:18.6 pinned to match the services' Dev Services image-name pin
+  # (the Quarkus 3.40.1 default is the floating postgres:18; see
+  # infra/README.md). TZ=UTC /
   # PGTZ=UTC avoid the US/Eastern boot failure (postgres:18 rejects legacy
   # Olson zone ids like US/Eastern forwarded by pgjdbc from a non-UTC host).
   postgres:
@@ -63,16 +65,16 @@ services:
       - "-c"
       - "shared_buffers=128MB"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 12
       start_period: 10s
 
   # ─── Kafka, KRaft mode (baseline) ────────────────────────────────────────
-  # apache/kafka-native:4.2.0 pinned to match Quarkus 3.39.5 Dev Services'
-  # default provider ("upstream-kafka-native") exactly (see
-  # infra/README.md). Two advertised listeners:
+  # apache/kafka-native:4.3.1 pinned to match the services' Dev Services
+  # image-name pin (provider "upstream-kafka-native", the default) and the
+  # Strimzi cluster's Kafka 4.3.1 (see infra/README.md). Two advertised listeners:
   #   - PLAINTEXT (localhost:9092) — host access (CLI tools, IDE, `kcat`)
   #   - INTERNAL  (kafka:9094)     — in-network access for other compose
   #     services AND K8s parity (a Service named `kafka` on port 9094 is
@@ -117,8 +119,8 @@ services:
       start_period: 30s
 
   # ─── Apicurio Registry (baseline) ────────────────────────────────────────
-  # apicurio/apicurio-registry:3.1.7 pinned to match Quarkus 3.39.5 Dev
-  # Services' default image exactly (see infra/README.md). Serves the v3
+  # apicurio/apicurio-registry:3.3.3 pinned to match the services' Dev
+  # Services image-name pin and the minikube install (see infra/README.md). Serves the v3
   # API at /apis/registry/v3, wire-compatible with the explicit
   # io.apicurio.registry.serde.avro.AvroKafka{Serializer,Deserializer}
   # config in order-service/shipping-service/notification-service.
@@ -134,7 +136,7 @@ services:
     ports:
       - "${APICURIO_PORT}:8080"
     environment:
-      # Apicurio Registry 3.1.7 removed the plain in-memory ("mem")
+      # Apicurio Registry 3.1.7+ removed the plain in-memory ("mem")
       # storage variant used by older 3.0.x images (confirmed empirically:
       # APICURIO_STORAGE_KIND=mem throws "No Registry storage variant
       # defined for value mem" at startup). sql/h2 is the closest
@@ -146,7 +148,9 @@ services:
       - QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     mem_limit: 512m
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health/ready"]
+      # Apicurio Registry 3.3 serves health on the management interface
+      # (port 9000); /health/ready on 8080 answers 404 on 3.3.3.
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/health/ready"]
       interval: 5s
       timeout: 3s
       retries: 12

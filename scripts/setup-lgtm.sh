@@ -5,14 +5,16 @@
 #   Loki (L)   — log aggregation, single-binary mode, filesystem storage
 #   Grafana (G) — visualization, with datasources + dashboards provisioned
 #   Tempo (T)   — distributed tracing, monolithic mode, filesystem storage
-#   Mimir (M)   — metrics, monolithic mode (single binary), filesystem storage
+#   Mimir (M)   — metrics, mimir-distributed chart trimmed to one replica per
+#                 component, classic ingesters (ingest storage / Kafka off),
+#                 filesystem storage
 #   OTel Collector — single deployment pod that receives OTLP and routes
 #                    signals to the three backends
 #
-# All four storage components run in monolithic / single-binary mode because
-# this is a single-node minikube. Production deployments use distributed mode
-# (separate ingester / distributor / querier / etc.); that's appropriate when
-# you have nodes to spread across, not when you have one.
+# Loki and Tempo run in single-binary mode because this is a single-node
+# minikube. Mimir uses the mimir-distributed chart's component layout with
+# minimal replicas; production deployments spread those components across
+# nodes.
 #
 # Apps emit OTLP to the Collector at otel-collector.<obs_ns>.svc.cluster.local
 # (HTTP on 4318, gRPC on 4317). The Collector routes:
@@ -26,10 +28,15 @@
 # canonical map is demos/lib/endpoints.sh. Each chart below is installed with a NodePort service at
 # the fixed port from that allocation map. NOTE: these --set overrides use
 # each chart's documented values-schema key as of the pinned chart version
-# below; they have not been verified against a live install in this
-# environment (minikube bring-up was not executed in this step) — re-check
-# `helm show values <chart> --version <pinned>` if a NodePort doesn't appear
-# after install.
+# below. Every chart was rendered with `helm template` and these exact flags on
+# 2026-10-09 (DRQ-029) and produced the expected NodePort Services; a live
+# install is still pending. Re-check `helm show values <chart> --version
+# <pinned>` if a NodePort doesn't appear after install.
+#
+# Chart sources (DRQ-029): the grafana/loki chart became the Grafana
+# Enterprise Logs chart, and the OSS Loki, Tempo and Grafana charts moved to
+# the grafana-community repository (grafana/tempo and grafana/grafana are
+# deprecated there since 2026-01-30). mimir-distributed stays in grafana.
 #
 # Idempotent: helm upgrade --install everywhere, kubectl apply for the
 # config-only resources.
@@ -42,11 +49,13 @@ set -euo pipefail
 NAMESPACE="${OBS_NAMESPACE:-observability}"
 
 # Chart versions — pinned for reproducibility. Bump deliberately, not by drift.
-LOKI_VERSION="${LOKI_VERSION:-6.16.0}"
-TEMPO_VERSION="${TEMPO_VERSION:-1.10.0}"
-MIMIR_VERSION="${MIMIR_VERSION:-5.4.0}"
-GRAFANA_VERSION="${GRAFANA_VERSION:-8.5.0}"
-OTEL_COLLECTOR_VERSION="${OTEL_COLLECTOR_VERSION:-0.97.0}"
+# Newest stable chart releases, checked against each repo's index.yaml on
+# 2026-10-09 (app versions in the comments).
+LOKI_VERSION="${LOKI_VERSION:-18.15.1}"                    # grafana-community/loki, Loki 3.7.8
+TEMPO_VERSION="${TEMPO_VERSION:-3.1.0}"                    # grafana-community/tempo, Tempo 3.1.0
+MIMIR_VERSION="${MIMIR_VERSION:-6.2.1}"                    # grafana/mimir-distributed, Mimir 3.2.1
+GRAFANA_VERSION="${GRAFANA_VERSION:-13.4.0}"               # grafana-community/grafana, Grafana 13.2.3
+OTEL_COLLECTOR_VERSION="${OTEL_COLLECTOR_VERSION:-0.175.1}" # open-telemetry, collector-contrib 0.161.0
 
 command -v kubectl >/dev/null 2>&1 || { printf 'ERROR: kubectl not in PATH.\n' >&2; exit 1; }
 command -v helm    >/dev/null 2>&1 || { printf 'ERROR: helm not in PATH.\n' >&2; exit 1; }
@@ -55,6 +64,7 @@ command -v helm    >/dev/null 2>&1 || { printf 'ERROR: helm not in PATH.\n' >&2;
 printf '==> Ensuring helm repos are registered\n'
 for repo in \
     "grafana=https://grafana.github.io/helm-charts" \
+    "grafana-community=https://grafana-community.github.io/helm-charts" \
     "open-telemetry=https://open-telemetry.github.io/opentelemetry-helm-charts"
 do
     name="${repo%=*}"; url="${repo#*=}"
@@ -64,7 +74,7 @@ do
         helm repo add "$name" "$url"
     fi
 done
-helm repo update grafana open-telemetry >/dev/null 2>&1 || true
+helm repo update grafana grafana-community open-telemetry >/dev/null 2>&1 || true
 
 # ─── Namespace ──────────────────────────────────────────────────────────────
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
@@ -86,7 +96,7 @@ fi
 
 # ─── Loki (single-binary mode) ──────────────────────────────────────────────
 printf '==> Installing Loki %s (single-binary mode)\n' "$LOKI_VERSION"
-helm upgrade --install loki grafana/loki \
+helm upgrade --install loki grafana-community/loki \
     --version "$LOKI_VERSION" \
     --namespace "$NAMESPACE" \
     --wait \
@@ -118,7 +128,7 @@ helm upgrade --install loki grafana/loki \
 
 # ─── Tempo (monolithic mode) ────────────────────────────────────────────────
 printf '==> Installing Tempo %s (monolithic mode)\n' "$TEMPO_VERSION"
-helm upgrade --install tempo grafana/tempo \
+helm upgrade --install tempo grafana-community/tempo \
     --version "$TEMPO_VERSION" \
     --namespace "$NAMESPACE" \
     --wait \
@@ -130,33 +140,125 @@ helm upgrade --install tempo grafana/tempo \
     --set 'tempo.receivers.otlp.protocols.http.endpoint=0.0.0.0:4318' \
     --set 'service.type=NodePort'
 # The tempo chart ignores service.nodePort and gives every port a random
-# nodePort. Pin the HTTP API (port 3100, name tempo-prom-metrics: /ready,
-# /api/search, /api/traces) to 30320, which setup-profile.sh publishes on
-# 127.0.0.1:3200 (demos/lib/endpoints.sh). Service ports merge on `port`.
+# nodePort. Pin the HTTP API (port 3200 since Tempo 3 / chart 3.x, was 3100;
+# name tempo-prom-metrics: /ready, /api/search, /api/traces) to 30320, which
+# setup-profile.sh publishes on 127.0.0.1:3200 (demos/lib/endpoints.sh).
+# Service ports merge on `port`.
 kubectl -n "$NAMESPACE" patch svc tempo --type=strategic \
-    -p '{"spec":{"ports":[{"port":3100,"nodePort":30320}]}}' >/dev/null
+    -p '{"spec":{"ports":[{"port":3200,"nodePort":30320}]}}' >/dev/null
 
-# ─── Mimir (monolithic mode) ────────────────────────────────────────────────
-printf '==> Installing Mimir %s (monolithic mode)\n' "$MIMIR_VERSION"
+# ─── Mimir (lean, classic ingesters) ────────────────────────────────────────
+# mimir-distributed 6.x defaults to the ingest-storage architecture (Kafka in
+# the write path) with zone-aware ingesters and store-gateways. That is too
+# heavy for one node, so the values below turn it off: distributors push
+# straight to the ingesters (the classic architecture, still supported in
+# Mimir 3.x), every component runs one replica with replication factor 1 and
+# no zone awareness, the memcached caches, MinIO, Kafka and rollout-operator
+# are off, and storage is the filesystem. Filesystem blocks are per-pod, so
+# the store-gateway cannot see blocks another pod uploaded; recent data is
+# served by the ingester, which is what a dev stack queries. Each *_storage
+# dir must not overlap the component's working dir (/data): Mimir 3.2.1
+# rejects /data/blocks overlapping the compactor's /data, hence the
+# sub-directories (validated with `mimir -config.file=... -modules`). Values
+# come from the lgtm-minikube-stack skill template.
+printf '==> Installing Mimir %s (lean: single replicas, classic ingesters)\n' "$MIMIR_VERSION"
+MIMIR_VALUES="$(mktemp)"
+trap 'rm -f "$MIMIR_VALUES"' EXIT
+cat >"$MIMIR_VALUES" <<'MIMIR_VALUES_EOF'
+kafka:
+  enabled: false
+minio:
+  enabled: false
+rollout_operator:
+  enabled: false
+chunks-cache:
+  enabled: false
+index-cache:
+  enabled: false
+metadata-cache:
+  enabled: false
+results-cache:
+  enabled: false
+metaMonitoring:
+  serviceMonitor:
+    enabled: false
+mimir:
+  structuredConfig:
+    ingest_storage:
+      enabled: false
+    ingester:
+      push_grpc_method_enabled: true
+      ring:
+        replication_factor: 1
+    store_gateway:
+      sharding_ring:
+        replication_factor: 1
+    compactor:
+      data_dir: /data/compactor
+    ruler:
+      rule_path: /data/ruler-work
+    alertmanager:
+      data_dir: /data/alertmanager-work
+    blocks_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/blocks
+    ruler_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/ruler-store
+    alertmanager_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/alertmanager-store
+ingester:
+  replicas: 1
+  zoneAwareReplication:
+    enabled: false
+  persistentVolume:
+    size: 5Gi
+store_gateway:
+  replicas: 1
+  zoneAwareReplication:
+    enabled: false
+  persistentVolume:
+    size: 2Gi
+compactor:
+  replicas: 1
+  persistentVolume:
+    size: 2Gi
+alertmanager:
+  replicas: 1
+  zoneAwareReplication:
+    enabled: false
+  persistentVolume:
+    size: 1Gi
+distributor:
+  replicas: 1
+querier:
+  replicas: 1
+query_frontend:
+  replicas: 1
+query_scheduler:
+  replicas: 1
+ruler:
+  replicas: 1
+overrides_exporter:
+  replicas: 1
+gateway:
+  replicas: 1
+  service:
+    # Keep the Service name the Collector, Grafana datasources, Kiali and
+    # demos/lib/endpoints.sh use (chart 6.x renamed nginx to gateway).
+    nameOverride: mimir-nginx
+    type: NodePort
+    nodePort: 30009
+MIMIR_VALUES_EOF
 helm upgrade --install mimir grafana/mimir-distributed \
     --version "$MIMIR_VERSION" \
     --namespace "$NAMESPACE" \
-    --wait \
-    --set 'metaMonitoring.serviceMonitor.enabled=false' \
-    --set 'minio.enabled=false' \
-    --set 'mimir.structuredConfig.common.storage.backend=filesystem' \
-    --set 'mimir.structuredConfig.common.storage.filesystem.dir=/data/common' \
-    --set 'mimir.structuredConfig.blocks_storage.backend=filesystem' \
-    --set 'mimir.structuredConfig.blocks_storage.filesystem.dir=/data/blocks' \
-    --set 'mimir.structuredConfig.ruler_storage.backend=filesystem' \
-    --set 'mimir.structuredConfig.ruler_storage.filesystem.dir=/data/ruler' \
-    --set 'mimir.structuredConfig.alertmanager_storage.backend=filesystem' \
-    --set 'mimir.structuredConfig.alertmanager_storage.filesystem.dir=/data/alertmanager' \
-    --set 'mimir.structuredConfig.compactor.data_dir=/data/compactor' \
-    --set 'mimir.structuredConfig.ruler.rule_path=/data/ruler-work' \
-    --set 'mimir.structuredConfig.alertmanager.data_dir=/data/alertmanager-work' \
-    --set 'nginx.service.type=NodePort' \
-    --set 'nginx.service.nodePort=30009'
+    --values "$MIMIR_VALUES" \
+    --wait --timeout 10m
 
 # ─── OpenTelemetry Collector (single deployment pod) ────────────────────────
 printf '==> Installing OpenTelemetry Collector %s\n' "$OTEL_COLLECTOR_VERSION"
@@ -182,7 +284,7 @@ helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
 
 # ─── Grafana (with datasources + dashboards pre-provisioned) ────────────────
 printf '==> Installing Grafana %s\n' "$GRAFANA_VERSION"
-helm upgrade --install grafana grafana/grafana \
+helm upgrade --install grafana grafana-community/grafana \
     --version "$GRAFANA_VERSION" \
     --namespace "$NAMESPACE" \
     --wait \
@@ -194,17 +296,17 @@ helm upgrade --install grafana grafana/grafana \
     --set 'service.nodePort=30300' \
     --set 'sidecar.datasources.enabled=true' \
     --set 'sidecar.datasources.label=grafana_datasource' \
-    --set 'sidecar.datasources.labelValue=1' \
+    --set-string 'sidecar.datasources.labelValue=1' \
     --set 'sidecar.dashboards.enabled=true' \
     --set 'sidecar.dashboards.label=grafana_dashboard' \
-    --set 'sidecar.dashboards.labelValue=1' \
+    --set-string 'sidecar.dashboards.labelValue=1' \
     --set 'sidecar.dashboards.folderAnnotation=grafana_folder' \
     --set 'sidecar.dashboards.provider.foldersFromFilesStructure=true'
 
 # ─── Done ───────────────────────────────────────────────────────────────────
 printf '\n==> LGTM stack installed in the %s namespace.\n\n' "$NAMESPACE"
 printf 'Host access (NodePorts published on 127.0.0.1; ./scripts/show-endpoints.sh):\n'
-printf '  Grafana: http://localhost:3000  (admin/admin)\n'
+printf '  Grafana: http://localhost:3000  (user admin; dev-only password set in this script)\n'
 printf '  Tempo:   http://localhost:3200\n'
 printf '  Loki:    http://localhost:3100\n'
 printf '  Mimir:   http://localhost:9009\n'

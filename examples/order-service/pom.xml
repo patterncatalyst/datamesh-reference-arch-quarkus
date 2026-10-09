@@ -114,11 +114,11 @@
          it can drive a raw KafkaProducer/KafkaConsumer independent of the
          application's own Reactive Messaging wiring.
 
-         NOTE on artifact ids: the quarkus-bom:3.39.5-managed Testcontainers
+         NOTE on artifact ids: the quarkus-bom:3.40.1-managed Testcontainers
          release is 2.0.5, which renamed the modules with a
          "testcontainers-" prefix (org.testcontainers:testcontainers-kafka,
          org.testcontainers:testcontainers-junit-jupiter), confirmed by
-         grepping quarkus-bom-3.39.5.pom; the older org.testcontainers:kafka
+         grepping quarkus-bom-3.40.1.pom; the older org.testcontainers:kafka
          / org.testcontainers:junit-jupiter coordinates are NOT present in
          that BOM. Using the BOM-managed artifact ids here (no explicit
          <version>) keeps this module on the same Testcontainers train as

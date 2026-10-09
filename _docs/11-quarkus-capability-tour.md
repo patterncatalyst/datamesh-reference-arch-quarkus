@@ -387,7 +387,7 @@ worker thread.
 module's tests on every save. Dev Services provisions the Testcontainers those
 tests need (Postgres, Kafka, Apicurio) without `docker compose` or a `.env`
 file. [demo-continuous-testing.sh]({{ site.repo_blob }}/demos/demo-continuous-testing.sh) starts `order-service`
-this way and watches the dev-mode log for the pass banner Quarkus 3.39.5 prints:
+this way and watches the dev-mode log for the pass banner Quarkus prints (wording confirmed on 3.39.5):
 
 ```text
 All 4 tests are passing (0 skipped), 4 tests were run in 8318ms.
@@ -517,7 +517,7 @@ Three scripts in [demos/jbang]({{ site.repo_tree }}/demos/jbang) use it:
 
 [demo-jbang-prototype.sh]({{ site.repo_blob }}/demos/demo-jbang-prototype.sh) runs [HelloRoute.java]({{ site.repo_blob }}/demos/jbang/HelloRoute.java), a complete
 Camel route with no `pom.xml`. The header pins every dependency to a stable
-release, Camel 4.22.1 on the line the `quarkus-camel-bom` 3.39.5 platform
+release, Camel 4.22.1, the version the `quarkus-camel-bom` 3.40.1 platform
 pins, and `main()` starts Camel Main and stops it after one message:
 
 ```java

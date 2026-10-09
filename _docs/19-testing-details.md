@@ -87,10 +87,10 @@ order-service's REST endpoint could pass even if the Kafka producer
 silently fell back from Avro to Quarkus's autodetected Jackson/JSON
 serialization — the HTTP response wouldn't change. So this test bypasses the application's own Reactive Messaging wiring and
 drives a raw `KafkaProducer`/`KafkaConsumer` pair directly against two
-self-provisioned Testcontainers: a `KafkaContainer("apache/kafka-native:4.2.0")`
-and a `GenericContainer` running `quay.io/apicurio/apicurio-registry:3.1.7`
+self-provisioned Testcontainers: a `KafkaContainer("apache/kafka-native:4.3.1")`
+and a `GenericContainer` running `quay.io/apicurio/apicurio-registry:3.3.3`
 (configured with `APICURIO_STORAGE_KIND=sql` / `APICURIO_STORAGE_SQL_KIND=h2`,
-since Apicurio 3.1.7 removed the plain in-memory `mem` storage kind older
+since Apicurio 3.1.7 and later removed the plain in-memory `mem` storage kind older
 3.0.x images supported). It produces one `capstone.order.v1.OrderPlaced`
 record through the same `io.apicurio.registry.serde.avro.AvroKafkaSerializer`
 the application uses, then reads the raw bytes back with a vanilla

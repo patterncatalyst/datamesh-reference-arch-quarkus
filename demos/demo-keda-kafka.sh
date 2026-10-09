@@ -37,8 +37,8 @@
 # `kustomize`) as preflight dependencies. This environment (and, per
 # k8s/keda/README.md's "Static validation" section) has NO standalone `kustomize`
 # binary on PATH — only kubectl's bundled kustomize (confirmed: `kubectl
-# version --client` reports "Kustomize Version: v5.7.1" bundled into kubectl
-# v1.35.3; a bare `kustomize version` is "command not found"). Requiring a
+# version --client` reports "Kustomize Version: v5.8.1" bundled into kubectl
+# v1.36.5; a bare `kustomize version` is "command not found"). Requiring a
 # standalone `kustomize` binary here would hard-fail this demo at the
 # toolchain gate before it ever reached the (intended, more informative)
 # cluster-reachability gate below — so, matching k8s/keda/README.md's own
@@ -233,7 +233,7 @@ _cleanup_loadgen_pod() {
 }
 trap '_cleanup_loadgen_pod; _demo_exit_trap' EXIT
 
-kubectl run "$LOADGEN_POD" -n "$NS" --restart=Never --image=curlimages/curl:8.11.1 \
+kubectl run "$LOADGEN_POD" -n "$NS" --restart=Never --image=curlimages/curl:8.22.0 \
     --command -- /bin/sh -c "$LOADGEN_SCRIPT" \
     || fail "failed to start load-generator pod ${LOADGEN_POD}"
 

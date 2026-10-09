@@ -1,4 +1,4 @@
-trace be30b6600ea1ac551bdb19a9c7655dfa
+trace adbf1a71d342a70df91c6291a228d34e
       1 graphql-gateway: capstone.inventory.v1.InventoryService/CheckStock
       1 graphql-gateway: GET
       1 graphql-gateway: POST /graphql/graphql

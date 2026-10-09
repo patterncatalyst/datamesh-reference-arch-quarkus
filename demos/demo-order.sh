@@ -79,7 +79,7 @@
 # equivalent JAVA_TOOL_OPTIONS/JVM arg) is set wherever the image runs.
 #
 # ── Port plan (avoiding compose's host-published ports:
-# 5432/9092/9094/8081/3000/4317/4318/9090/3100/3200 — .env.example) ───────
+# 5432/9092/9094/8081/3000/4317/4318/19090/3100/3200 — .env.example) ──────
 #   order-service      HTTP 8091
 #   inventory-service  HTTP 8092, gRPC 9000 (canonical default, see above)
 set -uo pipefail
@@ -137,10 +137,10 @@ trap '_cleanup; _demo_exit_trap' EXIT
 
 step "preflight: compose Postgres reachable"
 for (( i = 0; i < 30; i++ )); do
-    docker exec datamesh-postgres pg_isready -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 && break
+    docker exec datamesh-postgres pg_isready -h 127.0.0.1 -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 && break
     sleep 1
 done
-docker exec datamesh-postgres pg_isready -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 \
+docker exec datamesh-postgres pg_isready -h 127.0.0.1 -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 \
     || fail "compose Postgres (orderdb) did not become ready within 30s"
 info "compose Postgres is ready (orderdb, inventorydb)"
 

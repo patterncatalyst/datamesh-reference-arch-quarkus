@@ -40,7 +40,7 @@
 # missing. If the download fails (offline host), this demo fails loudly with
 # the exact manual-download command rather than silently skipping tracing.
 #
-# ── Tempo API shape (confirmed empirically against otel-lgtm:0.8.1) ────────
+# ── Tempo API shape (confirmed against otel-lgtm 0.8.1, re-checked on 0.36.0) ─
 # `GET /api/search?tags=service.name=<name>` returns `{"traces":[{"traceID":
 # ...,"rootServiceName":...,"rootTraceName":...}, ...]}`, newest first.
 # `GET /api/traces/<id>` returns the OTEL-COLLECTOR-INTERNAL "batches" shape
@@ -137,10 +137,10 @@ trap '_cleanup; _demo_exit_trap' EXIT
 
 step "preflight: compose Postgres reachable, Tempo search API answering"
 for (( i = 0; i < 30; i++ )); do
-    docker exec datamesh-postgres pg_isready -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 && break
+    docker exec datamesh-postgres pg_isready -h 127.0.0.1 -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 && break
     sleep 1
 done
-docker exec datamesh-postgres pg_isready -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 \
+docker exec datamesh-postgres pg_isready -h 127.0.0.1 -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 \
     || fail "compose Postgres (orderdb) did not become ready within 30s"
 # Tempo's own /ready lags /api/search answering 200 by ~30-40s on a cold
 # container (confirmed empirically) -- poll the API we use instead.
@@ -259,7 +259,7 @@ step "GET /api/traces/${TRACE_ID} -- parse span count and participating services
 TRACE_JSON="$(curl -fsS --max-time 10 "${TEMPO_BASE}/api/traces/${TRACE_ID}")" \
     || fail "GET ${TEMPO_BASE}/api/traces/${TRACE_ID} failed"
 
-# Tempo (otel-lgtm:0.8.1) answers with the Jaeger-style "batches" shape, with
+# Tempo (otel-lgtm 0.8.1, and 0.36.0 / Tempo 3.1.0) answers with the Jaeger-style "batches" shape, with
 # spans nested under EITHER "scopeSpans" or the older "instrumentationLibrarySpans"
 # key depending on exporter version -- parse both defensively (confirmed
 # live: this build uses "scopeSpans").

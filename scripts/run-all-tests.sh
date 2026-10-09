@@ -272,10 +272,10 @@ if (( RUN_LOAD == 1 )); then
 
     if (( STACK_UP_OK == 1 )); then
         for (( i = 0; i < 30; i++ )); do
-            docker exec datamesh-postgres pg_isready -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 && break
+            docker exec datamesh-postgres pg_isready -h 127.0.0.1 -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 && break
             sleep 1
         done
-        docker exec datamesh-postgres pg_isready -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 \
+        docker exec datamesh-postgres pg_isready -h 127.0.0.1 -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 \
             || { STACK_UP_OK=0; warn "compose Postgres (orderdb) did not become ready within 30s"; }
     fi
 

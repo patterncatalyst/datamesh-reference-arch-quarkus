@@ -6,7 +6,7 @@
 # is a complete Camel route with no pom.xml and no Maven module.
 # `jbang demos/jbang/HelloRoute.java` resolves the script's pinned //DEPS
 # (Camel 4.22.1, the latest stable patch on the 4.22 line the
-# quarkus-camel-bom 3.39.5 platform pins)
+# quarkus-camel-bom 3.40.1 platform pins)
 # from Maven Central and runs it directly. This is the "sketch an idea
 # before committing to a Maven module" workflow this capability exists to
 # showcase — no `mvn` anywhere in this script.
