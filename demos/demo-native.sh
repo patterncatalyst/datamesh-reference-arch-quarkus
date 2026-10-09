@@ -160,10 +160,10 @@ _cleanup_native_run() {
 trap '_cleanup_native_run; _demo_exit_trap' EXIT
 
 for (( i = 0; i < 30; i++ )); do
-    docker exec "$PG_CONTAINER" pg_isready -U "$PG_USER" -d "$PG_DB" >/dev/null 2>&1 && break
+    docker exec "$PG_CONTAINER" pg_isready -h 127.0.0.1 -U "$PG_USER" -d "$PG_DB" >/dev/null 2>&1 && break
     sleep 1
 done
-docker exec "$PG_CONTAINER" pg_isready -U "$PG_USER" -d "$PG_DB" >/dev/null 2>&1 \
+docker exec "$PG_CONTAINER" pg_isready -h 127.0.0.1 -U "$PG_USER" -d "$PG_DB" >/dev/null 2>&1 \
     || fail "throwaway Postgres container did not become ready within 30s"
 info "throwaway Postgres is ready"
 

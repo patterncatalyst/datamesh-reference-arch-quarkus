@@ -137,10 +137,10 @@ trap '_cleanup; _demo_exit_trap' EXIT
 
 step "preflight: compose Postgres reachable, Tempo search API answering"
 for (( i = 0; i < 30; i++ )); do
-    docker exec datamesh-postgres pg_isready -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 && break
+    docker exec datamesh-postgres pg_isready -h 127.0.0.1 -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 && break
     sleep 1
 done
-docker exec datamesh-postgres pg_isready -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 \
+docker exec datamesh-postgres pg_isready -h 127.0.0.1 -U "${POSTGRES_USER:-appuser}" -d orderdb >/dev/null 2>&1 \
     || fail "compose Postgres (orderdb) did not become ready within 30s"
 # Tempo's own /ready lags /api/search answering 200 by ~30-40s on a cold
 # container (confirmed empirically) -- poll the API we use instead.
