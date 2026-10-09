@@ -55,8 +55,9 @@ and the cost this stack is built to avoid.
 ## Installing the stack: [setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh)
 
 Loki and Tempo run in **single-binary mode**, because this is a single-node local
-Kubernetes cluster (`minikube`); Mimir uses the `mimir-distributed` chart with one
-small replica per component. Production deployments spread those components across
+Kubernetes cluster (`minikube`); Mimir uses the `mimir-distributed` chart trimmed to
+one replica per component, with classic ingesters instead of the chart's default
+Kafka-based ingest storage. Production deployments spread those components across
 nodes. The OSS Loki, Tempo and Grafana charts now live in the `grafana-community`
 repository (the `grafana/loki` chart became the Grafana Enterprise Logs chart);
 `mimir-distributed` stays in `grafana`:
@@ -73,8 +74,7 @@ helm upgrade --install tempo grafana-community/tempo \
 
 helm upgrade --install mimir grafana/mimir-distributed \
     --version 6.2.1 --namespace observability \
-    --set 'mimir.structuredConfig.common.storage.backend=filesystem' \
-    --set 'gateway.service.nameOverride=mimir-nginx'
+    --values "$MIMIR_VALUES"    # lean values: see the heredoc in setup-lgtm.sh
 
 helm upgrade --install grafana grafana-community/grafana \
     --version 13.4.0 --namespace observability \
@@ -82,8 +82,13 @@ helm upgrade --install grafana grafana-community/grafana \
     --set 'sidecar.dashboards.enabled=true'
 ```
 
-Mimir chart 6.x replaced its nginx proxy with a `gateway`; `nameOverride` keeps the
-`mimir-nginx` Service name the Collector, Grafana and Kiali use. Tempo 3 serves its
+The Mimir values turn off ingest storage (and with it the chart's Kafka), MinIO, the
+memcached caches, the rollout-operator and zone awareness; set replication factor 1;
+and give every filesystem store its own directory, because Mimir 3.2.1 refuses a
+blocks directory that overlaps the compactor's working directory. The rendered config
+passes `mimir -config.file=... -modules`. Chart 6.x also replaced its nginx proxy with
+a `gateway`; `gateway.service.nameOverride` keeps the `mimir-nginx` Service name the
+Collector, Grafana and Kiali use. Tempo 3 serves its
 HTTP API on port 3200 (the 1.x chart used 3100).
 
 Four backends, one convention each: Loki for logs, Tempo for traces, Mimir for

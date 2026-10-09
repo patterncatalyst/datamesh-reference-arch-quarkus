@@ -5,8 +5,9 @@
 #   Loki (L)   — log aggregation, single-binary mode, filesystem storage
 #   Grafana (G) — visualization, with datasources + dashboards provisioned
 #   Tempo (T)   — distributed tracing, monolithic mode, filesystem storage
-#   Mimir (M)   — metrics, mimir-distributed chart (one small replica per
-#                 component, filesystem storage)
+#   Mimir (M)   — metrics, mimir-distributed chart trimmed to one replica per
+#                 component, classic ingesters (ingest storage / Kafka off),
+#                 filesystem storage
 #   OTel Collector — single deployment pod that receives OTLP and routes
 #                    signals to the three backends
 #
@@ -146,32 +147,118 @@ helm upgrade --install tempo grafana-community/tempo \
 kubectl -n "$NAMESPACE" patch svc tempo --type=strategic \
     -p '{"spec":{"ports":[{"port":3200,"nodePort":30320}]}}' >/dev/null
 
-# ─── Mimir ──────────────────────────────────────────────────────────────────
-# Chart 6.x replaced the nginx proxy with `gateway`. gateway.service.nameOverride
-# keeps the Service name mimir-nginx that the Collector, Grafana datasources,
-# Kiali and demos/lib/endpoints.sh use. The chart's default ingest-storage
-# architecture also runs a small Kafka (mimir-kafka) inside this release.
-printf '==> Installing Mimir %s (monolithic mode)\n' "$MIMIR_VERSION"
+# ─── Mimir (lean, classic ingesters) ────────────────────────────────────────
+# mimir-distributed 6.x defaults to the ingest-storage architecture (Kafka in
+# the write path) with zone-aware ingesters and store-gateways. That is too
+# heavy for one node, so the values below turn it off: distributors push
+# straight to the ingesters (the classic architecture, still supported in
+# Mimir 3.x), every component runs one replica with replication factor 1 and
+# no zone awareness, the memcached caches, MinIO, Kafka and rollout-operator
+# are off, and storage is the filesystem. Filesystem blocks are per-pod, so
+# the store-gateway cannot see blocks another pod uploaded; recent data is
+# served by the ingester, which is what a dev stack queries. Each *_storage
+# dir must not overlap the component's working dir (/data): Mimir 3.2.1
+# rejects /data/blocks overlapping the compactor's /data, hence the
+# sub-directories (validated with `mimir -config.file=... -modules`). Values
+# come from the lgtm-minikube-stack skill template.
+printf '==> Installing Mimir %s (lean: single replicas, classic ingesters)\n' "$MIMIR_VERSION"
+MIMIR_VALUES="$(mktemp)"
+trap 'rm -f "$MIMIR_VALUES"' EXIT
+cat >"$MIMIR_VALUES" <<'MIMIR_VALUES_EOF'
+kafka:
+  enabled: false
+minio:
+  enabled: false
+rollout_operator:
+  enabled: false
+chunks-cache:
+  enabled: false
+index-cache:
+  enabled: false
+metadata-cache:
+  enabled: false
+results-cache:
+  enabled: false
+metaMonitoring:
+  serviceMonitor:
+    enabled: false
+mimir:
+  structuredConfig:
+    ingest_storage:
+      enabled: false
+    ingester:
+      push_grpc_method_enabled: true
+      ring:
+        replication_factor: 1
+    store_gateway:
+      sharding_ring:
+        replication_factor: 1
+    compactor:
+      data_dir: /data/compactor
+    ruler:
+      rule_path: /data/ruler-work
+    alertmanager:
+      data_dir: /data/alertmanager-work
+    blocks_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/blocks
+    ruler_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/ruler-store
+    alertmanager_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/alertmanager-store
+ingester:
+  replicas: 1
+  zoneAwareReplication:
+    enabled: false
+  persistentVolume:
+    size: 5Gi
+store_gateway:
+  replicas: 1
+  zoneAwareReplication:
+    enabled: false
+  persistentVolume:
+    size: 2Gi
+compactor:
+  replicas: 1
+  persistentVolume:
+    size: 2Gi
+alertmanager:
+  replicas: 1
+  zoneAwareReplication:
+    enabled: false
+  persistentVolume:
+    size: 1Gi
+distributor:
+  replicas: 1
+querier:
+  replicas: 1
+query_frontend:
+  replicas: 1
+query_scheduler:
+  replicas: 1
+ruler:
+  replicas: 1
+overrides_exporter:
+  replicas: 1
+gateway:
+  replicas: 1
+  service:
+    # Keep the Service name the Collector, Grafana datasources, Kiali and
+    # demos/lib/endpoints.sh use (chart 6.x renamed nginx to gateway).
+    nameOverride: mimir-nginx
+    type: NodePort
+    nodePort: 30009
+MIMIR_VALUES_EOF
 helm upgrade --install mimir grafana/mimir-distributed \
     --version "$MIMIR_VERSION" \
     --namespace "$NAMESPACE" \
-    --wait \
-    --set 'metaMonitoring.serviceMonitor.enabled=false' \
-    --set 'minio.enabled=false' \
-    --set 'mimir.structuredConfig.common.storage.backend=filesystem' \
-    --set 'mimir.structuredConfig.common.storage.filesystem.dir=/data/common' \
-    --set 'mimir.structuredConfig.blocks_storage.backend=filesystem' \
-    --set 'mimir.structuredConfig.blocks_storage.filesystem.dir=/data/blocks' \
-    --set 'mimir.structuredConfig.ruler_storage.backend=filesystem' \
-    --set 'mimir.structuredConfig.ruler_storage.filesystem.dir=/data/ruler' \
-    --set 'mimir.structuredConfig.alertmanager_storage.backend=filesystem' \
-    --set 'mimir.structuredConfig.alertmanager_storage.filesystem.dir=/data/alertmanager' \
-    --set 'mimir.structuredConfig.compactor.data_dir=/data/compactor' \
-    --set 'mimir.structuredConfig.ruler.rule_path=/data/ruler-work' \
-    --set 'mimir.structuredConfig.alertmanager.data_dir=/data/alertmanager-work' \
-    --set 'gateway.service.nameOverride=mimir-nginx' \
-    --set 'gateway.service.type=NodePort' \
-    --set 'gateway.service.nodePort=30009'
+    --values "$MIMIR_VALUES" \
+    --wait --timeout 10m
 
 # ─── OpenTelemetry Collector (single deployment pod) ────────────────────────
 printf '==> Installing OpenTelemetry Collector %s\n' "$OTEL_COLLECTOR_VERSION"
