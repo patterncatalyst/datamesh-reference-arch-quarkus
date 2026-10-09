@@ -1,0 +1,15 @@
+trace 88ec3fb730db0ff5d5a2d0eaf4f456df
+      1 graphql-gateway: capstone.inventory.v1.InventoryService/CheckStock
+      1 graphql-gateway: GET
+      1 graphql-gateway: POST /graphql/graphql
+      1 graphql-gateway: query
+      1 inventory-service: capstone.inventory.v1.InventoryService/CheckStock
+      1 inventory-service: SELECT com.patterncatalyst.datamesh.inventory.Stock
+      1 inventory-service: SELECT datamesh.stock
+      1 order-service-v2: GET /orders/{id}
+      1 order-service-v2: SELECT datamesh.orders
+      1 order-service-v2: Session.find com.patterncatalyst.datamesh.order.Order
+
+order-service runs native (no Java agent); its span is not required
+
+Grafana /api/health through its Route: 200

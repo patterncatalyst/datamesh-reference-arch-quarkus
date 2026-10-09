@@ -1,0 +1,12 @@
+BUILD                    STATUS     DURATION
+order-service-native-1   Complete   161000000000
+order-service-native-2   Complete   155000000000
+image image-registry.openshift-image-registry.svc:5000/datamesh/order-service-native@sha256:48fa58ab8c46a18df46a2207a7788139b6cef0c60ee53105ea5e4e19a0784dd6
+
+-- startup
+2026-10-09 07:24:03,404 INFO  [io.quarkus] (main) order-service 1.0.0-SNAPSHOT native (powered by Quarkus 3.39.5) started in 0.075s. Listening on: http://0.0.0.0:8080
+2026-10-09 07:06:18,351 INFO  [io.quarkus] (main) order-service 1.0.0-SNAPSHOT on JVM (powered by Quarkus 3.39.5) started in 12.675s. Listening on: http://0.0.0.0:8080
+
+-- working set (kubelet stats)
+order-service-v2-d79c648df-4xzng: 325 MiB
+order-service-584995b49c-jc4h8: 31 MiB

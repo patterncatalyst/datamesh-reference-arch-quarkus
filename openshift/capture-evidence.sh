@@ -12,6 +12,10 @@
 #      shipment row, and notification-service recorded the order
 #   6. Apicurio Route: the services registered their Avro schemas
 #   7. secret scrub: no password, token or private key in the evidence
+# plus, for whatever openshift/platform/ installed: mesh (STRICT mTLS, canary
+# split, Kiali), autoscaling (0 -> N -> 0), tracing (one trace across
+# services), AI (classify, triage, MCP), native (startup, memory) and GitOps
+# (Synced, self-heal).
 #
 # curl validates the router certificate against the cluster's ingress CA,
 # so nothing here uses --insecure.
@@ -50,10 +54,11 @@ step "2/7 Pods under restricted-v2"
 oc get pods -n "$NS" --field-selector=status.phase=Running \
     -o custom-columns='POD:.metadata.name,READY:.status.containerStatuses[*].ready,RESTARTS:.status.containerStatuses[*].restartCount,SCC:.metadata.annotations.openshift\.io/scc,UID:.spec.containers[0].securityContext.runAsUser' \
     > "$OUT/02-pods.txt"
-not_ready=$(awk 'NR>1 && ($2 ~ /false/ || $4 != "restricted-v2")' "$OUT/02-pods.txt" | grep -c . || true)
+# The one exception is otel-lgtm (observability), which needs anyuid.
+not_ready=$(awk 'NR>1 && ($2 ~ /false/ || ($4 != "restricted-v2" && !($1 ~ /^lgtm-/ && $4 == "anyuid")))' "$OUT/02-pods.txt" | grep -c . || true)
 oc get namespace "$NS" -o jsonpath='namespace uid-range: {.metadata.annotations.openshift\.io/sa\.scc\.uid-range}{"\n"}' >> "$OUT/02-pods.txt"
 (( not_ready == 0 )) || fail "$not_ready pod(s) not Ready or not restricted-v2 (see $OUT/02-pods.txt)"
-ok "all pods Ready, restricted-v2"
+ok "all pods Ready, restricted-v2 (otel-lgtm: anyuid)"
 
 step "3/7 Gateway health through the Route"
 code=$(https -o "$OUT/03-gateway-health.json" -w '%{http_code}' "$GATEWAY/q/health/ready")
@@ -65,7 +70,9 @@ step "4/7 GraphQL: order (REST) + stock (gRPC)"
 SKU="CRC-WIDGET-$$"
 in_pod inventory-service curl -fsS -X POST localhost:8080/stock -H 'Content-Type: application/json' \
     -d "{\"sku\":\"$SKU\",\"quantityOnHand\":12,\"available\":true}" >/dev/null || fail "seed stock $SKU"
-created=$(in_pod order-service curl -fsS -X POST localhost:8080/orders -H 'Content-Type: application/json' \
+# Through the gateway pod: it has curl in every mode (the native order-service
+# image has none), and with the mesh on the call goes sidecar to sidecar.
+created=$(in_pod graphql-gateway curl -fsS -X POST http://order-service:8080/orders -H 'Content-Type: application/json' \
     -d "{\"customerId\":\"crc-evidence\",\"itemSku\":\"$SKU\",\"quantity\":1,\"amount\":9.99}") || fail "POST /orders"
 ORDER_ID=$(jq -r '.orderId' <<<"$created")
 [[ -n "$ORDER_ID" && "$ORDER_ID" != null ]] || fail "POST /orders returned no orderId: $created"
@@ -81,16 +88,23 @@ shipped() {
         "select count(*) from shipment where order_id = '$ORDER_ID'" 2>/dev/null | grep -qx '[1-9][0-9]*'
 }
 wait_for 120 "shipment row for $ORDER_ID" shipped
+notified() {
+    oc exec -n "$NS" datamesh-postgres-0 -- psql -d datamesh -tAc \
+        "select count(*) from notification where order_id = '$ORDER_ID'" 2>/dev/null | grep -qx '[1-9][0-9]*'
+}
+wait_for 240 "notification row for $ORDER_ID" notified
 {
     printf 'order %s\n\n-- payment-service log\n' "$ORDER_ID"
-    oc logs -n "$NS" deploy/payment-service | grep -F "$ORDER_ID"
+    oc logs -n "$NS" deploy/payment-service -c payment-service | grep -F "$ORDER_ID"
     printf '\n-- shipment table\n'
     oc exec -n "$NS" datamesh-postgres-0 -- psql -d datamesh -c "select * from shipment where order_id = '$ORDER_ID'"
-    printf '\n-- notification-service GET /notifications\n'
-    in_pod notification-service curl -fsS localhost:8080/notifications | jq -c --arg id "$ORDER_ID" '[.[] | select(tostring | contains($id))]'
+    # From the table, not the REST API: with KEDA on, notification-service
+    # may already have scaled back to zero.
+    printf '\n-- notification table (written by notification-service)\n'
+    oc exec -n "$NS" datamesh-postgres-0 -- psql -d datamesh -c \
+        "select order_id, event_type, status from notification where order_id = '$ORDER_ID'"
 } > "$OUT/05-choreography.txt" 2>&1
 grep -q 'Capturing payment' "$OUT/05-choreography.txt" || fail "payment-service did not log a capture for $ORDER_ID"
-grep -q "$ORDER_ID\"" "$OUT/05-choreography.txt" || fail "notification-service has no notification for $ORDER_ID"
 ok "order -> payment -> shipment, plus notification"
 
 step "6/7 Apicurio artifacts through the Route"
@@ -98,6 +112,10 @@ https "$APICURIO/apis/registry/v3/search/artifacts?limit=50" | jq . > "$OUT/06-a
 count=$(jq -r '.count // 0' "$OUT/06-apicurio-artifacts.json")
 (( count > 0 )) || fail "Apicurio lists no artifacts"
 ok "$count artifact(s) registered"
+
+# Platform tier (openshift/platform/): each section runs only if installed.
+source "$OPENSHIFT_DIR/platform/evidence.sh"
+platform_evidence
 
 step "7/7 Secret scrub"
 password="$(oc get secret datamesh-postgres-app -n "$NS" -o jsonpath='{.data.password}' | base64 -d)"

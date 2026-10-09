@@ -1,14 +1,18 @@
-order 9cded459-df3c-4a42-b8d6-50be73dce6eb
+order 7808860e-fcf6-4147-871b-7fb6e8e4aefd
 
 -- payment-service log
-2026-10-09 06:27:31,779 INFO  [com.patterncatalyst.datamesh.payment.PaymentProcessor] (executor-thread-1) Capturing payment pay-4fb534d2-f3c8-43cb-8a53-147e69384d85 for order 9cded459-df3c-4a42-b8d6-50be73dce6eb (customer=crc-evidence, amount=9.99)
+2026-10-09 07:28:25,156 INFO  [com.patterncatalyst.datamesh.payment.PaymentProcessor] (executor-thread-1) Capturing payment pay-ad6386e7-22c5-4a53-99b7-ab8a191f7bd0 for order 7808860e-fcf6-4147-871b-7fb6e8e4aefd (customer=crc-evidence, amount=9.99)
 
 -- shipment table
- id | carrier | customer_id  |         dispatched_at         | item_sku  |               order_id               | quantity |   status   | tracking_number 
-----+---------+--------------+-------------------------------+-----------+--------------------------------------+----------+------------+-----------------
-  1 | FedEx   | crc-evidence | 2026-10-09 06:27:34.286473+00 | SKU-GIZMO | 9cded459-df3c-4a42-b8d6-50be73dce6eb |        5 | dispatched | FEBB27A390D46A
+ id  | carrier | customer_id  |         dispatched_at         |  item_sku  |               order_id               | quantity |   status   | tracking_number 
+-----+---------+--------------+-------------------------------+------------+--------------------------------------+----------+------------+-----------------
+ 102 | UPS     | crc-evidence | 2026-10-09 07:28:25.575604+00 | SKU-GADGET | 7808860e-fcf6-4147-871b-7fb6e8e4aefd |        3 | dispatched | UP8F33449D191F
 (1 row)
 
 
--- notification-service GET /notifications
-[{"id":1,"orderId":"9cded459-df3c-4a42-b8d6-50be73dce6eb","eventType":"order.placed","customerId":"crc-evidence","itemSku":"CRC-WIDGET-7028","quantity":1,"amount":9.99,"status":"PLACED","createdAt":"2026-10-09T06:27:29.560873Z"}]
+-- notification table (written by notification-service)
+               order_id               |  event_type  | status 
+--------------------------------------+--------------+--------
+ 7808860e-fcf6-4147-871b-7fb6e8e4aefd | order.placed | PLACED
+(1 row)
+

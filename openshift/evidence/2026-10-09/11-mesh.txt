@@ -1,0 +1,33 @@
+Istio v1.30.5, revision default, Ready=True
+CSV                                 PHASE
+kiali-operator.v2.27.5              Succeeded
+servicemeshoperator3.v3.4.3         Succeeded
+
+-- pods: init containers (istio-proxy runs as a native sidecar)
+POD                                    REV       VERSION   INIT
+ai-mcp-service-688df69675-gzmfl        default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+ai-rules-service-85dd9bcb5f-79p9h      default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+apicurio-6956b74c66-v4t97              <none>    <none>    <none>
+datamesh-postgres-0                    <none>    <none>    <none>
+graphql-gateway-699d8bbc76-br95x       default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+inventory-service-7c78895df8-s2gh5     default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+lgtm-6b76769f55-gmxsr                  <none>    <none>    <none>
+notification-service-dc7cdccbb-dhvbx   default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+ollama-765dbb7b76-mfdxv                <none>    <none>    <none>
+order-service-584995b49c-jc4h8         default   v1        istio-validation,istio-proxy,wait-for-postgres
+order-service-v2-d79c648df-4xzng       default   v2        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+payment-service-787c7c96c7-jr4w9       default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+review-service-5dbd946c76-q7n76        default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+shipping-service-7989d65cd-86wrl       default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+
+-- PeerAuthentication
+NAME                         MODE
+default                      STRICT
+graphql-gateway-permissive   PERMISSIVE
+
+-- plaintext from unmeshed apicurio pod to order-service: 000 exit=56
+
+-- canary: 100 requests from graphql-gateway -> v1=94 v2=6 (VirtualService 90/10)
+
+-- Kiali: namespace TLS MTLS_ENABLED
+-- Kiali graph workloads: datamesh-dual-role-0, datamesh-postgres, graphql-gateway, inventory-service, lgtm, notification-service, order-service, order-service-v2, payment-service, review-service, shipping-service

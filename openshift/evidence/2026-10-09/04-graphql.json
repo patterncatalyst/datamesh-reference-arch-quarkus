@@ -1,13 +1,13 @@
 {
   "data": {
     "order": {
-      "id": "9cded459-df3c-4a42-b8d6-50be73dce6eb",
+      "id": "7808860e-fcf6-4147-871b-7fb6e8e4aefd",
       "customerId": "crc-evidence",
-      "itemSku": "CRC-WIDGET-7028",
+      "itemSku": "CRC-WIDGET-86579",
       "quantity": 1,
       "status": "PLACED",
       "stock": {
-        "sku": "CRC-WIDGET-7028",
+        "sku": "CRC-WIDGET-86579",
         "quantityOnHand": 12,
         "available": true
       }

@@ -1,0 +1,15 @@
+NAME          ID              SIZE      MODIFIED       
+qwen2.5:3b    357c53fb659c    1.9 GB    23 minutes ago    
+classify fresh strawberries -> {"category":"PERISHABLE","priority":"MEDIUM","fulfillmentType":"STANDARD"}
+classify industrial sulfuric acid, corrosive chemical -> {"category":"HAZARDOUS","priority":"CRITICAL","fulfillmentType":"SAME_DAY"}
+classify antique crystal wine glasses -> {"category":"FRAGILE","priority":"MEDIUM","fulfillmentType":"STANDARD"}
+/api/orders/triage -> {"decision":"ROUTE_TO_WAREHOUSE","reason":"No fraud-hold or expedite condition matched; standard fulfillment"}
+/api/orders/triage -> {"decision":"EXPEDITE","reason":"Order amount >= 1000 with a LOW risk signal"}
+/api/orders/triage -> {"decision":"FRAUD_HOLD","reason":"Classifier flagged a HIGH fraud/risk signal"}
+/api/orders/triage-flow -> {"decision":"ROUTE_TO_WAREHOUSE","reason":"No fraud-hold or expedite condition matched; standard fulfillment"}
+/api/orders/triage-flow -> {"decision":"EXPEDITE","reason":"Order amount >= 1000 with a LOW risk signal"}
+/api/orders/triage-flow -> {"decision":"FRAUD_HOLD","reason":"Classifier flagged a HIGH fraud/risk signal"}
+
+MCP tools/list + tools/call order-status ORD-001:
+{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"order-status","description":"Look up the status of a shipping order by order ID","annotations":{"destructiveHint":true,"idempotentHint":false,"openWorldHint":true,"readOnlyHint":true},"inputSchema":{"type":"object","properties":{"orderId":{"type":"string","description":"The order identifier, for example ORD-001"}},"required":["orderId"],"additionalProperties":false}}],"resultType":"complete","_meta":{"io.modelcontextprotocol/serverInfo":{"name":"ai-mcp-service","version":"1.0.0-SNAPSHOT"}}}}
+{"jsonrpc":"2.0","id":3,"result":{"isError":false,"content":[{"text":"{\"orderId\":\"ORD-001\",\"status\":\"SHIPPED\",\"carrier\":\"FedEx\",\"eta\":\"2026-07-20\"}","type":"text"}],"resultType":"complete","_meta":{"io.modelcontextprotocol/serverInfo":{"name":"ai-mcp-service","version":"1.0.0-SNAPSHOT"}}}}

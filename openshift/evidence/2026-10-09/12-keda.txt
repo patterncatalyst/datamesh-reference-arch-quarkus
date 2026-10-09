@@ -1,0 +1,5 @@
+15 orders on order.placed at 07:31:16; ScaledObject min 0, max 10, lagThreshold 5
++0s replicas=0 active=False
++15s replicas=1 active=True
++72s replicas=1 active=False
++180s replicas=0 active=False
