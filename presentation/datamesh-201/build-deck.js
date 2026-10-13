@@ -930,4 +930,37 @@ diagramSlide({ eyebrow: "Appendix · background diagrams", title: "Operational v
   notes: "The 101 deck's version of the seam a mesh addresses. Traditionally the operational and analytical layers are separate technology stacks joined by pipelines. A mesh keeps the distinction but organizes it by domain: each domain owns its operational systems and the analytical products derived from them. The final slide of the deck covers the analytical half in more detail." });
 
 /* ============================ WRITE ============================ */
+
+/* ============================ CLOSING · SCAN TO EXPLORE ============================ */
+(() => {
+  const L = require("./deck-lib.js");
+  const { pres, C, F } = L;
+  const s = pres.addSlide();
+  s.background = { color: C.white };
+  L.footer(s);
+  L.head(s, "Scan to explore", "Take it with you");
+
+  const qrW = 3.10, qrY = 1.95, leftX = 2.30, rightX = 7.93;
+
+  // Left QR — the reference architecture site
+  s.addImage({ path: "qr-site.png", x: leftX, y: qrY, w: qrW, h: qrW });
+  s.addText("The reference architecture", { x: leftX - 0.75, y: 5.20, w: qrW + 1.5, h: 0.4,
+    fontSize: 18, bold: true, color: C.ink, fontFace: F.head, align: "center", margin: 0 });
+  s.addText("Site, runnable Quarkus services, contracts, and the minikube bootstrap", { x: leftX - 0.85, y: 5.62, w: qrW + 1.7, h: 0.7,
+    fontSize: 13, italic: true, color: C.gray, fontFace: F.body, align: "center", valign: "top", margin: 0 });
+  s.addText("patterncatalyst.github.io/datamesh-reference-arch-quarkus", { x: leftX - 0.85, y: 6.30, w: qrW + 1.7, h: 0.32,
+    fontSize: 10, color: C.red, fontFace: F.mono, align: "center", margin: 0 });
+
+  // Right QR — the Workshops & Tutorials hub
+  s.addImage({ path: "qr-hub.png", x: rightX, y: qrY, w: qrW, h: qrW });
+  s.addText("Workshops & Tutorials", { x: rightX - 0.75, y: 5.20, w: qrW + 1.5, h: 0.4,
+    fontSize: 18, bold: true, color: C.ink, fontFace: F.head, align: "center", margin: 0 });
+  s.addText("The whole series — every workshop, tutorial, and deck in one place", { x: rightX - 0.85, y: 5.62, w: qrW + 1.7, h: 0.7,
+    fontSize: 13, italic: true, color: C.gray, fontFace: F.body, align: "center", valign: "top", margin: 0 });
+  s.addText("patterncatalyst.github.io/patterncatalyst-workshops-tutorials-list", { x: rightX - 0.95, y: 6.30, w: qrW + 1.9, h: 0.32,
+    fontSize: 9, color: C.red, fontFace: F.mono, align: "center", margin: 0 });
+
+  s.addNotes("That's the deep dive. The two codes take it with you: on the left, the reference architecture — the site, the runnable Quarkus services, the contracts and catalog, progressive delivery and autoscaling manifests, and the minikube bootstrap that runs the whole thing on a laptop. On the right, the Workshops and Tutorials hub: the whole series — every workshop, tutorial, and deck — in one place. Both are public on the Pattern Catalyst GitHub organization.");
+})();
+
 L.writeDeck("Datamesh-201-Quarkus-r1.2.pptx").then((f) => console.log("WROTE", f));
