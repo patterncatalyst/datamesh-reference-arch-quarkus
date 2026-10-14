@@ -87,7 +87,10 @@ spec:
 EOF
 
 printf '==> Waiting for Apicurio to roll out\n'
-kubectl rollout status -n "$NS" "deploy/$RELEASE" --timeout=120s
+# Allow for a cold image pull of the 3.3.3 image on a slow network plus JVM
+# startup: the readiness probe alone has a 15s initial delay, so 120s can lose
+# the race on a first run even though the pod comes healthy shortly after.
+kubectl rollout status -n "$NS" "deploy/$RELEASE" --timeout=300s
 
 printf '\n==> Apicurio Registry installed.\n\n'
 printf 'In-cluster endpoint: http://%s.%s.svc.cluster.local:8080/apis/registry/v3\n' "$RELEASE" "$NS"
