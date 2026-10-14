@@ -1,0 +1,1 @@
+GET https://graphql-gateway-datamesh.apps-crc.testing/q/health/ready -> 200

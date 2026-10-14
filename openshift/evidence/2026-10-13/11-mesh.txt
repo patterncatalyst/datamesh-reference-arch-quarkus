@@ -1,0 +1,33 @@
+Istio v1.30.5, revision default, Ready=True
+CSV                                 PHASE
+kiali-operator.v2.27.5              Succeeded
+servicemeshoperator3.v3.4.3         Succeeded
+
+-- pods: init containers (istio-proxy runs as a native sidecar)
+POD                                    REV       VERSION   INIT
+ai-mcp-service-549cb75745-gfpsl        default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+ai-rules-service-6899b59fd-z7w89       default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+apicurio-5d59b94dfb-4jzmj              <none>    <none>    <none>
+datamesh-postgres-0                    <none>    <none>    <none>
+graphql-gateway-6f87c97796-ts54f       default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+inventory-service-84df797f7d-c8lfb     default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+lgtm-5dcbf6d949-l77nz                  <none>    <none>    <none>
+notification-service-978595ccf-24d78   default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+ollama-6c64c8b6bc-gx8jt                <none>    <none>    <none>
+order-service-6849948ddc-mxkf2         default   v1        istio-validation,istio-proxy,wait-for-postgres
+order-service-v2-d79c648df-4h2nf       default   v2        istio-validation,istio-proxy
+payment-service-6b8d64fc6b-pdp9q       default   v1        istio-validation,istio-proxy,opentelemetry-auto-instrumentation-java
+review-service-6ddf8fb57c-bl46c        default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+shipping-service-6d56545548-snhn6      default   v1        istio-validation,istio-proxy,wait-for-postgres,opentelemetry-auto-instrumentation-java
+
+-- PeerAuthentication
+NAME                         MODE
+default                      STRICT
+graphql-gateway-permissive   PERMISSIVE
+
+-- plaintext from unmeshed apicurio pod to order-service: 000 exit=56
+
+-- canary: 100 requests from graphql-gateway -> v1=88 v2=12 (VirtualService 90/10)
+
+-- Kiali: namespace TLS MTLS_ENABLED
+-- Kiali graph workloads: datamesh-postgres, graphql-gateway, inventory-service, lgtm, notification-service, order-service, order-service-v2, payment-service, review-service, shipping-service

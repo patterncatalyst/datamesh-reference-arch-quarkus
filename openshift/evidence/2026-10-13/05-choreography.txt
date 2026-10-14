@@ -1,0 +1,18 @@
+order 81c2aae4-b25c-4d54-88d3-22ca0de6d88c
+
+-- payment-service log
+2026-10-14 01:21:00,660 INFO  [com.patterncatalyst.datamesh.payment.PaymentProcessor] (executor-thread-1) Capturing payment pay-95ff7957-5f3d-488a-8e38-f70c6ec4b6d7 for order 81c2aae4-b25c-4d54-88d3-22ca0de6d88c (customer=crc-evidence, amount=9.99)
+
+-- shipment table
+ id | carrier | customer_id  |         dispatched_at         | item_sku  |               order_id               | quantity |   status   | tracking_number 
+----+---------+--------------+-------------------------------+-----------+--------------------------------------+----------+------------+-----------------
+  1 | FedEx   | crc-evidence | 2026-10-14 01:21:05.377209+00 | SKU-GIZMO | 81c2aae4-b25c-4d54-88d3-22ca0de6d88c |        4 | dispatched | FE8F9CEE1DF02C
+(1 row)
+
+
+-- notification table (written by notification-service)
+               order_id               |  event_type  | status 
+--------------------------------------+--------------+--------
+ 81c2aae4-b25c-4d54-88d3-22ca0de6d88c | order.placed | PLACED
+(1 row)
+
