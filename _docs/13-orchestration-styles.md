@@ -266,6 +266,12 @@ the three mechanisms side by side.
   document — not in whether a coordinator exists.
 - The choice between choreography and orchestration depends on who needs to
   see the whole sequence and how loosely coupled the participants should be.
+- For an enterprise mesh the advantage is that all three engines run on one
+  Quarkus runtime, so a data product picks the coordination shape that fits its
+  step without standing up a separate workflow server or routing through a
+  shared ESB: choreography to stay decoupled, a Camel route or a Quarkus Flow
+  document when one owner needs to see the whole sequence. The decision stays
+  inside the product, which is what keeps domain ownership intact.
 
 - The three legs of the demo share a domain and a comparison, not one order
   flowing through all three.

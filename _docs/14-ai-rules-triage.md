@@ -320,6 +320,12 @@ via the compose `ollama` profile.
 - A demo can document a known limitation: `demo-ai-mcp.sh` prints a banner and
   never calls the broken endpoint, so a passing run cannot be mistaken for
   working tool-calling.
+- The enterprise advantage is auditability. The LLM only extracts fields; the
+  business decision stays in a deterministic Drools rule set you can version,
+  replay, and explain to a compliance reviewer, which an opaque model output
+  cannot be. Quarkus hosts the model client and the rule engine in one service,
+  so a data product gets AI-assisted triage without a separate ML platform or a
+  network hop to a scoring service.
 
 This closes the Quarkus deep dive. The comparison against Spring Boot
 (Chapter 12) measures startup and memory.

@@ -25,6 +25,12 @@ It serves two purposes at once:
    runnable Spring Boot twin service (`examples/spring-boot-compare`) for
    a side-by-side JVM comparison.
 
+Put together, the repo is a worked example of **Quarkus as the vehicle for
+implementing a data mesh in an enterprise**: each of the four principles lands as
+running code a domain team can own, operate, and scale — contracts the build
+enforces, a self-serve platform, progressive delivery and autoscaling — rather
+than as a diagram.
+
 ## Architecture at a glance
 
 **Seven services:** `order`, `inventory`, `payment`, `shipping`,
