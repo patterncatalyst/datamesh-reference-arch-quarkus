@@ -135,21 +135,21 @@ const lbl = (s, x, y, t, o = {}) => T(s, x, y, t, { size: 14, fill: MUT, italic:
   const s = new SVG(1180, 500);
   s.title("WebSockets.Next vs. the legacy WebSocket extension");
 
-  frame(s, 30, 64, 540, 262, "quarkus-websockets (legacy)", "gray");
+  frame(s, 30, 64, 540, 262, "quarkus-websockets-next (Vert.x)", "blue");
   const rows = (x, w, fam, items) => items.forEach((it, i) => box(s, x, 100 + i * 54, w, 44, fam, null, [it], { lh: 21 }));
-  rows(50, 500, "gray", [
-    { t: '@ServerEndpoint("/chat")', mono: true },
-    "Jakarta WebSocket API on Undertow",
-    "Callback methods take a Session parameter",
-    "Callback style: @OnOpen, @OnMessage, @OnClose",
-  ]);
-
-  frame(s, 590, 64, 560, 262, "quarkus-websockets-next (Vert.x)", "blue");
-  rows(610, 520, "blue", [
+  rows(50, 500, "blue", [
     { t: '@WebSocket(path = "/ws/notifications")', mono: true },
     "@OnOpen / @OnTextMessage return a value, Uni or Multi",
     "Execution model follows the signature",
     "Injectable OpenConnections; @WebSocketClient for clients",
+  ]);
+
+  frame(s, 590, 64, 560, 262, "quarkus-websockets (legacy)", "gray");
+  rows(610, 520, "gray", [
+    { t: '@ServerEndpoint("/chat")', mono: true },
+    "Jakarta WebSocket API on Undertow",
+    "Callback methods take a Session parameter",
+    "Callback style: @OnOpen, @OnMessage, @OnClose",
   ]);
 
   frame(s, 30, 346, 1120, 130, "notification-service push path", "green");

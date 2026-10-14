@@ -158,6 +158,14 @@ signature and the annotation are both needed. [demo-grpc.sh]({{ site.repo_blob }
 service with `grpcurl` against the `.proto` file (server reflection is also
 demonstrated), issuing a unary RPC over HTTP/2.
 
+Between domains the advantage over a REST client is concrete: the `.proto` is a
+typed, versioned contract with stubs generated on both sides, so a consumer
+compiles against it and the build breaks if the producer drifts, and calls
+travel over HTTP/2 with binary framing, which keeps high-volume inter-service
+reads cheaper than JSON over HTTP/1.1. In a data mesh that contract is the
+product's machine-checkable interface, so federated governance is enforced by
+the toolchain rather than a document.
+
 ## GraphQL: one query, two downstream protocols
 
 `graphql-gateway`'s [GatewayApi.java]({{ site.repo_blob }}/examples/graphql-gateway/src/main/java/com/patterncatalyst/datamesh/gateway/GatewayApi.java)
@@ -203,6 +211,13 @@ order, queries the gateway, and asserts that the REST-sourced order fields and
 the gRPC-sourced nested `stock` fields arrive in one `.data.order` payload with
 no `.errors`.
 
+The advantage over a hand-written backend-for-frontend is that `@Source` turns
+the composition into declarative resolvers, so there is no aggregation layer or
+N-plus-one plumbing to maintain, and the client selects exactly the fields it
+needs in one round trip. For the mesh, consumers compose a view across several
+data products on demand while each product keeps ownership of its own interface
+and store.
+
 ## Reactive Messaging: Avro events
 
 `order-service`'s [OrderEventProducer.java]({{ site.repo_blob }}/examples/order-service/src/main/java/com/patterncatalyst/datamesh/order/OrderEventProducer.java)
@@ -237,6 +252,13 @@ producer and reads the Apicurio wire-format magic byte back off the topic. On
 the consumer side, `notification-service`'s `OrderPlacedConsumer` uses
 `@Incoming("order-placed")` on a `@Transactional` method. Neither side contains
 Kafka client code.
+
+That is the point of moving to Reactive Messaging: `@Channel` and `@Incoming`
+are declarative bindings, so broker wiring, offset handling, and backpressure
+belong to the extension rather than a hand-managed Kafka client, and switching
+the in-memory connector for Kafka is a configuration change. The producer emits
+an event without knowing who consumes it, so a new consumer of this data product
+plugs in without the producer changing.
 
 ## WebSockets.Next: pushing committed events
 
@@ -278,7 +300,7 @@ event that later rolls back. [demo-websocket.sh]({{ site.repo_blob }}/demos/demo
 is placed and asserts that the second message on the socket carries the
 order's `orderId`, `customerId`, and `itemSku`.
 
-{% include excalidraw.html file="11-websockets-next" alt="Two WebSocket stacks compared. Legacy quarkus-websockets implements the Jakarta WebSocket API on Undertow: a ServerEndpoint class with a Session parameter and callback methods. quarkus-websockets-next runs on Vert.x: a WebSocket annotation with a path, OnOpen and OnTextMessage methods that return values, Uni or Multi, an execution model derived from the method signature, an injectable OpenConnections registry, and a WebSocketClient. A bottom band shows a Kafka Incoming consumer calling OpenConnections.listAll and sendText, with one consumer group per replica." caption="Figure 11.3 — WebSockets.Next compared with the legacy Jakarta WebSocket extension" %}
+{% include excalidraw.html file="11-websockets-next" alt="Two WebSocket stacks compared side by side. On the left, quarkus-websockets-next runs on Vert.x: a WebSocket annotation with a path, OnOpen and OnTextMessage methods that return values, Uni or Multi, an execution model derived from the method signature, an injectable OpenConnections registry, and a WebSocketClient. On the right, the legacy quarkus-websockets implements the Jakarta WebSocket API on Undertow: a ServerEndpoint class with a Session parameter and callback methods. A bottom band shows a Kafka Incoming consumer calling OpenConnections.listAll and sendText, with one consumer group per replica." caption="Figure 11.3 — WebSockets.Next compared with the legacy Jakarta WebSocket extension" %}
 
 ### Next versus the legacy extension
 
@@ -300,6 +322,17 @@ on Vert.x and the Quarkus build-time model:
 - `OpenConnections` is injectable, so code outside the endpoint (a Kafka
   consumer, a scheduled job) can reach every open socket.
 - `@WebSocketClient` generates a client from an annotated interface.
+
+Moving to WebSockets.Next is less about syntax than about what you stop
+maintaining. The legacy API hands you a `Session` per connection and leaves you
+to track the set of open sockets yourself; the next extension makes that
+registry injectable, so the fan-out above is a few lines with no connection
+bookkeeping. Because handlers return `Uni` or `Multi`, a socket endpoint
+composes with the same reactive stack as the rest of the service instead of
+living in a callback world of its own. For an enterprise data mesh the payoff is
+operational: a data product can publish its events to subscribers in real time,
+and because each replica runs its own consumer group (next section), the push
+path scales by adding replicas with no shared state to coordinate.
 
 ### Scaling push across replicas
 
