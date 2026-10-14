@@ -366,6 +366,11 @@ scaled, socket-holding variant of this service.
   and the current KEDA `ScaledObject` scales purely on consumer lag — neither
   accounts for a replica holding live sockets, which is new risk a scaled
   deployment would have to design for explicitly.
+- The enterprise payoff is that a data product can push its own events to
+  subscribers in real time and still scale horizontally. Kafka-backed
+  per-replica fan-out removes the single-process ceiling, which is what makes it
+  safe to put a WebSocket service behind KEDA at all, including scale-to-zero,
+  rather than pinning it to one replica forever.
 
 ---
 
