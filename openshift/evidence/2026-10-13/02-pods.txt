@@ -1,0 +1,16 @@
+POD                                  READY   RESTARTS   SCC             UID
+ai-mcp-service-549cb75745-gfpsl      true    0          restricted-v2   1000720000
+ai-rules-service-6899b59fd-z7w89     true    0          restricted-v2   1000720000
+apicurio-5d59b94dfb-4jzmj            true    0          restricted-v2   1000720000
+datamesh-dual-role-0                 true    0          restricted-v2   1000720000
+datamesh-postgres-0                  true    0          restricted-v2   1000720000
+graphql-gateway-6f87c97796-ts54f     true    0          restricted-v2   1000720000
+inventory-service-84df797f7d-c8lfb   true    0          restricted-v2   1000720000
+lgtm-5dcbf6d949-l77nz                true    0          anyuid          0
+ollama-6c64c8b6bc-gx8jt              true    0          restricted-v2   1000720000
+order-service-6849948ddc-mxkf2       true    0          restricted-v2   1000720000
+order-service-v2-d79c648df-4h2nf     true    0          restricted-v2   1000720000
+payment-service-6b8d64fc6b-pdp9q     true    0          restricted-v2   1000720000
+review-service-6ddf8fb57c-bl46c      true    0          restricted-v2   1000720000
+shipping-service-6d56545548-snhn6    true    0          restricted-v2   1000720000
+namespace uid-range: 1000720000/10000

@@ -1,0 +1,3 @@
+Application datamesh: https://github.com/patterncatalyst/datamesh-reference-arch-quarkus.git @ main path openshift/helm/datamesh
+sync=Synced health=Healthy revision=cd0c92a3bd6894f5f87ab771b7a7c984eecb8b48
+self-heal: deleted ConfigMap datamesh-app-config; restored after 2s
