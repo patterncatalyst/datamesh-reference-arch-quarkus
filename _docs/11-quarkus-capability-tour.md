@@ -7,6 +7,18 @@ duration: 60 minutes
 marker: "12"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain how Panache's active-record style and the repository style both sit on the same Hibernate ORM, and when each one fits a service's shape.
+- Trace a unary gRPC call through a build-time-generated Mutiny service interface, and a GraphQL query that composes a REST-sourced field with a gRPC-sourced field resolver in one round trip.
+- Decide which execution model (event loop, worker thread, or virtual thread) a given handler signature selects, and apply `@Blocking`, `@NonBlocking`, or `@RunOnVirtualThread` to override the default correctly.
+- Compare native image and the JDK 25 AOT cache as two different ways to reduce JVM startup cost, and state the trade-off each one makes.
+- Call a native C library function from Java through the Foreign Function and Memory API with no JNI glue code.
+
+## Why this matters
+
 Every chapter so far has used Quarkus as plumbing. This one looks at the
 plumbing itself: twelve capabilities, each backed by code or a demo script in
 this project. The scope is breadth across REST, RPC, messaging, testing,
@@ -448,7 +460,9 @@ with no JVM in the process: fast startup and a small resident set. The
 costs are a build that takes minutes, a closed-world assumption (reflection,
 resources, and dynamic proxies must be known at build time, which Quarkus
 extensions register for you), and different peak-throughput characteristics
-because there is no JIT. The demo runs the binary against a throwaway Postgres
+because there is no JIT.
+
+The demo runs the binary against a throwaway Postgres
 container (native mode gets no Dev Services; the `%prod` profile expects a
 reachable database) and asserts that `GET /orders` returns a JSON array through
 the full REST, Hibernate ORM, and Panache stack. On 2026-10-06, with no local
@@ -462,7 +476,9 @@ classes in a training run (`-XX:AOTCacheOutput=app.aot`, JEPs 483 and 514) and
 map them at the next launch (`-XX:AOTCache=app.aot`). It is the same jar on
 the same JVM with the JIT intact, so compatibility is unchanged and peak
 throughput is unaffected; the cache must be built with the same JDK and
-classpath it is used with. Chapter 12's section [Like-for-like with the JDK 25 AOT cache (Project Leyden)]({{ '/docs/12-quarkus-vs-spring-boot/' | relative_url }}#like-for-like-with-the-jdk-25-aot-cache-project-leyden)
+classpath it is used with.
+
+Chapter 12's section [Like-for-like with the JDK 25 AOT cache (Project Leyden)]({{ '/docs/12-quarkus-vs-spring-boot/' | relative_url }}#like-for-like-with-the-jdk-25-aot-cache-project-leyden)
 measures it on both services with `compare-quarkus-springboot.sh --aot`. In a
 single run on Temurin 25.0.3, self-reported startup fell from 2.045 s to
 0.992 s for Quarkus and from 4.018 s to 1.021 s for Spring Boot, so most of the
@@ -711,6 +727,15 @@ root, or run `jbang demos/jbang/PanamaFfm.java` directly.
 
 The next chapter compares the JVM mode of `order-service` with its Spring Boot
 twin on startup and memory, with and without the AOT cache.
+
+## For deeper coverage
+
+- [Quarkus — Hibernate ORM with Panache guide](https://quarkus.io/guides/hibernate-orm-panache) — active record versus the repository pattern, straight from the extension's own documentation.
+- [Quarkus — gRPC guide](https://quarkus.io/guides/grpc) — generated Mutiny service interfaces and blocking stubs, covered here with `inventory-service`'s `CheckStock`.
+- [Quarkus — SmallRye GraphQL guide](https://quarkus.io/guides/smallrye-graphql) — `@Source` field resolvers and the composition pattern `graphql-gateway` uses.
+- [Quarkus — WebSockets Next guide](https://quarkus.io/guides/websockets-next) — the `OpenConnections` registry and execution-model rules behind the push path in `notification-service`.
+- [Quarkus — Writing native applications guide](https://quarkus.io/guides/building-native-image) — the closed-world build model behind `demo-native.sh`.
+- [OpenJDK — Project Panama / Foreign Function & Memory API](https://openjdk.org/jeps/454) — the JEP behind the `PanamaFfm.java` example.
 
 ---
 

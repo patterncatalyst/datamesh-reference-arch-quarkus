@@ -7,6 +7,21 @@ duration: "20 min"
 marker: "01"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Describe what a data pipeline, a data warehouse, and a data lake each do well, and the
+  problem each one was built to solve.
+- Name the failure mode each pattern eventually hits — pipeline sprawl, the
+  central-team bottleneck, and the data swamp.
+- Explain why data mesh changes the organizational shape of data ownership rather than
+  just the storage technology.
+- Match an organization's situation to the pattern that actually fits it, rather than
+  defaulting to the newest one.
+
+## Why this matters
+
 Data mesh responds to organizational scaling problems that earlier data architectures
 left unsolved, so the landscape comes first. Each earlier pattern solved a real problem
 and remains the right answer when that problem dominates. Knowing what each does well
@@ -219,6 +234,17 @@ interlock, and why implementing one without the others produces a distributed me
 rather than a mesh.
 
 [Concepts & principles]({{ '/docs/01-concepts/' | relative_url }}).
+
+## For deeper coverage
+
+- *Data Mesh* by Zhamak Dehghani — the full argument for why data mesh is an
+  organizational shift, not the next storage technology in the sequence this chapter
+  traces.
+- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann & Chris Riccomini —
+  the deeper technical treatment of ETL/ELT pipelines, warehouses, and the batch-versus-
+  streaming trade-offs this chapter only sketches.
+- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al. — how pipeline sprawl and the
+  data-swamp failure mode show up in real systems.
 
 ---
 

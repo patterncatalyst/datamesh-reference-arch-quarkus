@@ -7,14 +7,37 @@ duration: 30 minutes
 marker: "04"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Build a data product end to end in Quarkus — a Panache entity, a REST
+  resource, a synchronous gRPC dependency, and a Kafka event publish —
+  using order-service as the template.
+- Explain why `placeOrder`'s three steps run in a fixed order: validate
+  stock over gRPC first (fail-closed), persist only after that succeeds,
+  and publish only after persistence, with a publish failure never undoing
+  the committed write.
+- Match a service's protocol surface to its role rather than a uniform
+  template, as inventory-service (gRPC-first), review-service (REST-only),
+  and the event-only services (notification/payment/shipping) each do.
+- Identify the dual-write gap in the publish-after-commit pattern and name
+  the outbox pattern as the production fix this template doesn't implement.
+- Locate a data product's control port in running code — `@RolesAllowed("admin")`
+  scoped to one review-service endpoint.
+
+## Why this matters
+
 A data mesh's central claim is that a domain team ships data the same way it
 ships a service: as an independently deployable, independently owned unit
 with its own storage, its own API, and its own contract. This chapter makes
-that claim concrete in Quarkus. It builds one service, order-service, all
-the way through — entity, REST resource, a synchronous call to another
-service, an event publish — as the template the rest of the mesh repeats,
-then shows two more services, inventory-service and review-service, that
-reuse the same shape while varying the protocol surface to fit their role.
+that claim concrete in Quarkus.
+
+It builds one service, order-service, all the way through — entity, REST
+resource, a synchronous call to another service, an event publish — as the
+template the rest of the mesh repeats. It then shows two more services,
+inventory-service and review-service, that reuse the same shape while
+varying the protocol surface to fit their role.
 
 The code is in [order-service]({{ site.repo_tree }}/examples/order-service), [inventory-service]({{ site.repo_tree }}/examples/inventory-service), and
 [review-service]({{ site.repo_tree }}/examples/review-service). [demo-order.sh]({{ site.repo_blob }}/demos/demo-order.sh) builds and runs
@@ -64,9 +87,10 @@ protocols its role needs, not a uniform surface.** `notification-service`
 and the payment/shipping pair are event-only because their job is to react,
 not to be called; `review-service` is REST-only because it has no
 cross-service synchronous dependency; `order-service` needs both REST (for
-clients) and a gRPC client (to validate stock before committing). The
-reasoning behind *which* protocol fits which job is the subject of the next
-two chapters — contracts, then the data planes themselves.
+clients) and a gRPC client (to validate stock before committing).
+
+The reasoning behind *which* protocol fits which job is the subject of the
+next two chapters — contracts, then the data planes themselves.
 
 Each service owns its own Postgres schema/database in the shared compose
 stack (`orderdb`, `inventorydb`, and so on — see [init]({{ site.repo_tree }}/infra/db/init) and each
@@ -271,7 +295,9 @@ hand-written; it is the **Mutiny-flavored service interface quarkus-grpc
 generates at build time** from [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto),
 which order-service never defines itself; it's scanned out of the
 `contracts` module's packaged jar (more on that mechanism in the next
-chapter). Because the generated interface is Mutiny-based, the call returns
+chapter).
+
+Because the generated interface is Mutiny-based, the call returns
 a `Uni<CheckStockResponse>`, and `.await().atMost(CALL_TIMEOUT)` is what
 turns that reactive, non-blocking call into the plain blocking return value
 `OrderResource`'s worker-thread method needs — with a hard 3-second ceiling
@@ -315,7 +341,9 @@ why: two Apicurio artifacts share the
 `io.apicurio.registry.serde.avro` package, a split-package situation that
 defeats Quarkus's autodetection, which silently falls back to a
 JSON serializer and breaks the Avro-on-the-wire guarantee the next chapter
-depends on. `OrderPlaced` itself is a generated
+depends on.
+
+`OrderPlaced` itself is a generated
 Avro `SpecificRecord`, not hand-written either; it comes from the
 `contracts` module, which is where the next chapter picks up. `emitter.send`
 returns the `CompletionStage<Void>` that `OrderResource` treats as
@@ -469,6 +497,19 @@ silently drop every `order.placed` publish from a non-dev JVM.
 The next question is how other
 domains find these services, trust their shape, and know it won't change without
 warning — contracts and the catalog.
+
+## For deeper coverage
+
+- *Data Mesh* by Zhamak Dehghani — the full treatment of the data product
+  architectural quantum this chapter builds in code.
+- *Implementing Domain-Driven Design* by Vaughn Vernon — aggregate
+  boundaries and invariant-centralizing factories like `Order.create(...)`.
+- *Cloud Native Patterns* by Cornelia Davis — service-as-product patterns
+  and polyglot persistence per service.
+- [Quarkus Hibernate ORM with Panache guide](https://quarkus.io/guides/hibernate-orm-panache) —
+  the active-record style `Order` and `Stock` use.
+- [Quarkus gRPC guide](https://quarkus.io/guides/grpc) — `@GrpcClient`/`@GrpcService`
+  and the Mutiny-generated stubs `InventoryClient` relies on.
 
 ---
 

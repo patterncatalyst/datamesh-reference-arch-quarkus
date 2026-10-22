@@ -7,6 +7,17 @@ duration: 30 minutes
 marker: "17"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Recognize eight concrete failure signatures this project hit (timezone rejection, a silently swallowed Avro publish, a cross-service port mismatch, and five more) and name their root cause.
+- Apply each documented fix, with the exact file and config key it lives in, rather than re-deriving the fix from the symptom alone.
+- Distinguish a real defect from a surprising-but-correct behavior, using the `import.sql`-in-`%prod` and stale-volume entries as worked examples.
+- Generalize the pattern behind each gotcha (single-authoritative-source config, test clients that silently drop headers, JVM processes that don't inherit `-D` flags) to spot the same class of bug elsewhere in the codebase.
+
+## Why this matters
+
 This appendix covers eight failures this project hit: timezone rejections,
 a security validator throwing from a packaged JVM, a port that did not match
 between two services, and a test client that dropped a header it was told to
@@ -93,8 +104,9 @@ dev/test JVM trusts the application's own packages implicitly; a
 `OrderEventProducer.publish` swallows publish failures by design — "a
 publish failure must never fail the already-committed order" — which is
 why this defect was invisible at the HTTP layer: the order succeeds, the
-event silently never leaves the JVM. This affected the producer side. A
-second instance hit the consumer side: `notification-service` is the only
+event silently never leaves the JVM. This affected the producer side.
+
+A second instance hit the consumer side: `notification-service` is the only
 service that deserializes `OrderPlaced` back into a `capstone.order.v1`
 `SpecificRecord`, and its packaged JVM throws the identical
 `SecurityException` without the same property set on its own process.
@@ -263,7 +275,9 @@ sibling bodyless `GET` method doesn't declare its own `@Consumes`, RESTEasy
 Reactive can match the GET against that `@Consumes(APPLICATION_JSON)`
 constraint and reject any client whose `Content-Type` isn't JSON — including
 clients like `hey`, which defaults to `text/html`, even though a GET has no
-body to parse. Second, and worse: the *first* regression test written for
+body to parse.
+
+Second, and worse: the *first* regression test written for
 this used RestAssured, and it passed even with the bug present, because
 RestAssured's underlying Apache HttpClient **silently drops a
 `Content-Type` header on a bodyless request** — the header was never
@@ -409,6 +423,14 @@ environment.
 - Not every surprising behavior is a bug — `import.sql` not loading in
   `%prod` and a stale-volume concern that turned out not to reproduce were
   both investigated and resolved as working-as-intended.
+
+## For deeper coverage
+
+- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al. — the general shape of several entries here: a hidden assumption (host timezone, classpath package layout, a test client's own quirks) that only breaks under a packaged/production-like run.
+- [Quarkus configuration reference](https://quarkus.io/guides/config-reference) for property-expression defaults (`${HOSTNAME:default}`) and profile-specific behavior (`%prod`) used throughout this chapter.
+- [Apache Avro specification](https://avro.apache.org/docs/) for the wire-format magic byte and `SpecificRecord` serialization this chapter's Avro gotchas depend on.
+- [RESTEasy Reactive guide](https://quarkus.io/guides/resteasy-reactive) for the `@Consumes` media-type matching behind the bodyless-GET 415.
+- [PostgreSQL documentation — Date/Time types](https://www.postgresql.org/docs/current/datatype-datetime.html) for the timezone-name validation `postgres:18` tightened.
 
 ---
 

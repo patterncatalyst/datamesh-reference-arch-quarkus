@@ -7,6 +7,25 @@ duration: 35 minutes
 marker: "19"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Decide which tier of this project's test pyramid — unit, integration,
+  functional, or load — proves a given claim about the system.
+- Explain why `@QuarkusTest` and `*IT` classes are CI-headless-capable while
+  the functional and load tiers need a live, fully-wired stack, and why
+  `run-all-tests.sh` enforces that ordering.
+- Trace how `OrderPlacedAvroWireIT` and `InventoryCheckStockWireIT` prove
+  wire-level facts — Avro-not-JSON on the Kafka wire, a correct gRPC answer
+  from a separately running process — that a `@QuarkusTest` can't.
+- Run any phase of `run-all-tests.sh` (`--unit`/`--it`/`--load`/`--all`) and
+  read its PASS/FAIL/SKIP report.
+- Diagnose the port-8081 collision between Quarkus's default test port,
+  order-service's default dev-mode port, and compose's `APICURIO_PORT`.
+
+## Why this matters
+
 Every other chapter in this tutorial shows one capability at a time and
 verifies it with a demo script. This appendix covers testing as a
 cross-cutting concern: which kind of test this project uses for which kind
@@ -26,15 +45,16 @@ command instead of leaving a contributor to remember the right order of
 The base of the pyramid is the ordinary Quarkus unit test: a class
 annotated `@QuarkusTest` (or a plain JUnit 5 test with no Quarkus
 annotation at all), compiled and executed by `maven-surefire-plugin` when
-you run `mvn -f examples/pom.xml test`. The parent
-[pom.xml]({{ site.repo_blob }}/examples/pom.xml)'s
+you run `mvn -f examples/pom.xml test`.
+
+The parent [pom.xml]({{ site.repo_blob }}/examples/pom.xml)'s
 `pluginManagement` pins `maven-surefire-plugin` (and `maven-failsafe-plugin`)
 to the same version property, `surefire-plugin.version` (3.5.2), and adds
-one project-wide system property to both: `user.timezone=UTC`, which exists
-to prevent a failure mode: the `postgres:18` Dev Services container
-this project's `@QuarkusTest` classes implicitly start rejects legacy Olson
-zone IDs (e.g. `US/Eastern`) that `pgjdbc` forwards from the host's default
-timezone, failing container boot with
+one project-wide system property to both: `user.timezone=UTC`. That
+property exists to prevent a specific failure mode: the `postgres:18` Dev
+Services container this project's `@QuarkusTest` classes implicitly start
+rejects legacy Olson zone IDs (e.g. `US/Eastern`) that `pgjdbc` forwards
+from the host's default timezone, failing container boot with
 `invalid value for parameter "TimeZone"`. Pinning the test JVM to UTC
 sidesteps that regardless of host or CI-runner timezone.
 
@@ -64,8 +84,10 @@ only *pins the version* and the UTC system property; it binds no execution.
 order-service's
 [pom.xml]({{ site.repo_blob }}/examples/order-service/pom.xml) spells this out in its own comment: "Without this
 execution, `*IT` classes are compiled by `test-compile` but failsafe never
-runs them under `mvn verify`." The same block also documents a second,
-unrelated gotcha this module's integration tests hit: Avro 1.12.x's
+runs them under `mvn verify`."
+
+The same block also documents a second, unrelated gotcha this module's
+integration tests hit: Avro 1.12.x's
 `ClassSecurityValidator` refuses to build a `SpecificDatumWriter` for a
 generated record class whose package isn't explicitly trusted unless a
 Quarkus application is running — `OrderPlacedAvroWireIT` is a
@@ -85,7 +107,9 @@ process, again without anything pre-existing on the host. No
 is the sharpest example of why this tier exists. A `@QuarkusTest` for
 order-service's REST endpoint could pass even if the Kafka producer
 silently fell back from Avro to Quarkus's autodetected Jackson/JSON
-serialization — the HTTP response wouldn't change. So this test bypasses the application's own Reactive Messaging wiring and
+serialization — the HTTP response wouldn't change.
+
+So this test bypasses the application's own Reactive Messaging wiring and
 drives a raw `KafkaProducer`/`KafkaConsumer` pair directly against two
 self-provisioned Testcontainers: a `KafkaContainer("apache/kafka-native:4.3.1")`
 and a `GenericContainer` running `quay.io/apicurio/apicurio-registry:3.3.3`
@@ -107,16 +131,18 @@ assertTrue(rawValue[0] != 0x7B,
 ```
 
 The first byte of an Apicurio/Confluent-framed Avro record is a fixed magic
-byte, `0x0`; a JSON payload, by contrast, starts with `{` (`0x7B`). Checking
-both — the positive assertion that the magic byte is present *and* the
-negative assertion that the first byte definitely isn't `{` — means a
-regression to the JSON fallback fails loudly with an assertion message that
-names the exact architectural decision it violates — Avro on the wire,
-never a silent JSON fallback — rather than failing some unrelated way
-downstream. Only after that byte-level proof does the test do an "optional"
-round trip: deserializing the same bytes with the real
-`AvroKafkaDeserializer` and asserting every field survived the Avro
-encoding intact.
+byte, `0x0`; a JSON payload, by contrast, starts with `{` (`0x7B`).
+
+Checking both — the positive assertion that the magic byte is present
+*and* the negative assertion that the first byte definitely isn't `{` —
+means a regression to the JSON fallback fails loudly with an assertion
+message that names the exact architectural decision it violates — Avro on
+the wire, never a silent JSON fallback — rather than failing some unrelated
+way downstream.
+
+Only after that byte-level proof does the test do an "optional" round
+trip: deserializing the same bytes with the real `AvroKafkaDeserializer`
+and asserting every field survived the Avro encoding intact.
 
 [**`InventoryCheckStockWireIT`**]({{ site.repo_blob }}/examples/inventory-service/src/test/java/com/patterncatalyst/datamesh/inventory/InventoryCheckStockWireIT.java)
 tests a different layer — gRPC, not Kafka — and uses a different mechanism:
@@ -125,10 +151,13 @@ tests a different layer — gRPC, not Kafka — and uses a different mechanism:
 in-JVM. That matters because there's no CDI container in the *test's* own
 JVM to inject a `@GrpcClient` into, so the test instead builds a plain
 `io.grpc.ManagedChannel` plus the generated `InventoryServiceGrpc` blocking
-stub pointed at `localhost:9000`. Its `@BeforeAll` matters here: because the packaged app under test boots with the `prod`
-profile, `import.sql` — the seed data the demos and Newman collection rely
-on in dev mode — never loads. Rather than depend on seed data that won't be
-there, the test seeds its own fixtures over the REST surface first:
+stub pointed at `localhost:9000`.
+
+Its `@BeforeAll` matters here: because the packaged app under test boots
+with the `prod` profile, `import.sql` — the seed data the demos and Newman
+collection rely on in dev mode — never loads. Rather than depend on seed
+data that won't be there, the test seeds its own fixtures over the REST
+surface first:
 
 ```java
 seedStock("WIDGET-1", 50);
@@ -138,22 +167,25 @@ seedStock("WIDGET-2", 12);
 ...posting directly to `POST /stock` via `java.net.http.HttpClient`, using
 the `test.url` system property Quarkus sets for the launched
 integration-test process (falling back to `http://localhost:8081` — see
-the port-collision note below). Only after that self-seed does it open the
-gRPC channel and exercise three branches of `CheckStock`: enough stock
-(`WIDGET-1`, quantity 10 against 50 on hand → `available=true`), *not*
-enough stock (`WIDGET-2`, quantity 100 against 12 on hand →
-`available=false`), and a SKU never seeded at all (`DOES-NOT-EXIST` →
-`available=false`, `quantityOnHand=0`). The pattern is to self-seed, then
-exercise the wire protocol, with no dependency on dev-mode fixtures or a
-standing stack; the class Javadoc describes it as "consistent with how the other wire-level ITs set up their own
-fixtures."
+the port-collision note below).
+
+Only after that self-seed does it open the gRPC channel and exercise three
+branches of `CheckStock`: enough stock (`WIDGET-1`, quantity 10 against 50
+on hand → `available=true`), *not* enough stock (`WIDGET-2`, quantity 100
+against 12 on hand → `available=false`), and a SKU never seeded at all
+(`DOES-NOT-EXIST` → `available=false`, `quantityOnHand=0`). The pattern is
+to self-seed, then exercise the wire protocol, with no dependency on
+dev-mode fixtures or a standing stack; the class Javadoc describes it as
+"consistent with how the other wire-level ITs set up their own fixtures."
 
 A third `*IT` in this tier does not currently run:
 [`OrderChoreographyChainIT`]({{ site.repo_blob }}/examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderChoreographyChainIT.java)
 is written and compiles — it would produce one `order.placed` Avro event
 and assert a `PaymentCaptured` record appears on `payment.captured`
 followed by a `ShipmentDispatched` record on `shipment.dispatched` — but it
-is annotated `@Disabled`. Its own Javadoc explains why: proving that full
+is annotated `@Disabled`.
+
+Its own Javadoc explains why: proving that full
 choreography chain needs `payment-service`'s and `shipping-service`'s real
 Reactive Messaging consumers running and consuming/producing
 against the same broker, and neither module currently has a container
@@ -184,15 +216,17 @@ The third tier moves outside Maven entirely. `tooling/newman/` holds a
 Postman collection,
 [datamesh.postman_collection.json]({{ site.repo_blob }}/tooling/newman/datamesh.postman_collection.json),
 run against a live stack via
-[run-newman.sh]({{ site.repo_blob }}/tooling/newman/run-newman.sh). Per
-[tooling's README.md]({{ site.repo_blob }}/tooling/README.md), this collection is grouped into five folders —
+[run-newman.sh]({{ site.repo_blob }}/tooling/newman/run-newman.sh).
+
+Per [tooling's README.md]({{ site.repo_blob }}/tooling/README.md), this collection is grouped into five folders —
 Health, Inventory, Order, GraphQL, and Review — covering roughly twenty
 requests: health probes for all four services; inventory stock seeding,
 lookup, and a 404 case; order placement (including a deliberate
 insufficient-stock case) and lookup (including a 404 case); one federated
 GraphQL query joining order and stock data; and review creation,
-validation, lookup, and an unauthenticated-delete-protection check. Each
-request carries one or more `pm.test(...)` assertions, so a full run
+validation, lookup, and an unauthenticated-delete-protection check.
+
+Each request carries one or more `pm.test(...)` assertions, so a full run
 exercises dozens of them — the exact total Newman reports depends on how
 many folders you include (`run-newman.sh --folder <name>` scopes a run to
 just one), so this chapter gives no total that could go stale when a request is
@@ -203,7 +237,9 @@ order-service, inventory-service, graphql-gateway, and (unless `--folder`
 restricts the run to something other than Review) review-service first,
 and fails loud with the exact bring-up command needed if anything is down,
 rather than letting Newman produce a wall of connection-refused errors
-that obscures the cause. `tooling/README.md` also
+that obscures the cause.
+
+`tooling/README.md` also
 documents three things this collection explicitly does **not** cover:
 forcing order-service's gRPC call to inventory-service to fail (a manual
 check), an authenticated `DELETE /reviews/{id}` → 204 (which needs a
@@ -256,7 +292,9 @@ This is the central design decision in the runner: UNIT, IT, and TWIN are all **
 Docker-in-Docker and a JDK can run all three with no other services, no
 exposed ports, and no manual bring-up, because Dev Services and
 Testcontainers provision and tear down everything each phase needs for
-itself. STACK-UP, FUNCTIONAL, and LOAD, by contrast, need a
+itself.
+
+STACK-UP, FUNCTIONAL, and LOAD, by contrast, need a
 **live** stack: compose infra (Postgres, Kafka,
 Apicurio) plus order-service (8091), inventory-service (8092 HTTP / 9000
 gRPC), graphql-gateway (8080), and review-service (8098) all
@@ -422,6 +460,22 @@ running to poke at manually.
   order a contributor never has to memorize, reports every phase's
   PASS/FAIL/SKIP regardless of where the run stopped, and defaults to
   running everything when given no flags at all.
+
+## For deeper coverage
+
+- [Quarkus — Testing your application](https://quarkus.io/guides/getting-started-testing) —
+  `@QuarkusTest`, Dev Services-backed tests, and the Surefire/Failsafe split
+  this chapter's unit and integration tiers rely on.
+- [Quarkus — Continuous Testing](https://quarkus.io/guides/continuous-testing) —
+  the dev-loop test runner behind this project's inner-loop feedback.
+- [Testcontainers](https://testcontainers.com/) — the self-provisioned
+  Kafka and Apicurio containers behind every wire-level `*IT` in this
+  chapter.
+- [Apache Kafka documentation](https://kafka.apache.org/documentation/) —
+  consumer groups, offsets, and the wire format `OrderPlacedAvroWireIT`
+  asserts against at the byte level.
+- Newman (Postman's CLI collection runner) documentation — the tool behind
+  the functional tier's headless run of `datamesh.postman_collection.json`.
 
 ---
 

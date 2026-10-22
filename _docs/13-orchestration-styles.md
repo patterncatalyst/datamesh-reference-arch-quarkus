@@ -7,6 +7,17 @@ duration: 50 minutes
 marker: "14"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Distinguish choreography from orchestration by who knows the whole sequence, not by which technology is involved.
+- Trace the Kafka choreography leg across `order-service`, `payment-service`, `shipping-service`, and `notification-service` and verify it with `kcat`, a Postgres row check, and a REST lookup.
+- Read an imperative Camel route and a declarative Quarkus Flow workflow that coordinate the identical two-step `classify`/`decide` sequence.
+- Choose choreography versus orchestration, and imperative versus declarative orchestration, for a given coordination problem.
+
+## Why this matters
+
 Every event-driven system eventually has to answer one question: when
 multiple steps need to happen in sequence, who decides the sequence? This
 project runs three answers side by side over the same shipping/order domain.
@@ -25,7 +36,9 @@ back (see "Build, run, observe" below for what each act checks).
 with no central process telling it when to run. `order-service` publishes
 `order.placed` to Kafka and has never heard of `payment-service` or
 `shipping-service` — it doesn't know they exist, doesn't call them, and
-doesn't wait for anything from them. `payment-service` independently
+doesn't wait for anything from them.
+
+`payment-service` independently
 subscribes to `order.placed`; when one arrives, it captures payment and
 publishes `payment.captured`. `shipping-service` independently subscribes to
 `payment.captured`; when one arrives, it dispatches a shipment and publishes
@@ -219,7 +232,9 @@ A single order does not flow through all three engines (placed via Kafka, then
 triaged via Camel, then triaged again via Flow). The script's header gives the
 reason: the triage endpoints
 (`/triage`, `/triage-flow`) only accept an order's line-item fields — they
-don't persist anything and don't publish an event. The Kafka leg's order payload was never run through a classifier-stability trial, and the
+don't persist anything and don't publish an event.
+
+The Kafka leg's order payload was never run through a classifier-stability trial, and the
 order used for the choreography leg was not chosen to produce a deterministic
 triage decision. The legs share the **domain** (customer, SKU, quantity,
 amount) and the **comparison**: one decentralized mechanism against two
@@ -232,7 +247,9 @@ actual classification to a small local LLM (`qwen2.5:3b` via Ollama) before
 Drools sees a fact. An LLM classification is not guaranteed to repeat on every
 input, so asserting a specific decision (`ROUTE_TO_WAREHOUSE`, not one of three
 valid decisions) requires an input whose classification has been stable across
-repeated trials. Act 1's order was never put through that trial because Act 1
+repeated trials.
+
+Act 1's order was never put through that trial because Act 1
 does not test classification. It tests whether four independently deployed
 services react to Kafka events, which does not depend on the order's fields.
 Keeping the acts' inputs uncoupled lets each act make a strict assertion.
@@ -279,6 +296,14 @@ the three mechanisms side by side.
 Chapter 14 covers the AI-assisted triage behind both
 orchestration legs, including where in-process LLM tool-calling works and
 where it does not.
+
+## For deeper coverage
+
+- *Cloud Native Patterns* by Cornelia Davis — the choreography-versus-orchestration tradeoff as a cloud-native integration pattern.
+- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß — event-driven and coordination patterns that generalize past this chapter's Kafka/Camel/Flow trio.
+- [Apache Camel — Enterprise Integration Patterns](https://camel.apache.org/components/latest/eips/enterprise-integration-patterns.html) for the EIP vocabulary behind the Camel orchestration leg.
+- [CNCF Serverless Workflow specification](https://github.com/serverlessworkflow/specification) for the declarative workflow-document model `quarkus-flow` implements.
+- [Apache Kafka documentation — consumer groups](https://kafka.apache.org/documentation/#intro_consumers) for the choreography leg's decentralized subscribe/publish mechanics.
 
 ---
 

@@ -7,6 +7,18 @@ description: "A closing summary — for each of the four data-mesh principles, t
 duration: 12 minutes
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Map each of Dehghani's four data-mesh principles to the concrete Quarkus and Kubernetes pieces in this repo that implement it.
+- Identify which principles this build implements fully versus partially, and name the specific gaps (a shared namespace, no admission-policy layer, no dedicated catalog product).
+- Trace the "trusted supply chain" thread from a contract defined once in [contracts]({{ site.repo_tree }}/examples/contracts), through registry verification, to runtime observability.
+- Explain why a shared contracts module is safe to share across domains while a shared entity module would reintroduce the coupling domain ownership exists to remove.
+- Connect each missing or partial principle back to the anti-pattern the previous chapter names for it.
+
+## Why this matters
+
 The preceding chapters covered this project by *concern*: substrate, services,
 contracts, planes, progressive delivery, scaling, observability, failure modes.
 This chapter reorganizes the same material by *principle*. For each of Dehghani's
@@ -39,7 +51,9 @@ guess who to ask when the shape changes — the owner is the module.
 
 {% include excalidraw.html file="10-value-domain-ownership" alt="Diagram showing each domain owning its own service, data, and contract boundary end to end, with no central team in the path" caption="Figure 10.1 — Domain ownership: value, pieces, and what's missing without it" %}
 
-The implementation pieces: [examples]({{ site.repo_tree }}/examples) is a multi-module Maven project of independently
+### Implementation pieces
+
+[examples]({{ site.repo_tree }}/examples) is a multi-module Maven project of independently
 buildable modules — `order-service`, `inventory-service`, `payment-service`,
 `shipping-service`, `notification-service`, `review-service`, and
 `graphql-gateway`. Each is its own Quarkus application with its own Panache
@@ -53,6 +67,7 @@ imports the other's entity class. `order-service` never reaches into
 inventory's schema directly. It calls `inventory-service` over gRPC
 (`CheckStock`, defined in [contracts]({{ site.repo_tree }}/examples/contracts)'s [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto), under
 the `capstone.inventory.v1` package) as any other consumer would.
+
 What crosses a domain boundary is a narrow
 *contract*, never another domain's entity. [domain-model]({{ site.repo_tree }}/examples/domain-model) holds
 the shared, framework-agnostic edge types every service depends on
@@ -65,6 +80,8 @@ entity (`Order`, `Stock`) stays private to that service. Only its DTO and its
 event schema are shared. That is the line domain ownership draws
 here: a shared contract module is fine; a shared *entity* module would be
 the coupling to avoid.
+
+### Gaps
 
 This build runs all seven modules in a single shared
 `datamesh` Kubernetes namespace ([base]({{ site.repo_tree }}/k8s/base)), not one namespace per domain.
@@ -83,6 +100,8 @@ with seven independent services should eventually show seven independent
 Deployments, and it currently shows four. Both gaps are simplifications for a
 single-machine reference; production would want namespace isolation and
 full-fleet deployment parity.
+
+### Without this principle
 
 Without this principle: fuzzy boundaries and ownership vacuums. Data that
 nobody owns gets modeled three different ways by three different teams, a
@@ -108,7 +127,9 @@ does not, and the contract has to carry that weight.
 
 {% include excalidraw.html file="10-value-data-product" alt="Diagram showing a data product as discoverable, addressable, trustworthy, and self-describing, backed by a versioned contract and a schema registry" caption="Figure 10.2 — Data as a product: value, pieces, and what's missing without it" %}
 
-The implementation pieces: the Deployment + Service pairs that do exist in
+### Implementation pieces
+
+The Deployment + Service pairs that do exist in
 [base]({{ site.repo_tree }}/k8s/base) make the product *addressable* — a consumer reaches
 `order-service.datamesh.svc.cluster.local:8080` (the Service in
 [order-service.yaml]({{ site.repo_blob }}/k8s/base/order-service.yaml) exposes port `8080` under the name `http`) and
@@ -127,7 +148,9 @@ those Avro schemas live at runtime: every producer and consumer
 resolves its schema from the registry rather than from a copy baked into
 its own jar, so the registry also serves as this build's
 *discovery* point: browse it and you see every event type in the mesh, its
-schema, and (by convention) which service registered it. The registry
+schema, and (by convention) which service registered it.
+
+The registry
 also makes a product *trustworthy* in a checkable sense: `OrderPlacedAvroWireIT`
 in `order-service` verifies the wire format by producing a
 `capstone.order.v1.OrderPlaced` record through the application's
@@ -135,6 +158,8 @@ serializer and then reading the raw bytes back with a plain
 `KafkaConsumer<byte[], byte[]>` that has no Avro deserializer configured,
 asserting the Avro magic byte (`0x00`) is present and the JSON marker
 (`0x7B`, an opening brace) is not.
+
+### Gaps
 
 This build does not run a dedicated catalog product
 (a discoverability and lineage tool, such as the OpenMetadata instance the Python sibling reference
@@ -144,6 +169,8 @@ metadata. Nothing in this build answers "which
 products exist, who owns them, and what feeds into what" the way a catalog
 would; you would have to read [base]({{ site.repo_tree }}/k8s/base), [contracts]({{ site.repo_tree }}/examples/contracts), and this
 chapter together to reconstruct it by hand. The project's reconciliation notes track the gap.
+
+### Without this principle
 
 Without this principle: "inert" data products (a renamed table with no
 contract that cannot serve itself, govern itself, or describe itself to
@@ -168,7 +195,9 @@ make on its own schedule.
 
 {% include excalidraw.html file="10-value-self-serve" alt="Diagram showing domains declaring their infrastructure needs — topics, databases, scaling policies — and the platform's operators fulfilling them automatically" caption="Figure 10.3 — Self-serve data platform: value, pieces, and what's missing without it" %}
 
-The implementation pieces: [setup-kafka-operator.sh]({{ site.repo_blob }}/scripts/setup-kafka-operator.sh) installs
+### Implementation pieces
+
+[setup-kafka-operator.sh]({{ site.repo_blob }}/scripts/setup-kafka-operator.sh) installs
 Strimzi so a service declares a topic rather than runs a broker;
 [setup-postgres-operator.sh]({{ site.repo_blob }}/scripts/setup-postgres-operator.sh) installs CloudNativePG so a service
 declares a database rather than operates Postgres; [setup-apicurio.sh]({{ site.repo_blob }}/scripts/setup-apicurio.sh)
@@ -194,6 +223,8 @@ CloudNativePG, then Strimzi, then KEDA, then the LGTM stack, then Kiali,
 then Apicurio — each tier gated behind a health check before the next one
 starts.
 
+### Without this principle
+
 Without this principle: every domain reinvents the same infrastructure
 badly. Each team builds its own Kafka cluster, its own database, its own
 scaling logic, and the cost of that duplication hides in domain budgets
@@ -218,7 +249,8 @@ class of bug without the developer consciously avoiding it.
 
 {% include excalidraw.html file="10-value-governance" alt="Diagram showing global rules — contract format, security, observability — enforced automatically at the platform boundary while domains keep independent ownership" caption="Figure 10.4 — Federated computational governance: value, pieces, and what's missing without it" %}
 
-The implementation pieces in this build, and what they cover:
+### Implementation pieces
+
 Avro-against-Apicurio is a wire-level governance rule every producer and
 consumer follows by using the shared `contracts` module, and a
 regression test enforces it. `OrderPlacedAvroWireIT`
@@ -244,6 +276,8 @@ though one repeated by hand: every service in this mesh runs
 unprivileged and resource-bounded, whether or not an admission controller
 is there to check.
 
+### Gaps
+
 Istio's sidecar injection in this build is a per-Deployment opt-in, applied
 by the [istio]({{ site.repo_tree }}/k8s/istio) overlay rather than in
 [order-service.yaml]({{ site.repo_blob }}/k8s/base/order-service.yaml), so the base manifests ship unmeshed. mTLS and the
@@ -255,6 +289,8 @@ pod security baseline above holds because the same block is repeated in each
 manifest, not because the cluster would reject a Deployment missing it. The
 computational governance here is the contract and wire-format rule plus the
 always-on observability; the policy-admission layer is not yet implemented.
+
+### Without this principle
 
 Without this principle: governance bolted on from outside the platform
 never quite fits, or worse, re-centralizes into an approval bottleneck — the
@@ -290,6 +326,14 @@ turns from what the mesh requires to what the runtime underneath it
 offers: a capability tour, a measured Spring Boot comparison, and
 two ways to orchestrate the same decision across these same
 services.
+
+## For deeper coverage
+
+- *Data Mesh* by Zhamak Dehghani — the four principles this chapter organizes its summary around.
+- *Cloud Native Patterns* by Cornelia Davis — the platform-capability framing behind self-serve infrastructure and governance-by-platform.
+- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß — the declarative, operator-driven pattern every Implementation pieces section in this chapter relies on.
+- *Platform Engineering on Kubernetes* by Mauricio Salatino — a deeper treatment of the self-serve platform principle and the admission-policy layer named as a gap above.
+- *GitOps and Kubernetes* by Billy Yuen et al. — declarative delivery as the mechanism that makes "consume by declaration" concrete.
 
 ---
 

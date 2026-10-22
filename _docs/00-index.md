@@ -7,6 +7,21 @@ duration: "5 min"
 marker: "00"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Locate the chapter that covers a specific data-mesh or Quarkus topic using the
+  part-by-part map below.
+- Choose a reading path (straight through, pattern-evaluation, Quarkus-first, or
+  build-your-own) that matches what you're here for.
+- Identify the prerequisites — JDK, Maven, Docker, and the Kubernetes toolchain — each
+  part actually needs before you run its code.
+- Trace a chapter's claims to the runnable example, demo script, or manifest that backs
+  it, using the chapters-to-code mapping.
+
+## Why this matters
+
 This is the reading guide for the data-mesh-on-Quarkus reference. It builds one working
 system end to end: a data mesh of Quarkus services that own their data as products, talk
 over a mix of protocols, evolve their contracts safely, scale to demand, and stay observable
@@ -227,6 +242,17 @@ you're here specifically for the Quarkus angle, skip ahead to
 you've read Part 0 — it and the Spring Boot comparison stand on their own.
 
 Start with [data architectures]({{ '/docs/01-data-architectures/' | relative_url }}).
+
+## For deeper coverage
+
+- *Data Mesh* by Zhamak Dehghani — the full treatment behind the four principles this
+  tutorial builds against.
+- *Cloud Native Patterns* by Cornelia Davis — the platform-and-application patterns Part
+  1 and Part 2 implement on Kubernetes.
+- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß — the primitives Part 2's substrate
+  and operating chapters stand on.
+- [Quarkus guides](https://quarkus.io/guides/) — the authoritative reference for every
+  Quarkus capability Part 4 tours.
 
 ---
 

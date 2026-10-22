@@ -7,13 +7,36 @@ duration: 30 minutes
 marker: "06"
 ---
 
-The previous chapter covered how service contracts are registered and enforced. This
-chapter covers how data moves between services — the planes the mesh runs on. There are
-two: an **asynchronous event backbone** on Kafka, and a **synchronous read
-layer** where a GraphQL gateway composes REST and gRPC calls into one
-response. Both are running code in this project, and both can be read
-through Apache Camel's enterprise integration patterns (EIPs), which is where this
-project's Camel-on-Quarkus work appears.
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Trace the asynchronous event path from `OrderEventProducer`'s publish
+  through `OrderPlacedConsumer`'s idempotent, transactional consume to a
+  live WebSocket push.
+- Explain why `@Transactional` alone makes a Reactive Messaging consumer
+  blocking-safe, and why Kafka's at-least-once delivery guarantee requires
+  an explicit idempotency check.
+- Trace the synchronous read path through `GatewayApi`, showing how a lazy
+  `@Source` resolver avoids paying for a gRPC call the client's query
+  didn't ask for.
+- Match each of the four protocols (REST, gRPC, GraphQL, events) to the job
+  it fits, rather than defaulting to one of them everywhere.
+- Read a Camel Content-Based Router (`.choice()/.when()/.otherwise()`) as
+  the pattern language for the one piece of conditional routing logic in
+  this project.
+
+## Why this matters
+
+The previous chapter covered how service contracts are registered and
+enforced. This chapter covers how data moves between services — the planes
+the mesh runs on.
+
+There are two: an **asynchronous event backbone** on Kafka, and a
+**synchronous read layer** where a GraphQL gateway composes REST and gRPC
+calls into one response. Both are running code in this project, and both
+can be read through Apache Camel's enterprise integration patterns (EIPs),
+which is where this project's Camel-on-Quarkus work appears.
 
 The code is in [order-service]({{ site.repo_tree }}/examples/order-service) (the producer side, already built
 in the first chapter of this part), [notification-service]({{ site.repo_tree }}/examples/notification-service), and
@@ -98,11 +121,13 @@ the write **idempotent** — the Javadoc on this class notes that this
 mirrors the Python reference's `ON CONFLICT DO NOTHING` behavior, expressed as an
 application-level check instead of a database constraint.
 
-The last line — pushing the freshly persisted `Notification` to every open
-WebSocket connection via `OpenConnections` (Quarkus WebSockets.Next) — turns
-this from a consumer that writes rows into a live notification
-feed: a client connected to `/ws/notifications` sees the notification when
-this method commits it, not on the next poll. The push is
+The last line of `consume(...)` — pushing the freshly persisted `Notification`
+to every open WebSocket connection via `OpenConnections` (Quarkus
+WebSockets.Next) — turns this from a consumer that writes rows into a live
+notification feed: a client connected to `/ws/notifications` sees the
+notification when this method commits it, not on the next poll.
+
+The push is
 best-effort: a client that isn't connected misses it, with no retry or queued
 delivery. That suits a live feed and not anything needing guaranteed
 delivery, which belongs to the Kafka topic, not this fan-out.
@@ -199,7 +224,9 @@ with no GraphQL added to order-service or inventory-service.
 Federation, where each domain exposes its own GraphQL subgraph and a
 gateway plans queries across them, is the production-scale pattern because
 it preserves each domain's ownership of its slice of the graph; here,
-the gateway must know how to reach each domain directly. Orchestration
+the gateway must know how to reach each domain directly.
+
+Orchestration
 demonstrates what GraphQL adds (one client query,
 multiple backends, a response shaped by the caller) with one new service and
 no changes to the domain services. It is also why
@@ -354,6 +381,20 @@ does not cover.
 
 Part 1 has built the data products, their contracts, and the planes that move data
 between them: "data as a product" in running Quarkus code.
+
+## For deeper coverage
+
+- *Data Mesh* by Zhamak Dehghani — choosing a data product's output-port
+  protocol by consumer job, not a house-wide default.
+- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann &
+  Chris Riccomini — at-least-once delivery, idempotent consumers, and the
+  dataflow patterns behind both planes this chapter builds.
+- *Cloud Native Patterns* by Cornelia Davis — event-driven and
+  request/response composition patterns side by side.
+- [Quarkus SmallRye GraphQL guide](https://quarkus.io/guides/smallrye-graphql) —
+  the `@Query`/`@Source` resolver pattern `GatewayApi` uses.
+- [Content-Based Router](https://www.enterpriseintegrationpatterns.com/patterns/messaging/ContentBasedRouter.html) —
+  the original enterprise integration pattern behind `OrderLookupToolRoute`.
 
 ---
 

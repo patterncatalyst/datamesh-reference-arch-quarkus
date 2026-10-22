@@ -7,6 +7,22 @@ duration: "25 min"
 marker: "03"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Map each of the four data-mesh principles to the Kubernetes primitive that implements
+  it — namespaces, Deployments/CRDs, operators, and admission/mesh policy.
+- Bring up this build's full platform tier on `minikube` with `bootstrap.sh`, in the
+  tier order the script enforces, and scope a smaller run with the `ENABLE_*` flags.
+- Explain why this stack has no image registry, and carry out the build-then-load
+  sequence (`docker build` → `minikube image load`) that `imagePullPolicy: IfNotPresent`
+  depends on.
+- Locate the `kustomize` base/overlay split that separates the declared resources from
+  the one environment-specific decision (image tags, no registry) a `minikube` run makes.
+
+## Why this matters
+
 The four data-mesh principles map onto Kubernetes primitives almost directly. This
 chapter makes that mapping explicit, then walks the substrate this build stands up on a
 local single-node Kubernetes cluster (`minikube`). Figure 2.1, the full-project diagram
@@ -74,7 +90,11 @@ what "computational governance" means.
 Everything above is the general case. Concretely, this build's substrate is a single
 `minikube` profile, brought up tier by tier by
 [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh), with a health gate
-between each tier so a failure in one doesn't cascade silently into the next:
+between each tier so a failure in one doesn't cascade silently into the next.
+
+### Running bootstrap.sh
+
+One command drives the whole platform tier:
 
 ```bash
 ./scripts/bootstrap.sh
@@ -109,6 +129,8 @@ dependency order:
 8. **Apicurio** ([setup-apicurio.sh]({{ site.repo_blob }}/scripts/setup-apicurio.sh)) — the schema registry the contracts chapter
    depends on, installed last.
 
+### Scoping a smaller run
+
 Every tier is gated behind a boolean (`ENABLE_ISTIO`, `ENABLE_KAFKA`, and so on, each
 defaulting to `true`), so a narrower run — say, skipping Istio to save resources on a
 smaller machine — is one environment variable, not a script edit:
@@ -116,6 +138,8 @@ smaller machine — is one environment variable, not a script edit:
 ```bash
 ENABLE_ISTIO=false ENABLE_KIALI=false ./scripts/bootstrap.sh
 ```
+
+### Day-to-day operations
 
 Once the substrate is up, three more scripts round out the day-to-day loop:
 [cluster-status.sh]({{ site.repo_blob }}/scripts/cluster-status.sh) for a health
@@ -147,6 +171,8 @@ k8s/keda/
   gateway-httpscaledobject.yaml # HTTP ScaledObject targeting graphql-gateway
 ```
 
+### Building and loading images: there is no registry
+
 The `base` layer declares the resources; the `minikube` overlay holds the
 environment-specific decision, a frequent source of errors: there is **no image registry**
 in this stack. Images are built with the host's Docker and loaded into the cluster's own
@@ -170,7 +196,9 @@ setting the pull policy to `IfNotPresent` are coupled; change neither independen
 profile runs containerd, so `eval $(minikube docker-env)`, which only works with the
 Docker runtime, is not an option here.
 
-Build context matters too: every
+### Build context matters
+
+Every
 `Containerfile.multistage` build documented in the k8s
 [README.md]({{ site.repo_blob }}/k8s/README.md) runs from the **repo root**, not from
 inside `examples/<service>/`. That's because each service's builder stage needs the whole
@@ -178,6 +206,8 @@ inside `examples/<service>/`. That's because each service's builder stage needs 
 and `contracts` as reactor dependencies rather than as published artifacts — building
 from inside a single service directory would leave those two modules unreachable and the
 build would fail at the Maven step rather than at the Docker step.
+
+### Shared configuration via ConfigMap
 
 The same `base`/`overlay` split also carries the one non-secret configuration contract
 every Deployment shares:
@@ -239,6 +269,20 @@ operations chapters of Part 2.
 
 Next, the services themselves: what a data product looks like in this build, the
 order-service template the others follow, and how each one is packaged and shipped.
+
+## For deeper coverage
+
+- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß — the namespace, Deployment, and
+  operator patterns this chapter maps the four data-mesh principles onto.
+- *Platform Engineering on Kubernetes* by Mauricio Salatino — the self-serve platform
+  model behind the operator tier this chapter's `bootstrap.sh` stands up.
+- *GitOps and Kubernetes* by Billy Yuen et al. — background on declarative,
+  idempotent cluster bring-up, the same property `bootstrap.sh` relies on to be
+  safely re-run.
+- [minikube documentation](https://minikube.sigs.k8s.io/docs/) — the authoritative
+  reference for the `docker` driver, the `containerd` runtime, and `minikube image load`.
+- [Kubernetes documentation](https://kubernetes.io/docs/) — namespaces, Custom Resource
+  Definitions, and `kustomize` overlays, covered here only as this build uses them.
 
 ---
 
