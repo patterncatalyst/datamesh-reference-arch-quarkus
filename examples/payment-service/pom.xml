@@ -17,8 +17,8 @@
   <name>DataMesh :: Payment Service</name>
   <description>
     Real event-driven choreography processor: consumes
-    OrderPlaced (capstone.order.v1) Avro events from the order.placed Kafka
-    topic and emits PaymentCaptured (capstone.payment.v1) Avro events to the
+    OrderPlaced (datamesh.order.v1) Avro events from the order.placed Kafka
+    topic and emits PaymentCaptured (datamesh.payment.v1) Avro events to the
     payment.captured Kafka topic. Both channels are Avro-serialized against
     the Apicurio Schema Registry via quarkus-apicurio-registry-avro; Kafka
     and Apicurio Registry are provided by Quarkus Dev Services in dev/test

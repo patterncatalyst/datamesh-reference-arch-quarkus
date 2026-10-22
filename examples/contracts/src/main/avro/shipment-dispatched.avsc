@@ -1,7 +1,7 @@
 {
   "type": "record",
   "name": "ShipmentDispatched",
-  "namespace": "capstone.shipping.v1",
+  "namespace": "datamesh.shipping.v1",
   "doc": "Emitted by shipping-service after a shipment for an order is dispatched. Runtime contract for the shipment-dispatched Kafka topic.",
   "fields": [
     { "name": "event_type",       "type": "string", "doc": "Always 'shipment.dispatched'." },

@@ -77,7 +77,7 @@ INVENTORY_BASE="http://localhost:${INVENTORY_PORT}"
 GATEWAY_BASE="http://localhost:${GATEWAY_PORT}"
 REVIEW_BASE="http://localhost:${REVIEW_PORT}"
 
-AVRO_SERIALIZABLE_PACKAGES="capstone.order.v1"
+AVRO_SERIALIZABLE_PACKAGES="datamesh.order.v1"
 
 usage() {
     cat <<'EOF'

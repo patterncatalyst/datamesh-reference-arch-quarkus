@@ -18,7 +18,7 @@
   <description>
     SmallRye GraphQL federation gateway. The "order" query resolves an order
     over REST from order-service, and the nested "stock" field on that order
-    resolves over gRPC from inventory-service (capstone.inventory.v1.InventoryService),
+    resolves over gRPC from inventory-service (datamesh.inventory.v1.InventoryService),
     stitching two protocols into one GraphQL response. Mirrors the Strawberry
     gateway in datamesh-reference-arch-python.
   </description>

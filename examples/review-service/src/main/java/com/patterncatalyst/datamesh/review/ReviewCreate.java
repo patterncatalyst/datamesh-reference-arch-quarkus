@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 /**
  * Request body for {@code POST /reviews}. Kept separate from the {@link Review}
  * Panache entity (storage model) so the wire contract is decoupled from
- * persistence, mirroring the Python capstone's {@code ReviewCreate} Pydantic
+ * persistence, mirroring the Python final project's {@code ReviewCreate} Pydantic
  * schema.
  */
 public record ReviewCreate(

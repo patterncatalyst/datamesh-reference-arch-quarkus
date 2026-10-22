@@ -7,9 +7,9 @@ import io.grpc.StatusRuntimeException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import capstone.inventory.v1.Inventory.CheckStockRequest;
-import capstone.inventory.v1.Inventory.CheckStockResponse;
-import capstone.inventory.v1.InventoryServiceGrpc;
+import datamesh.inventory.v1.Inventory.CheckStockRequest;
+import datamesh.inventory.v1.Inventory.CheckStockResponse;
+import datamesh.inventory.v1.InventoryServiceGrpc;
 
 /**
  * Default, production-equivalent {@link StockChecker}: a synchronous gRPC

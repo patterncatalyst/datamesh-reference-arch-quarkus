@@ -9,8 +9,8 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.logging.Logger;
 
-import capstone.payment.v1.PaymentCaptured;
-import capstone.shipping.v1.ShipmentDispatched;
+import datamesh.payment.v1.PaymentCaptured;
+import datamesh.shipping.v1.ShipmentDispatched;
 import com.patterncatalyst.datamesh.domain.Topics;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -19,13 +19,13 @@ import jakarta.transaction.Transactional;
  * Real event-choreography saga participant: continues the
  * order.placed -&gt; payment.captured -&gt; shipment.dispatched saga.
  *
- * <p>Consumes {@link PaymentCaptured} (Avro, {@code capstone.payment.v1}) from
+ * <p>Consumes {@link PaymentCaptured} (Avro, {@code datamesh.payment.v1}) from
  * the {@code payment.captured} topic, creates a shipment -- carrier and
  * tracking number are derived deterministically from the order id, so the
  * same order always dispatches identically, which keeps demos and tests
  * reproducible without a random-number source -- persists a minimal local
  * record of it, and emits {@link ShipmentDispatched} (Avro,
- * {@code capstone.shipping.v1}) on the {@code shipment.dispatched} topic.
+ * {@code datamesh.shipping.v1}) on the {@code shipment.dispatched} topic.
  *
  * <p>{@code PaymentCaptured} does not carry line-item detail (sku/quantity);
  * a real system would enrich this step via an order-details lookup or carry

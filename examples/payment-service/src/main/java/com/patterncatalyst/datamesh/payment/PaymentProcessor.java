@@ -11,8 +11,8 @@ import org.jboss.logging.Logger;
 
 import com.patterncatalyst.datamesh.domain.Topics;
 
-import capstone.order.v1.OrderPlaced;
-import capstone.payment.v1.PaymentCaptured;
+import datamesh.order.v1.OrderPlaced;
+import datamesh.payment.v1.PaymentCaptured;
 
 /**
  * Real event-driven choreography processor.
@@ -30,7 +30,7 @@ import capstone.payment.v1.PaymentCaptured;
  * reference example: every order is captured immediately with a freshly
  * generated payment id, mirroring the order's amount and customer. A real
  * payment service would call out to a payment gateway and could fail/decline
- * a capture; that branching is out of scope for this capstone slice.
+ * a capture; that branching is out of scope for this final-project slice.
  *
  * <p>At-least-once delivery means the same {@code OrderPlaced} event can be
  * redelivered; capture is idempotent on the order id -- a redelivery returns

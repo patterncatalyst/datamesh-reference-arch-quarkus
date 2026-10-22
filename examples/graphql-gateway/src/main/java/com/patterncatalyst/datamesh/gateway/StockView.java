@@ -5,7 +5,7 @@ import org.eclipse.microprofile.graphql.Description;
 /**
  * GraphQL view of stock for a single SKU, resolved over gRPC from
  * inventory-service's {@code CheckStock} RPC
- * (capstone.inventory.v1.InventoryService). Nested under {@link OrderView#stock}
+ * (datamesh.inventory.v1.InventoryService). Nested under {@link OrderView#stock}
  * (see {@link GatewayApi#stock(OrderView)}) rather than fetched top-level, so
  * the availability figure is always scoped to the order's own SKU and quantity.
  */

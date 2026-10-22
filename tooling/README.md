@@ -130,7 +130,7 @@ Status code distribution:
 Health-gates inventory-service's HTTP `/q/health` (gRPC has no easy curl
 probe, but a live HTTP health endpoint on the same process is strong
 evidence the gRPC server is up too), then ramps unary
-`capstone.inventory.v1.InventoryService/CheckStock` calls (`{"sku":
+`datamesh.inventory.v1.InventoryService/CheckStock` calls (`{"sku":
 "WIDGET-1","quantity":1}`) at inventory-service's gRPC port (canonical
 `localhost:9000`) via `ghz --insecure` (plaintext — inventory-service does
 not terminate TLS here), and lets `ghz`'s own summary print. Sample output

@@ -162,11 +162,11 @@
                  automatically). OrderPlacedAvroWireIT is a plain JUnit test
                  (no @QuarkusTest, no Quarkus runtime bootstrap) driving a
                  raw KafkaProducer, so it hit
-                 "SecurityException: Forbidden capstone.order.v1.OrderPlaced!"
+                 "SecurityException: Forbidden datamesh.order.v1.OrderPlaced!"
                  without this, confirmed by actually running the IT.
                  Trusting the contracts module's Avro package here is scoped
                  to this module's test JVM only. -->
-            <org.apache.avro.SERIALIZABLE_PACKAGES>capstone.order.v1</org.apache.avro.SERIALIZABLE_PACKAGES>
+            <org.apache.avro.SERIALIZABLE_PACKAGES>datamesh.order.v1</org.apache.avro.SERIALIZABLE_PACKAGES>
           </systemPropertyVariables>
         </configuration>
         <executions>

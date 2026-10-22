@@ -135,7 +135,7 @@ table.
 
 ## gRPC: a typed contract, generated at build time
 
-`inventory-service` answers `capstone.inventory.v1.InventoryService/CheckStock`
+`inventory-service` answers `datamesh.inventory.v1.InventoryService/CheckStock`
 over gRPC, implemented by [InventoryGrpcService.java]({{ site.repo_blob }}/examples/inventory-service/src/main/java/com/patterncatalyst/datamesh/inventory/InventoryGrpcService.java):
 
 ```java
@@ -159,7 +159,7 @@ public class InventoryGrpcService implements InventoryService {
 ```
 
 `InventoryService` is not hand-written. It is the Mutiny service interface
-generated at build time from [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto).
+generated at build time from [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/datamesh/inventory/v1/inventory.proto).
 The `contracts` module is a dependency jar, and
 `quarkus.generate-code.grpc.scan-for-proto` tells Quarkus to generate from a
 proto packaged inside a dependency as well as from this module's

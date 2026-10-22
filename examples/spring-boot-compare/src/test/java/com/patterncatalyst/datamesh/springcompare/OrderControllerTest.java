@@ -77,7 +77,7 @@ class OrderControllerTest {
     void placeOrder_persistsAndReturns201_whenStockAvailable() throws Exception {
         when(stockChecker.check("sku-1", 2)).thenReturn(new StockChecker.StockResult(true, 10));
         when(eventProducer.publish(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(CompletableFuture.completedFuture((SendResult<String, capstone.order.v1.OrderPlaced>) null));
+                .thenReturn(CompletableFuture.completedFuture((SendResult<String, datamesh.order.v1.OrderPlaced>) null));
 
         mockMvc.perform(post("/orders")
                         .contentType(MediaType.APPLICATION_JSON)

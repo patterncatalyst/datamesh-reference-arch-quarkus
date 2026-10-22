@@ -111,7 +111,7 @@ already does today by independently subscribing to `order-placed` with its
 own `@Incoming` method.
 
 This is runtime coupling pushed down to "shared
-schema" (the `OrderPlaced` Avro type in `capstone.order.v1`, from the
+schema" (the `OrderPlaced` Avro type in `datamesh.order.v1`, from the
 `contracts` module) and nothing else — no participant holds a reference to
 another participant's class, bean, or network address.
 

@@ -8,7 +8,7 @@ import org.jboss.logging.Logger;
 import com.patterncatalyst.datamesh.domain.OrderCreate;
 import com.patterncatalyst.datamesh.domain.OrderDto;
 
-import capstone.inventory.v1.Inventory.CheckStockResponse;
+import datamesh.inventory.v1.Inventory.CheckStockResponse;
 import io.grpc.StatusRuntimeException;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.event.Event;

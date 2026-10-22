@@ -3,8 +3,8 @@
 # demos/demo-grpc.sh — "compose (infra baseline)" demo: Quarkus gRPC
 # (quarkus-grpc).
 #
-# inventory-service exposes capstone.inventory.v1.InventoryService/CheckStock
-# (see contracts/src/main/proto/capstone/inventory/v1/inventory.proto and
+# inventory-service exposes datamesh.inventory.v1.InventoryService/CheckStock
+# (see contracts/src/main/proto/datamesh/inventory/v1/inventory.proto and
 # InventoryGrpcService) -- the first real cross-service call in the mesh
 # (order-service dials this same RPC before placing an order; see
 # demo-order.sh). This demo talks to it directly with grpcurl -- a gRPC
@@ -13,7 +13,7 @@
 #
 # ── Why grpcurl, not "REST worked so gRPC must be fine" ───────────────────
 # grpcurl -plaintext against the server's reflection service lists
-# capstone.inventory.v1.InventoryService (proof Quarkus gRPC's reflection
+# datamesh.inventory.v1.InventoryService (proof Quarkus gRPC's reflection
 # support is live), then invokes CheckStock with a protobuf request and
 # parses the protobuf-over-JSON response. If this were secretly REST
 # under the hood, reflection listing a gRPC *service* (not a path) and a
@@ -51,7 +51,7 @@ GRPC_ADDR="localhost:${INVENTORY_GRPC_PORT}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 
 narrate "quarkus-grpc: a gRPC client (grpcurl) calls"
-narrate "capstone.inventory.v1.InventoryService/CheckStock over HTTP/2 against"
+narrate "datamesh.inventory.v1.InventoryService/CheckStock over HTTP/2 against"
 narrate "inventory-service over gRPC (HTTP/2)."
 
 # ─── .env prereq (compose var resolution) ───────────────────────────────────
@@ -131,12 +131,12 @@ step "grpcurl list -- server reflection"
 SERVICES="$(grpcurl -plaintext "$GRPC_ADDR" list 2>&1)" \
     || { tail -n 60 "$INV_LOGFILE" >&2; fail "grpcurl list failed against ${GRPC_ADDR} -- is gRPC reflection enabled? output: $SERVICES"; }
 info "services: $SERVICES"
-grep -q 'capstone.inventory.v1.InventoryService' <<<"$SERVICES" \
-    || fail "grpcurl list did not include capstone.inventory.v1.InventoryService: $SERVICES"
-narrate "confirmed via reflection: capstone.inventory.v1.InventoryService is live on ${GRPC_ADDR}"
+grep -q 'datamesh.inventory.v1.InventoryService' <<<"$SERVICES" \
+    || fail "grpcurl list did not include datamesh.inventory.v1.InventoryService: $SERVICES"
+narrate "confirmed via reflection: datamesh.inventory.v1.InventoryService is live on ${GRPC_ADDR}"
 
 step "grpcurl describe -- method signature"
-METHOD_DESC="$(grpcurl -plaintext "$GRPC_ADDR" describe capstone.inventory.v1.InventoryService.CheckStock 2>&1)" \
+METHOD_DESC="$(grpcurl -plaintext "$GRPC_ADDR" describe datamesh.inventory.v1.InventoryService.CheckStock 2>&1)" \
     || fail "grpcurl describe CheckStock failed: $METHOD_DESC"
 info "$METHOD_DESC"
 grep -q 'CheckStockRequest' <<<"$METHOD_DESC" || fail "CheckStock description missing CheckStockRequest: $METHOD_DESC"
@@ -145,7 +145,7 @@ grep -q 'CheckStockResponse' <<<"$METHOD_DESC" || fail "CheckStock description m
 # ─── Real unary RPC calls, parsed responses ─────────────────────────────────
 step "grpcurl CheckStock -- in-stock SKU (available=true)"
 RESP1="$(grpcurl -plaintext -emit-defaults -d '{"sku":"GRPC-DEMO-SKU","quantity":10}' \
-    "$GRPC_ADDR" capstone.inventory.v1.InventoryService/CheckStock 2>&1)" \
+    "$GRPC_ADDR" datamesh.inventory.v1.InventoryService/CheckStock 2>&1)" \
     || fail "grpcurl CheckStock call failed: $RESP1"
 info "response: $RESP1"
 assert_json_field "$RESP1" '.available' 'true'
@@ -154,7 +154,7 @@ narrate "confirmed: CheckStock(GRPC-DEMO-SKU, 10) -> available=true, quantityOnH
 
 step "grpcurl CheckStock -- quantity exceeds stock (available=false)"
 RESP2="$(grpcurl -plaintext -emit-defaults -d '{"sku":"GRPC-DEMO-SKU","quantity":999}' \
-    "$GRPC_ADDR" capstone.inventory.v1.InventoryService/CheckStock 2>&1)" \
+    "$GRPC_ADDR" datamesh.inventory.v1.InventoryService/CheckStock 2>&1)" \
     || fail "grpcurl CheckStock call failed: $RESP2"
 info "response: $RESP2"
 assert_json_field "$RESP2" '.available' 'false'
@@ -163,7 +163,7 @@ narrate "confirmed: CheckStock(GRPC-DEMO-SKU, 999) -> available=false (still rep
 
 step "grpcurl CheckStock -- unknown SKU (zero on hand)"
 RESP3="$(grpcurl -plaintext -emit-defaults -d '{"sku":"NO-SUCH-SKU","quantity":1}' \
-    "$GRPC_ADDR" capstone.inventory.v1.InventoryService/CheckStock 2>&1)" \
+    "$GRPC_ADDR" datamesh.inventory.v1.InventoryService/CheckStock 2>&1)" \
     || fail "grpcurl CheckStock call failed: $RESP3"
 info "response: $RESP3"
 assert_json_field "$RESP3" '.available' 'false'

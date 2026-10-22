@@ -129,7 +129,7 @@ enforces this: `order-service`, `inventory-service`,
 own schema, never a shared table another service reaches into directly. When
 `order-service` needs to know whether an item is in stock, it doesn't query inventory's
 database — it calls inventory's gRPC `CheckStock` RPC
-([inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto)),
+([inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/datamesh/inventory/v1/inventory.proto)),
 a contract inventory owns and can evolve on its own schedule. The ownership boundary is enforced by
 the absence of a shortcut, not by a policy document: there is no shared connection
 string, no cross-service JDBC URL, nothing to accidentally reach through.

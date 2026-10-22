@@ -66,7 +66,7 @@ GATEWAY_BASE="http://localhost:${GATEWAY_PORT}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 KAFKA_HOST_PORT="${KAFKA_HOST_PORT:-9092}"
 APICURIO_PORT="${APICURIO_PORT:-8081}"
-# Avro 1.12.x's ClassSecurityValidator rejects capstone.order.v1.OrderPlaced
+# Avro 1.12.x's ClassSecurityValidator rejects datamesh.order.v1.OrderPlaced
 # outside a Quarkus-bootstrapped JVM unless explicitly trusted -- see
 # demo-order.sh's header comment for the full empirical trace (confirmed via
 # a SecurityException in order-service's own log on every order.placed
@@ -74,7 +74,7 @@ APICURIO_PORT="${APICURIO_PORT:-8081}"
 # (the GraphQL query only reads order-service's REST surface + inventory's
 # gRPC), but set anyway so order-service's Kafka publish attempts don't
 # silently fail in its log for no reason.
-AVRO_SERIALIZABLE_PACKAGES="capstone.order.v1"
+AVRO_SERIALIZABLE_PACKAGES="datamesh.order.v1"
 
 narrate "SmallRye GraphQL gateway: one POST /graphql query stitches an order"
 narrate "(fetched over REST from order-service) with its live stock (fetched"

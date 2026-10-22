@@ -8,9 +8,9 @@ import org.eclipse.microprofile.graphql.Query;
 import org.eclipse.microprofile.graphql.Source;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
-import capstone.inventory.v1.Inventory.CheckStockRequest;
-import capstone.inventory.v1.Inventory.CheckStockResponse;
-import capstone.inventory.v1.InventoryServiceGrpc;
+import datamesh.inventory.v1.Inventory.CheckStockRequest;
+import datamesh.inventory.v1.Inventory.CheckStockResponse;
+import datamesh.inventory.v1.InventoryServiceGrpc;
 
 import com.patterncatalyst.datamesh.domain.OrderDto;
 

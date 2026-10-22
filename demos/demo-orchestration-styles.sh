@@ -52,18 +52,18 @@
 # consumer-side instance of the identical gap. This demo's chain touches
 # THREE different Avro packages across FOUR services, each of which needs
 # every package it either reads or writes trusted:
-#   order-service        (produces OrderPlaced)                    capstone.order.v1
+#   order-service        (produces OrderPlaced)                    datamesh.order.v1
 #   payment-service       (consumes OrderPlaced, produces
-#                          PaymentCaptured)             capstone.order.v1,capstone.payment.v1
+#                          PaymentCaptured)             datamesh.order.v1,datamesh.payment.v1
 #   shipping-service      (consumes PaymentCaptured, produces
-#                          ShipmentDispatched)        capstone.payment.v1,capstone.shipping.v1
-#   notification-service  (consumes OrderPlaced)                    capstone.order.v1
+#                          ShipmentDispatched)        datamesh.payment.v1,datamesh.shipping.v1
+#   notification-service  (consumes OrderPlaced)                    datamesh.order.v1
 # Omitting any one of these throws "SecurityException: Forbidden
-# capstone.*.v1.*!" on that service's own JVM, every time, for that hop only
+# datamesh.*.v1.*!" on that service's own JVM, every time, for that hop only
 # -- the rest of the chain looks fine, making a missing property on one
 # single downstream hop easy to miss when you only watch the topic right after
 # it (confirmed empirically while wiring this demo: dropping
-# payment-service's capstone.payment.v1 entry let OrderPlaced deserialize
+# payment-service's datamesh.payment.v1 entry let OrderPlaced deserialize
 # fine but made every outgoing PaymentCaptured publish throw, so
 # shipment.dispatched never appeared and the symptom looked like a
 # shipping-service bug until payment-service's own log was checked).
@@ -264,7 +264,7 @@ info "log: $ORD_LOGFILE"
     APICURIO_REGISTRY_URL="http://localhost:${APICURIO_PORT}/apis/registry/v3" \
     java -Dquarkus.http.port="$ORDER_PORT" \
         -Dmp.messaging.outgoing.order-placed.topic="$TOPIC_ORDER" \
-        -Dorg.apache.avro.SERIALIZABLE_PACKAGES="capstone.order.v1" \
+        -Dorg.apache.avro.SERIALIZABLE_PACKAGES="datamesh.order.v1" \
         -jar target/quarkus-app/quarkus-run.jar \
 ) >"$ORD_LOGFILE" 2>&1 &
 echo "$!" > "$ORD_PIDFILE"
@@ -285,7 +285,7 @@ info "log: $PAY_LOGFILE"
     java -Dquarkus.http.port="$PAYMENT_PORT" \
         -Dmp.messaging.incoming.order-placed.topic="$TOPIC_ORDER" \
         -Dmp.messaging.outgoing.payment-captured.topic="$TOPIC_PAYMENT" \
-        -Dorg.apache.avro.SERIALIZABLE_PACKAGES="capstone.order.v1,capstone.payment.v1" \
+        -Dorg.apache.avro.SERIALIZABLE_PACKAGES="datamesh.order.v1,datamesh.payment.v1" \
         -jar target/quarkus-app/quarkus-run.jar \
 ) >"$PAY_LOGFILE" 2>&1 &
 echo "$!" > "$PAY_PIDFILE"
@@ -310,7 +310,7 @@ info "log: $SHIP_LOGFILE"
     java -Dquarkus.http.port="$SHIPPING_PORT" \
         -Dmp.messaging.incoming.payment-captured.topic="$TOPIC_PAYMENT" \
         -Dmp.messaging.outgoing.shipment-dispatched.topic="$TOPIC_SHIPMENT" \
-        -Dorg.apache.avro.SERIALIZABLE_PACKAGES="capstone.payment.v1,capstone.shipping.v1" \
+        -Dorg.apache.avro.SERIALIZABLE_PACKAGES="datamesh.payment.v1,datamesh.shipping.v1" \
         -jar target/quarkus-app/quarkus-run.jar \
 ) >"$SHIP_LOGFILE" 2>&1 &
 echo "$!" > "$SHIP_PIDFILE"
@@ -335,7 +335,7 @@ info "log: $NOTIF_LOGFILE"
     APICURIO_REGISTRY_URL="http://localhost:${APICURIO_PORT}/apis/registry/v3" \
     java -Dquarkus.http.port="$NOTIFICATION_PORT" \
         -Dmp.messaging.incoming.order-placed.topic="$TOPIC_ORDER" \
-        -Dorg.apache.avro.SERIALIZABLE_PACKAGES="capstone.order.v1" \
+        -Dorg.apache.avro.SERIALIZABLE_PACKAGES="datamesh.order.v1" \
         -jar target/quarkus-app/quarkus-run.jar \
 ) >"$NOTIF_LOGFILE" 2>&1 &
 echo "$!" > "$NOTIF_PIDFILE"

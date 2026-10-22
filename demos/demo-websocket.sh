@@ -57,14 +57,14 @@
 # (found wiring THIS demo; demo-order.sh/demo-kafka.sh only needed it on the
 # producer) ──────────────────────────────────────────────────────────────
 # order-service (producer) needs org.apache.avro.SERIALIZABLE_PACKAGES=
-# capstone.order.v1 or every order.placed publish throws (Avro 1.12.x's
+# datamesh.order.v1 or every order.placed publish throws (Avro 1.12.x's
 # ClassSecurityValidator — see demo-order.sh's header comment for the full
 # trace). What's NEW here: notification-service (the consumer, and the only
 # service in this project that DESERIALIZES OrderPlaced back into a
-# capstone.order.v1.OrderPlaced SpecificRecord) needs the IDENTICAL system
+# datamesh.order.v1.OrderPlaced SpecificRecord) needs the IDENTICAL system
 # property on its own packaged JVM for the same reason — confirmed
 # empirically: without it, every poll fails with "java.lang.SecurityException:
-# Forbidden capstone.order.v1.OrderPlaced!" (SRMSG18249 in notification-
+# Forbidden datamesh.order.v1.OrderPlaced!" (SRMSG18249 in notification-
 # service's log), so no Notification is ever persisted and nothing is ever
 # pushed over the WebSocket, even though order-service's publish itself
 # succeeds. This is a second, previously-undetected instance of the same
@@ -101,7 +101,7 @@ WS_URL="ws://localhost:${NOTIFICATION_PORT}/ws/notifications"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 KAFKA_HOST_PORT="${KAFKA_HOST_PORT:-9092}"
 APICURIO_PORT="${APICURIO_PORT:-8081}"
-AVRO_SERIALIZABLE_PACKAGES="capstone.order.v1"
+AVRO_SERIALIZABLE_PACKAGES="datamesh.order.v1"
 TOPIC="order.placed.ws.demo.$$"
 
 narrate "WebSockets.Next: a live client connects to notification-service's"

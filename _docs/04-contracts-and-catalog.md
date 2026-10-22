@@ -56,7 +56,7 @@ is wider than what this chapter's code wires up today; the sections below separa
 running enforcement from the conceptual target, starting with the two contract types
 `contracts` owns.
 
-{% include excalidraw.html file="04-capstone-contracts" alt="Diagram showing every protocol's contract type feeding into Apicurio Registry, with OpenMetadata downstream building a lineage graph from the registry and the running data stores" caption="Figure 4.1 — Contracts, the registry, and the catalog across the mesh" %}
+{% include excalidraw.html file="04-final-project-contracts" alt="Diagram showing every protocol's contract type feeding into Apicurio Registry, with OpenMetadata downstream building a lineage graph from the registry and the running data stores" caption="Figure 4.1 — Contracts, the registry, and the catalog across the mesh" %}
 
 ## One module, two contract types
 
@@ -68,11 +68,11 @@ different protocols:
 ```
 examples/contracts/
   src/main/avro/
-    order-placed.avsc         # capstone.order.v1.OrderPlaced
-    payment-captured.avsc     # capstone.payment.v1.PaymentCaptured
-    shipment-dispatched.avsc  # capstone.shipping.v1.ShipmentDispatched
+    order-placed.avsc         # datamesh.order.v1.OrderPlaced
+    payment-captured.avsc     # datamesh.payment.v1.PaymentCaptured
+    shipment-dispatched.avsc  # datamesh.shipping.v1.ShipmentDispatched
   src/main/proto/
-    capstone/inventory/v1/inventory.proto
+    datamesh/inventory/v1/inventory.proto
 ```
 
 The Avro schemas are the event contracts. Here's [order-placed.avsc]({{ site.repo_blob }}/examples/contracts/src/main/avro/order-placed.avsc) in
@@ -82,7 +82,7 @@ full:
 {
   "type": "record",
   "name": "OrderPlaced",
-  "namespace": "capstone.order.v1",
+  "namespace": "datamesh.order.v1",
   "doc": "Emitted by order-service after an order is durably persisted.",
   "fields": [
     { "name": "event_type",  "type": "string" },
@@ -98,7 +98,7 @@ full:
 ```
 
 `name` + `namespace` together give every record a fully qualified identity
-(`capstone.order.v1.OrderPlaced`) that doubles as its Apicurio artifact
+(`datamesh.order.v1.OrderPlaced`) that doubles as its Apicurio artifact
 identity and its generated Java package, so the three stay in lockstep by
 construction. `amount` is a `string`, not Avro's `decimal` logical type: the schema's
 `doc` field calls this "a first-slice simplification" and names the decimal logical type
@@ -119,7 +119,7 @@ call in this project:
 ```protobuf
 syntax = "proto3";
 
-package capstone.inventory.v1;
+package datamesh.inventory.v1;
 
 service InventoryService {
   rpc CheckStock(CheckStockRequest) returns (CheckStockResponse);
@@ -137,7 +137,7 @@ message CheckStockResponse {
 ```
 
 The `contracts` module does **not** generate gRPC stubs itself — it packages
-[inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto) as a plain resource so it ships inside the jar.
+[inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/datamesh/inventory/v1/inventory.proto) as a plain resource so it ships inside the jar.
 Each consuming service (order-service
 as a client, inventory-service as a server) adds the `quarkus-grpc`
 extension and points `quarkus.generate-code.grpc.scan-for-proto` at this
@@ -221,7 +221,7 @@ would mean the serializer had silently regressed to plain JSON.
 Then it
 confirms Apicurio's own artifact count went up after the publish, and that a
 matching artifact exists under either the topic name or the record's fully
-qualified name `capstone.order.v1.OrderPlaced` — confirming from the
+qualified name `datamesh.order.v1.OrderPlaced` — confirming from the
 registry's side that a schema was registered for this run, not just that bytes
 arrived.
 

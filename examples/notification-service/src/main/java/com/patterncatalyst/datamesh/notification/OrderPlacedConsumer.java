@@ -3,13 +3,13 @@ package com.patterncatalyst.datamesh.notification;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.jboss.logging.Logger;
 
-import capstone.order.v1.OrderPlaced;
+import datamesh.order.v1.OrderPlaced;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 /**
  * Consumes Avro-encoded {@code OrderPlaced} events (contracts module,
- * package {@code capstone.order.v1}) from the {@code order.placed} Kafka
+ * package {@code datamesh.order.v1}) from the {@code order.placed} Kafka
  * topic via the {@code order-placed} Reactive Messaging channel (see
  * {@code application.properties}) and persists each one as a
  * {@link Notification} row.

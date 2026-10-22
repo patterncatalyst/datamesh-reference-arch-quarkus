@@ -29,7 +29,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import capstone.order.v1.OrderPlaced;
+import datamesh.order.v1.OrderPlaced;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
@@ -47,7 +47,7 @@ import io.apicurio.registry.serde.avro.AvroSerdeConfig;
  * <p>Unlike {@link OrderResourceTest} (a {@code @QuarkusTest} that relies on
  * Dev Services and the application's own Reactive Messaging wiring), this
  * test drives a raw {@link KafkaProducer}/{@link KafkaConsumer} pair
- * directly: it produces one real {@code capstone.order.v1.OrderPlaced}
+ * directly: it produces one real {@code datamesh.order.v1.OrderPlaced}
  * record through the same {@code io.apicurio.registry.serde.avro.AvroKafkaSerializer}
  * the application uses (see {@code application.properties}'s
  * {@code mp.messaging.outgoing.order-placed.value.serializer}), then reads

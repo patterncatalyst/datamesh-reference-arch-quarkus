@@ -6,10 +6,10 @@ shipping-service stub to a running Quarkus service.
 
 ## What it does
 
-`ShipmentProcessor` consumes `PaymentCaptured` (Avro, `capstone.payment.v1`)
+`ShipmentProcessor` consumes `PaymentCaptured` (Avro, `datamesh.payment.v1`)
 from the `payment.captured` Kafka topic, creates a shipment, persists a
 minimal local `Shipment` record, and produces `ShipmentDispatched` (Avro,
-`capstone.shipping.v1`) on the `shipment.dispatched` topic:
+`datamesh.shipping.v1`) on the `shipment.dispatched` topic:
 
 ```java
 @Incoming(Topics.PAYMENT_CAPTURED_CHANNEL)
@@ -34,8 +34,8 @@ generated `SpecificRecord` classes:
 
 | Direction | Channel | Topic | Avro record |
 |---|---|---|---|
-| `@Incoming` | `payment-captured` | `payment.captured` | `capstone.payment.v1.PaymentCaptured` |
-| `@Outgoing` | `shipment-dispatched` | `shipment.dispatched` | `capstone.shipping.v1.ShipmentDispatched` |
+| `@Incoming` | `payment-captured` | `payment.captured` | `datamesh.payment.v1.PaymentCaptured` |
+| `@Outgoing` | `shipment-dispatched` | `shipment.dispatched` | `datamesh.shipping.v1.ShipmentDispatched` |
 
 Channel/topic names come from `domain-model`'s `Topics` constants class —
 never hardcoded string literals in `ShipmentProcessor`.

@@ -58,8 +58,8 @@ than debugging it as an application bug.
 
 ## gRPC: `InventoryService/CheckStock`
 
-Contract: `capstone.inventory.v1.InventoryService` (see
-`../contracts/src/main/proto/capstone/inventory/v1/inventory.proto`).
+Contract: `datamesh.inventory.v1.InventoryService` (see
+`../contracts/src/main/proto/datamesh/inventory/v1/inventory.proto`).
 
 ```proto
 rpc CheckStock(CheckStockRequest) returns (CheckStockResponse);
@@ -83,7 +83,7 @@ coordinates:
 quarkus.generate-code.grpc.scan-for-proto=com.patterncatalyst.datamesh:contracts
 ```
 
-At build time Quarkus generates the Mutiny `capstone.inventory.v1.InventoryService`
+At build time Quarkus generates the Mutiny `datamesh.inventory.v1.InventoryService`
 interface (plus request/response message classes) under
 `target/generated-sources/grpc`. `InventoryGrpcService` (`@GrpcService`)
 implements that interface directly (Mutiny API): it looks up `Stock` by SKU

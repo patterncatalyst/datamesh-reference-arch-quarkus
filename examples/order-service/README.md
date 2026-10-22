@@ -31,7 +31,7 @@ checks with zero extra config).
 - **`InventoryClient`** -- wraps the `@GrpcClient("inventory")` call to
   inventory-service's `CheckStock` RPC. The `InventoryService` stub is
   generated at build time from the `.proto` packaged inside the `contracts`
-  dependency jar (`capstone/inventory/v1/inventory.proto`), not
+  dependency jar (`datamesh/inventory/v1/inventory.proto`), not
   regenerated or hand-written here -- see
   `quarkus.generate-code.grpc.scan-for-proto` below.
 - **`OrderEventProducer`** -- `@Channel("order-placed") Emitter<OrderPlaced>`
@@ -74,7 +74,7 @@ the expected serde (the build's
 `io.apicurio.registry.serde.avro`), which makes Quarkus's serializer
 autodetection (`kafka-schema-registry-avro.adoc`,
 "serialization-autodetection") unreliable. The unconfigured build logged
-"Generating Jackson serializer for type capstone.order.v1.OrderPlaced",
+"Generating Jackson serializer for type datamesh.order.v1.OrderPlaced",
 a silent fallback to JSON that breaks the Avro-only contract. Setting
 `value.serializer` explicitly avoids the fallback.
 
@@ -111,7 +111,7 @@ Testcontainers Kafka (`apache/kafka-native:4.3.1`) and Apicurio Registry
 (`quay.io/apicurio/apicurio-registry:3.3.3`), so it does not need
 `docker compose up`.
 
-- It produces a real `capstone.order.v1.OrderPlaced` with
+- It produces a real `datamesh.order.v1.OrderPlaced` with
   `AvroKafkaSerializer`, the serializer the application configures.
 - It reads the record back with a byte-level `KafkaConsumer<byte[], byte[]>`
   that has no Avro deserializer, and asserts `value[0] == 0x00` (the Avro
@@ -123,8 +123,8 @@ Avro 1.12's `ClassSecurityValidator` refuses to build a writer for any
 generated record class whose package is not trusted, unless a Quarkus
 application is running. Because this test bootstraps no Quarkus runtime, the
 failsafe execution in `pom.xml` sets
-`org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1`. Without it the
-test fails with `SecurityException: Forbidden capstone.order.v1.OrderPlaced!`.
+`org.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1`. Without it the
+test fails with `SecurityException: Forbidden datamesh.order.v1.OrderPlaced!`.
 The setting is scoped to this module's test JVM.
 
 The serializer is pinned explicitly (see above) because autodetection was

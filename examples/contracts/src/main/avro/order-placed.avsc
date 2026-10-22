@@ -1,7 +1,7 @@
 {
   "type": "record",
   "name": "OrderPlaced",
-  "namespace": "capstone.order.v1",
+  "namespace": "datamesh.order.v1",
   "doc": "Emitted by order-service after an order is durably persisted. The runtime contract for the order-placed Kafka topic (CAP-018, CAP-019).",
   "fields": [
     { "name": "event_type",  "type": "string", "doc": "Always 'order.placed'." },

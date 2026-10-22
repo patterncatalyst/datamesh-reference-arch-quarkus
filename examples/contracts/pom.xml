@@ -81,7 +81,7 @@
          published jar) at the same relative path, so a consuming Quarkus
          service can point quarkus.generate-code.grpc.scan-for-proto at this
          module's groupId:artifactId and have quarkus-grpc find
-         capstone/inventory/v1/inventory.proto inside the dependency jar.
+         datamesh/inventory/v1/inventory.proto inside the dependency jar.
          This module does NOT compile the .proto itself; see README.md. -->
     <resources>
       <resource>

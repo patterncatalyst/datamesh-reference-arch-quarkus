@@ -58,19 +58,19 @@
 # is fire-and-forget -- OrderEventProducer's failure path only logs, see
 # OrderResource.placeOrder's `.exceptionally(...)`), but every order.placed
 # publish throws, every time, confirmed via the process's own log:
-#   java.lang.SecurityException: Forbidden capstone.order.v1.OrderPlaced!
+#   java.lang.SecurityException: Forbidden datamesh.order.v1.OrderPlaced!
 #   This class is not trusted to be included in Avro schemas. You may
 #   either use the system properties org.apache.avro.SERIALIZABLE_CLASSES
 #   and org.apache.avro.SERIALIZABLE_PACKAGES ...
 # This is Avro 1.12.x's ClassSecurityValidator (a real security hardening
 # feature introduced upstream, not a Quarkus/Apicurio bug) -- it allow-lists
 # which packages/classes may be instantiated via reflection during Avro
-# (de)serialization, and nothing in this project trusts capstone.order.v1
+# (de)serialization, and nothing in this project trusts datamesh.order.v1
 # by default outside of a Quarkus-bootstrapped JVM (dev/test mode trusts it
 # implicitly; a plain `java -jar` does not). The exact same fix is already
 # documented for the OTHER place this bites
 # (OrderPlacedAvroWireIT's failsafe execution passes
-# org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 as a plain JUnit
+# org.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1 as a plain JUnit
 # system property for the identical reason). This demo applies the same
 # fix as a JVM system property on the launched order-service process --
 # no module source touched. Open upstream issue: the
@@ -103,7 +103,7 @@ POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 KAFKA_HOST_PORT="${KAFKA_HOST_PORT:-9092}"
 APICURIO_PORT="${APICURIO_PORT:-8081}"
 # Avro 1.12.x's ClassSecurityValidator -- see header comment below.
-AVRO_SERIALIZABLE_PACKAGES="capstone.order.v1"
+AVRO_SERIALIZABLE_PACKAGES="datamesh.order.v1"
 
 narrate "Panache + REST data product: POST /orders checks stock over gRPC,"
 narrate "persists the Order with Hibernate ORM Panache against the compose"

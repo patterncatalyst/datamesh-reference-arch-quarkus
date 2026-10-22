@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 import org.junit.jupiter.api.Test;
 
-import capstone.order.v1.OrderPlaced;
+import datamesh.order.v1.OrderPlaced;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;

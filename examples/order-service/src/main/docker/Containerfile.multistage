@@ -73,8 +73,8 @@ ENV JAVA_OPTS_APPEND="-Duser.timezone=UTC -Dquarkus.profile=prod"
 # not). The bare-java ENTRYPOINT below does NOT read JAVA_OPTS_APPEND (only the
 # UBI run-java launcher would), so this rides JAVA_TOOL_OPTIONS — honored by the
 # JVM itself. Value = exactly the Avro package(s) this service (de)serializes.
-# order-service produces OrderPlaced (capstone.order.v1).
-ENV JAVA_TOOL_OPTIONS="-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1"
+# order-service produces OrderPlaced (datamesh.order.v1).
+ENV JAVA_TOOL_OPTIONS="-Dorg.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1"
 
 # UBI OpenJDK runtime images already default to UID 185 (non-root); explicit
 # here for clarity and to guard against a base-image change silently

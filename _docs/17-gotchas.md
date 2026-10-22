@@ -93,7 +93,7 @@ fine — but nothing ever shows up on the `order.placed` topic, and
 you read logs, where you'd find:
 
 ```text
-SecurityException: Forbidden capstone.order.v1.OrderPlaced!
+SecurityException: Forbidden datamesh.order.v1.OrderPlaced!
 ```
 
 **Root cause.** Avro 1.12 added a `ClassSecurityValidator` that only trusts
@@ -107,7 +107,7 @@ why this defect was invisible at the HTTP layer: the order succeeds, the
 event silently never leaves the JVM. This affected the producer side.
 
 A second instance hit the consumer side: `notification-service` is the only
-service that deserializes `OrderPlaced` back into a `capstone.order.v1`
+service that deserializes `OrderPlaced` back into a `datamesh.order.v1`
 `SpecificRecord`, and its packaged JVM throws the identical
 `SecurityException` without the same property set on its own process.
 
@@ -120,12 +120,12 @@ launched:
 
 ```dockerfile
 # examples/order-service/src/main/docker/Containerfile.multistage
-ENV JAVA_TOOL_OPTIONS="-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1"
+ENV JAVA_TOOL_OPTIONS="-Dorg.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1"
 ```
 
 `payment-service`'s image trusts two packages
-(`capstone.order.v1,capstone.payment.v1`) and `shipping-service`'s trusts
-`capstone.payment.v1,capstone.shipping.v1` — each service lists exactly the
+(`datamesh.order.v1,datamesh.payment.v1`) and `shipping-service`'s trusts
+`datamesh.payment.v1,datamesh.shipping.v1` — each service lists exactly the
 Avro types it touches, not a blanket wildcard.
 [OrderPlacedAvroWireIT]({{ site.repo_blob }}/examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderPlacedAvroWireIT.java),
 the byte-level regression test for this, needs the identical system property on

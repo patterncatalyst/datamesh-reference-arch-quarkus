@@ -16,13 +16,13 @@ counterpart to `order-service`: it never receives a direct call from
 public PaymentCaptured process(OrderPlaced orderPlaced) { ... }
 ```
 
-- **Consumes** `OrderPlaced` (Avro, namespace `capstone.order.v1`) from the
+- **Consumes** `OrderPlaced` (Avro, namespace `datamesh.order.v1`) from the
   `order.placed` Kafka topic.
 - For every order, **captures a payment** with simple, deterministic logic: a
   freshly generated `pay-<uuid>` payment id, status always `CAPTURED`,
   amount/customer mirrored from the order. (Payment gateway integration and a
   decline/retry path are out of scope for this example.)
-- **Produces** `PaymentCaptured` (Avro, namespace `capstone.payment.v1`) to
+- **Produces** `PaymentCaptured` (Avro, namespace `datamesh.payment.v1`) to
   the `payment.captured` Kafka topic.
 - Records each capture in `PaymentStore`, a minimal in-memory
   (`ConcurrentHashMap`) bookkeeping structure, not a

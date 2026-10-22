@@ -20,7 +20,7 @@
     table (Panache) and serves the synchronous InventoryService/CheckStock
     gRPC call that order-service uses when placing an order, plus a small
     REST surface for seeding/inspecting stock during demos. gRPC server
-    stubs are generated at build time from the `capstone.inventory.v1`
+    stubs are generated at build time from the `datamesh.inventory.v1`
     proto packaged in the `contracts` dependency jar -- see
     quarkus.generate-code.grpc.scan-for-proto below and contracts/README.md.
   </description>

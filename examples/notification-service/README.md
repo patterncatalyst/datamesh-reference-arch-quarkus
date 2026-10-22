@@ -8,7 +8,7 @@ itself.
 ## What it does
 
 1. Consumes Avro-encoded `OrderPlaced` events (schema owned by the
-   `contracts` module, package `capstone.order.v1`) from the Kafka
+   `contracts` module, package `datamesh.order.v1`) from the Kafka
    `order.placed` topic via the `order-placed` Reactive Messaging channel.
 2. Validates/decodes each message against the Apicurio Schema Registry
    (Avro + Apicurio from the start, not JSON).

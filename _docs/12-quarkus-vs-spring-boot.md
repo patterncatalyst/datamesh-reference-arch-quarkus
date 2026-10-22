@@ -56,7 +56,7 @@ Despite living outside the Maven build, the twin is not a clean-room
 reimplementation. It reuses the project's framework-agnostic jars rather than
 copying anything: the shared `domain-model` DTOs (`OrderDto`, `OrderStatus`,
 `Topics`) and the `contracts` module's generated Avro
-`capstone.order.v1.OrderPlaced` are the *identical* classes both services
+`datamesh.order.v1.OrderPlaced` are the *identical* classes both services
 use. There is zero schema or DTO drift between the two.
 
 Concretely, that means `spring-boot-compare`'s [pom.xml]({{ site.repo_blob }}/examples/spring-boot-compare/pom.xml) declares
@@ -262,7 +262,7 @@ The script builds both services, then boots them one at a time —
 never concurrently, so neither competes with the other for CPU or memory —
 against one shared, throwaway `postgres:18` container, with both JVMs
 launched under the identical system properties
-(`-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1
+(`-Dorg.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1
 -Duser.timezone=UTC`) so neither gets an unfair head start from JIT-friendly
 flags the other lacks.
 

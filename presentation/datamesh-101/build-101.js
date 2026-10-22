@@ -142,7 +142,7 @@ diagramSlide({
 diagramSlide({
   eyebrow: "Where this lands",
   title: "The full project example: a data mesh on Kubernetes",
-  image: "02-capstone-data-mesh",
+  image: "02-final-project-data-mesh",
   caption: "Domain services, the service mesh, and the self-serve platform tier, running together on a local Kubernetes cluster.",
   notes: "This is the complete reference architecture: domain services and platform tier together, on a local single-node Kubernetes cluster that the repository's bootstrap script creates. Each piece covered in this talk is running code here: the domains owning their data, the shared platform underneath, and governance enforced at the mesh and registry boundaries. The 201 builds toward this shape in depth.",
 });

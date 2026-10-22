@@ -46,7 +46,7 @@
   <rect x="330" y="104" width="250" height="68" class="service-box"/>
   <text x="455" y="126" text-anchor="middle" class="service-label">gRPC  (inventory-service)</text>
   <text x="455" y="146" text-anchor="middle" class="artifact-sub">contract = Protobuf (.proto)</text>
-  <text x="455" y="162" text-anchor="middle" class="mono">capstone.inventory.v1</text>
+  <text x="455" y="162" text-anchor="middle" class="mono">datamesh.inventory.v1</text>
 
   <!-- GraphQL -->
   <rect x="600" y="104" width="250" height="68" class="service-box"/>

@@ -84,22 +84,22 @@ ai:
 services:
   order-service:
     db: true
-    avroPackages: capstone.order.v1
+    avroPackages: datamesh.order.v1
     resources: {requests: {cpu: 150m, memory: 320Mi}, limits: {cpu: 750m, memory: 640Mi}}
   inventory-service:
     db: true
     grpcPort: 9000
     resources: {requests: {cpu: 150m, memory: 320Mi}, limits: {cpu: 750m, memory: 640Mi}}
   payment-service:
-    avroPackages: capstone.order.v1,capstone.payment.v1
+    avroPackages: datamesh.order.v1,datamesh.payment.v1
     resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 512Mi}}
   shipping-service:
     db: true
-    avroPackages: capstone.payment.v1,capstone.shipping.v1
+    avroPackages: datamesh.payment.v1,datamesh.shipping.v1
     resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 512Mi}}
   notification-service:
     db: true
-    avroPackages: capstone.order.v1
+    avroPackages: datamesh.order.v1
     resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 512Mi}}
   review-service:
     db: true

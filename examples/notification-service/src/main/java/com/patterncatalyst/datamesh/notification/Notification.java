@@ -3,7 +3,7 @@ package com.patterncatalyst.datamesh.notification;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-import capstone.order.v1.OrderPlaced;
+import datamesh.order.v1.OrderPlaced;
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -159,7 +159,7 @@ diagramSlide({ eyebrow: "Quarkus capability tour", title: "gRPC typed contracts"
   demoRef: "demos/demo-grpc.sh",
   image: "05-api-implementations",
   caption: "REST at the edge, gRPC between services, GraphQL to compose, events to decouple: each protocol's Quarkus extension and contract type.",
-  notes: "DEMO 2 of 19. What it does: inventory-service answers capstone.inventory.v1.InventoryService/CheckStock over gRPC. The InventoryService base is generated at build time from the inventory.proto contract, not hand-written. @GrpcService registers the bean; @Blocking tells Vert.x the handler does blocking Panache work and must run on a worker thread, even though its signature is the reactive Uni<CheckStockResponse>. Why move: between domains a Protobuf contract gives you a typed, versioned interface with stubs generated on both sides, instead of a hand-maintained REST client and ad hoc JSON; calls run over HTTP/2 with binary framing, so high-volume inter-service reads cost less than REST. Mesh value: the .proto is the data product's machine-checkable interface contract. A consumer compiles against it and the build breaks if the producer drifts, which is federated governance enforced by the toolchain rather than a wiki page. What to show: call it with grpcurl against the .proto, a gRPC client over HTTP/2, so the protocol that ran is unambiguous. Infra: compose. Fallback: a recorded grpcurl JSON response showing available and quantityOnHand." });
+  notes: "DEMO 2 of 19. What it does: inventory-service answers datamesh.inventory.v1.InventoryService/CheckStock over gRPC. The InventoryService base is generated at build time from the inventory.proto contract, not hand-written. @GrpcService registers the bean; @Blocking tells Vert.x the handler does blocking Panache work and must run on a worker thread, even though its signature is the reactive Uni<CheckStockResponse>. Why move: between domains a Protobuf contract gives you a typed, versioned interface with stubs generated on both sides, instead of a hand-maintained REST client and ad hoc JSON; calls run over HTTP/2 with binary framing, so high-volume inter-service reads cost less than REST. Mesh value: the .proto is the data product's machine-checkable interface contract. A consumer compiles against it and the build breaks if the producer drifts, which is federated governance enforced by the toolchain rather than a wiki page. What to show: call it with grpcurl against the .proto, a gRPC client over HTTP/2, so the protocol that ran is unambiguous. Infra: compose. Fallback: a recorded grpcurl JSON response showing available and quantityOnHand." });
 
 contentSlide({ eyebrow: "Quarkus capability tour", title: "GraphQL: one query, two protocols",
   subtitle: "REST and gRPC resolved behind one endpoint",
@@ -286,10 +286,10 @@ diagramSlide({ eyebrow: "Data as a product", title: "Runtime vs. discovery contr
 
 codeSlide({ eyebrow: "Data as a product", title: "The runtime contract: a registered Avro schema",
   lang: "Avro · Apicurio Schema Registry",
-  note: "Illustrative of the contracts module's shape (capstone.order.v1.OrderPlaced). The producer pins AvroKafkaSerializer in application.properties.",
+  note: "Illustrative of the contracts module's shape (datamesh.order.v1.OrderPlaced). The producer pins AvroKafkaSerializer in application.properties.",
   code: code(`{
   "type": "record",
-  "namespace": "capstone.order.v1",
+  "namespace": "datamesh.order.v1",
   "name": "OrderPlaced",
   "fields": [
     { "name": "eventType",   "type": "string" },
@@ -302,10 +302,10 @@ codeSlide({ eyebrow: "Data as a product", title: "The runtime contract: a regist
 }
 # registry: schema registered at publish time via
 # apicurio-registry-avro; producer pins AvroKafkaSerializer explicitly`),
-  notes: "The contract is the lesson here. order-service's OrderEventProducer builds this record and calls emitter.send(...). The consumer side, notification-service's OrderPlacedConsumer, mirrors it: @Incoming('order-placed') on a @Transactional method, with no Kafka client code on either side. Details behind the pin: autodetection proved unreliable with two Avro serdes on the classpath, in both Quarkus and the Spring Boot twin. OrderPlacedAvroWireIT (Testcontainers Kafka and Apicurio) produces an OrderPlaced with AvroKafkaSerializer, consumes it with a byte-level KafkaConsumer, and asserts value[0] == 0x00 and value[0] != 0x7B. Avro 1.12's ClassSecurityValidator needs org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 on that test's failsafe execution; the order-service README records both." });
+  notes: "The contract is the lesson here. order-service's OrderEventProducer builds this record and calls emitter.send(...). The consumer side, notification-service's OrderPlacedConsumer, mirrors it: @Incoming('order-placed') on a @Transactional method, with no Kafka client code on either side. Details behind the pin: autodetection proved unreliable with two Avro serdes on the classpath, in both Quarkus and the Spring Boot twin. OrderPlacedAvroWireIT (Testcontainers Kafka and Apicurio) produces an OrderPlaced with AvroKafkaSerializer, consumes it with a byte-level KafkaConsumer, and asserts value[0] == 0x00 and value[0] != 0x7B. Avro 1.12's ClassSecurityValidator needs org.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1 on that test's failsafe execution; the order-service README records both." });
 
 diagramSlide({ eyebrow: "Data as a product", title: "The full contract picture",
-  image: "04-capstone-contracts",
+  image: "04-final-project-contracts",
   caption: "Every protocol's contract type feeds Apicurio Registry; a catalog downstream builds lineage from the registry and the running data stores.",
   notes: "Every protocol in the project has a contract: OpenAPI for REST, Protobuf for gRPC, SDL for GraphQL, and Avro for Kafka. All of them register in Apicurio. A mesh depends on consumers finding and trusting products without a central team. Without a usable registry and catalog they fall back to asking someone, and the bottleneck returns." });
 
@@ -920,9 +920,9 @@ twoUpDiagramSlide({ eyebrow: "Appendix · background diagrams", title: "The mono
   notes: "The monolith-to-mesh analogy (the refactor microservices applied to applications, applied to data) carries a lot of the 101 deck. The evolution timeline is the one-slide history of why each earlier architecture hit a wall. Both are assumed knowledge by the time the 201 starts." });
 
 diagramSlide({ eyebrow: "Appendix · background diagrams", title: "The full project example on Kubernetes",
-  image: "02-capstone-data-mesh",
+  image: "02-final-project-data-mesh",
   caption: "The complete data mesh reference architecture on Kubernetes: domain services, the service mesh, and the self-serve platform tier underneath.",
-  notes: "This illustration comes from the Python sibling repository's reference architecture. It is similar to, but not identical to, this project's own reference-architecture diagram shown earlier, so it sits here as background and is not presented as this deck's architecture. The image file keeps its original name, 02-capstone-data-mesh." });
+  notes: "This illustration comes from the Python sibling repository's reference architecture. It is similar to, but not identical to, this project's own reference-architecture diagram shown earlier, so it sits here as background and is not presented as this deck's architecture. The image file is 02-final-project-data-mesh." });
 
 diagramSlide({ eyebrow: "Appendix · background diagrams", title: "Operational vs. analytical data",
   image: "01-operational-vs-analytical",

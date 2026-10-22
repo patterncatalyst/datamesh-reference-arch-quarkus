@@ -5,7 +5,7 @@ import java.time.Instant;
 /**
  * Wire-level response shape for the review-service REST data product,
  * decoupled from the {@link Review} Panache entity (storage model) -- the
- * same separation the Python capstone keeps between its SQLAlchemy
+ * same separation the Python final project keeps between its SQLAlchemy
  * {@code Review} model and its {@code ReviewResponse} Pydantic schema.
  *
  * NOTE: not the {@code ReviewDto} in {@code domain-model} -- that shared

@@ -12,7 +12,7 @@ import java.net.http.HttpResponse;
 
 import org.junit.jupiter.api.Test;
 
-import capstone.inventory.v1.Inventory.CheckStockResponse;
+import datamesh.inventory.v1.Inventory.CheckStockResponse;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.quarkus.test.InjectMock;

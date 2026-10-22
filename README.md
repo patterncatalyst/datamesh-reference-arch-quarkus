@@ -55,7 +55,7 @@ with Docker Engine. The cluster publishes the platform NodePorts on `127.0.0.1`,
 so Grafana, Kiali and the other backends are at `http://localhost:<port>`;
 `./scripts/show-endpoints.sh` prints the table.
 
-![Data mesh reference architecture](assets/diagrams/02-capstone-data-mesh.svg)
+![Data mesh reference architecture](assets/diagrams/02-final-project-data-mesh.svg)
 
 ## Quickstart
 

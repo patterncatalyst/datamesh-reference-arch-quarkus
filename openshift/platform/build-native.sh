@@ -19,8 +19,8 @@ step "1/3 native-image sources on the host"
 # a static initializer, and Quarkus initialises it while native-image runs.
 # The allow-list therefore has to reach the image builder's JVM (-J-D); a -D
 # on the running binary comes too late and every send fails with
-# "SecurityException: Forbidden capstone...".
-AVRO_PACKAGES="capstone.order.v1"
+# "SecurityException: Forbidden datamesh...".
+AVRO_PACKAGES="datamesh.order.v1"
 ( cd "$REPO_ROOT/examples" && mvn -B -q -pl order-service -am package -DskipTests -Pnative \
     -Dquarkus.native.sources-only=true \
     -Dquarkus.native.additional-build-args="-J-Dorg.apache.avro.SERIALIZABLE_PACKAGES=$AVRO_PACKAGES" ) \
