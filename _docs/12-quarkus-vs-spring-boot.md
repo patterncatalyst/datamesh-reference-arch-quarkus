@@ -431,6 +431,3 @@ else you already know about both frameworks.
 - [JEP 483: Class-File API](https://openjdk.org/jeps/483) and the related Project Leyden AOT cache JEPs (514, 515) behind the `--aot` measurement above.
 - [Spring Boot reference documentation: Kafka](https://docs.spring.io/spring-boot/reference/messaging/kafka.html) for the auto-configured `ProducerFactory`/`KafkaTemplate` plumbing `KafkaConfig.java` works around.
 - [Spring Data JPA reference documentation](https://docs.spring.io/spring-data/jpa/reference/) for the derived-repository idiom contrasted with Panache above.
-
----
-*Verification status: <span class="status status--verified">verified</span>. Both services build and boot, the twin's `mvn verify` passed (OrderControllerTest 4/4), and `scripts/compare-quarkus-springboot.sh` was run on JDK 25.0.3 (Temurin) on 2026-10-05 in default JVM mode and with `--aot`: both exited 0, the default JVM table and the AOT table above come from that single run (Quarkus 2.05 s / 337 MB against Spring Boot 4.02 s / 548 MB on the plain JVM), and the `--aot` run used `-XX:AOTMode=on`. Each figure is a single run. Native image is outside this JVM-to-JVM comparison; chapter 11 records its own run (`demo-native.sh`, 2026-10-06).*

@@ -736,7 +736,3 @@ twin on startup and memory, with and without the AOT cache.
 - [Quarkus: WebSockets Next guide](https://quarkus.io/guides/websockets-next): the `OpenConnections` registry and execution-model rules behind the push path in `notification-service`.
 - [Quarkus: Writing native applications guide](https://quarkus.io/guides/building-native-image): the closed-world build model behind `demo-native.sh`.
 - [OpenJDK: Project Panama / Foreign Function & Memory API](https://openjdk.org/jeps/454): the JEP behind the `PanamaFfm.java` example.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. `demo-reactive-vertx.sh` (concurrent reactive and imperative calls), `demo-continuous-testing.sh` (6/6), `demo-jbang-prototype.sh`, `demo-oidc.sh` (live Keycloak Dev Service), `demo-panama.sh` (JDK 25.0.3, JBang 0.138.0: `getpid` and `strlen` results match the JVM's own), and the gRPC, GraphQL, and REST demos passed. The AOT cache numbers are measured in chapter 12 from a single run. `demo-native.sh` passed on 2026-10-06 with the Mandrel builder container (136 s build, 141 MB binary, 0.081 s startup, `GET /orders` served with no JVM); that is also a single run. Figures 11.2 through 11.10 are explanatory diagrams; the illustrative `PanacheRepository` example is not run code.*

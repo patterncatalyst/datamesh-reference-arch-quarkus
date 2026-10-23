@@ -245,12 +245,3 @@ rather than a mesh.
   streaming trade-offs this chapter only sketches.
 - [*Cloud Native Anti-Patterns*](https://www.packtpub.com/en-us/product/cloud-native-anti-patterns-9781836200581) by Gerald Bachlmayr et al.: how pipeline sprawl and the
   data-swamp failure mode show up in real systems.
-
----
-
-*Status: <span class="status status--conceptual">conceptual</span>. This
-chapter is stack-agnostic conceptual framing with no code or commands to run; the
-main item to confirm is that the terminology here (pipeline sprawl, schema-on-write
-vs. schema-on-read, data swamp) stays consistent with how later, hands-on chapters use the
-same terms once they're written.*
-</content>

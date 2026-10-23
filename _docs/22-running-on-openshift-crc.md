@@ -736,20 +736,3 @@ notification-service to zero.
 - [Strimzi documentation](https://strimzi.io/docs/operators/latest/overview):
   the Kafka custom resources AMQ Streams implements, including the
   `v1beta2`-to-`v1` API move this appendix's Kafka CR makes.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. On 2026-10-09 both cycles above ran on OpenShift Local 2.64.0 (OpenShift 4.22.14, Kubernetes 1.35.6), with Quarkus 3.39.5, `rhel10/postgresql-16`, Apicurio 3.2.4, otel-lgtm 0.8.1 and Ollama 0.35.1. Later that day the pins moved to Quarkus 3.40.1, `rhel10/postgresql-18`, Apicurio 3.3.3, otel-lgtm 0.36.0 and Ollama 0.40.2; those are not yet re-verified on CRC, and the operator CSV pins are re-checked at the next run.*
-
-*The core run used AMQ Streams `amqstreams.v3.2.1-14`, Kafka 4.2.0 and seven in-cluster builds on `ubi10/openjdk-25:1.24-15`. All pods were Ready under `restricted-v2` with zero restarts, the gateway Route was healthy, GraphQL stitched order and stock, the order went through payment and shipping for one order ID, and Apicurio held three artifacts.*
-
-*The platform run, on the same core, recorded:*
-
-- *the mesh rejecting plaintext under STRICT mTLS, a 91/9 canary split for 90/10, and Kiali reporting the namespace `MTLS_ENABLED` with 10 workloads in its graph;*
-- *notification-service scaling 0 to 1 to 0;*
-- *one trace across the gateway and inventory-service (the native order-service carries no agent);*
-- *classify, triage and MCP matching the compose demos;*
-- *the native order-service starting in 0.077 s at 29 MiB against 8.0 s and 200 MiB for the JVM pod;*
-- *Argo CD Synced, restoring a deleted ConfigMap in 2 s.*
-
-*The secret scrub passed, evidence is in `openshift/evidence/2026-10-09/`, and teardown removed every operator, CRD and namespace, then stopped CRC. Single run of each. Not covered: OpenShift's own monitoring stack, and Tekton pipelines.*

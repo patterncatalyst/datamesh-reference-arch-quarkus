@@ -333,7 +333,3 @@ to orchestrate the same decision across these same services.
 - [*Kubernetes Patterns*](https://www.oreilly.com/library/view/-/9781098131678/) by Bilgin Ibryam & Roland Huß: the declarative, operator-driven pattern every Implementation pieces section in this chapter relies on.
 - [*Platform Engineering on Kubernetes*](https://www.manning.com/books/platform-engineering-on-kubernetes) by Mauricio Salatino: a deeper treatment of the self-serve platform principle and the admission-policy layer named as a gap above.
 - [*GitOps and Kubernetes*](https://www.manning.com/books/gitops-and-kubernetes) by Billy Yuen et al.: declarative delivery as the mechanism that makes "consume by declaration" concrete.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. The architectural claims (module/database boundaries, Apicurio as the registry, the KEDA ScaledObject/HTTPScaledObject targets, Istio injection being opt-in, the absence of an admission policy) are confirmed by the passing build and the committed `k8s/` manifests. The runtime behaviors they summarize are exercised in the progressive-delivery and elasticity chapters, which still require a live cluster.*

@@ -567,8 +567,3 @@ warning: contracts and the catalog.
   the active-record style `Order` and `Stock` use.
 - [Quarkus gRPC guide](https://quarkus.io/guides/grpc): `@GrpcClient`/`@GrpcService`
   and the Mutiny-generated stubs `InventoryClient` relies on.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. `mvn verify` is green (`OrderResourceTest`, `InventoryGrpcServiceTest`, `OrderPlacedAvroWireIT`, `InventoryCheckStockWireIT`), and `demo-order.sh` and `demo-grpc.sh` passed end to end against a freshly started compose stack.*
-</content>

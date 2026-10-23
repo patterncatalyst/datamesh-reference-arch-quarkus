@@ -238,7 +238,3 @@ the pieces in this repo that implement it.
 - [*Cloud Native Anti-Patterns*](https://www.packtpub.com/en-us/product/cloud-native-anti-patterns-9781836200581) by Gerald Bachlmayr et al.: the broader catalog of organizational and technical anti-patterns this chapter's data-mesh-specific list draws the same lesson from.
 - [*Learning Domain-Driven Design*](https://www.oreilly.com/library/view/learning-domain-driven-design/9781098100124/) by Vlad Khononov: bounded contexts as the remedy for the fuzzy domain boundaries and ownership vacuums this chapter describes.
 - [*Implementing Domain-Driven Design*](https://www.informit.com/store/implementing-domain-driven-design-9780133039894) by Vaughn Vernon: a deeper treatment of context boundaries and ownership for teams applying the fix directly.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. The "in this build" factual callouts (seven domain-service modules, the shared `datamesh` namespace, Avro-via-Apicurio from day one) are confirmed by the passing multi-module Maven build and the committed manifests.*

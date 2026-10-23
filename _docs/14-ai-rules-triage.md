@@ -358,7 +358,3 @@ This closes the Quarkus deep dive. The comparison against Spring Boot
 - [Drools documentation](https://docs.drools.org/) for the `KieBase`/`KieSession` lifecycle and the DRL rule syntax behind `order-triage.drl`.
 - [Model Context Protocol specification](https://modelcontextprotocol.io/) for the Streamable HTTP transport the embedded MCP server speaks.
 - [Apache Camel AI component documentation](https://camel.apache.org/components/latest/) for `ai-tool:`, `langchain4j-agent:`, and `langchain4j-chat:` endpoint semantics.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. Run against the compose stack with the Ollama profile and a live `qwen2.5:3b`: `demo-ai-classify.sh`, `demo-ai-mcp.sh`, `demo-camel-integration.sh`, and `demo-ai-triage.sh` all passed. The triage showcase returned the exact expected decisions (ROUTE_TO_WAREHOUSE / EXPEDITE / FRAUD_HOLD) for all three inputs on both the Camel `/api/orders/triage` and the Quarkus Flow `/api/orders/triage-flow` endpoints the LLM classifies, Drools decides. The in-process tool-calling defect remains documented as before; the MCP-server path is the one exercised. Re-run on 2026-10-06 through `demos/walkthrough.sh --with-ollama`: all four demos passed again. `demo-ai-triage.sh` now uses a host Ollama when one answers on port 11434 and otherwise starts the compose `ollama` profile itself; this run used the compose profile.*
