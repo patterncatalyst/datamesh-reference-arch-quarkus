@@ -298,16 +298,3 @@ ones.
 - [Model Context Protocol](https://modelcontextprotocol.io/): the protocol
   both `camel-mcp` and `quarkus-agent` implement to expose live catalog and
   docs tools to an agent.
-
----
-
-*Status: <span class="status status--conceptual">conceptual</span>.
-This chapter is a distillation of recommendations rather than a runnable
-example, so there is no build or demo to execute against it. The claims
-to re-check independently: that the known upstream defect in
-`camel-quarkus-support-langchain4j`'s HTTP client override (breaking
-in-process agent tool-calling) still reproduces against this repo's pinned
-langchain4j/Camel versions, since an upstream fix would make that example
-stale; and that the cited defect catalog and pull request references still match
-the repository history, since this chapter was written from that record
-rather than by re-deriving its claims.*

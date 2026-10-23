@@ -227,13 +227,3 @@ Kubernetes primitives.
   bounded-context thinking behind "each domain owns its data as a product."
 - [*Cloud Native Anti-Patterns*](https://www.packtpub.com/en-us/product/cloud-native-anti-patterns-9781836200581) by Gerald Bachlmayr et al.: companion reading for how
   "mistaking the tooling for the transformation" plays out in practice.
-
----
-
-*Status: <span class="status status--conceptual">conceptual</span>. This chapter is
-conceptual framing with no code or commands to run. The
-mapping of each principle to a specific piece of this build (Apicurio for the registry,
-Istio for mTLS, KEDA for autoscaling) describes the intended architecture; confirm each
-claim against the chapter that implements it (04, 06, 07), since
-this chapter asserts them ahead of the hands-on chapters that prove them out.*
-</content>

@@ -304,7 +304,3 @@ where it doesn't.
 - [Apache Camel: Enterprise Integration Patterns](https://camel.apache.org/components/latest/eips/enterprise-integration-patterns.html) for the EIP vocabulary behind the Camel orchestration leg.
 - [CNCF Serverless Workflow specification](https://github.com/serverlessworkflow/specification) for the declarative workflow-document model `quarkus-flow` implements.
 - [Apache Kafka documentation: consumer groups](https://kafka.apache.org/documentation/#intro_consumers) for the choreography leg's decentralized subscribe/publish mechanics.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. The Flow, Drools, and route unit tests pass under `mvn verify`, and `demo-orchestration-styles.sh` ran end to end against the compose stack with the Ollama profile and a live `qwen2.5:3b`. All three coordination styles (Kafka choreography, the Camel route, and the Quarkus Flow workflow) ran over the same order-to-shipment domain and passed. Re-run on 2026-10-06 (walkthrough act 2): passed after the demo was changed to pull `qwen2.5:3b` into the compose volume when it is missing, as the act 3 demos already did.*

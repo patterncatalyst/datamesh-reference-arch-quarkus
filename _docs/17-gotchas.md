@@ -430,7 +430,3 @@ environment.
 - [Apache Avro specification](https://avro.apache.org/docs/) for the wire-format magic byte and `SpecificRecord` serialization this chapter's Avro gotchas depend on.
 - [RESTEasy Reactive guide](https://quarkus.io/guides/resteasy-reactive) for the `@Consumes` media-type matching behind the bodyless-GET 415.
 - [PostgreSQL documentation: Date/Time types](https://www.postgresql.org/docs/current/datatype-datetime.html) for the timezone-name validation `postgres:18` tightened.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. The committed fixes are re-run green by `mvn verify`: `OrderPlacedAvroWireIT` covers the Avro serde / SERIALIZABLE_PACKAGES fixes, `InventoryCheckStockWireIT` covers the gRPC-port, import.sql self-seed, and integration-test timezone fixes, and `OrderResourceTest` covers the `@Consumes` fix.*

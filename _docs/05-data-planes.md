@@ -405,7 +405,3 @@ between them: "data as a product" in running Quarkus code.
   the `@Query`/`@Source` resolver pattern `GatewayApi` uses.
 - [Content-Based Router](https://www.enterpriseintegrationpatterns.com/patterns/messaging/ContentBasedRouter.html):
   the original enterprise integration pattern behind `OrderLookupToolRoute`.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. `demo-graphql.sh` and `demo-grpc.sh` passed, and `OrderPlacedConsumerTest` confirms `@Transactional` alone makes the consumer blocking. One item remains unrun: the Camel YAML DSL route variant (only the Java DSL path has been exercised, via the Camel demo).*

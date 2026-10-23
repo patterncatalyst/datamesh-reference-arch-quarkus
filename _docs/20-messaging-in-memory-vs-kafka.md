@@ -434,7 +434,3 @@ mp.messaging.outgoing.shipment-dispatched.apicurio.registry.auto-register=true
 - [SmallRye Reactive Messaging](https://smallrye.io/smallrye-reactive-messaging/):
   the in-memory connector and the `InMemoryConnector` test API
   `ShipmentProcessorTest` uses.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. `ShipmentProcessorTest` passes against the in-memory connector under `mvn verify`, with the sink-clearing `@BeforeEach` preventing cross-test bleed. The new Vert.x event-bus material (`@ConsumeEvent`, send/publish/request-reply) and the Kafka scaling description (partition-count limit, KEDA on lag) are <span class="status status--conceptual">conceptual</span> or illustrative and were not run here.*

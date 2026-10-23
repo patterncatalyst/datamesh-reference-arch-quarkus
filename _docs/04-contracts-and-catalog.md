@@ -323,7 +323,3 @@ read layer and the asynchronous event backbone.
 - [*Cloud Native Anti-Patterns*](https://www.packtpub.com/en-us/product/cloud-native-anti-patterns-9781836200581) by Gerald Bachlmayr et al.: the risks of
   treating a schema as documentation instead of an enforced contract, a
   trap this chapter calls out directly.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. `demo-kafka.sh`'s raw-byte magic-byte assertion passed and `OrderPlacedAvroWireIT` is green. One item remains unexercised: a backward-incompatible Avro schema change being rejected by Apicurio at publish time is still not covered by any demo.*

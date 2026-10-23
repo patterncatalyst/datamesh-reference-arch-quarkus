@@ -253,8 +253,3 @@ Start with [data architectures]({{ '/docs/01-data-architectures/' | relative_url
   and operating chapters stand on.
 - [Quarkus guides](https://quarkus.io/guides/): the authoritative reference for every
   Quarkus capability Part 4 tours.
-
----
-
-*Verification status: <span class="status status--verified">verified</span>. The site builds with `bundle exec jekyll build` (0 errors), and every chapter link in this index resolves to a rendered page.*
-</content>
