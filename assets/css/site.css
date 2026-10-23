@@ -284,7 +284,7 @@ pre code {
 @media (max-width: 720px) {
   .site-header__inner { height: 3.5rem; gap: var(--space-3); }
   .site-nav { gap: var(--space-3); font-size: .875rem; }
-  .site-nav a:nth-child(n+5) { display: none; }
+  .site-nav a:nth-child(n+6) { display: none; }
 }
 
 /* ---- 6. Hero ----------------------------------------------- */

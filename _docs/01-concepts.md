@@ -218,14 +218,14 @@ Kubernetes primitives.
 
 ## For deeper coverage
 
-- *Data Mesh* by Zhamak Dehghani: the original formalization of the four principles
+- [*Data Mesh*](https://www.oreilly.com/library/view/data-mesh/9781492092384/) by Zhamak Dehghani: the original formalization of the four principles
   this chapter summarizes.
-- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann & Chris Riccomini:
+- [*Designing Data-Intensive Applications, 2nd ed.*](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/) by Martin Kleppmann & Chris Riccomini:
   the operational-versus-analytical data distinction this chapter builds on, treated in
   full depth.
-- *Learning Domain-Driven Design* by Vlad Khononov: the domain-ownership and
+- [*Learning Domain-Driven Design*](https://www.oreilly.com/library/view/learning-domain-driven-design/9781098100124/) by Vlad Khononov: the domain-ownership and
   bounded-context thinking behind "each domain owns its data as a product."
-- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al.: companion reading for how
+- [*Cloud Native Anti-Patterns*](https://www.packtpub.com/en-us/product/cloud-native-anti-patterns-9781836200581) by Gerald Bachlmayr et al.: companion reading for how
   "mistaking the tooling for the transformation" plays out in practice.
 
 ---

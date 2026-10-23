@@ -234,10 +234,10 @@ the pieces in this repo that implement it.
 
 ## For deeper coverage
 
-- *Data Mesh* by Zhamak Dehghani: the primary source for the four principles and the failure modes this chapter names when they're only partially adopted.
-- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al.: the broader catalog of organizational and technical anti-patterns this chapter's data-mesh-specific list draws the same lesson from.
-- *Learning Domain-Driven Design* by Vlad Khononov: bounded contexts as the remedy for the fuzzy domain boundaries and ownership vacuums this chapter describes.
-- *Implementing Domain-Driven Design* by Vaughn Vernon: a deeper treatment of context boundaries and ownership for teams applying the fix directly.
+- [*Data Mesh*](https://www.oreilly.com/library/view/data-mesh/9781492092384/) by Zhamak Dehghani: the primary source for the four principles and the failure modes this chapter names when they're only partially adopted.
+- [*Cloud Native Anti-Patterns*](https://www.packtpub.com/en-us/product/cloud-native-anti-patterns-9781836200581) by Gerald Bachlmayr et al.: the broader catalog of organizational and technical anti-patterns this chapter's data-mesh-specific list draws the same lesson from.
+- [*Learning Domain-Driven Design*](https://www.oreilly.com/library/view/learning-domain-driven-design/9781098100124/) by Vlad Khononov: bounded contexts as the remedy for the fuzzy domain boundaries and ownership vacuums this chapter describes.
+- [*Implementing Domain-Driven Design*](https://www.informit.com/store/implementing-domain-driven-design-9780133039894) by Vaughn Vernon: a deeper treatment of context boundaries and ownership for teams applying the fix directly.
 
 ---
 

@@ -237,13 +237,13 @@ rather than a mesh.
 
 ## For deeper coverage
 
-- *Data Mesh* by Zhamak Dehghani: the full argument for why data mesh is an
+- [*Data Mesh*](https://www.oreilly.com/library/view/data-mesh/9781492092384/) by Zhamak Dehghani: the full argument for why data mesh is an
   organizational shift, not the next storage technology in the sequence this chapter
   traces.
-- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann & Chris Riccomini:
+- [*Designing Data-Intensive Applications, 2nd ed.*](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/) by Martin Kleppmann & Chris Riccomini:
   the deeper technical treatment of ETL/ELT pipelines, warehouses, and the batch-versus-
   streaming trade-offs this chapter only sketches.
-- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al.: how pipeline sprawl and the
+- [*Cloud Native Anti-Patterns*](https://www.packtpub.com/en-us/product/cloud-native-anti-patterns-9781836200581) by Gerald Bachlmayr et al.: how pipeline sprawl and the
   data-swamp failure mode show up in real systems.
 
 ---

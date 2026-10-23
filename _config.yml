@@ -6,7 +6,7 @@
 
 # Site identity
 title: "Data Mesh Reference Architecture · Quarkus"
-description: "A working data-mesh reference implementation in Quarkus — services across REST, gRPC, GraphQL, and Kafka, backed by Camel-on-Quarkus routes and langchain4j/MCP tooling, with contracts, a catalog, progressive delivery, autoscaling, and full observability. Includes a runnable Spring Boot twin service for a side-by-side comparison."
+description: "A working data-mesh reference implementation in Quarkus: services across REST, gRPC, GraphQL, and Kafka, backed by Camel-on-Quarkus routes and langchain4j/MCP tooling, with contracts, a catalog, progressive delivery, autoscaling, and full observability. Includes a runnable Spring Boot twin service for a side-by-side comparison."
 brand_emoji: "⚛️"   # Single emoji that appears next to the title in the header
 
 # GitHub identity for header link and example sourcing

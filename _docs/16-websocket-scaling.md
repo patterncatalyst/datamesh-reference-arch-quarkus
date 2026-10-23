@@ -394,8 +394,8 @@ scaled, socket-holding variant of this service.
 
 ## For deeper coverage
 
-- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann & Chris Riccomini: consumer-group partitioning and fan-out tradeoffs behind the two-group pattern this chapter implements.
-- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß: scaling and resource-consumption patterns relevant to a socket-holding, KEDA-scaled replica.
+- [*Designing Data-Intensive Applications, 2nd ed.*](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/) by Martin Kleppmann & Chris Riccomini: consumer-group partitioning and fan-out tradeoffs behind the two-group pattern this chapter implements.
+- [*Kubernetes Patterns*](https://www.oreilly.com/library/view/-/9781098131678/) by Bilgin Ibryam & Roland Huß: scaling and resource-consumption patterns relevant to a socket-holding, KEDA-scaled replica.
 - [Quarkus WebSockets Next guide](https://quarkus.io/guides/websockets-next-reference) for `OpenConnections` and the per-JVM connection registry this pattern builds on.
 - [KEDA ScaledObject specification](https://keda.sh/docs/latest/concepts/scaling-deployments/) for the multiple-trigger mechanism that could add an open-connection input.
 - [Apache Kafka documentation: consumer groups](https://kafka.apache.org/documentation/#intro_consumers) for the partition-assignment behavior that makes a group-of-one a broadcast receiver.

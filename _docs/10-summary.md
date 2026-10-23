@@ -328,11 +328,11 @@ to orchestrate the same decision across these same services.
 
 ## For deeper coverage
 
-- *Data Mesh* by Zhamak Dehghani: the four principles this chapter organizes its summary around.
-- *Cloud Native Patterns* by Cornelia Davis: the platform-capability framing behind self-serve infrastructure and governance-by-platform.
-- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß: the declarative, operator-driven pattern every Implementation pieces section in this chapter relies on.
-- *Platform Engineering on Kubernetes* by Mauricio Salatino: a deeper treatment of the self-serve platform principle and the admission-policy layer named as a gap above.
-- *GitOps and Kubernetes* by Billy Yuen et al.: declarative delivery as the mechanism that makes "consume by declaration" concrete.
+- [*Data Mesh*](https://www.oreilly.com/library/view/data-mesh/9781492092384/) by Zhamak Dehghani: the four principles this chapter organizes its summary around.
+- [*Cloud Native Patterns*](https://www.manning.com/books/cloud-native-patterns) by Cornelia Davis: the platform-capability framing behind self-serve infrastructure and governance-by-platform.
+- [*Kubernetes Patterns*](https://www.oreilly.com/library/view/-/9781098131678/) by Bilgin Ibryam & Roland Huß: the declarative, operator-driven pattern every Implementation pieces section in this chapter relies on.
+- [*Platform Engineering on Kubernetes*](https://www.manning.com/books/platform-engineering-on-kubernetes) by Mauricio Salatino: a deeper treatment of the self-serve platform principle and the admission-policy layer named as a gap above.
+- [*GitOps and Kubernetes*](https://www.manning.com/books/gitops-and-kubernetes) by Billy Yuen et al.: declarative delivery as the mechanism that makes "consume by declaration" concrete.
 
 ---
 

@@ -389,9 +389,9 @@ central artifact to extend.
 
 ## For deeper coverage
 
-- *Cloud Native Patterns* by Cornelia Davis: the choreography-versus-orchestration
+- [*Cloud Native Patterns*](https://www.manning.com/books/cloud-native-patterns) by Cornelia Davis: the choreography-versus-orchestration
   coupling trade-off this appendix measures concretely against one domain.
-- *Data Mesh* by Zhamak Dehghani: domain-owned reaction (choreography) as
+- [*Data Mesh*](https://www.oreilly.com/library/view/data-mesh/9781492092384/) by Zhamak Dehghani: domain-owned reaction (choreography) as
   a precondition for independently owned data products, the reason this
   project defaults to it for cross-service events.
 - [Apache Camel user manual](https://camel.apache.org/manual/): the EIPs

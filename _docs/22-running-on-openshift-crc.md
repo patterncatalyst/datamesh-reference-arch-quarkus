@@ -45,8 +45,7 @@ counterpart to the minikube path rather than a replacement for it.
 
 Everything lives under [`openshift/`](https://github.com/patterncatalyst/datamesh-reference-arch-quarkus/tree/main/openshift):
 the core scripts, `openshift/platform/` for the platform tier, and one Helm
-chart. The decisions behind them are DRQ-018 to DRQ-028 in
-`_plans/decisions.md`.
+chart.
 
 ![The datamesh project on OpenShift Local: seven services, Kafka, Postgres and Apicurio under restricted-v2, with two edge-TLS Routes]({{ '/assets/diagrams/22-crc-openshift-topology.svg' | relative_url }})
 
@@ -356,7 +355,7 @@ startup fails:
 ```
 
 The chart sets `QUARKUS_OIDC_TENANT_ENABLED=false`. The service starts,
-`DELETE /reviews/{id}` answers 401, and every other endpoint works (DRQ-022).
+`DELETE /reviews/{id}` answers 401, and every other endpoint works.
 
 ## Running it
 
@@ -720,10 +719,10 @@ notification-service to zero.
 
 ## For deeper coverage
 
-- *GitOps and Kubernetes* by Billy Yuen et al.: the reconciliation model
+- [*GitOps and Kubernetes*](https://www.manning.com/books/gitops-and-kubernetes) by Billy Yuen et al.: the reconciliation model
   behind the GitOps section, including why a sync has to be told to ignore
   a Helm-generated secret field.
-- *Platform Engineering on Kubernetes* by Mauricio Salatino: the
+- [*Platform Engineering on Kubernetes*](https://www.manning.com/books/platform-engineering-on-kubernetes) by Mauricio Salatino: the
   pinned-operator, opt-in-tier pattern this appendix's platform scripts
   follow one step at a time.
 - [crc.dev](https://crc.dev/): OpenShift Local sizing, setup, and the
@@ -740,7 +739,7 @@ notification-service to zero.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. On 2026-10-09 both cycles above ran on OpenShift Local 2.64.0 (OpenShift 4.22.14, Kubernetes 1.35.6), with Quarkus 3.39.5, `rhel10/postgresql-16`, Apicurio 3.2.4, otel-lgtm 0.8.1 and Ollama 0.35.1. Later that day the pins moved to Quarkus 3.40.1, `rhel10/postgresql-18`, Apicurio 3.3.3, otel-lgtm 0.36.0 and Ollama 0.40.2 (DRQ-029); those are not yet re-verified on CRC, and the operator CSV pins are re-checked at the next run.*
+*Verification status: <span class="status status--verified">verified</span>. On 2026-10-09 both cycles above ran on OpenShift Local 2.64.0 (OpenShift 4.22.14, Kubernetes 1.35.6), with Quarkus 3.39.5, `rhel10/postgresql-16`, Apicurio 3.2.4, otel-lgtm 0.8.1 and Ollama 0.35.1. Later that day the pins moved to Quarkus 3.40.1, `rhel10/postgresql-18`, Apicurio 3.3.3, otel-lgtm 0.36.0 and Ollama 0.40.2; those are not yet re-verified on CRC, and the operator CSV pins are re-checked at the next run.*
 
 *The core run used AMQ Streams `amqstreams.v3.2.1-14`, Kafka 4.2.0 and seven in-cluster builds on `ubi10/openjdk-25:1.24-15`. All pods were Ready under `restricted-v2` with zero restarts, the gateway Route was healthy, GraphQL stitched order and stock, the order went through payment and shipping for one order ID, and Apicurio held three artifacts.*
 
