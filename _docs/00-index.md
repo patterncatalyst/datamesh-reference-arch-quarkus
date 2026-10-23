@@ -245,11 +245,11 @@ Start with [data architectures]({{ '/docs/01-data-architectures/' | relative_url
 
 ## For deeper coverage
 
-- *Data Mesh* by Zhamak Dehghani: the full treatment behind the four principles this
+- [*Data Mesh*](https://www.oreilly.com/library/view/data-mesh/9781492092384/) by Zhamak Dehghani: the full treatment behind the four principles this
   tutorial builds against.
-- *Cloud Native Patterns* by Cornelia Davis: the platform-and-application patterns Part
+- [*Cloud Native Patterns*](https://www.manning.com/books/cloud-native-patterns) by Cornelia Davis: the platform-and-application patterns Part
   1 and Part 2 implement on Kubernetes.
-- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß: the primitives Part 2's substrate
+- [*Kubernetes Patterns*](https://www.oreilly.com/library/view/-/9781098131678/) by Bilgin Ibryam & Roland Huß: the primitives Part 2's substrate
   and operating chapters stand on.
 - [Quarkus guides](https://quarkus.io/guides/): the authoritative reference for every
   Quarkus capability Part 4 tours.

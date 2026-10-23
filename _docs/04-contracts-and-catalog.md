@@ -311,16 +311,16 @@ read layer and the asynchronous event backbone.
 
 ## For deeper coverage
 
-- *Data Mesh* by Zhamak Dehghani: federated computational governance and
+- [*Data Mesh*](https://www.oreilly.com/library/view/data-mesh/9781492092384/) by Zhamak Dehghani: federated computational governance and
   discoverability as mesh requirements.
-- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann &
+- [*Designing Data-Intensive Applications, 2nd ed.*](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/) by Martin Kleppmann &
   Chris Riccomini: schema evolution and the compatibility guarantees a
   registry enforces.
 - Apicurio Registry documentation: artifact rules, compatibility levels,
   and the Avro serde this chapter's wire-format check exercises.
 - [Protocol Buffers Language Guide (proto3)](https://protobuf.dev/programming-guides/proto3/):
   the `.proto` syntax `inventory.proto` uses.
-- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al.: the risks of
+- [*Cloud Native Anti-Patterns*](https://www.packtpub.com/en-us/product/cloud-native-anti-patterns-9781836200581) by Gerald Bachlmayr et al.: the risks of
   treating a schema as documentation instead of an enforced contract, a
   trap this chapter calls out directly.
 

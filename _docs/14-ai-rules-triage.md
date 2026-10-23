@@ -353,7 +353,7 @@ This closes the Quarkus deep dive. The comparison against Spring Boot
 
 ## For deeper coverage
 
-- *Learning Domain-Driven Design* by Vlad Khononov: keeping a model's authoritative decision logic (here, Drools) separate from an inherently fuzzy classification step.
+- [*Learning Domain-Driven Design*](https://www.oreilly.com/library/view/learning-domain-driven-design/9781098100124/) by Vlad Khononov: keeping a model's authoritative decision logic (here, Drools) separate from an inherently fuzzy classification step.
 - [Quarkus LangChain4j extension guide](https://docs.quarkiverse.io/quarkus-langchain4j/dev/index.html) for the `ChatModel` injection and response-format wiring `ChatModelProducer` uses.
 - [Drools documentation](https://docs.drools.org/) for the `KieBase`/`KieSession` lifecycle and the DRL rule syntax behind `order-triage.drl`.
 - [Model Context Protocol specification](https://modelcontextprotocol.io/) for the Streamable HTTP transport the embedded MCP server speaks.

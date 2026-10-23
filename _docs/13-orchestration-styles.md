@@ -299,8 +299,8 @@ where it doesn't.
 
 ## For deeper coverage
 
-- *Cloud Native Patterns* by Cornelia Davis: the choreography-versus-orchestration tradeoff as a cloud-native integration pattern.
-- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß: event-driven and coordination patterns that generalize past this chapter's Kafka/Camel/Flow trio.
+- [*Cloud Native Patterns*](https://www.manning.com/books/cloud-native-patterns) by Cornelia Davis: the choreography-versus-orchestration tradeoff as a cloud-native integration pattern.
+- [*Kubernetes Patterns*](https://www.oreilly.com/library/view/-/9781098131678/) by Bilgin Ibryam & Roland Huß: event-driven and coordination patterns that generalize past this chapter's Kafka/Camel/Flow trio.
 - [Apache Camel: Enterprise Integration Patterns](https://camel.apache.org/components/latest/eips/enterprise-integration-patterns.html) for the EIP vocabulary behind the Camel orchestration leg.
 - [CNCF Serverless Workflow specification](https://github.com/serverlessworkflow/specification) for the declarative workflow-document model `quarkus-flow` implements.
 - [Apache Kafka documentation: consumer groups](https://kafka.apache.org/documentation/#intro_consumers) for the choreography leg's decentralized subscribe/publish mechanics.

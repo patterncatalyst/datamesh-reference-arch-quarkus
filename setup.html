@@ -10,7 +10,7 @@ permalink: /setup/
         <span class="hero__eyebrow">Setup &amp; prerequisites</span>
         <h1>Running the reference, start to finish.</h1>
         <p class="hero__lead">
-            From a bare workstation to a running Quarkus data mesh — JDK,
+            From a bare workstation to a running Quarkus data mesh: JDK,
             Maven, the Quarkus CLI, and a Docker Compose stack for Kafka,
             Postgres, and observability.
         </p>
@@ -45,7 +45,7 @@ permalink: /setup/
                 <tr>
                     <td>Camel</td>
                     <td>platform-aligned</td>
-                    <td>Imported via <code>quarkus-camel-bom:3.40.1</code> (Camel Quarkus 3.40.0, Camel 4.22.1) — no standalone Camel version pin</td>
+                    <td>Imported via <code>quarkus-camel-bom:3.40.1</code> (Camel Quarkus 3.40.0, Camel 4.22.1); no standalone Camel version pin</td>
                 </tr>
                 <tr>
                     <td>langchain4j</td>
@@ -65,7 +65,7 @@ permalink: /setup/
                 <tr>
                     <td>Container toolchain</td>
                     <td>Docker / Docker Compose</td>
-                    <td>Docker Engine — see the <code>lgtm-docker-stack</code> skill</td>
+                    <td>Docker Engine; see the <code>lgtm-docker-stack</code> skill</td>
                 </tr>
             </tbody>
         </table>
@@ -79,12 +79,12 @@ permalink: /setup/
         <h2 class="section-heading">Required tooling</h2>
 
         <ul>
-            <li><strong>SDKMAN</strong> — manages JDK 25, Maven 3.9.x, JBang, and the Quarkus CLI</li>
-            <li><strong>Quarkus CLI</strong> — <code>quarkus create</code>, <code>quarkus dev</code></li>
-            <li><strong>Docker Engine</strong> and <strong>Docker Compose</strong> — the v2 CLI plugin</li>
-            <li><strong>Camel CLI</strong> &amp; the <strong>Camel MCP server</strong> — Camel-on-Quarkus route prototyping and validation</li>
-            <li><strong>Demo command-line tools</strong> — <code>curl</code>, <code>jq</code>, <code>grpcurl</code>, and <code>kcat</code> (Fedora: <code>sudo dnf install kcat</code>); <code>demos/walkthrough.sh</code> checks for them before it starts</li>
-            <li>The <strong>Quarkus Agent MCP server</strong> — dev-loop tooling for Claude Code (project create, skills, docs search, logs)</li>
+            <li><strong>SDKMAN</strong>: manages JDK 25, Maven 3.9.x, JBang, and the Quarkus CLI</li>
+            <li><strong>Quarkus CLI</strong>: <code>quarkus create</code>, <code>quarkus dev</code></li>
+            <li><strong>Docker Engine</strong> and <strong>Docker Compose</strong> (the v2 CLI plugin)</li>
+            <li><strong>Camel CLI</strong> &amp; the <strong>Camel MCP server</strong>: Camel-on-Quarkus route prototyping and validation</li>
+            <li><strong>Demo command-line tools</strong>: <code>curl</code>, <code>jq</code>, <code>grpcurl</code>, and <code>kcat</code> (Fedora: <code>sudo dnf install kcat</code>); <code>demos/walkthrough.sh</code> checks for them before it starts</li>
+            <li>The <strong>Quarkus Agent MCP server</strong>: dev-loop tooling for Claude Code (project create, skills, docs search, logs)</li>
         </ul>
 
         <h3>Installing the toolchain via SDKMAN</h3>
@@ -209,8 +209,8 @@ docker info</code></pre>
     <div class="container" style="max-width: 42rem;">
         <h2 class="section-heading">Bootstrap</h2>
         <p>
-            The local infrastructure — Kafka, Postgres, Apicurio, and the
-            observability stack — runs via Docker Compose from the repo
+            The local infrastructure (Kafka, Postgres, Apicurio, and the
+            observability stack) runs via Docker Compose from the repo
             root. Copy the env template, bring the stack up, then start any
             service in dev mode:
         </p>
@@ -227,7 +227,7 @@ mvn quarkus:dev</code></pre>
         </p>
         <p>
             For the Kubernetes substrate (Istio, KEDA, Strimzi,
-            CloudNativePG on a local Kubernetes cluster — needed for the KEDA demos), run
+            CloudNativePG on a local Kubernetes cluster, needed for the KEDA demos), run
             <code>scripts/bootstrap.sh</code>. See
             <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/k8s">k8s/</a>
             for the manifests.

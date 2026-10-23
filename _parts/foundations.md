@@ -2,7 +2,7 @@
 part_name: Foundations
 order: 0
 title: Foundations
-blurb: "The landscape, the four principles, and why Kubernetes is the substrate this build runs on — the grounding before any service code."
+blurb: "The landscape, the four principles, and why Kubernetes is the substrate this build runs on: the grounding before any service code."
 ---
 
 Before the services, contracts, and dashboards, this part lays the conceptual

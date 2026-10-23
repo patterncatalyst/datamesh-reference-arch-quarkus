@@ -394,12 +394,12 @@ between them: "data as a product" in running Quarkus code.
 
 ## For deeper coverage
 
-- *Data Mesh* by Zhamak Dehghani: choosing a data product's output-port
+- [*Data Mesh*](https://www.oreilly.com/library/view/data-mesh/9781492092384/) by Zhamak Dehghani: choosing a data product's output-port
   protocol by consumer job, not a house-wide default.
-- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann &
+- [*Designing Data-Intensive Applications, 2nd ed.*](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/) by Martin Kleppmann &
   Chris Riccomini: at-least-once delivery, idempotent consumers, and the
   dataflow patterns behind both planes this chapter builds.
-- *Cloud Native Patterns* by Cornelia Davis: event-driven and
+- [*Cloud Native Patterns*](https://www.manning.com/books/cloud-native-patterns) by Cornelia Davis: event-driven and
   request/response composition patterns side by side.
 - [Quarkus SmallRye GraphQL guide](https://quarkus.io/guides/smallrye-graphql):
   the `@Query`/`@Source` resolver pattern `GatewayApi` uses.

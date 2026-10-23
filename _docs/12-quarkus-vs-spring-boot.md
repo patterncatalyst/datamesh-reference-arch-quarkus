@@ -426,7 +426,7 @@ else you already know about both frameworks.
 
 ## For deeper coverage
 
-- *Cloud Native Patterns* by Cornelia Davis: the resource-footprint and startup-time tradeoffs that matter once a service runs under a scheduler.
+- [*Cloud Native Patterns*](https://www.manning.com/books/cloud-native-patterns) by Cornelia Davis: the resource-footprint and startup-time tradeoffs that matter once a service runs under a scheduler.
 - [Quarkus: Building a native executable](https://quarkus.io/guides/building-native-image) for the native-image axis this chapter leaves aside.
 - [JEP 483: Class-File API](https://openjdk.org/jeps/483) and the related Project Leyden AOT cache JEPs (514, 515) behind the `--aot` measurement above.
 - [Spring Boot reference documentation: Kafka](https://docs.spring.io/spring-boot/reference/messaging/kafka.html) for the auto-configured `ProducerFactory`/`KafkaTemplate` plumbing `KafkaConfig.java` works around.

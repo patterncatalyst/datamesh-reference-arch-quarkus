@@ -425,7 +425,7 @@ environment.
 
 ## For deeper coverage
 
-- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al.: the general shape of several entries here: a hidden assumption (host timezone, classpath package layout, a test client's own quirks) that only breaks under a packaged/production-like run.
+- [*Cloud Native Anti-Patterns*](https://www.packtpub.com/en-us/product/cloud-native-anti-patterns-9781836200581) by Gerald Bachlmayr et al.: the general shape of several entries here: a hidden assumption (host timezone, classpath package layout, a test client's own quirks) that only breaks under a packaged/production-like run.
 - [Quarkus configuration reference](https://quarkus.io/guides/config-reference) for property-expression defaults (`${HOSTNAME:default}`) and profile-specific behavior (`%prod`) used throughout this chapter.
 - [Apache Avro specification](https://avro.apache.org/docs/) for the wire-format magic byte and `SpecificRecord` serialization this chapter's Avro gotchas depend on.
 - [RESTEasy Reactive guide](https://quarkus.io/guides/resteasy-reactive) for the `@Consumes` media-type matching behind the bodyless-GET 415.

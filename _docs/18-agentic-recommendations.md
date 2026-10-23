@@ -282,10 +282,10 @@ ones.
 
 ## For deeper coverage
 
-- *Platform Engineering on Kubernetes* by Mauricio Salatino: the paved-path
+- [*Platform Engineering on Kubernetes*](https://www.manning.com/books/platform-engineering-on-kubernetes) by Mauricio Salatino: the paved-path
   thinking behind grounding agent-written code in a version-matched catalog
   instead of a plausible-looking guess.
-- *GitOps and Kubernetes* by Billy Yuen et al.: the discipline of treating
+- [*GitOps and Kubernetes*](https://www.manning.com/books/gitops-and-kubernetes) by Billy Yuen et al.: the discipline of treating
   a declared, checkable acceptance criterion as the source of truth an
   execution step reconciles against, rather than trusting a report of what
   happened.

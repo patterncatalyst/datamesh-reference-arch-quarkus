@@ -421,10 +421,10 @@ mp.messaging.outgoing.shipment-dispatched.apicurio.registry.auto-register=true
 
 ## For deeper coverage
 
-- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann &
+- [*Designing Data-Intensive Applications, 2nd ed.*](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/) by Martin Kleppmann &
   Chris Riccomini: the log/partition/consumer-group model behind Kafka's
   durability, replay, and ordering guarantees.
-- *Data Mesh* by Zhamak Dehghani: a Kafka topic and its registered schema
+- [*Data Mesh*](https://www.oreilly.com/library/view/data-mesh/9781492092384/) by Zhamak Dehghani: a Kafka topic and its registered schema
   as a domain's data-product contract, the reason this project never treats
   it as interchangeable with in-memory delivery.
 - [Apache Kafka documentation](https://kafka.apache.org/documentation/):

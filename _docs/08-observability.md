@@ -358,12 +358,12 @@ see all of it working.
 
 ## For deeper coverage
 
-- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann & Chris Riccomini: the reasoning behind correlating metrics, traces, and logs rather than treating any one as sufficient on its own.
-- *Cloud Native Patterns* by Cornelia Davis: observability as a platform-provided capability rather than something each service re-implements.
+- [*Designing Data-Intensive Applications, 2nd ed.*](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/) by Martin Kleppmann & Chris Riccomini: the reasoning behind correlating metrics, traces, and logs rather than treating any one as sufficient on its own.
+- [*Cloud Native Patterns*](https://www.manning.com/books/cloud-native-patterns) by Cornelia Davis: observability as a platform-provided capability rather than something each service re-implements.
 - [OpenTelemetry documentation](https://opentelemetry.io/docs/): the OTLP protocol, the Collector's pipeline model, and the Java auto-instrumentation agent `demo-tracing.sh` attaches.
 - [Grafana Tempo documentation](https://grafana.com/docs/tempo/latest/): the trace storage and query API behind the cross-service trace this chapter verifies.
 - [Grafana Mimir documentation](https://grafana.com/docs/mimir/latest/): the Prometheus-compatible remote-write model behind the dual Mimir/Prometheus datasource registration.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `demo-tracing.sh` passed, recording the cross-service trace against the compose otel-lgtm backend. The mesh/Kiali view is covered by the Kubernetes chapters, which still require a live cluster. Host access through NodePorts published on 127.0.0.1 was re-verified on 2026-10-09: Grafana (3000), Loki (3100), Tempo (3200), Mimir (9009), OTLP (4317/4318), Kiali (20001) and Apicurio (8084) all answered on loopback, and Grafana's Tempo datasource now points at Tempo's HTTP port 3100. On 2026-10-09 (DRQ-029) the compose backend moved to otel-lgtm 0.36.0 (stack healthy, Tempo trace API unchanged) and the cluster stack to the newest charts, where Tempo's HTTP port is 3200 again; the cluster side is not yet re-verified on those pins.*
+*Verification status: <span class="status status--verified">verified</span>. `demo-tracing.sh` passed, recording the cross-service trace against the compose otel-lgtm backend. The mesh/Kiali view is covered by the Kubernetes chapters, which still require a live cluster. Host access through NodePorts published on 127.0.0.1 was re-verified on 2026-10-09: Grafana (3000), Loki (3100), Tempo (3200), Mimir (9009), OTLP (4317/4318), Kiali (20001) and Apicurio (8084) all answered on loopback, and Grafana's Tempo datasource now points at Tempo's HTTP port 3100. On 2026-10-09 the compose backend moved to otel-lgtm 0.36.0 (stack healthy, Tempo trace API unchanged) and the cluster stack to the newest charts, where Tempo's HTTP port is 3200 again; the cluster side is not yet re-verified on those pins.*

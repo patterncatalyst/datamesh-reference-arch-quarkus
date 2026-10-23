@@ -542,11 +542,11 @@ warning: contracts and the catalog.
 
 ## For deeper coverage
 
-- *Data Mesh* by Zhamak Dehghani: the full treatment of the data product
+- [*Data Mesh*](https://www.oreilly.com/library/view/data-mesh/9781492092384/) by Zhamak Dehghani: the full treatment of the data product
   architectural quantum this chapter builds in code.
-- *Implementing Domain-Driven Design* by Vaughn Vernon: aggregate
+- [*Implementing Domain-Driven Design*](https://www.informit.com/store/implementing-domain-driven-design-9780133039894) by Vaughn Vernon: aggregate
   boundaries and invariant-centralizing factories like `Order.create(...)`.
-- *Cloud Native Patterns* by Cornelia Davis: service-as-product patterns
+- [*Cloud Native Patterns*](https://www.manning.com/books/cloud-native-patterns) by Cornelia Davis: service-as-product patterns
   and polyglot persistence per service.
 - [Quarkus Hibernate ORM with Panache guide](https://quarkus.io/guides/hibernate-orm-panache):
   the active-record style `Order` and `Stock` use.
