@@ -7,13 +7,32 @@ duration: 25 minutes
 marker: "18"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Distinguish bounded, checkable AI-agent tasks from architecture judgment
+  calls that belong to a human.
+- Apply the plan/execute/validate relay to a multi-step change, including
+  when a repeated failure means re-planning instead of patching.
+- Use `camel-mcp` and `quarkus-agent` to ground generated code in the live
+  catalog and docs instead of a plausible-looking guess from training data.
+- Treat a subagent's own report as a claim, not evidence, and name the
+  independent check it still needs.
+- Apply this repo's low-cost guardrails — commit conventions, scope
+  discipline, and the two human sign-off gates — to day-to-day agentic work.
+
+## Why this matters
+
 Most of this tutorial is about a running system. This chapter covers how it
 was built: a large share of the code, chapters, and demos in this repo were
-written with AI-agent assistance. It records what that process was reliable
-for, where it needed a human or a second pass, and which tools kept it
-grounded in this stack's APIs. Agentic assistance has one dominant failure
-mode: it reports success with the same confidence whether or not the claim
-is true. Most of what follows compensates for that.
+written with AI-agent assistance.
+
+It records what that process was reliable for, where it needed a human or a
+second pass, and which tools kept it grounded in this stack's APIs. Agentic
+assistance has one dominant failure mode: it reports success with the same
+confidence whether or not the claim is true. Most of what follows
+compensates for that.
 
 {% include excalidraw.html file="18-agentic-recommendations" alt="A plan/execute/validate relay feeding a Quarkus/Camel development loop: a planning pass decomposes a task into bounded steps with checkable acceptance criteria; an execution pass writes code grounded in camel-mcp catalog and validation tools and quarkus-agent docs/dev-loop tools instead of guessing component URIs or extension APIs; a validation pass reads the diff and runs the build independently of the executor's own summary, looping failures back to execution up to a capped number of repair rounds, with a human gate before the plan is executed and before anything is published" caption="Figure A3.1 — A plan / execute / validate relay, grounded in MCP tooling" %}
 
@@ -112,15 +131,16 @@ find-and-replace — tiering every trivial change is its own waste.
 report is a claim, not evidence.* An agent that just wrote the code under
 test is structurally the worst-positioned party to find the bug in it — not
 from carelessness, but because it's reporting on its own intent, and intent
-and outcome drift apart in exactly the cases worth catching. This repo's own
-defect catalog is the concrete argument for this: the RestAssured/415 gotcha
-covered in Appendix 17 (a regression test that did not exercise the
-bug it was named for); a chapter asserting a module was empty when the
-directory held seven shared DTOs; a GraphQL field name that only
-failed at request time against a live gateway. None of those were caught by
-asking an agent if its own work was correct. All of them were caught by a
-second pass that read the file and ran the query, independent of the first
-pass's summary.
+and outcome drift apart in exactly the cases worth catching.
+
+This repo's own defect catalog is the concrete argument for this: the
+RestAssured/415 gotcha covered in Appendix 17 (a regression test that did
+not exercise the bug it was named for); a chapter asserting a module was
+empty when the directory held seven shared DTOs; a GraphQL field name that
+only failed at request time against a live gateway. None of those were
+caught by asking an agent if its own work was correct. All of them were
+caught by a second pass that read the file and ran the query, independent
+of the first pass's summary.
 
 ## Grounding agents in tooling
 
@@ -153,27 +173,31 @@ exactly this reason:
 
 The principle generalizes past these two servers: an agent that can query
 ground truth (a catalog, a running process, the actual file on disk) and is
-instructed to do so before committing syntax is more reliable
-than one reasoning from training-data memory of what a similar-looking API
-probably looks like. Wiring up that grounding is a small, one-time cost
-(see `camel-mcp-setup` for the Camel side); not wiring it up costs a slow
-trickle of configuration bugs that compile cleanly and fail at runtime —
-defects that are expensive to trace back to their source.
+instructed to do so before committing syntax is more reliable than one
+reasoning from training-data memory of what a similar-looking API probably
+looks like.
+
+Wiring up that grounding is a small, one-time cost (see `camel-mcp-setup`
+for the Camel side); not wiring it up costs a slow trickle of configuration
+bugs that compile cleanly and fail at runtime — defects that are expensive
+to trace back to their source.
 
 ## Verification-status discipline
 
 Every chapter in this tutorial ends with a verification-status footer —
-unverified until someone has run it against a live environment,
-with the highest-risk claims named instead of a blanket "this should
-work." That convention exists for the same reason the relay's
-Validate phase exists: a claim an agent makes about its own output is worth
-exactly as much as the independent check behind it, no more. Applying the
-same discipline to agent-written code in day-to-day work means treating
-"the agent says the tests pass" and "I ran the tests and they passed" as
-different facts, not the same fact stated twice. Where a tool-calling
-result is at stake — a multi-turn agent loop, an MCP round trip — a
-non-empty response is not evidence of anything; verify the specific side
-effect the call was supposed to produce, not just that something came back.
+unverified until someone has run it against a live environment, with the
+highest-risk claims named instead of a blanket "this should work." That
+convention exists for the same reason the relay's Validate phase exists: a
+claim an agent makes about its own output is worth exactly as much as the
+independent check behind it, no more.
+
+Applying the same discipline to agent-written code in day-to-day work means
+treating "the agent says the tests pass" and "I ran the tests and they
+passed" as different facts, not the same fact stated twice. Where a
+tool-calling result is at stake — a multi-turn agent loop, an MCP round
+trip — a non-empty response is not evidence of anything; verify the
+specific side effect the call was supposed to produce, not just that
+something came back.
 
 ## Low-cost guardrails
 
@@ -255,6 +279,25 @@ ones.
 - Plan approval and publish approval stay human by design; this repo's full
   build case study records the specific defects an independent validation
   pass caught that a self-report would have missed.
+
+## For deeper coverage
+
+- *Platform Engineering on Kubernetes* by Mauricio Salatino — the paved-path
+  thinking behind grounding agent-written code in a version-matched catalog
+  instead of a plausible-looking guess.
+- *GitOps and Kubernetes* by Billy Yuen et al. — the discipline of treating
+  a declared, checkable acceptance criterion as the source of truth an
+  execution step reconciles against, rather than trusting a report of what
+  happened.
+- [Apache Camel user manual](https://camel.apache.org/manual/) — the
+  catalog, EIP, and route syntax `camel-mcp` grounds agent-written routes
+  in.
+- [Quarkus guides](https://quarkus.io/guides/) — the version-matched
+  extension documentation `quarkus-agent` surfaces instead of stale
+  training-data memory.
+- [Model Context Protocol](https://modelcontextprotocol.io/) — the protocol
+  both `camel-mcp` and `quarkus-agent` implement to expose live catalog and
+  docs tools to an agent.
 
 ---
 

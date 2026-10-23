@@ -7,12 +7,34 @@ duration: 25 minutes
 marker: "20"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain why `@Incoming`/`@Outgoing` methods are connector-agnostic, and
+  where the choice between `smallrye-in-memory` and `smallrye-kafka`
+  actually lives.
+- Trace how `ShipmentProcessorTest` redirects a channel to the in-memory
+  connector via `InMemoryChannelsTestResource`, and why the sink has to be
+  cleared between tests.
+- Distinguish what `shipping-service`'s `%prod` Kafka wiring proves that the
+  in-memory connector cannot: serialization, partitioning, durability, and
+  cross-process delivery.
+- Compare the two connectors on latency, coupling, durability, ordering,
+  back-pressure, and testing ergonomics.
+- Decide, for a new reactive-messaging method, when an in-memory test is
+  enough and when a broker-backed test is required.
+
+## Why this matters
+
 Every reactive-messaging method in this project — `ShipmentProcessor.process`,
 the various `@Incoming`/`@Outgoing` consumers across `order-service`,
 `payment-service`, `shipping-service`, and `notification-service` — is
 written once, against the MicroProfile Reactive Messaging API, with no
 reference anywhere in the method body to Kafka, a broker address, or a
-serialization format. What moves a `PaymentCaptured` record from a
+serialization format.
+
+What moves a `PaymentCaptured` record from a
 producer method to a consumer method is decided entirely in configuration:
 `smallrye-kafka` in `application.properties` for every environment this
 project ships to, and SmallRye's in-memory connector (`InMemoryConnector`)
@@ -114,22 +136,25 @@ shared by both connectors: `@Incoming("payment-captured")` just means "give
 me whatever `mp.messaging.incoming.payment-captured.connector` is configured
 to deliver," and the method has no way to tell, short of reading its own
 configuration, whether that delivery came from a Kafka consumer poll loop or
-from an in-process list someone appended to a moment ago. That indifference
-is the entire point of the MicroProfile Reactive Messaging specification:
-the channel id is the seam, the connector is a configuration value, and
-`@Blocking`/`@Transactional` behave identically either way because they're
-Quarkus/Vert.x concerns, not connector concerns.
+from an in-process list someone appended to a moment ago.
+
+That indifference is the entire point of the MicroProfile Reactive
+Messaging specification: the channel id is the seam, the connector is a
+configuration value, and `@Blocking`/`@Transactional` behave identically
+either way because they're Quarkus/Vert.x concerns, not connector concerns.
 
 ## Both connectors sit on the same Vert.x execution model
 
-"Unified" has a limited meaning here. Quarkus's Vert.x event loop and worker-thread pools are
-the single execution substrate underneath *every* reactive-messaging
-channel, Kafka or in-memory: SmallRye Kafka's consumer records are delivered
-onto that same Vert.x context, and `@Blocking` methods like
-`ShipmentProcessor.process` are dispatched to the same Vert.x worker-thread
-pool regardless of which connector produced the incoming message. What
-*differs* is everything upstream of that dispatch point — whether the bytes
-arriving at the channel came off a TCP socket to a broker (Kafka) or
+"Unified" has a limited meaning here. Quarkus's Vert.x event loop and
+worker-thread pools are the single execution substrate underneath *every*
+reactive-messaging channel, Kafka or in-memory: SmallRye Kafka's consumer
+records are delivered onto that same Vert.x context, and `@Blocking`
+methods like `ShipmentProcessor.process` are dispatched to the same Vert.x
+worker-thread pool regardless of which connector produced the incoming
+message.
+
+What *differs* is everything upstream of that dispatch point — whether the
+bytes arriving at the channel came off a TCP socket to a broker (Kafka) or
 were handed directly from one Java list to another inside the same JVM
 (in-memory). The execution model is shared; the transport, the wire format,
 and the failure modes are not.
@@ -216,7 +241,9 @@ mp.messaging.outgoing.payment-captured.apicurio.registry.auto-register=true
 applications, each with its own JVM, each independently deployable, that
 agree on nothing except the topic name, the Avro schema registered in
 Apicurio, and the broker: both point `kafka.bootstrap.servers` at the
-same address. In dev and test mode, neither service sets
+same address.
+
+In dev and test mode, neither service sets
 `kafka.bootstrap.servers` or `apicurio.registry.url` at all — Quarkus Dev
 Services starts an ephemeral `apache/kafka-native:4.3.1` broker and an
 `apicurio/apicurio-registry:3.3.3` container (the images each service pins with
@@ -233,7 +260,9 @@ That one line separates "two methods calling each other in a test JVM" from
 "two independently deployed services agreeing on a wire protocol": a TCP
 connection to a named broker host — one image, its broker target
 supplied by an environment variable, so the same build serves Compose and
-Kubernetes. Explicit Avro
+Kubernetes.
+
+Explicit Avro
 (de)serializer classes are set on every channel rather than left to
 connector autodetection; the comment in `shipping-service`'s properties
 file documents why — `order-service` found that Apicurio's
@@ -269,9 +298,11 @@ incidental detail.
 **Durability.** `InMemorySink`'s `received()` list lives in heap memory for
 the lifetime of the `@QuarkusTest` instance and is explicitly cleared by
 `InMemoryConnector.clear()` in `InMemoryChannelsTestResource.stop()`;
-nothing about it is written to disk or survives a JVM restart, and  A Kafka topic persists its log to disk,
-replicates it (configuration permitting), and lets a consumer recover a
-backlog after a restart by re-polling from a committed offset —
+nothing about it is written to disk or survives a JVM restart. A Kafka
+topic persists its log to disk, replicates it (configuration permitting),
+and lets a consumer recover a backlog after a restart by re-polling from a
+committed offset.
+
 `shipping-service`'s `enable.auto.commit=false` plus
 `auto.offset.reset=earliest` is specifically there so a restarted consumer
 with no committed offset replays from the start of the topic rather than
@@ -321,8 +352,9 @@ place in this codebase, `shipping-service`'s test tree, and nowhere in any
 `main` source set. Every `%prod` and Docker Compose deployment path runs on
 `smallrye-kafka` against a broker, every cross-service contract is a
 Kafka topic plus an Apicurio-registered Avro schema, and the in-memory connector is not used as a production transport, and
-SmallRye does not position it as one. For
-your own service, the pairing above still holds: unit-test the *business
+SmallRye does not position it as one.
+
+For your own service, the pairing above still holds: unit-test the *business
 logic* a `@Incoming`/`@Outgoing` method expresses in-memory, and keep a
 broker-backed test (Dev Services' Testcontainers-backed Kafka, which
 `shipping-service`'s other, non-in-memory tests already get automatically) for
@@ -389,7 +421,21 @@ mp.messaging.outgoing.shipment-dispatched.apicurio.registry.auto-register=true
   persistence, and consumer-group coordination — none of which an
   in-memory test can validate.
 
+## For deeper coverage
 
+- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann &
+  Chris Riccomini — the log/partition/consumer-group model behind Kafka's
+  durability, replay, and ordering guarantees.
+- *Data Mesh* by Zhamak Dehghani — a Kafka topic and its registered schema
+  as a domain's data-product contract, the reason this project never treats
+  it as interchangeable with in-memory delivery.
+- [Apache Kafka documentation](https://kafka.apache.org/documentation/) —
+  partitions, consumer groups, offsets, and retention.
+- [Quarkus — Using Apache Kafka with Reactive Messaging](https://quarkus.io/guides/kafka) —
+  the `smallrye-kafka` connector configuration this chapter's codetabs show.
+- [SmallRye Reactive Messaging](https://smallrye.io/smallrye-reactive-messaging/) —
+  the in-memory connector and the `InMemoryConnector` test API
+  `ShipmentProcessorTest` uses.
 
 ---
 

@@ -7,8 +7,21 @@ duration: 45 minutes
 marker: "15"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain the classify-then-decide split: a single-shot LLM call extracts structured fields, and a deterministic Drools rule set makes the business decision.
+- Trace `TriageService.classify` and `TriageService.decide` end to end, including the JSON-extraction fallback and the per-request `KieSession` lifecycle.
+- Read `order-triage.drl`'s three mutually exclusive rules and explain why `salience` only orders firing for readability, not correctness.
+- Diagnose why in-process langchain4j agent tool-calling does not fire on this stack, and why the embedded MCP server path is unaffected by the same defect.
+
+## Why this matters
+
 The previous chapter used `ai-rules-service`'s two triage endpoints as the
-example for orchestration *shape*. This chapter covers what they do. An LLM is good at reading a loosely-structured description and pulling
+example for orchestration *shape*. This chapter covers what they do.
+
+An LLM is good at reading a loosely-structured description and pulling
 out a few categorical fields, but it is a poor choice to make a business
 decision you need to audit, replay deterministically, or explain to a
 compliance reviewer. This project's answer is a strict division of labor —
@@ -63,7 +76,9 @@ response out, no multi-turn conversation and no tool calling. The prompt
 prompt text, because — per the method's own comment — the small local model
 used here (`qwen2.5:3b`) reliably classifies against a concrete example but
 drifts into echoing the order back verbatim or writing free prose without
-one. `extractJsonObject` is a second line of defense: although the prompt says "no markdown fences," the model sometimes
+one.
+
+`extractJsonObject` is a second line of defense: although the prompt says "no markdown fences," the model sometimes
 wraps its answer in a ```` ```json ```` fence anyway, so this method takes
 the substring between the first `{` and the last `}` before handing it to
 Jackson.
@@ -186,7 +201,9 @@ capability: letting an LLM call a tool mid-conversation (langchain4j "agent"
 tool-calling) instead of classifying in one shot. The sections below cover
 what works and what does not, including the broken path.
 
-**What is registered correctly.** [OrderLookupToolRoute.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderLookupToolRoute.java)
+### What is registered correctly
+
+[OrderLookupToolRoute.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderLookupToolRoute.java)
 registers an order-status lookup as a callable tool via Camel's
 framework-neutral `ai-tool:` component:
 
@@ -212,7 +229,9 @@ filtering on the `shipping` tag can invoke it. Two different consumers are
 wired to do that: `OrderAssistantRoute`'s in-process
 langchain4j-agent, and the embedded MCP server. Only the MCP server works.
 
-**What doesn't work: the in-process agent.** [OrderAssistantRoute.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderAssistantRoute.java)
+### What doesn't work: the in-process agent
+
+[OrderAssistantRoute.java]({{ site.repo_blob }}/examples/ai-mcp-service/src/main/java/com/patterncatalyst/datamesh/aimcp/OrderAssistantRoute.java)
 wires a `langchain4j-agent:` endpoint to the `order-status` tool via the
 `shipping` tag, backed by an `Agent` bean `AgentProducers` builds from a
 hand-constructed `OllamaChatModel`
@@ -239,7 +258,9 @@ evidence that tool-calling succeeded, since a model can answer without
 calling the tool. The script prints a banner stating the limitation before it
 runs anything.
 
-**What does work: the embedded MCP server.** Instead, `demo-ai-mcp.sh`
+### What does work: the embedded MCP server
+
+Instead, `demo-ai-mcp.sh`
 demonstrates the tool-calling-adjacent path that works end to end: `camel-quarkus-mcp-server` (wrapping the Quarkiverse
 `quarkus-mcp-server-http` extension) publishes the same `order-status`
 `ai-tool:` route to **external** MCP clients over the MCP Streamable HTTP protocol. It is a
@@ -329,6 +350,14 @@ via the compose `ollama` profile.
 
 This closes the Quarkus deep dive. The comparison against Spring Boot
 (Chapter 12) measures startup and memory.
+
+## For deeper coverage
+
+- *Learning Domain-Driven Design* by Vlad Khononov — keeping a model's authoritative decision logic (here, Drools) separate from an inherently fuzzy classification step.
+- [Quarkus LangChain4j extension guide](https://docs.quarkiverse.io/quarkus-langchain4j/dev/index.html) for the `ChatModel` injection and response-format wiring `ChatModelProducer` uses.
+- [Drools documentation](https://docs.drools.org/) for the `KieBase`/`KieSession` lifecycle and the DRL rule syntax behind `order-triage.drl`.
+- [Model Context Protocol specification](https://modelcontextprotocol.io/) for the Streamable HTTP transport the embedded MCP server speaks.
+- [Apache Camel AI component documentation](https://camel.apache.org/components/latest/) for `ai-tool:`, `langchain4j-agent:`, and `langchain4j-chat:` endpoint semantics.
 
 ---
 

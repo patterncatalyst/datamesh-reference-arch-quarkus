@@ -7,6 +7,22 @@ duration: "20 min"
 marker: "02"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Define a data mesh in terms of decentralized domain ownership, not a specific product
+  or vendor.
+- Distinguish operational data from analytical data and explain how a mesh reorganizes
+  that split by domain instead of by technology layer.
+- State Dehghani's four principles — domain ownership, data as a product, self-serve
+  platform, federated computational governance — and name the mechanism in this build
+  that implements each one.
+- Recognize the difference between the pattern and the tools that implement it, so
+  adopting Kafka or Istio isn't mistaken for adopting the mesh.
+
+## Why this matters
+
 The [previous chapter]({{ '/docs/01-data-architectures/' | relative_url }}) covered the
 landscape of data architectures — pipelines, warehouses, and lakes — and where the mesh
 sits in relation to all of them. This chapter defines a data mesh, since the term gets
@@ -26,7 +42,9 @@ none of the domains it came from.
 The shift a data mesh proposes is from "centralize the data, then carve out access" to
 **decentralize ownership: let each domain own its data as a product**, with a shared
 platform providing the substrate those products use to publish, discover, and govern
-themselves. The closest analogy is microservices. Just as a monolithic
+themselves.
+
+The closest analogy is microservices. Just as a monolithic
 application gets refactored into bounded contexts owned by domain teams, a monolithic
 data platform gets refactored into bounded *data products* owned by domain teams. The
 mesh is the network of those products plus the platform and standards that let them
@@ -99,7 +117,9 @@ the detail below takes each one in turn.
 
 {% include excalidraw.html file="01-data-mesh-four-principles" alt="The four data mesh principles — domain ownership, data as a product, self-serve data platform, federated computational governance — shown as interlocking pieces" caption="Figure 1.8 — The four principles of data mesh" %}
 
-**Domain ownership.** Data is owned, end to end, by the domain team that produces it.
+### Domain ownership
+
+Data is owned, end to end, by the domain team that produces it.
 There is no central team that "owns the warehouse." Each domain owns its data's schema,
 its lifecycle, and its evolution. In this build, each domain service owns its data
 outright — the order domain owns orders, inventory owns stock — and nothing reaches
@@ -114,7 +134,9 @@ a contract inventory owns and can evolve on its own schedule. The ownership boun
 the absence of a shortcut, not by a policy document: there is no shared connection
 string, no cross-service JDBC URL, nothing to accidentally reach through.
 
-**Data as a product.** A data product is held to the same standards as any other
+### Data as a product
+
+A data product is held to the same standards as any other
 software product: it's discoverable, addressable, trustworthy, self-describing, and
 carries explicit expectations about quality and availability. It is not a renamed
 table. In this build, each domain service publishes its event schemas as versioned Avro
@@ -135,7 +157,9 @@ POJOs that could silently drift from the wire format. A consumer doesn't guess a
 gets the exact shape the compiler enforces. The schema is the description, and it travels with the artifact instead of living in a
 wiki page that goes stale.
 
-**Self-serve data platform.** Domain teams should not each build their own event
+### Self-serve data platform
+
+Domain teams should not each build their own event
 streaming, observability, registry, or catalog. The platform provides these as shared
 infrastructure that every domain consumes, so a domain team can stand up a data product
 without first becoming experts in running Kafka or Prometheus. In this build, the event
@@ -155,7 +179,9 @@ domain consumes each one as a platform capability, the way `notification-service
 already does for its Kafka-lag `ScaledObject`
 ([consumer-scaledobject.yaml]({{ site.repo_blob }}/k8s/keda/consumer-scaledobject.yaml)).
 
-**Federated computational governance.** Standards are enforced *computationally* — by
+### Federated computational governance
+
+Standards are enforced *computationally* — by
 the platform, automatically — rather than by review meetings and policy documents. A
 small set of global rules keeps independent products interoperable; the platform
 enforces them. In this build, the Istio service mesh is built to establish mutual TLS
@@ -190,6 +216,18 @@ choice itself gets examined.
 The next chapter looks at why Kubernetes is a natural
 substrate for all of this — and how each of the four principles maps onto concrete
 Kubernetes primitives.
+
+## For deeper coverage
+
+- *Data Mesh* by Zhamak Dehghani — the original formalization of the four principles
+  this chapter summarizes.
+- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann & Chris Riccomini —
+  the operational-versus-analytical data distinction this chapter builds on, treated in
+  full depth.
+- *Learning Domain-Driven Design* by Vlad Khononov — the domain-ownership and
+  bounded-context thinking behind "each domain owns its data as a product."
+- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al. — companion reading for how
+  "mistaking the tooling for the transformation" plays out in practice.
 
 ---
 

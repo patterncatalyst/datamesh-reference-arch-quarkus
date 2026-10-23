@@ -7,9 +7,31 @@ duration: 30 minutes
 marker: "07"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Install Istio via Helm and enforce the selective, per-Deployment
+  sidecar-injection opt-in rather than namespace-wide injection.
+- Explain why `sidecar.istio.io/inject: "true"` must be a pod-template
+  label, not an annotation, given how a `MutatingWebhookConfiguration`'s
+  `objectSelector` is evaluated.
+- Configure a weighted `DestinationRule`/`VirtualService` pair to canary a
+  contract-version split (v1/v2) and shift traffic by editing weights.
+- Explain why `PERMISSIVE` mTLS lets a service join the mesh without
+  breaking existing unmeshed callers, and when a `STRICT`
+  `PeerAuthentication` makes mTLS mandatory for a workload.
+- Identify the three workload categories — batch jobs, operator-managed
+  TLS infrastructure, and low-benefit workloads — that break under
+  namespace-wide sidecar injection.
+
+## Why this matters
+
 Data products evolve. A product whose contract can never change is one nobody builds
 on for long, but a product that changes its contract carelessly breaks every consumer
-downstream. This chapter covers evolving safely: shifting live traffic gradually
+downstream.
+
+This chapter covers evolving safely: shifting live traffic gradually
 between an old and a new version of a product's response shape, with the service mesh
 both routing the split and securing the traffic underneath it. It also records the
 architectural decision the earlier chapters set up — to mesh **selectively**, not
@@ -75,7 +97,9 @@ if it doesn't, it warns and asks for confirmation instead of silently installing
 whatever cluster is current. That matters more for Istio than for most of
 the operators this stack installs, because `istio-base` lands cluster-scoped CRDs —
 installing against the wrong context doesn't just misconfigure one namespace, it can
-leave CRDs behind in a cluster nobody meant to touch. After `istiod` comes up, the
+leave CRDs behind in a cluster nobody meant to touch.
+
+After `istiod` comes up, the
 script runs `kubectl rollout status deployment/istiod --timeout=5m` as an explicit
 gate: beyond Helm's own `--wait`, it confirms the control plane's
 Deployment reaches `Available` before declaring the step done. Both `helm
@@ -118,7 +142,9 @@ That has to be a label, not an annotation, and the reason is specific to how
 `sidecar.istio.io/inject In ["true"]`. A Kubernetes **webhook `objectSelector` is
 always evaluated against the admitted object's *labels* — never its annotations.**
 That is not Istio-specific; it is how `objectSelector` works for any
-`MutatingWebhookConfiguration`. With the `datamesh` namespace left
+`MutatingWebhookConfiguration`.
+
+With the `datamesh` namespace left
 unlabeled for namespace-wide injection (the next section covers why), the *only* way
 left to satisfy that `objectSelector` for a given pod is a pod-template label matching
 it exactly. The same key set as an **annotation** is never evaluated by an
@@ -153,7 +179,9 @@ Istio 1.29+ (this script pins 1.31.1) uses **native sidecars**: `istio-proxy`
 runs as an `initContainer` with `restartPolicy: Always`, not as a second ordinary
 container. This changes how you check mesh membership. A meshed pod still shows
 `2/2 Ready` in `kubectl get pods`, but a membership check that only inspects
-`.spec.containers` will miss it; it has to look at `.spec.initContainers` too. Native
+`.spec.containers` will miss it; it has to look at `.spec.initContainers` too.
+
+Native
 sidecars also change pod startup ordering: because `istio-proxy` is an init
 container — one with `restartPolicy: Always`, so it never blocks the pod the way a
 normal init container would — kubelet starts it before the application container. The
@@ -304,7 +332,9 @@ namespace (Postgres, Kafka, Apicurio), but it doesn't: `PeerAuthentication` is e
 by the *receiving Envoy sidecar*, and a pod with no sidecar has no component capable of
 enforcing — or even seeing — the policy at all. Unmeshed pods keep accepting whatever
 traffic they always did, from their own operator-managed clients, entirely outside the
-mesh's data path. Only pods that have the sidecar (`order-service`,
+mesh's data path.
+
+Only pods that have the sidecar (`order-service`,
 `notification-service`, `graphql-gateway`, and `order-service-v2`, once the injection
 labels from the previous section take effect) are affected: those reject any inbound
 connection that isn't mTLS. Istio's automatic mTLS (on by default since Istio 1.5)
@@ -386,6 +416,20 @@ kept away from Postgres and any batch job that would break under it.
 
 Next, the other half of operating a mesh: matching product
 capacity to demand — including scaling all the way down to zero — with KEDA.
+
+## For deeper coverage
+
+- *Data Mesh* by Zhamak Dehghani — federated computational governance
+  enforced as a platform property (mTLS) rather than per-team code.
+- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß — the canary and
+  sidecar patterns this chapter's Istio setup implements.
+- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al. — the
+  namespace-wide-injection pitfalls this chapter avoids (batch jobs,
+  operator-managed TLS).
+- [Istio traffic management documentation](https://istio.io/latest/docs/concepts/traffic-management/) —
+  `DestinationRule` subsets and weighted `VirtualService` routing.
+- [Istio mutual TLS documentation](https://istio.io/latest/docs/concepts/security/#mutual-tls-authentication) —
+  `PERMISSIVE` vs. `STRICT` `PeerAuthentication` modes.
 
 ---
 

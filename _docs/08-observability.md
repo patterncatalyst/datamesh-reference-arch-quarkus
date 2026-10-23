@@ -7,9 +7,22 @@ description: "Metrics, distributed traces, and the live mesh view — the LGTM s
 duration: 30 minutes
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain what each of the three observability signals (metrics, traces, logs) answers for a request crossing service boundaries, and the order you reach for them in practice.
+- Trace how the OpenTelemetry Collector routes OTLP signals to Loki, Tempo, and Mimir through one shared pipeline.
+- Explain why Mimir is registered twice in Grafana (as itself and aliased as `Prometheus`) and what that buys a dashboard or a pasted PromQL query.
+- Reproduce the cross-service trace `demo-tracing.sh` produces, and state what it proves beyond a passing smoke test.
+- Reach every LGTM backend and Kiali through the fixed NodePort addresses this repo publishes on `127.0.0.1`, and explain why host access is wired at profile-creation time rather than opened per session.
+
+## Why this matters
+
 The [previous chapter](/docs/07-elastic-and-resilient/) ended on scaling and recovery —
 the platform responding automatically to demand and failure. Automation is only
 reassuring if you can see it happening.
+
 This chapter covers observability as this repo ships it: the LGTM stack
 ([setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh)) that collects metrics, traces, and logs; the demo
 ([demo-tracing.sh]({{ site.repo_blob }}/demos/demo-tracing.sh)) that was run against a live backend and produced a verified
@@ -35,7 +48,9 @@ waking a replica. **Traces** follow one request as it crosses product boundaries
 is the only way to see that a slow GraphQL query was slow because the gRPC call it made
 downstream was slow — no single product's own logs would reveal that. **Logs** are the
 detailed per-event record you reach for once metrics and traces have told you *where*
-to look. A request that touches `graphql-gateway`, `order-service`, and
+to look.
+
+A request that touches `graphql-gateway`, `order-service`, and
 `inventory-service` is one user-facing operation spread across three independently
 owned products; understanding it means correlating signals that no single product owns
 in full.
@@ -126,7 +141,9 @@ pipeline runs its batch through the same two processors before exporting.
 `memory_limiter` is back-pressure sized against the Collector pod's own memory limit
 (not host memory), so a signal spike degrades gracefully instead of OOM-killing the
 pod. `resource` stamps every signal with a `cluster: minikube` attribute, useful once
-more than one cluster reports into the same Grafana. Routing everything
+more than one cluster reports into the same Grafana.
+
+Routing everything
 through one Collector, instead of wiring each service to each backend,
 concentrates future changes in one place: adding tail sampling, label redaction, or
 cardinality control later is a change to this one file, not to every service that
@@ -201,7 +218,9 @@ The trace it produces follows a single `POST /orders` across two services:
 performs for every order. Neither service has `quarkus-opentelemetry` on its
 classpath (confirmed by grepping every `examples/*/pom.xml` for "opentelemetry" —
 nothing), and that extension is a build-time dependency, not something a runtime flag
-can retrofit onto an already-packaged jar. So the demo takes the zero-pom-touch path:
+can retrofit onto an already-packaged jar.
+
+So the demo takes the zero-pom-touch path:
 it attaches the upstream OpenTelemetry Java auto-instrumentation agent as a
 `-javaagent:` flag to both already-built `quarkus-run.jar` processes, which
 auto-instruments JAX-RS, the gRPC client and server, and JDBC with no source changes.
@@ -329,6 +348,14 @@ live-topology views described above. Together these form a running
 data mesh: services that own their data, a mesh that can route and secure traffic
 between product versions, elastic and self-healing scaling, and the observability to
 see all of it working.
+
+## For deeper coverage
+
+- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann & Chris Riccomini — the reasoning behind correlating metrics, traces, and logs rather than treating any one as sufficient on its own.
+- *Cloud Native Patterns* by Cornelia Davis — observability as a platform-provided capability rather than something each service re-implements.
+- [OpenTelemetry documentation](https://opentelemetry.io/docs/) — the OTLP protocol, the Collector's pipeline model, and the Java auto-instrumentation agent `demo-tracing.sh` attaches.
+- [Grafana Tempo documentation](https://grafana.com/docs/tempo/latest/) — the trace storage and query API behind the cross-service trace this chapter verifies.
+- [Grafana Mimir documentation](https://grafana.com/docs/mimir/latest/) — the Prometheus-compatible remote-write model behind the dual Mimir/Prometheus datasource registration.
 
 ---
 

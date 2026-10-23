@@ -7,6 +7,18 @@ description: "The conceptual and organizational ways data-mesh efforts go wrong,
 duration: 15 minutes
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Recognize the "tool will solve it" trap, and distinguish a mesh substrate (a registry, an event stream) from the operating-model change a mesh actually requires.
+- Identify the shapes centralization takes under a new name — a proxy platform team, approval-gate governance, shadow data teams — and the fix the literature points to for each.
+- Distinguish an autonomous data product from an "inert" renamed table or registry row, and explain why inert products take federated governance down with them.
+- Evaluate a mesh's governance design on the spectrum between afterthought and bureaucracy, and name what federated computational governance targets instead.
+- Apply this chapter's fit criteria to decide whether a given organization is actually a good candidate for a data mesh.
+
+## Why this matters
+
 Earlier chapters cover what to build and how. This chapter covers what goes
 wrong: not implementation gaps in this build (a shared namespace instead of one per
 domain, no automated schema compatibility gate yet, an Istio control plane installed
@@ -218,6 +230,13 @@ the organization needed a mesh at all) decides whether efforts succeed.
 
 The final chapter in this part matches each of the four principles against
 the pieces in this repo that implement it.
+
+## For deeper coverage
+
+- *Data Mesh* by Zhamak Dehghani — the primary source for the four principles and the failure modes this chapter names when they are only partially adopted.
+- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al. — the broader catalog of organizational and technical anti-patterns this chapter's data-mesh-specific list draws the same lesson from.
+- *Learning Domain-Driven Design* by Vlad Khononov — bounded contexts as the remedy for the fuzzy domain boundaries and ownership vacuums this chapter describes.
+- *Implementing Domain-Driven Design* by Vaughn Vernon — a deeper treatment of context boundaries and ownership for teams applying the fix directly.
 
 ---
 

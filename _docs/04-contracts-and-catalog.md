@@ -7,8 +7,29 @@ duration: 35 minutes
 marker: "05"
 ---
 
-Each service is a data product, but other domains can use it only if they can find
-it, understand its shape, and trust that it won't change without warning. This chapter covers the two mechanisms this project uses for that:
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain why `contracts` is the single source of truth for both Avro event
+  schemas and the one Protobuf service definition, and how each is
+  generated into Java code.
+- Distinguish a runtime contract (Avro, enforced live against Apicurio)
+  from a discovery contract (Protobuf, compiled ahead of time), and state
+  what each does and doesn't guarantee.
+- Verify an Avro contract is enforced at runtime by reading raw Kafka bytes
+  for the wire-format magic byte and confirming a matching Apicurio
+  artifact.
+- Explain why a discovery catalog is a mesh requirement in principle, and
+  what's missing in this project (OpenMetadata ingestion) to close that gap.
+
+## Why this matters
+
+Each service is a data product, but other domains can use it only if they
+can find it, understand its shape, and trust that it won't change without
+warning.
+
+This chapter covers the two mechanisms this project uses for that:
 a shared `contracts` module holding every service's Avro and Protobuf
 definitions as its single source of truth, and Apicurio Schema Registry
 enforcing those Avro contracts at runtime. It closes with what is not yet
@@ -161,7 +182,9 @@ schema against Apicurio, ② the Avro bytes plus a 4-byte schema id land on the
 fetches that same schema by id, and ④ it deserializes the bytes back into an
 `OrderPlaced` record before persisting a `Notification` — the round
 trip the previous chapter's `OrderEventProducer`/`OrderPlacedConsumer` pair
-walks through in code. The discovery path (⑤–⑧) goes beyond what is wired up: it shows all four services publishing
+walks through in code.
+
+The discovery path (⑤–⑧) goes beyond what is wired up: it shows all four services publishing
 contracts — OpenAPI, Protobuf, GraphQL SDL, and Avro again — into the same
 registry, with OpenMetadata ingesting them alongside the Postgres schemas and
 Kafka topics to build a lineage graph. Of those four, only Protobuf is a checked-in discovery contract in this project (`inventory.proto`, packaged
@@ -193,7 +216,9 @@ project shows the registry doing work: it places an order (triggering
 asserts the first byte of the record value is `0x00`, the Apicurio/Confluent
 wire-format magic byte that precedes a 4-byte schema id and the Avro-encoded
 payload. It also asserts the value does *not* start with `0x7b` (`{`), which
-would mean the serializer had silently regressed to plain JSON. Then it
+would mean the serializer had silently regressed to plain JSON.
+
+Then it
 confirms Apicurio's own artifact count went up after the publish, and that a
 matching artifact exists under either the topic name or the record's fully
 qualified name `capstone.order.v1.OrderPlaced` — confirming from the
@@ -234,7 +259,9 @@ That premise only holds if products are discoverable and their contracts
 are trustworthy. Without a registry (this project has one), contracts drift and consumers
 break silently. Without a catalog (it does not yet have one), nobody can find products or see lineage across the whole
 mesh, so in practice teams fall back to asking around, which reintroduces
-exactly the bottleneck a mesh exists to remove. Discovery infrastructure
+exactly the bottleneck a mesh exists to remove.
+
+Discovery infrastructure
 is a precondition for federated governance to be computational, checked at
 publish time and recorded automatically, rather than enforced through team
 coordination. This project demonstrates the registry half of that claim in running
@@ -268,6 +295,21 @@ contracts hold at runtime.
 The next question is how data moves across the mesh on top of them — the synchronous read layer
 and the asynchronous event backbone.
 
+## For deeper coverage
+
+- *Data Mesh* by Zhamak Dehghani — federated computational governance and
+  discoverability as mesh requirements.
+- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann &
+  Chris Riccomini — schema evolution and the compatibility guarantees a
+  registry enforces.
+- Apicurio Registry documentation — artifact rules, compatibility levels,
+  and the Avro serde this chapter's wire-format check exercises.
+- [Protocol Buffers Language Guide (proto3)](https://protobuf.dev/programming-guides/proto3/) —
+  the `.proto` syntax `inventory.proto` uses.
+- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al. — the risks of
+  treating a schema as documentation instead of an enforced contract, a
+  trap this chapter calls out directly.
+
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `demo-kafka.sh`'s raw-byte magic-byte assertion passed and `OrderPlacedAvroWireIT` is green. One item remains unexercised: an intentionally incompatible Avro schema change being rejected by Apicurio at publish time is still not covered by any demo.*
+*Verification status: <span class="status status--verified">verified</span>. `demo-kafka.sh`'s raw-byte magic-byte assertion passed and `OrderPlacedAvroWireIT` is green. One item remains unexercised: a backward-incompatible Avro schema change being rejected by Apicurio at publish time is still not covered by any demo.*
