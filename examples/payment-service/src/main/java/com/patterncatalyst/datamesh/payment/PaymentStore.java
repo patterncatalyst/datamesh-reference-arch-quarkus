@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import capstone.payment.v1.PaymentCaptured;
+import datamesh.payment.v1.PaymentCaptured;
 
 /**
  * Minimal, real in-memory record of captured payments, keyed by the

@@ -44,18 +44,18 @@ Testcontainer (`OrderControllerTest`) -- Docker must be available. Use
 # lgtm-docker-stack), with the `dev-no-inventory` profile if you don't have
 # an inventory-service running locally:
 java -Duser.timezone=UTC \
-     -Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 \
+     -Dorg.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1 \
      -jar target/spring-boot-compare-1.0.0-SNAPSHOT.jar
 ```
 
 - `-Duser.timezone=UTC` -- same timezone requirement as the Quarkus side: Postgres (or the postgres:18 Testcontainers image) rejects legacy Olson
   zone ids forwarded from the host's default JVM timezone.
-- `-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1` -- Avro
+- `-Dorg.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1` -- Avro
   1.12.x's `ClassSecurityValidator` refuses to (de)serialize a generated
   `SpecificRecord` from a packaged `java -jar` run unless its package is
-  explicitly trusted. `OrderPlaced` lives in `capstone.order.v1` (the
+  explicitly trusted. `OrderPlaced` lives in `datamesh.order.v1` (the
   `contracts` module). Without this flag, publishing `order.placed` throws
-  `SecurityException: Forbidden capstone.order.v1.OrderPlaced!` on the first
+  `SecurityException: Forbidden datamesh.order.v1.OrderPlaced!` on the first
   send.
 
 Env vars (all optional, sane localhost defaults for local/dev; see
@@ -104,7 +104,7 @@ underneath `quarkus-grpc`, which keeps the comparison closer to apples-to-apples
 
 The stubs are generated at build time straight from the SAME
 `.proto` the Quarkus side scans out of the `contracts` dependency jar
-(`capstone/inventory/v1/inventory.proto`) -- read directly from
+(`datamesh/inventory/v1/inventory.proto`) -- read directly from
 `../contracts/src/main/proto` (see `pom.xml`'s `protobuf-maven-plugin`
 configuration), not duplicated into this module.
 

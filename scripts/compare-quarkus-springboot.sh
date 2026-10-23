@@ -32,7 +32,7 @@
 #
 # Both services are launched against the SAME throwaway `postgres:18`
 # container (TZ=UTC/PGTZ=UTC), with the SAME JVM system properties:
-#   -Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 -Duser.timezone=UTC
+#   -Dorg.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1 -Duser.timezone=UTC
 #
 # ── --aot (like-for-like JDK 25 AOT cache) ───────────────────────────────────
 # Both services get the same treatment, with plain JDK flags (no framework
@@ -137,7 +137,7 @@ SPRING_COMPARE_DIR="${EXAMPLES_DIR}/spring-boot-compare"
 [[ -f "${SPRING_COMPARE_DIR}/pom.xml" ]] \
     || fail "spring-boot-compare not found at ${SPRING_COMPARE_DIR} (expected examples/spring-boot-compare/pom.xml) -- it is built separately; run this script again once it exists"
 
-AVRO_SERIALIZABLE_PACKAGES="capstone.order.v1"
+AVRO_SERIALIZABLE_PACKAGES="datamesh.order.v1"
 JVM_PROPS=(-Dorg.apache.avro.SERIALIZABLE_PACKAGES="$AVRO_SERIALIZABLE_PACKAGES" -Duser.timezone=UTC)
 
 Q_PORT=8095

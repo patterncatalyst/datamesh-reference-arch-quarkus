@@ -308,7 +308,7 @@ what is specific to that service:
 services:
   order-service:
     db: true
-    avroPackages: capstone.order.v1
+    avroPackages: datamesh.order.v1
     resources: {requests: {cpu: 150m, memory: 320Mi}, limits: {cpu: 750m, memory: 640Mi}}
   inventory-service:
     db: true
@@ -421,7 +421,7 @@ shipping-service derives them deterministically from the order ID
 | Deprecation warnings on apply | AMQ Streams 3.2 deprecates `kafka.strimzi.io/v1beta2` | Move the CRs to `kafka.strimzi.io/v1` |
 | review-service would not start | No OIDC provider in prod | `QUARKUS_OIDC_TENANT_ENABLED=false` |
 | ScaledObject `Ready=False`, `no such host` | KEDA runs in `openshift-keda`, where the short Kafka name does not resolve | Fully qualified `bootstrapServers` |
-| Native order-service: `SecurityException: Forbidden capstone...` on every send | Avro reads its allow-list during native-image's build-time initialisation | Pass it with `quarkus.native.additional-build-args` |
+| Native order-service: `SecurityException: Forbidden datamesh...` on every send | Avro reads its allow-list during native-image's build-time initialisation | Pass it with `quarkus.native.additional-build-args` |
 | A request to a pod IP was reset | A pod-IP call leaves the client sidecar as plaintext, and the target is STRICT | Call the Service name |
 | (avoided) Postgres password replaced on every Argo CD sync | `lookup` returns nothing under `helm template` | `ignoreDifferences` on the password plus `RespectIgnoreDifferences=true` |
 
@@ -596,7 +596,7 @@ failed to publish:
 
 ```
 SRMSG18260: Unable to recover from the serialization failure (topic: order.placed) ...
-java.lang.SecurityException: Forbidden capstone...
+java.lang.SecurityException: Forbidden datamesh...
 ```
 
 Avro's `ClassSecurityValidator` reads `org.apache.avro.SERIALIZABLE_PACKAGES`
@@ -607,7 +607,7 @@ arrives too late for a native binary. `build-native.sh` passes it at build
 time and checks that it reached `native-image.args`:
 
 ```bash
--Dquarkus.native.additional-build-args="-J-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1"
+-Dquarkus.native.additional-build-args="-J-Dorg.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1"
 ```
 
 The repository's `demo-native.sh` never sends a Kafka message, so this only

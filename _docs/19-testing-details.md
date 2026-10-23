@@ -93,7 +93,7 @@ generated record class whose package isn't explicitly trusted unless a
 Quarkus application is running — `OrderPlacedAvroWireIT` is a
 plain JUnit test with no `@QuarkusTest` bootstrap driving a raw
 `KafkaProducer`, so without an explicit trusted-package system property it
-failed with `SecurityException: Forbidden capstone.order.v1.OrderPlaced!`
+failed with `SecurityException: Forbidden datamesh.order.v1.OrderPlaced!`
 (confirmed, per the comment, by running the IT and hitting it).
 
 What distinguishes this tier from the live-stack functional/load tiers is
@@ -115,7 +115,7 @@ self-provisioned Testcontainers: a `KafkaContainer("apache/kafka-native:4.3.1")`
 and a `GenericContainer` running `quay.io/apicurio/apicurio-registry:3.3.3`
 (configured with `APICURIO_STORAGE_KIND=sql` / `APICURIO_STORAGE_SQL_KIND=h2`,
 since Apicurio 3.1.7 and later removed the plain in-memory `mem` storage kind older
-3.0.x images supported). It produces one `capstone.order.v1.OrderPlaced`
+3.0.x images supported). It produces one `datamesh.order.v1.OrderPlaced`
 record through the same `io.apicurio.registry.serde.avro.AvroKafkaSerializer`
 the application uses, then reads the raw bytes back with a vanilla
 `KafkaConsumer<byte[], byte[]>` with *no* Avro deserializer configured at
@@ -271,7 +271,7 @@ warm dev-mode order-service reaching roughly 1098 requests/sec with a
 distribution — illustrative numbers from one run on one machine, not a performance
 guarantee.
 
-`load-checkstock.sh` targets `capstone.inventory.v1.InventoryService/CheckStock`
+`load-checkstock.sh` targets `datamesh.inventory.v1.InventoryService/CheckStock`
 over plaintext HTTP/2 gRPC (`ghz --insecure`, since inventory-service never
 terminates TLS here) at inventory-service's canonical gRPC port,
 `localhost:9000`. Because gRPC has no `curl`-style probe, the script

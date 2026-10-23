@@ -292,7 +292,7 @@ public class InventoryClient {
 the channel named `inventory` (configured in `application.properties`,
 pointed at inventory-service's gRPC port). `InventoryService` is not
 hand-written; it is the **Mutiny-flavored service interface quarkus-grpc
-generates at build time** from [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto),
+generates at build time** from [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/datamesh/inventory/v1/inventory.proto),
 which order-service never defines itself; it's scanned out of the
 `contracts` module's packaged jar (more on that mechanism in the next
 chapter).

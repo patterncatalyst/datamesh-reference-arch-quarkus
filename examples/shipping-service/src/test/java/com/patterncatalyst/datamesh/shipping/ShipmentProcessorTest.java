@@ -13,8 +13,8 @@ import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import capstone.payment.v1.PaymentCaptured;
-import capstone.shipping.v1.ShipmentDispatched;
+import datamesh.payment.v1.PaymentCaptured;
+import datamesh.shipping.v1.ShipmentDispatched;
 import com.patterncatalyst.datamesh.domain.Topics;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;

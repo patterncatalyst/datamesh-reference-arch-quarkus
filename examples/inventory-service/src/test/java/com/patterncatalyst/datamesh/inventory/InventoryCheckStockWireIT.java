@@ -14,10 +14,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import capstone.inventory.v1.Inventory.CheckStockRequest;
-import capstone.inventory.v1.Inventory.CheckStockResponse;
-import capstone.inventory.v1.InventoryServiceGrpc;
-import capstone.inventory.v1.InventoryServiceGrpc.InventoryServiceBlockingStub;
+import datamesh.inventory.v1.Inventory.CheckStockRequest;
+import datamesh.inventory.v1.Inventory.CheckStockResponse;
+import datamesh.inventory.v1.InventoryServiceGrpc;
+import datamesh.inventory.v1.InventoryServiceGrpc.InventoryServiceBlockingStub;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.quarkus.test.junit.QuarkusIntegrationTest;

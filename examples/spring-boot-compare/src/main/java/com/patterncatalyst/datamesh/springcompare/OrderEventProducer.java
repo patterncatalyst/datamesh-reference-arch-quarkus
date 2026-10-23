@@ -13,7 +13,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import com.patterncatalyst.datamesh.domain.Topics;
 
-import capstone.order.v1.OrderPlaced;
+import datamesh.order.v1.OrderPlaced;
 
 /**
  * Publishes {@code order.placed} as Avro against the Apicurio Schema

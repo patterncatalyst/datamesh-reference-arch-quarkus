@@ -43,7 +43,7 @@
 # reflection (confirmed empirically), but that's a dev-mode convenience, not
 # a guaranteed contract — this demo instead points grpcurl straight at the
 # real .proto the service was generated from
-# (contracts/src/main/proto/capstone/inventory/v1/inventory.proto), the same
+# (contracts/src/main/proto/datamesh/inventory/v1/inventory.proto), the same
 # source of truth order-service's own generated gRPC client uses, so the
 # demo doesn't depend on reflection being enabled.
 #
@@ -64,7 +64,7 @@ require curl jq mvn java docker grpcurl
 
 MODULE_DIR="${EXAMPLES_DIR}/inventory-service"
 PROTO_DIR="${EXAMPLES_DIR}/contracts/src/main/proto"
-PROTO_FILE="capstone/inventory/v1/inventory.proto"
+PROTO_FILE="datamesh/inventory/v1/inventory.proto"
 [[ -f "${PROTO_DIR}/${PROTO_FILE}" ]] \
     || fail "expected proto file not found: ${PROTO_DIR}/${PROTO_FILE}"
 
@@ -120,7 +120,7 @@ grpc_check_stock() {
     local sku="$1" qty="$2"
     grpcurl -plaintext -import-path "$PROTO_DIR" -proto "$PROTO_FILE" \
         -d '{"sku":"'"$sku"'","quantity":'"$qty"'}' \
-        "$GRPC_ADDR" capstone.inventory.v1.InventoryService/CheckStock
+        "$GRPC_ADDR" datamesh.inventory.v1.InventoryService/CheckStock
 }
 
 # ─── Part 1: reactive and imperative paths compute DIFFERENT answers ───────

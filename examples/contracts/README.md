@@ -17,9 +17,9 @@ Generated via the `org.apache.avro:avro-maven-plugin` `schema` goal, bound to
 
 | Schema | Namespace | Record | Kafka topic |
 |---|---|---|---|
-| `order-placed.avsc` | `capstone.order.v1` | `OrderPlaced` | `order.placed` |
-| `payment-captured.avsc` | `capstone.payment.v1` | `PaymentCaptured` | `payment.captured` |
-| `shipment-dispatched.avsc` | `capstone.shipping.v1` | `ShipmentDispatched` | `shipment.dispatched` |
+| `order-placed.avsc` | `datamesh.order.v1` | `OrderPlaced` | `order.placed` |
+| `payment-captured.avsc` | `datamesh.payment.v1` | `PaymentCaptured` | `payment.captured` |
+| `shipment-dispatched.avsc` | `datamesh.shipping.v1` | `ShipmentDispatched` | `shipment.dispatched` |
 
 Topic name constants live in `domain-model`'s
 `com.patterncatalyst.datamesh.domain.Topics`.
@@ -29,7 +29,7 @@ Each service configures the Apicurio Avro serde itself (e.g.
 `mp.messaging.[incoming|outgoing].<channel>.*` properties) — that
 configuration is NOT part of this module.
 
-## gRPC proto (`src/main/proto/capstone/inventory/v1/inventory.proto`)
+## gRPC proto (`src/main/proto/datamesh/inventory/v1/inventory.proto`)
 
 Ported verbatim from the Python reference architecture. `InventoryService`
 exposes a single `CheckStock` RPC used by order-service when placing an
@@ -38,7 +38,7 @@ order.
 This module does **not** generate gRPC stubs itself. The `.proto` file is
 packaged as a plain resource (see the `<resources>` block in `pom.xml`) so
 it ships inside the `contracts` jar at
-`capstone/inventory/v1/inventory.proto`. Each consuming Quarkus service
+`datamesh/inventory/v1/inventory.proto`. Each consuming Quarkus service
 generates its own stubs from it at build time by adding the `quarkus-grpc`
 extension and pointing the standard multi-module scan-for-proto property at
 this module's coordinates in its `application.properties`:

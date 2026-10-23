@@ -12,11 +12,11 @@
 # short-circuits before producing a summary must never read as clean.
 #
 # ── Target ───────────────────────────────────────────────────────────────
-#   capstone.inventory.v1.InventoryService/CheckStock, over plaintext
+#   datamesh.inventory.v1.InventoryService/CheckStock, over plaintext
 #   HTTP/2 gRPC, against inventory-service's gRPC port (canonical 9000 —
 #   see demos/demo-order.sh's header comment on the shared
 #   INVENTORY_GRPC_PORT default). Proto:
-#     examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto
+#     examples/contracts/src/main/proto/datamesh/inventory/v1/inventory.proto
 #
 # ── Ports (match demos/demo-order.sh's / demos/demo-graphql.sh's bring-up) ──
 #   inventory-service  HTTP 8092 (preflight probe target, hardcoded)
@@ -38,8 +38,8 @@ source "${SCRIPT_DIR}/../../demos/lib/_demo.sh"
 
 GHZ_BIN="${GHZ_BIN:-ghz}"
 INVENTORY_HEALTH_BASE="http://localhost:8092"
-PROTO_FILE="${REPO_ROOT}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto"
-GRPC_CALL="capstone.inventory.v1.InventoryService/CheckStock"
+PROTO_FILE="${REPO_ROOT}/examples/contracts/src/main/proto/datamesh/inventory/v1/inventory.proto"
+GRPC_CALL="datamesh.inventory.v1.InventoryService/CheckStock"
 GRPC_DATA='{"sku":"WIDGET-1","quantity":1}'
 
 usage() {

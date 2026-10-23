@@ -9,7 +9,7 @@ import jakarta.persistence.Entity;
 /**
  * Panache active-record entity backing the review-service data product.
  *
- * Mirrors the Python capstone's {@code Review} SQLAlchemy model: a customer
+ * Mirrors the Python final project's {@code Review} SQLAlchemy model: a customer
  * review/rating of a product identified by {@code sku}. review-service owns
  * this table exclusively (per-service data ownership) -- no other module in
  * the reactor writes to it.

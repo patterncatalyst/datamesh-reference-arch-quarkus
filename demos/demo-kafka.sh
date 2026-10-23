@@ -38,7 +38,7 @@
 # every order.placed publish throws, every time (confirmed via order-
 # service's own log; the symptom from this demo's point of view was kcat
 # timing out waiting for a message that was never produced):
-#   java.lang.SecurityException: Forbidden capstone.order.v1.OrderPlaced!
+#   java.lang.SecurityException: Forbidden datamesh.order.v1.OrderPlaced!
 #   This class is not trusted to be included in Avro schemas. You may
 #   either use the system properties org.apache.avro.SERIALIZABLE_CLASSES
 #   and org.apache.avro.SERIALIZABLE_PACKAGES ...
@@ -50,7 +50,7 @@
 # trusts nothing by default. The identical fix is already documented
 # for the OTHER place this bites
 # (OrderPlacedAvroWireIT's failsafe execution passes
-# org.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1 as a plain JUnit
+# org.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1 as a plain JUnit
 # system property for the same reason). This demo applies the same fix as a
 # JVM system property on the launched order-service process -- no module
 # source touched. Open upstream issue: the packaged/
@@ -87,7 +87,7 @@ APICURIO_BASE="http://localhost:${APICURIO_PORT}/apis/registry/v3"
 # this, every order.placed publish from a packaged order-service throws
 # (confirmed empirically -- this is the specific bug this fix sidesteps;
 # there would be nothing on the topic at all otherwise).
-AVRO_SERIALIZABLE_PACKAGES="capstone.order.v1"
+AVRO_SERIALIZABLE_PACKAGES="datamesh.order.v1"
 
 TOPIC="order.placed.demo.$$"
 
@@ -262,10 +262,10 @@ else
     ARTIFACT_NAMES="$(jq -r '.artifacts[]?.artifactId' <<<"$AFTER_JSON" | tr '\n' ' ')"
     info "no artifactId matched the topic name directly (default Apicurio id strategy may key on the"
     info "record's fully-qualified Avro name instead) -- registered artifact ids: ${ARTIFACT_NAMES}"
-    jq -e --arg t "capstone.order.v1.OrderPlaced" \
+    jq -e --arg t "datamesh.order.v1.OrderPlaced" \
         '[.artifacts[]? | select((.artifactId // "") == $t)] | length >= 1' <<<"$AFTER_JSON" >/dev/null \
-        || fail "could not find a registered artifact matching either the topic name (${TOPIC}) or capstone.order.v1.OrderPlaced: ${ARTIFACT_NAMES}"
-    narrate "confirmed: Apicurio registered the capstone.order.v1.OrderPlaced schema"
+        || fail "could not find a registered artifact matching either the topic name (${TOPIC}) or datamesh.order.v1.OrderPlaced: ${ARTIFACT_NAMES}"
+    narrate "confirmed: Apicurio registered the datamesh.order.v1.OrderPlaced schema"
 fi
 
 demo_ok

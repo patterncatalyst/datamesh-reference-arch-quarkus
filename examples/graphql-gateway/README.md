@@ -11,7 +11,7 @@ This module owns no data. It federates reads by calling:
 
 - **order-service** over REST — `GET /orders/{id}`.
 - **inventory-service** over gRPC — `CheckStock` RPC
-  (`capstone.inventory.v1.InventoryService`, defined in the `contracts`
+  (`datamesh.inventory.v1.InventoryService`, defined in the `contracts`
   module).
 
 ## Schema
@@ -55,7 +55,7 @@ GraphiQL is enabled by default in dev/test at `/q/graphql-ui`
 | inventory-service | gRPC (`@GrpcClient("inventory")`) | `quarkus.grpc.clients.inventory.host`, `.port` |
 
 gRPC stubs (`InventoryServiceGrpc`, `CheckStockRequest`, `CheckStockResponse`
-in package `capstone.inventory.v1`) are generated at build time from the
+in package `datamesh.inventory.v1`) are generated at build time from the
 `.proto` packaged inside the `contracts` dependency jar, via:
 
 ```properties

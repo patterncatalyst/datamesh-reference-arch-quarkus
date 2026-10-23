@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import capstone.inventory.v1.InventoryServiceGrpc;
+import datamesh.inventory.v1.InventoryServiceGrpc;
 
 /**
  * Wires the plain grpc-java channel/stub to inventory-service, mirroring the

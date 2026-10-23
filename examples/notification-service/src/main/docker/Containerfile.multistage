@@ -71,8 +71,8 @@ ENV JAVA_OPTS_APPEND="-Duser.timezone=UTC -Dquarkus.profile=prod"
 # generated SpecificRecords from a packaged `java -jar` unless their packages
 # are trusted. The bare-java ENTRYPOINT does NOT read JAVA_OPTS_APPEND, so this
 # rides JAVA_TOOL_OPTIONS (honored by the JVM itself). notification-service
-# consumes OrderPlaced (capstone.order.v1).
-ENV JAVA_TOOL_OPTIONS="-Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1"
+# consumes OrderPlaced (datamesh.order.v1).
+ENV JAVA_TOOL_OPTIONS="-Dorg.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1"
 
 # UBI OpenJDK runtime images already default to UID 185 (non-root); explicit
 # here for clarity and to guard against a base-image change silently

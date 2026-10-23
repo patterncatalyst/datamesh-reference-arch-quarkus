@@ -15,7 +15,7 @@ Some diagrams are hand-coded SVGs with no editable source — see
 Examples:
 
 - `01-data-mesh-decentralized.svg`
-- `04-capstone-contracts.svg`
+- `04-final-project-contracts.svg`
 - `07-hpa-vs-keda.svg`
 
 This makes diagrams findable by section number and keeps related
@@ -27,7 +27,7 @@ Use the include:
 
 ```liquid
 {% raw %}{% include excalidraw.html
-   file="04-capstone-contracts"
+   file="04-final-project-contracts"
    alt="Diagram showing data contracts flowing from producers through the registry to consumers"
    caption="Figure 4.1 — Data contracts and the registry" %}{% endraw %}
 ```

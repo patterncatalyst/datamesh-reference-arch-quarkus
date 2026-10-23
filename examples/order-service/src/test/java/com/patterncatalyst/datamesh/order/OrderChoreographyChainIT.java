@@ -28,9 +28,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import capstone.order.v1.OrderPlaced;
-import capstone.payment.v1.PaymentCaptured;
-import capstone.shipping.v1.ShipmentDispatched;
+import datamesh.order.v1.OrderPlaced;
+import datamesh.payment.v1.PaymentCaptured;
+import datamesh.shipping.v1.ShipmentDispatched;
 import com.patterncatalyst.datamesh.domain.Topics;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;

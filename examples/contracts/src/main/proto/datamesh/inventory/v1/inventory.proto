@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-// Package mirrors the directory tree (capstone/inventory/v1) and namespaces
+// Package mirrors the directory tree (datamesh/inventory/v1) and namespaces
 // the contract so it can't collide with other services' protos (CAP-R19-4).
-package capstone.inventory.v1;
+package datamesh.inventory.v1;
 
 // InventoryService answers stock questions for the order flow. r23 ships the
 // single synchronous call order-service needs when placing an order; more

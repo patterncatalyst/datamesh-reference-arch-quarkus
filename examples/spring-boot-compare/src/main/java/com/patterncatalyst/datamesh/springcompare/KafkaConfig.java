@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 
-import capstone.order.v1.OrderPlaced;
+import datamesh.order.v1.OrderPlaced;
 
 /**
  * Supplies the strongly-typed {@code KafkaTemplate<String, OrderPlaced>} that

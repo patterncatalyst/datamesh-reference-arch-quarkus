@@ -431,11 +431,11 @@
       "locked": false,
       "fontSize": 9.5,
       "fontFamily": 3,
-      "text": "capstone.inventory.v1",
+      "text": "datamesh.inventory.v1",
       "textAlign": "middle",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "capstone.inventory.v1",
+      "originalText": "datamesh.inventory.v1",
       "lineHeight": 1.25
     },
     {

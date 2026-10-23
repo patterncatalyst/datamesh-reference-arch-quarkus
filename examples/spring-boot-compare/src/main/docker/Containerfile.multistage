@@ -69,9 +69,9 @@ EXPOSE 8080
 # refuses to (de)serialize generated SpecificRecords from a packaged
 # `java -jar` unless their packages are explicitly trusted -- the same
 # requirement the Quarkus order-service's Containerfile documents for the
-# identical OrderPlaced (capstone.order.v1) record, since both services
+# identical OrderPlaced (datamesh.order.v1) record, since both services
 # share the same contracts jar and the same Avro runtime behavior.
-ENV JAVA_TOOL_OPTIONS="-Duser.timezone=UTC -Dspring.profiles.active=prod -Dorg.apache.avro.SERIALIZABLE_PACKAGES=capstone.order.v1"
+ENV JAVA_TOOL_OPTIONS="-Duser.timezone=UTC -Dspring.profiles.active=prod -Dorg.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1"
 
 # UBI OpenJDK runtime images already default to UID 185 (non-root); explicit
 # here for clarity and to guard against a base-image change silently

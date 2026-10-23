@@ -1,16 +1,16 @@
 package com.patterncatalyst.datamesh.inventory;
 
-import capstone.inventory.v1.Inventory.CheckStockRequest;
-import capstone.inventory.v1.Inventory.CheckStockResponse;
-import capstone.inventory.v1.InventoryService;
+import datamesh.inventory.v1.Inventory.CheckStockRequest;
+import datamesh.inventory.v1.Inventory.CheckStockResponse;
+import datamesh.inventory.v1.InventoryService;
 
 import io.quarkus.grpc.GrpcService;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
 
 /**
- * gRPC server implementation of {@code capstone.inventory.v1.InventoryService}
- * (contracts jar, {@code capstone/inventory/v1/inventory.proto}). Mirrors the
+ * gRPC server implementation of {@code datamesh.inventory.v1.InventoryService}
+ * (contracts jar, {@code datamesh/inventory/v1/inventory.proto}). Mirrors the
  * Python reference's {@code InventoryServicer.CheckStock}: look up the SKU's
  * stock row and report whether the requested quantity is available.
  *

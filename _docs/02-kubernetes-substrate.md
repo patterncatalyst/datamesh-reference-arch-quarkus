@@ -30,7 +30,7 @@ for this part, shows the destination: the data mesh this build runs, domain serv
 platform tier together, on the single `minikube` profile
 [bootstrap.sh]({{ site.repo_blob }}/scripts/bootstrap.sh) stands up.
 
-{% include excalidraw.html file="02-capstone-data-mesh" alt="The complete data mesh reference architecture running on a local Kubernetes cluster — domain services, the service mesh, and the self-serve platform tier underneath them" caption="Figure 2.1 — Full project example: a data mesh on Kubernetes" %}
+{% include excalidraw.html file="02-final-project-data-mesh" alt="The complete data mesh reference architecture running on a local Kubernetes cluster — domain services, the service mesh, and the self-serve platform tier underneath them" caption="Figure 2.1 — Full project example: a data mesh on Kubernetes" %}
 
 ## Why Kubernetes and the mesh align
 

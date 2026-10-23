@@ -65,8 +65,8 @@ reused across services: `order-service` owns [Order.java]({{ site.repo_blob }}/e
 [Stock.java]({{ site.repo_blob }}/examples/inventory-service/src/main/java/com/patterncatalyst/datamesh/inventory/Stock.java) (`com.patterncatalyst.datamesh.inventory`), and neither module
 imports the other's entity class. `order-service` never reaches into
 inventory's schema directly. It calls `inventory-service` over gRPC
-(`CheckStock`, defined in [contracts]({{ site.repo_tree }}/examples/contracts)'s [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto), under
-the `capstone.inventory.v1` package) as any other consumer would.
+(`CheckStock`, defined in [contracts]({{ site.repo_tree }}/examples/contracts)'s [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/datamesh/inventory/v1/inventory.proto), under
+the `datamesh.inventory.v1` package) as any other consumer would.
 
 What crosses a domain boundary is a narrow
 *contract*, never another domain's entity. [domain-model]({{ site.repo_tree }}/examples/domain-model) holds
@@ -138,9 +138,9 @@ the local Maven dev loop, the same services are addressable at their own
 `localhost` ports instead, with [compose.yaml]({{ site.repo_blob }}/compose.yaml) supplying only the shared
 infra (Postgres, Kafka, and Apicurio), not the app services. The shared [contracts]({{ site.repo_tree }}/examples/contracts) module holds the *versioned
 contracts*: three Avro schemas ([order-placed.avsc]({{ site.repo_blob }}/examples/contracts/src/main/avro/order-placed.avsc), [payment-captured.avsc]({{ site.repo_blob }}/examples/contracts/src/main/avro/payment-captured.avsc),
-[shipment-dispatched.avsc]({{ site.repo_blob }}/examples/contracts/src/main/avro/shipment-dispatched.avsc), each in its own `capstone.*.v1` namespace:
-`capstone.order.v1`, `capstone.payment.v1`, `capstone.shipping.v1`) for the
-three Kafka events, plus the [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/capstone/inventory/v1/inventory.proto) gRPC
+[shipment-dispatched.avsc]({{ site.repo_blob }}/examples/contracts/src/main/avro/shipment-dispatched.avsc), each in its own `datamesh.*.v1` namespace:
+`datamesh.order.v1`, `datamesh.payment.v1`, `datamesh.shipping.v1`) for the
+three Kafka events, plus the [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/datamesh/inventory/v1/inventory.proto) gRPC
 contract, packaged as a framework-free JAR that any JVM consumer can depend on
 without pulling in Quarkus itself. The Apicurio Schema Registry
 ([setup-apicurio.sh]({{ site.repo_blob }}/scripts/setup-apicurio.sh), the v3 API at `/apis/registry/v3`) is where
@@ -153,7 +153,7 @@ schema, and (by convention) which service registered it.
 The registry
 also makes a product *trustworthy* in a checkable sense: `OrderPlacedAvroWireIT`
 in `order-service` verifies the wire format by producing a
-`capstone.order.v1.OrderPlaced` record through the application's
+`datamesh.order.v1.OrderPlaced` record through the application's
 serializer and then reading the raw bytes back with a plain
 `KafkaConsumer<byte[], byte[]>` that has no Avro deserializer configured,
 asserting the Avro magic byte (`0x00`) is present and the JSON marker

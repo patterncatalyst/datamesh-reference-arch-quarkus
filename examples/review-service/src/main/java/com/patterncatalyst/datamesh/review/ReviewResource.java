@@ -21,7 +21,7 @@ import jakarta.ws.rs.core.Response.Status;
 /**
  * review-service's REST data product: product reviews/ratings.
  *
- * Mirrors the Python capstone's {@code review-service} FastAPI routes:
+ * Mirrors the Python final project's {@code review-service} FastAPI routes:
  *   POST   /reviews          -- create a review (400 on invalid rating)
  *   GET    /reviews           -- list reviews, optionally filtered by ?sku=
  *   GET    /reviews/{id}      -- fetch one review

@@ -7,8 +7,8 @@ import jakarta.inject.Inject;
 
 import org.junit.jupiter.api.Test;
 
-import capstone.order.v1.OrderPlaced;
-import capstone.payment.v1.PaymentCaptured;
+import datamesh.order.v1.OrderPlaced;
+import datamesh.payment.v1.PaymentCaptured;
 
 import io.quarkus.test.junit.QuarkusTest;
 

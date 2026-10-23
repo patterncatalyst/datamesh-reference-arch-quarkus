@@ -17,7 +17,7 @@
   <name>DataMesh :: Review Service</name>
   <description>
     review-service data product for the DataMesh reference architecture:
-    product reviews/ratings, mirroring the Python capstone's review-service.
+    product reviews/ratings, mirroring the Python final project's review-service.
     Owns its own `reviews` table (per-service ownership). Exposes a Panache +
     RESTEasy Reactive REST data product: POST /reviews, GET /reviews,
     GET /reviews?sku=... All versions (Quarkus, JDK release) are inherited

@@ -78,7 +78,7 @@ INVENTORY_BASE="http://localhost:${INVENTORY_PORT}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 KAFKA_HOST_PORT="${KAFKA_HOST_PORT:-9092}"
 APICURIO_PORT="${APICURIO_PORT:-8081}"
-AVRO_SERIALIZABLE_PACKAGES="capstone.order.v1"
+AVRO_SERIALIZABLE_PACKAGES="datamesh.order.v1"
 
 AGENT_CACHE_DIR="${HOME}/.cache/datamesh-demos"
 AGENT_JAR="${AGENT_CACHE_DIR}/opentelemetry-javaagent.jar"
@@ -279,7 +279,7 @@ jq -e '[.batches[]?.resource.attributes[]? | select(.key == "service.name" and .
 narrate "confirmed: trace ${TRACE_ID} contains spans from both order-service and inventory-service --"
 narrate "W3C trace-context propagated across the real gRPC call, exported to Tempo, and queried back"
 
-jq -e --arg t "$TRACE_ID" '[.batches[]? | (.scopeSpans[]?.spans[]?, .instrumentationLibrarySpans[]?.spans[]?) | select(.name == "capstone.inventory.v1.InventoryService/CheckStock")] | length >= 1' <<<"$TRACE_JSON" >/dev/null \
+jq -e --arg t "$TRACE_ID" '[.batches[]? | (.scopeSpans[]?.spans[]?, .instrumentationLibrarySpans[]?.spans[]?) | select(.name == "datamesh.inventory.v1.InventoryService/CheckStock")] | length >= 1' <<<"$TRACE_JSON" >/dev/null \
     || fail "trace ${TRACE_ID} has no CheckStock gRPC span -- expected the cross-service hop to be captured"
 narrate "confirmed: the CheckStock gRPC span is present in the parsed trace"
 
