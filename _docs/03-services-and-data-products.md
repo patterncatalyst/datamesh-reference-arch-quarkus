@@ -218,8 +218,11 @@ public class OrderResource {
     @Inject
     InventoryClient inventoryClient;
 
+    // Fired after persist(); OrderEventProducer observes it with
+    // @Observes(AFTER_SUCCESS), so the Kafka publish runs only after this
+    // @Transactional method commits.
     @Inject
-    OrderEventProducer eventProducer;
+    Event<Order> orderPlacedEvent;
 
     @POST
     @Transactional
@@ -243,10 +246,9 @@ public class OrderResource {
         Order order = Order.create(payload.customerId(), payload.itemSku(), payload.quantity(), payload.amount());
         order.persist();
 
-        eventProducer.publish(order).exceptionally(ex -> {
-            LOG.warnf(ex, "failed to publish order.placed for %s", order.id);
-            return null;
-        });
+        // Publish strictly after commit: fire a CDI event here; the observer
+        // in OrderEventProducer sends it to Kafka once this transaction commits.
+        orderPlacedEvent.fire(order);
 
         return Response.status(Response.Status.CREATED).entity(toDto(order)).build();
     }
@@ -292,16 +294,18 @@ inside that boundary, the order is durably committed. Unlike the naive
 version above, nothing gets written until the one thing that could reject
 the order has already answered.
 
-**#C: publish the event only after persistence, and never let a publish
-failure undo or fail the request.** `eventProducer.publish(order)` returns a
-`CompletionStage<Void>`; `.exceptionally(...)` attaches a logging-only
-handler and the method doesn't `await` the publish at all. The order has
-already been committed by the time publish is attempted, so a broker outage
-must not turn into a failed `POST` for work that already succeeded. The cost
-of that choice (a window where the order is committed but the event never
-arrives) is the **dual-write gap**, and the comment in `OrderEventProducer`
-names the production answer: the outbox pattern, which this template does
-not implement.
+**#C: publish only after the commit, and never let a publish failure undo or
+fail the request.** Instead of sending to Kafka inline, `placeOrder` fires a
+CDI event with `orderPlacedEvent.fire(order)`. `OrderEventProducer` observes
+it with `@Observes(during = TransactionPhase.AFTER_SUCCESS)`, so the publish
+runs only once this `@Transactional` method has committed. The order is
+durable before anyone downstream sees `order.placed`. The observer sends
+through the Kafka emitter and attaches a logging-only `.exceptionally(...)`,
+so a broker outage can't turn into a failed `POST` for work that already
+succeeded. The remaining window, where the order is committed but the process
+dies before the observer runs, is the **dual-write gap**; the production
+answer named in `OrderEventProducer` is the outbox pattern, which this
+template doesn't implement.
 
 `listOrders` and `getOrder` are the read side: `listAll(Sort.by(...))` is
 Panache's query builder returning rows newest-first, and `findById` returns
@@ -358,6 +362,16 @@ public class OrderEventProducer {
     @Channel("order-placed")
     Emitter<OrderPlaced> emitter;
 
+    // Transactional observer: runs only after the transaction that fired the
+    // event commits, so a published order.placed always refers to a durable
+    // order. A publish failure here must never roll back the committed order.
+    void onOrderPlaced(@Observes(during = TransactionPhase.AFTER_SUCCESS) Order order) {
+        publish(order).exceptionally(ex -> {
+            LOG.warnf(ex, "failed to publish order.placed for %s", order.id);
+            return null;
+        });
+    }
+
     public CompletionStage<Void> publish(Order order) {
         OrderPlaced event = OrderPlaced.newBuilder()
                 .setEventType("order.placed")
@@ -388,9 +402,10 @@ depends on.
 `OrderPlaced` itself is a generated
 Avro `SpecificRecord`, not hand-written either; it comes from the
 `contracts` module, which is where the next chapter picks up. `emitter.send`
-returns the `CompletionStage<Void>` that `OrderResource` treats as
-best-effort, closing the loop back to the publish-after-commit ordering
-above.
+returns a `CompletionStage<Void>`, and the transactional observer above
+treats it as best-effort: `placeOrder` fires the event, this observer
+publishes once the commit lands, and a broker failure is logged rather than
+propagated.
 
 ## Further products: inventory-service and review-service
 
