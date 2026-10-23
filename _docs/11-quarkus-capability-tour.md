@@ -32,7 +32,7 @@ The code is in [notification-service]({{ site.repo_tree }}/examples/notification
 script builds, starts, and exercises the capability, and the service's
 `README.md` (where one exists) describes how to drive it by hand.
 
-{% include excalidraw.html file="11-capability-tour" alt="Twelve Quarkus and JDK 25 capabilities in a six-by-two grid, each labeled with where it is demonstrated: Panache in order-service, gRPC in inventory-service, GraphQL in graphql-gateway, Reactive Messaging in order-service, WebSockets.Next in notification-service, Vert.x Uni and imperative in inventory-service, continuous testing in order-service, native image in demo-native.sh, JDK AOT cache in compare-quarkus-springboot.sh --aot, OIDC in review-service, JBang in demos/jbang, and Panama FFM in demo-panama.sh" caption="Figure 11.1 — The twelve capabilities and where each is demonstrated" %}
+{% include excalidraw.html file="11-capability-tour" alt="Twelve Quarkus and JDK 25 capabilities in a six-by-two grid, each labeled with where it is demonstrated: Panache in order-service, gRPC in inventory-service, GraphQL in graphql-gateway, Reactive Messaging in order-service, WebSockets.Next in notification-service, Vert.x Uni and imperative in inventory-service, continuous testing in order-service, native image in demo-native.sh, JDK AOT cache in compare-quarkus-springboot.sh --aot, OIDC in review-service, JBang in demos/jbang, and Panama FFM in demo-panama.sh" caption="Figure 11.1: The twelve capabilities and where each is demonstrated" %}
 
 The capabilities are independent; read them in any order. The two that later
 chapters depend on are Reactive Messaging (chapter 13's choreography leg
@@ -76,7 +76,7 @@ calls `Stock.findBySku(request.sku())` straight from the JAX-RS method. Public
 fields are safe here because Panache rewrites field access into getter and
 setter calls at build time, so Hibernate still sees property access.
 
-{% include excalidraw.html file="11-panache-patterns" alt="Two persistence patterns side by side. Active record, used in this project: the REST resource calls Order.findById and order.persist on the entity, which talks to the database. Repository: the REST resource calls an injected OrderRepository that implements PanacheRepository of Order, which operates on the Order entity and the database. Both use the same Hibernate ORM and SQL." caption="Figure 11.2 — Panache active record (this project) and the repository pattern" %}
+{% include excalidraw.html file="11-panache-patterns" alt="Two persistence patterns side by side. Active record, used in this project: the REST resource calls Order.findById and order.persist on the entity, which talks to the database. Repository: the REST resource calls an injected OrderRepository that implements PanacheRepository of Order, which operates on the Order entity and the database. Both use the same Hibernate ORM and SQL." caption="Figure 11.2: Panache active record (this project) and the repository pattern" %}
 
 ### Active record or repository
 
@@ -158,7 +158,7 @@ public class InventoryGrpcService implements InventoryService {
 }
 ```
 
-`InventoryService` is not hand-written. It is the Mutiny service interface
+`InventoryService` isn't hand-written. It's the Mutiny service interface
 generated at build time from [inventory.proto]({{ site.repo_blob }}/examples/contracts/src/main/proto/datamesh/inventory/v1/inventory.proto).
 The `contracts` module is a dependency jar, and
 `quarkus.generate-code.grpc.scan-for-proto` tells Quarkus to generate from a
@@ -224,7 +224,7 @@ the gRPC-sourced nested `stock` fields arrive in one `.data.order` payload with
 no `.errors`.
 
 The advantage over a hand-written backend-for-frontend is that `@Source` turns
-the composition into declarative resolvers, so there is no aggregation layer or
+the composition into declarative resolvers, so there's no aggregation layer or
 N-plus-one plumbing to maintain, and the client selects exactly the fields it
 needs in one round trip. For the mesh, consumers compose a view across several
 data products on demand while each product keeps ownership of its own interface
@@ -265,7 +265,7 @@ the consumer side, `notification-service`'s `OrderPlacedConsumer` uses
 `@Incoming("order-placed")` on a `@Transactional` method. Neither side contains
 Kafka client code.
 
-That is the point of moving to Reactive Messaging: `@Channel` and `@Incoming`
+That's the point of moving to Reactive Messaging: `@Channel` and `@Incoming`
 are declarative bindings, so broker wiring, offset handling, and backpressure
 belong to the extension rather than a hand-managed Kafka client, and switching
 the in-memory connector for Kafka is a configuration change. The producer emits
@@ -312,7 +312,7 @@ event that later rolls back. [demo-websocket.sh]({{ site.repo_blob }}/demos/demo
 is placed and asserts that the second message on the socket carries the
 order's `orderId`, `customerId`, and `itemSku`.
 
-{% include excalidraw.html file="11-websockets-next" alt="Two WebSocket stacks compared side by side. On the left, quarkus-websockets-next runs on Vert.x: a WebSocket annotation with a path, OnOpen and OnTextMessage methods that return values, Uni or Multi, an execution model derived from the method signature, an injectable OpenConnections registry, and a WebSocketClient. On the right, the legacy quarkus-websockets implements the Jakarta WebSocket API on Undertow: a ServerEndpoint class with a Session parameter and callback methods. A bottom band shows a Kafka Incoming consumer calling OpenConnections.listAll and sendText, with one consumer group per replica." caption="Figure 11.3 — WebSockets.Next compared with the legacy Jakarta WebSocket extension" %}
+{% include excalidraw.html file="11-websockets-next" alt="Two WebSocket stacks compared side by side. On the left, quarkus-websockets-next runs on Vert.x: a WebSocket annotation with a path, OnOpen and OnTextMessage methods that return values, Uni or Multi, an execution model derived from the method signature, an injectable OpenConnections registry, and a WebSocketClient. On the right, the legacy quarkus-websockets implements the Jakarta WebSocket API on Undertow: a ServerEndpoint class with a Session parameter and callback methods. A bottom band shows a Kafka Incoming consumer calling OpenConnections.listAll and sendText, with one consumer group per replica." caption="Figure 11.3: WebSockets.Next compared with the legacy Jakarta WebSocket extension" %}
 
 ### Next versus the legacy extension
 
@@ -349,7 +349,7 @@ path scales by adding replicas with no shared state to coordinate.
 ### Scaling push across replicas
 
 `OpenConnections` lists only the sockets open in its own JVM. With two
-replicas of `notification-service`, an event consumed by replica 1 would not
+replicas of `notification-service`, an event consumed by replica 1 wouldn't
 reach a client connected to replica 2 if both used the shared consumer group
 that `OrderPlacedConsumer` uses to split partitions for persistence. The
 project adds a second consumer, `OrderPlacedPushConsumer`, on channel
@@ -388,7 +388,7 @@ independently, then fires three gRPC calls and three REST calls concurrently
 at the one process and asserts that every response is correct and uncorrelated.
 
 Quarkus runs both styles on one Vert.x instance. `inventory-service` uses a
-reactive signature for gRPC because that is the shape `quarkus-grpc`
+reactive signature for gRPC because that's the shape `quarkus-grpc`
 generates, and an imperative one for REST because the handler is a two-line
 lookup that gains nothing from `Uni`. Neither needed a migration or a second
 event loop. The framework chooses the thread for each request from the handler
@@ -397,7 +397,7 @@ signature and the annotations on it.
 ### Uni and imperative: what the signature tells Quarkus
 
 `Uni<T>` is Mutiny's type for a single asynchronous result: an item or a
-failure, delivered later. It is lazy. Building a `Uni` describes work, and
+failure, delivered later. It's lazy. Building a `Uni` describes work, and
 nothing runs until a subscriber arrives (Quarkus subscribes when it handles the
 call). Operators such as `onItem().transform(...)` and `onFailure().retry()`
 extend the description without running it. `Uni.createFrom().item(supplier)`
@@ -424,7 +424,7 @@ exactly that before adding `@Blocking`.
 `StockResource.get` needs no annotation: a plain return type already selects a
 worker thread.
 
-{% include excalidraw.html file="11-uni-vs-imperative" alt="Two lanes. Imperative lane: StockDto get(sku) runs on a worker thread where blocking is fine. Reactive lane: Uni of CheckStockResponse checkStock(request) runs on the event loop and must not block; adding Blocking moves it to a worker thread. A note explains that a Uni is a lazy single asynchronous result that runs when subscribed, with onItem transform and onFailure retry operators." caption="Figure 11.4 — The handler signature selects the thread" %}
+{% include excalidraw.html file="11-uni-vs-imperative" alt="Two lanes. Imperative lane: StockDto get(sku) runs on a worker thread where blocking is fine. Reactive lane: Uni of CheckStockResponse checkStock(request) runs on the event loop and must not block; adding Blocking moves it to a worker thread. A note explains that a Uni is a lazy single asynchronous result that runs when subscribed, with onItem transform and onFailure retry operators." caption="Figure 11.4: The handler signature selects the thread" %}
 
 ## Continuous testing and Dev Services
 
@@ -441,7 +441,7 @@ All 4 tests are passing (0 skipped), 4 tests were run in 8318ms.
 The demo parses the passing and run counts and asserts `passing == run`. If the
 banner never appears, for example because a later Quarkus release rewords it,
 the demo fails. The capability under test is continuous testing reporting a
-result, and the HTTP listener starting does not show that.
+result, and the HTTP listener starting doesn't show that.
 
 ## Startup: native image and the JDK AOT cache
 
@@ -449,7 +449,7 @@ A JVM service spends its first seconds loading and linking classes, running
 them in the interpreter, and compiling hot methods. Three options reduce that
 cost, with different trade-offs.
 
-{% include excalidraw.html file="11-startup-paths" alt="Three startup lanes. Plain JVM: load, link, interpret, then JIT warm-up. JVM with AOT cache on JDK 25: a training run with -XX:AOTCacheOutput writes app.aot, production runs with -XX:AOTCache, same jar, full JVM, JIT still active. Native image with GraalVM or Mandrel: a closed-world build that takes minutes, no JVM at runtime, reflection requires configuration. Rows compare build cost, startup, memory, compatibility, and peak throughput qualitatively." caption="Figure 11.5 — Three ways to start a Java service" %}
+{% include excalidraw.html file="11-startup-paths" alt="Three startup lanes. Plain JVM: load, link, interpret, then JIT warm-up. JVM with AOT cache on JDK 25: a training run with -XX:AOTCacheOutput writes app.aot, production runs with -XX:AOTCache, same jar, full JVM, JIT still active. Native image with GraalVM or Mandrel: a closed-world build that takes minutes, no JVM at runtime, reflection requires configuration. Rows compare build cost, startup, memory, compatibility, and peak throughput qualitatively." caption="Figure 11.5: Three ways to start a Java service" %}
 
 **Native image.** [demo-native.sh]({{ site.repo_blob }}/demos/demo-native.sh) compiles `order-service` to a
 native executable. It first looks for a local GraalVM or Mandrel
@@ -460,7 +460,7 @@ with no JVM in the process: fast startup and a small resident set. The
 costs are a build that takes minutes, a closed-world assumption (reflection,
 resources, and dynamic proxies must be known at build time, which Quarkus
 extensions register for you), and different peak-throughput characteristics
-because there is no JIT.
+because there's no JIT.
 
 The demo runs the binary against a throwaway Postgres
 container (native mode gets no Dev Services; the `%prod` profile expects a
@@ -469,14 +469,14 @@ the full REST, Hibernate ORM, and Panache stack. On 2026-10-06, with no local
 `native-image`, the demo used the Mandrel builder container: the build took
 136 s, the binary is 141 MB, and it reported startup in 0.081 s.
 
-{% include excalidraw.html file="11-native-build" alt="Native build pipeline. mvn package -Pnative for order-service runs the Quarkus build, where extensions run build steps, register reflection and resources, and initialize classes at build time. native-image then performs points-to analysis, takes a heap snapshot, and compiles reachable code into an order-service runner executable of 141 MB with no JVM and no JIT. native-image comes from a local GraalVM or Mandrel on PATH or GRAALVM_HOME, or from the Mandrel builder container with quarkus.native.container-build=true, which was used here; if neither is found the demo fails rather than building a JVM jar. At run time native mode gets no Dev Services: demo-native.sh sends GET /orders to the native binary, started with TZ=UTC and a JDBC_URL, which connects to a throwaway Postgres 18.6 container. Measured on 2026-10-06: Mandrel container build 136 s, 141 MB binary, started in 0.081 s." caption="Figure 11.6 — How demo-native.sh builds and runs the native executable" %}
+{% include excalidraw.html file="11-native-build" alt="Native build pipeline. mvn package -Pnative for order-service runs the Quarkus build, where extensions run build steps, register reflection and resources, and initialize classes at build time. native-image then performs points-to analysis, takes a heap snapshot, and compiles reachable code into an order-service runner executable of 141 MB with no JVM and no JIT. native-image comes from a local GraalVM or Mandrel on PATH or GRAALVM_HOME, or from the Mandrel builder container with quarkus.native.container-build=true, which was used here; if neither is found the demo fails rather than building a JVM jar. At run time native mode gets no Dev Services: demo-native.sh sends GET /orders to the native binary, started with TZ=UTC and a JDBC_URL, which connects to a throwaway Postgres 18.6 container. Measured on 2026-10-06: Mandrel container build 136 s, 141 MB binary, started in 0.081 s." caption="Figure 11.6: How demo-native.sh builds and runs the native executable" %}
 
 **JDK AOT cache (Project Leyden).** JDK 25 can record loaded and linked
 classes in a training run (`-XX:AOTCacheOutput=app.aot`, JEPs 483 and 514) and
-map them at the next launch (`-XX:AOTCache=app.aot`). It is the same jar on
+map them at the next launch (`-XX:AOTCache=app.aot`). It's the same jar on
 the same JVM with the JIT intact, so compatibility is unchanged and peak
 throughput is unaffected; the cache must be built with the same JDK and
-classpath it is used with.
+classpath it's used with.
 
 Chapter 12's section [Like-for-like with the JDK 25 AOT cache (Project Leyden)]({{ '/docs/12-quarkus-vs-spring-boot/' | relative_url }}#like-for-like-with-the-jdk-25-aot-cache-project-leyden)
 measures it on both services with `compare-quarkus-springboot.sh --aot`. In a
@@ -486,7 +486,7 @@ gap between the frameworks closes. Resident memory moved the other way for
 Quarkus (337 to 372 MB, with the mapped cache counted) and down for Spring (548
 to 446 MB). The caches were 103 MB and 123 MB.
 
-{% include excalidraw.html file="11-aot-cache-build" alt="AOT cache pipeline. mvn package produces target/quarkus-app/quarkus-run.jar. A training run with -XX:AOTCacheOutput=order-service.aot waits for the started log line, then sends SIGTERM; the cache is written when the JVM exits. order-service.aot holds classes loaded and linked (JEP 483) and method profiles (JEP 515) and is 103 MB. The production run uses -XX:AOTCache=order-service.aot with -XX:AOTMode=on and the same jar, JDK, and flags, and started in 0.992 s against 2.045 s on the plain JVM, with the full JVM and JIT active. Measured on Temurin 25.0.3 on 2026-10-05, single run. Rules the script enforces: the same JDK, classpath, and flags for training and production; AOTMode=on so that a stale cache stops startup instead of being ignored; and for Spring Boot, extracting the jar first with -Djarmode=tools extract because nested jars cannot be cached." caption="Figure 11.7 — How the JDK AOT cache is trained and used" %}
+{% include excalidraw.html file="11-aot-cache-build" alt="AOT cache pipeline. mvn package produces target/quarkus-app/quarkus-run.jar. A training run with -XX:AOTCacheOutput=order-service.aot waits for the started log line, then sends SIGTERM; the cache is written when the JVM exits. order-service.aot holds classes loaded and linked (JEP 483) and method profiles (JEP 515) and is 103 MB. The production run uses -XX:AOTCache=order-service.aot with -XX:AOTMode=on and the same jar, JDK, and flags, and started in 0.992 s against 2.045 s on the plain JVM, with the full JVM and JIT active. Measured on Temurin 25.0.3 on 2026-10-05, single run. Rules the script enforces: the same JDK, classpath, and flags for training and production; AOTMode=on so that a stale cache stops startup instead of being ignored; and for Spring Boot, extracting the jar first with -Djarmode=tools extract because nested jars cannot be cached." caption="Figure 11.7: How the JDK AOT cache is trained and used" %}
 
 Native image removes the JVM and costs the most to build. The AOT cache keeps
 the JVM and reduces startup without changing the deployment model. Plain JVM
@@ -517,7 +517,7 @@ public Response delete(@PathParam("id") Long id) {
 }
 ```
 
-{% include excalidraw.html file="11-oidc-token-flow" alt="Token flow. Dev Services starts Keycloak with realm quarkus and users alice (admin and user) and bob (user). Step 1: the client posts to the token endpoint with the password grant and client quarkus-app. Step 2: Keycloak returns a JWT access token. Step 3: the client calls DELETE /reviews/{id} with an Authorization Bearer header. review-service verifies the signature against the Keycloak JWKS, the issuer, and the expiry, then applies RolesAllowed admin. Outcomes: no token returns 401, bob returns 403, alice returns 204 and a following GET returns 404." caption="Figure 11.8 — How OIDC protects review-service" %}
+{% include excalidraw.html file="11-oidc-token-flow" alt="Token flow. Dev Services starts Keycloak with realm quarkus and users alice (admin and user) and bob (user). Step 1: the client posts to the token endpoint with the password grant and client quarkus-app. Step 2: Keycloak returns a JWT access token. Step 3: the client calls DELETE /reviews/{id} with an Authorization Bearer header. review-service verifies the signature against the Keycloak JWKS, the issuer, and the expiry, then applies RolesAllowed admin. Outcomes: no token returns 401, bob returns 403, alice returns 204 and a following GET returns 404." caption="Figure 11.8: How OIDC protects review-service" %}
 
 The flow, as [demo-oidc.sh]({{ site.repo_blob }}/demos/demo-oidc.sh) exercises it against the Keycloak container (found
 with `docker port`, because Testcontainers binds a random host port):
@@ -551,10 +551,10 @@ required JDK are declared in comment directives at the top of the file:
 installed and caches the compiled result. Tools install the same way from pinned
 Maven coordinates: `jbang app install --name camel
 org.apache.camel:camel-launcher:4.22.1` installs the Camel CLI. This project
-does not use JBang catalog aliases (`name@org`): they fetch unpinned scripts
+doesn't use JBang catalog aliases (`name@org`): they fetch unpinned scripts
 from GitHub and make JBang ask the user to trust the source.
 
-{% include excalidraw.html file="11-jbang-tooling" alt="A single Java file with DEPS and JAVA 25 directives is run by jbang, which resolves dependencies from Maven Central, downloads a JDK if missing, and caches the build. Tools such as the Camel CLI install from pinned Maven coordinates. Uses in this project: HelloRoute.java, WsNotificationClient.java, and PanamaFfm.java." caption="Figure 11.9 — JBang as environment tooling" %}
+{% include excalidraw.html file="11-jbang-tooling" alt="A single Java file with DEPS and JAVA 25 directives is run by jbang, which resolves dependencies from Maven Central, downloads a JDK if missing, and caches the build. Tools such as the Camel CLI install from pinned Maven coordinates. Uses in this project: HelloRoute.java, WsNotificationClient.java, and PanamaFfm.java." caption="Figure 11.9: JBang as environment tooling" %}
 
 Three scripts in [demos/jbang]({{ site.repo_tree }}/demos/jbang) use it:
 
@@ -616,7 +616,7 @@ lets Java call C functions and manage off-heap memory with no JNI. JNI requires
 a C glue library, a generated header, and a separate native build for each
 platform. FFM needs only Java.
 
-{% include excalidraw.html file="11-panama-ffm" alt="Java calls Linker.nativeLinker, whose defaultLookup finds libc symbols. downcallHandle with a FunctionDescriptor produces a method handle for getpid and strlen. An Arena allocates an off-heap MemorySegment holding a C string and frees it when the arena closes. A contrast box notes that JNI needs C glue, headers, and a separate native build. A note mentions the enable-native-access flag." caption="Figure 11.10 — Calling libc through the FFM API" %}
+{% include excalidraw.html file="11-panama-ffm" alt="Java calls Linker.nativeLinker, whose defaultLookup finds libc symbols. downcallHandle with a FunctionDescriptor produces a method handle for getpid and strlen. An Arena allocates an off-heap MemorySegment holding a C string and frees it when the arena closes. A contrast box notes that JNI needs C glue, headers, and a separate native build. A note mentions the enable-native-access flag." caption="Figure 11.10: Calling libc through the FFM API" %}
 
 The script [PanamaFfm.java]({{ site.repo_blob }}/demos/jbang/PanamaFfm.java) calls two libc functions:
 
@@ -730,12 +730,12 @@ twin on startup and memory, with and without the AOT cache.
 
 ## For deeper coverage
 
-- [Quarkus — Hibernate ORM with Panache guide](https://quarkus.io/guides/hibernate-orm-panache) — active record versus the repository pattern, straight from the extension's own documentation.
-- [Quarkus — gRPC guide](https://quarkus.io/guides/grpc) — generated Mutiny service interfaces and blocking stubs, covered here with `inventory-service`'s `CheckStock`.
-- [Quarkus — SmallRye GraphQL guide](https://quarkus.io/guides/smallrye-graphql) — `@Source` field resolvers and the composition pattern `graphql-gateway` uses.
-- [Quarkus — WebSockets Next guide](https://quarkus.io/guides/websockets-next) — the `OpenConnections` registry and execution-model rules behind the push path in `notification-service`.
-- [Quarkus — Writing native applications guide](https://quarkus.io/guides/building-native-image) — the closed-world build model behind `demo-native.sh`.
-- [OpenJDK — Project Panama / Foreign Function & Memory API](https://openjdk.org/jeps/454) — the JEP behind the `PanamaFfm.java` example.
+- [Quarkus: Hibernate ORM with Panache guide](https://quarkus.io/guides/hibernate-orm-panache): active record versus the repository pattern, straight from the extension's own documentation.
+- [Quarkus: gRPC guide](https://quarkus.io/guides/grpc): generated Mutiny service interfaces and blocking stubs, covered here with `inventory-service`'s `CheckStock`.
+- [Quarkus: SmallRye GraphQL guide](https://quarkus.io/guides/smallrye-graphql): `@Source` field resolvers and the composition pattern `graphql-gateway` uses.
+- [Quarkus: WebSockets Next guide](https://quarkus.io/guides/websockets-next): the `OpenConnections` registry and execution-model rules behind the push path in `notification-service`.
+- [Quarkus: Writing native applications guide](https://quarkus.io/guides/building-native-image): the closed-world build model behind `demo-native.sh`.
+- [OpenJDK: Project Panama / Foreign Function & Memory API](https://openjdk.org/jeps/454): the JEP behind the `PanamaFfm.java` example.
 
 ---
 

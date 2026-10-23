@@ -19,23 +19,25 @@ By the end of this chapter you can:
 
 ## Why this matters
 
-A data product's demand is not constant. An event consumer has work only when events
-are flowing; a read gateway is busy only while consumers are querying it. Provisioning
-either for its peak, all the time, wastes resources; provisioning for the average means
-falling over at the peak.
+At 2am, `notification-service` has nothing to do. No orders are coming in, so
+there's no `order.placed` to react to, and a pod sitting idle still costs CPU
+and memory reservations whether or not it does any work. At 9am, a burst of
+orders arrives and the same service needs several replicas at once to keep
+up with the backlog. Provisioning for the peak wastes resources all night;
+provisioning for the average falls over at 9am.
 
-This chapter covers the platform handling that
-automatically — scaling two products in this repo to match demand, including down
-to **zero** when there is none, and recovering when something fails. Both are **self-serve platform** capabilities: a
-domain team gets elasticity and resilience from the platform instead of building them
-itself.
+This chapter covers the platform handling that automatically: scaling two
+products in this repo to match demand, including down to **zero** when
+there is none, and recovering when something fails. Both are **self-serve
+platform** capabilities. A domain team gets elasticity and resilience from
+the platform instead of building either one itself.
 
-## Scaling to demand — and to zero — with KEDA
+## Scaling to demand, and to zero, with KEDA
 
 The stock Kubernetes autoscaler (the HPA) scales on CPU and memory, which is a poor
 proxy for what a data product is waiting on. A consumer's load is *messages
-waiting to be processed*; a gateway's load is *requests arriving*. KEDA — Kubernetes
-Event-Driven Autoscaling — scales on those signals instead, and it can scale a
+waiting to be processed*; a gateway's load is *requests arriving*. KEDA, Kubernetes
+Event-Driven Autoscaling, scales on those signals instead, and it can scale a
 workload to **zero** when the signal is absent, then back up when it
 returns.
 
@@ -47,24 +49,22 @@ on the target Deployment behind the scenes, fed by an `external.metrics.k8s.io` 
 server that KEDA itself runs. From `1` replica upward, the familiar HPA control
 loop is doing the scaling, on a Kafka-lag or HTTP-rate metric instead of CPU.
 
-The
-HPA cannot do the zero-to-one transition on its own: a
+The HPA cannot do the zero-to-one transition on its own: a
 `HorizontalPodAutoscaler` has never been able to target `minReplicas: 0`, because
 nothing would ever ask it to wake back up once there were no pods left to measure.
 KEDA's operator sits outside that loop to cover this gap. It polls the
-trigger source directly — Kafka consumer-group lag, an HTTP request-rate signal — even
+trigger source directly, Kafka consumer-group lag, an HTTP request-rate signal, even
 while the Deployment is at zero replicas, and the moment that signal crosses the
 activation threshold, KEDA itself scales the Deployment from `0` to `1`. At that point
 the ordinary HPA it created takes back over for `1` through `maxReplicaCount`.
 
-In
-short, KEDA drives an HPA for the `1`-to-`N` range; its operator alone handles
-`0`-to-`1`. Both scalers in this repo ride that same two-tier shape.
+So KEDA drives an HPA for the `1`-to-`N` range, and its operator alone
+handles `0`-to-`1`. Both scalers in this repo ride that same two-tier shape.
 
-{% include excalidraw.html file="07-hpa-vs-keda" alt="Diagram comparing the stock Kubernetes HPA scaling on CPU/memory with KEDA driving an HPA from external signals (Kafka lag, HTTP rate) and handling the zero-to-one activation the HPA cannot do on its own" caption="Figure 7.1 — the stock HPA vs. KEDA's two-tier scale-to-zero model" %}
+{% include excalidraw.html file="07-hpa-vs-keda" alt="Diagram comparing the stock Kubernetes HPA scaling on CPU/memory with KEDA driving an HPA from external signals (Kafka lag, HTTP rate) and handling the zero-to-one activation the HPA cannot do on its own" caption="Figure 7.1: the stock HPA vs. KEDA's two-tier scale-to-zero model" %}
 
 [setup-keda.sh]({{ site.repo_blob }}/scripts/setup-keda.sh) installs both pieces: KEDA core and
-the KEDA HTTP add-on, pinned to `2.21.0` and `0.16.0` respectively —
+the KEDA HTTP add-on, pinned to `2.21.0` and `0.16.0` respectively:
 
 ```bash
 helm upgrade --install keda kedacore/keda \
@@ -127,18 +127,19 @@ group id is `quarkus.application.name`, which its own [application.properties]({
 `group.id`, this `consumerGroup` value has to change with it, or the scaler watches a
 group that no longer exists.
 
-`minReplicaCount: 0` is what makes this scale-to-zero:
-when there's no backlog, KEDA's HPA holds the Deployment at zero replicas; once lag on
-`order.placed` crosses `lagThreshold: 5`, it scales up, and once lag drains back under
-threshold and stays there for `cooldownPeriod: 120` seconds, it scales back to zero.
-`pollingInterval: 15` is the other half of the activation latency budget: KEDA's
-external scaler polls the Kafka consumer-group offsets API for this topic/group pair
-every 15 seconds while the Deployment sits at zero, so in the worst case a burst of
-messages can sit for close to that long before KEDA even notices lag has crossed the
-threshold, a cost accepted to avoid querying the broker's offset API
+`minReplicaCount: 0` is what makes this scale-to-zero. When there's no
+backlog, KEDA's HPA holds the Deployment at zero replicas; once lag on
+`order.placed` crosses `lagThreshold: 5`, it scales up, and once lag drains
+back under threshold and stays there for `cooldownPeriod: 120` seconds, it
+scales back to zero. `pollingInterval: 15` is the other half of the
+activation latency budget: KEDA's external scaler polls the Kafka
+consumer-group offsets API for this topic/group pair every 15 seconds while
+the Deployment sits at zero, so in the worst case a burst of messages can
+sit for close to that long before KEDA even notices lag has crossed the
+threshold. That's a cost accepted to avoid querying the broker's offset API
 every second.
 
-{% include excalidraw.html file="07-keda-lag" alt="Diagram of the KEDA Kafka-lag scaler polling consumer-group lag on the order.placed topic and scaling notification-service from zero to N replicas once lag crosses the threshold, then back to zero after the cooldown period" caption="Figure 7.2 — Kafka consumer-group lag driving notification-service from zero" %}
+{% include excalidraw.html file="07-keda-lag" alt="Diagram of the KEDA Kafka-lag scaler polling consumer-group lag on the order.placed topic and scaling notification-service from zero to N replicas once lag crosses the threshold, then back to zero after the cooldown period" caption="Figure 7.2: Kafka consumer-group lag driving notification-service from zero" %}
 
 ### HTTP-request scaling: `graphql-gateway`
 
@@ -181,8 +182,8 @@ Service bypasses the interceptor: it is never counted and does not wake a
 scaled-to-zero Deployment. `scaleTargetRef.service` plus exactly one of `port`/
 `portName` is required by the add-on's CRD; both are set here.
 
-The HTTP add-on has two parts, both visible in the manifest above and in the demo below. The **interceptor** is the proxy every request transits —
-it buffers requests to a scaled-to-zero target (rather than failing them immediately)
+The HTTP add-on has two parts, both visible in the manifest above and in the demo below. The **interceptor** is the proxy every request transits.
+It buffers requests to a scaled-to-zero target (rather than failing them immediately)
 and reports live request-rate metrics for whatever `host`/`pathPrefix` pair matches.
 The **external scaler** is what the HTTPScaledObject's `scalingMetric.requestRate`
 section feeds into KEDA core's own external-scaler protocol, translating the
@@ -193,7 +194,7 @@ above.
 through the same interceptor would not count toward this scaler's `requestRate`, since
 it falls outside the declared prefix.
 
-{% include excalidraw.html file="07-keda-http-addon" alt="Diagram of the KEDA HTTP add-on's interceptor proxy buffering requests to graphql-gateway and reporting request-rate to the external scaler, which drives the HTTPScaledObject's zero-to-N activation" caption="Figure 7.3 — the KEDA HTTP add-on's interceptor and external scaler" %}
+{% include excalidraw.html file="07-keda-http-addon" alt="Diagram of the KEDA HTTP add-on's interceptor proxy buffering requests to graphql-gateway and reporting request-rate to the external scaler, which drives the HTTPScaledObject's zero-to-N activation" caption="Figure 7.3: the KEDA HTTP add-on's interceptor and external scaler" %}
 
 ### Why the HTTP scaler goes on the gateway, not on order-service
 
@@ -201,7 +202,7 @@ it falls outside the declared prefix.
 [progressive-delivery canary](/docs/06-progressive-delivery-mtls/) would split traffic
 across by weight, and HTTP-scaling a service whose traffic is simultaneously being
 split by an Istio `VirtualService` would put two control loops fighting over the same
-pod count for the same reason — one deciding replica count from request volume, the
+pod count for the same request: one deciding replica count from request volume, the
 other deciding which version each request lands on. `graphql-gateway` is a natural
 synchronous-read scaling target with no such conflict. Each scaler matches the product that needs it: lag-based for the consumer, request-based for the
 gateway, neither on the canary candidate.
@@ -218,7 +219,7 @@ kubectl kustomize "${K8S_DIR}/keda" >"$KEDA_RENDER_LOG"
 Both demos render [the minikube overlay]({{ site.repo_tree }}/k8s/overlays/minikube) and [keda]({{ site.repo_tree }}/k8s/keda) with `kubectl`'s bundled
 kustomize and grep the output for the exact resource names, kinds, and field values the
 manifests above declare (the `ScaledObject`/`HTTPScaledObject` kind, the target
-Deployment name, the Kafka topic, the `replicas.min: 0` scale-to-zero setting) — which shows the manifests are structurally sound and say what the demo expects before it
+Deployment name, the Kafka topic, the `replicas.min: 0` scale-to-zero setting). That shows the manifests are structurally sound and say what the demo expects before it
 needs a cluster. Only after every one of those checks passes does each script gate on
 cluster reachability (`minikube status -p datamesh` and `kubectl cluster-info`) and
 fail loudly, with the exact fix command, if no cluster is up.
@@ -245,8 +246,8 @@ Each polling budget is sized against a specific cost in the path it measures:
   exact things to check (interceptor logs, the `Host` header match, the
   `HTTPScaledObject`'s own status).
 - [demo-keda-kafka.sh]({{ site.repo_blob }}/demos/demo-keda-kafka.sh) polls a `SCALE_UP_BUDGET=180` seconds for the climb off
-  baseline, then a separate `SCALE_DOWN_BUDGET=300` seconds — in ten-second
-  increments — for the drain back to baseline. That drain budget is
+  baseline, then a separate `SCALE_DOWN_BUDGET=300` seconds, in ten-second
+  increments, for the drain back to baseline. That drain budget is
   wider than `cooldownPeriod: 120`, to leave margin for KEDA's own `pollingInterval`
   and the HPA's downscale stabilization window on top of the manifest's nominal
   cooldown.
@@ -265,12 +266,13 @@ in-cluster: `order-service` targets `inventory-service` on the canonical gRPC po
 `inventory-service` has its own Deployment + Service under [base]({{ site.repo_tree }}/k8s/base). The packaged
 image also trusts the Avro event package, so the publish succeeds.
 
-A successful
-`POST /orders` therefore emits an `order.placed` event, giving the KEDA Kafka-lag
-scaler application traffic to act on. The demo drives the endpoint instead of a raw Kafka producer, so any scale-up
-is caused by the order flow. See the verification note below for what was observed on a cluster.
+A successful `POST /orders` therefore emits an `order.placed` event, giving
+the KEDA Kafka-lag scaler application traffic to act on. The demo drives
+the endpoint instead of a raw Kafka producer, so any scale-up is caused by
+the order flow. See the verification note below for what was observed on a
+cluster.
 
-{% include excalidraw.html file="07-keda-http" alt="Diagram of demo-keda-http.sh driving a request burst through the interceptor proxy with the Host header set, polling graphql-gateway's replica count until it climbs off baseline within the 240-second scale-up budget" caption="Figure 7.4 — demo-keda-http.sh: burst load through the interceptor, polled against the scale-up budget" %}
+{% include excalidraw.html file="07-keda-http" alt="Diagram of demo-keda-http.sh driving a request burst through the interceptor proxy with the Host header set, polling graphql-gateway's replica count until it climbs off baseline within the 240-second scale-up budget" caption="Figure 7.4: demo-keda-http.sh: burst load through the interceptor, polled against the scale-up budget" %}
 
 ## Resilience: recoverability as a platform property
 
@@ -281,14 +283,14 @@ Kubernetes gives a Deployment a great deal of this automatically: a crashed cont
 restarted according to its `restartPolicy`, a bad rollout can be rolled back, a node's
 pods are rescheduled elsewhere, and the reconciliation loop continuously drives the
 cluster back toward the declared spec rather than letting it drift. A service deployed
-this way is recoverable by construction — the platform brings it back without a human
+this way is recoverable by construction: the platform brings it back without a human
 in the loop.
 
 In this stack specifically, that property compounds across pieces already described in
 earlier chapters: CloudNativePG knows how to recover the Postgres cluster it manages,
 Strimzi does the same for Kafka, and a consumer that was briefly scaled to zero or
 down for a moment can catch up on exactly the backlog it missed the moment it
-comes back — because KEDA's `minReplicaCount: 0` is not a failure state; it means there is nothing to do. `order-service`'s
+comes back, because KEDA's `minReplicaCount: 0` is not a failure state; it means there is nothing to do. `order-service`'s
 own health
 probes (`startupProbe`/`readinessProbe`/`livenessProbe` against `quarkus-smallrye-
 health`'s `/q/health/started`, `/q/health/ready`, `/q/health/live`, all present in
@@ -300,7 +302,7 @@ One asymmetry here: `graphql-gateway` does not depend on
 `quarkus-smallrye-health` (its [pom.xml]({{ site.repo_blob }}/examples/graphql-gateway/pom.xml) pulls `quarkus-smallrye-graphql`,
 `quarkus-rest-client[-jackson]`, `quarkus-grpc`, and `quarkus-arc`, but not the health
 extension), so `/q/health/*` would 404 on it. [graphql-gateway.yaml]({{ site.repo_blob }}/k8s/base/graphql-gateway.yaml) falls
-back to a `tcpSocket` probe on its HTTP port instead — a weaker check that proves the
+back to a `tcpSocket` probe on its HTTP port instead, a weaker check that proves the
 listener is up but not that GraphQL execution works. [README.md]({{ site.repo_blob }}/k8s/README.md) documents the gap, and the fix (add the health extension,
 switch the probes to `httpGet` on `/q/health/*`) is a one-dependency change outside this
 chapter's scope.
@@ -319,24 +321,24 @@ manual intervention.
 
 To a domain team, elasticity and recoverability are
 capabilities the self-serve platform provides so individual products don't each have to
-solve them — `notification-service` scales to its backlog because KEDA scales it, and
+solve them. `notification-service` scales to its backlog because KEDA scales it, and
 `order-service` survives a crashed pod because Kubernetes reconciles it back. The
 domain declares what it wants, a `ScaledObject` or a set of health probes, and the
 platform delivers the runtime behavior: the self-serve principle applied to a
 product's *operational* properties as well as its deployment.
 
 Next, the capability that makes all of this observable: seeing what the mesh is
-doing: its metrics, its traces, and the live view of traffic moving between
+doing, its metrics, its traces, and the live view of traffic moving between
 products.
 
 ## For deeper coverage
 
-- *Cloud Native Patterns* by Cornelia Davis — the elasticity and scaling patterns a self-serve platform exists to provide.
-- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß — the reconciliation-loop and health-probe patterns behind the resilience section above.
-- *Platform Engineering on Kubernetes* by Mauricio Salatino — framing elasticity and recoverability as platform capabilities a domain team consumes rather than builds.
-- [KEDA documentation](https://keda.sh/docs/) — `ScaledObject`, `HTTPScaledObject`, and the scale-to-zero model this chapter covers.
-- [Kubernetes — Horizontal Pod Autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) — the HPA control loop KEDA drives from `1` replica upward.
+- *Cloud Native Patterns* by Cornelia Davis: the elasticity and scaling patterns a self-serve platform exists to provide.
+- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß: the reconciliation-loop and health-probe patterns behind the resilience section above.
+- *Platform Engineering on Kubernetes* by Mauricio Salatino: framing elasticity and recoverability as platform capabilities a domain team consumes rather than builds.
+- [KEDA documentation](https://keda.sh/docs/): `ScaledObject`, `HTTPScaledObject`, and the scale-to-zero model this chapter covers.
+- [Kubernetes: Horizontal Pod Autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/): the HPA control loop KEDA drives from `1` replica upward.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. Observed directly on a local Kubernetes cluster (`minikube`): both ScaledObjects drive their targets to zero at rest (`notification-service` and `graphql-gateway` sit at 0 replicas), and `notification-service` scales up from zero on Kafka consumer-group lag — placing valid orders emits `order.placed`, lag crosses the threshold, and KEDA activates the ScaledObject and scales the deployment 0→1. Driving this surfaced a bug in `demo-keda-kafka.sh` (it posted orders for an unseeded SKU, so order placement 409'd and produced no events), now fixed by seeding stock before the burst. Re-run on 2026-10-06 through `demos/walkthrough.sh --from act5 --with-minikube`: both demos passed. `demo-keda-kafka` scaled `notification-service` 0→1 on lag from 60 orders and drained back to 0 after the cooldown; `demo-keda-http` scaled `graphql-gateway` 0→1 through the interceptor, and all 120 GraphQL requests returned 200, including the first, held during the cold start. That run fixed three demo bugs: the HTTP load targeted the interceptor proxy on port 80 instead of 8080, it sent a bare GET that the gateway answers with 405, and both demos started from one running replica, which drained the burst before KEDA's 15 s poll saw any load. Each demo now scales its target to zero and waits out KEDA's scale-down window before the burst. Single run. Versions moved on 2026-10-09 to Kubernetes v1.36.5, Istio 1.31.1, KEDA 2.21.0 / HTTP add-on 0.16.0, Strimzi 1.2.0 (Kafka 4.3.1), CloudNativePG 1.30.1 and the newest LGTM charts (DRQ-029); this chapter is not yet re-verified on those pins.*
+*Verification status: <span class="status status--verified">verified</span>. Observed directly on a local Kubernetes cluster (`minikube`): both ScaledObjects drive their targets to zero at rest (`notification-service` and `graphql-gateway` sit at 0 replicas), and `notification-service` scales up from zero on Kafka consumer-group lag: placing valid orders emits `order.placed`, lag crosses the threshold, and KEDA activates the ScaledObject and scales the deployment 0→1. Driving this surfaced a bug in `demo-keda-kafka.sh` (it posted orders for an unseeded SKU, so order placement 409'd and produced no events), now fixed by seeding stock before the burst. Re-run on 2026-10-06 through `demos/walkthrough.sh --from act5 --with-minikube`: both demos passed. `demo-keda-kafka` scaled `notification-service` 0→1 on lag from 60 orders and drained back to 0 after the cooldown; `demo-keda-http` scaled `graphql-gateway` 0→1 through the interceptor, and all 120 GraphQL requests returned 200, including the first, held during the cold start. That run fixed three demo bugs: the HTTP load targeted the interceptor proxy on port 80 instead of 8080, it sent a bare GET that the gateway answers with 405, and both demos started from one running replica, which drained the burst before KEDA's 15 s poll saw any load. Each demo now scales its target to zero and waits out KEDA's scale-down window before the burst. Single run. Versions moved on 2026-10-09 to Kubernetes v1.36.5, Istio 1.31.1, KEDA 2.21.0 / HTTP add-on 0.16.0, Strimzi 1.2.0 (Kafka 4.3.1), CloudNativePG 1.30.1 and the newest LGTM charts (DRQ-029); this chapter is not yet re-verified on those pins.*

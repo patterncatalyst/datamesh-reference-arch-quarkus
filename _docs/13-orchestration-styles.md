@@ -35,7 +35,7 @@ back (see "Build, run, observe" below for what each act checks).
 **Choreography** means every participant reacts to events on its own terms,
 with no central process telling it when to run. `order-service` publishes
 `order.placed` to Kafka and has never heard of `payment-service` or
-`shipping-service` — it doesn't know they exist, doesn't call them, and
+`shipping-service`. It doesn't know they exist, doesn't call them, and
 doesn't wait for anything from them.
 
 `payment-service` independently
@@ -43,7 +43,7 @@ subscribes to `order.placed`; when one arrives, it captures payment and
 publishes `payment.captured`. `shipping-service` independently subscribes to
 `payment.captured`; when one arrives, it dispatches a shipment and publishes
 `shipment.dispatched`. `notification-service` *also* independently
-subscribes to `order.placed` — a fourth reaction to the same original event,
+subscribes to `order.placed`, a fourth reaction to the same original event,
 running in parallel with the payment/shipping chain, not after it.
 
 ```text
@@ -53,10 +53,10 @@ order-service --order.placed--> [Kafka] --> payment-service --payment.captured--
 
 No service holds a reference to "the whole sequence." Each one only knows
 one rule: *when event X arrives, do Y and emit Z* (or, for
-`notification-service`, *when event X arrives, do Y* — it emits nothing
+`notification-service`, *when event X arrives, do Y*; it emits nothing
 further). `demos/demo-orchestration-styles.sh`'s first act proves this by
 placing one real order and then reading the raw bytes back off each
-downstream topic with `kcat` — a byte-level Kafka consumer, no Avro
+downstream topic with `kcat`, a byte-level Kafka consumer, no Avro
 deserializer involved on the read side. It asserts the Apicurio/Confluent
 wire-format magic byte (`0x00`) is the first byte of each record, which is
 the demo's check that these are Avro-encoded events on Kafka. It also queries `shipping-service`'s own Postgres table
@@ -193,7 +193,7 @@ return FlowWorkflowBuilder.workflow("order-triage")
     .build();
 ```
 
-{% include excalidraw.html file="13-orchestration-styles" alt="Three coordination shapes over the same shipping/order domain: decentralized Kafka choreography across order-service, payment-service, shipping-service and notification-service with no central caller; a Camel route in ai-rules-service explicitly sequencing classify then decide; and a declarative Quarkus Flow workflow document expressing the same two tasks" caption="Figure 13.1 — Choreography and two orchestration shapes, side by side" %}
+{% include excalidraw.html file="13-orchestration-styles" alt="Three coordination shapes over the same shipping/order domain: decentralized Kafka choreography across order-service, payment-service, shipping-service and notification-service with no central caller; a Camel route in ai-rules-service explicitly sequencing classify then decide; and a declarative Quarkus Flow workflow document expressing the same two tasks" caption="Figure 13.1: Choreography and two orchestration shapes, side by side" %}
 
 The choreography box has no entry point: every service subscribes to a topic
 and publishes to another, and no node is labeled "coordinator" because none
@@ -214,7 +214,7 @@ function, which is why the Quarkus Flow leg is included.
 | Who knows the whole sequence | No one; each service knows only its own reaction | The route, read top to bottom | The workflow document, read declaratively |
 | Adding a new participant | Zero changes to existing services (just subscribe) | Edit the route to add a step | Edit the workflow document to add a task |
 | Where to look when something's wrong | Every subscriber's own logs/topic | One route's log output | One workflow instance's task history |
-| Best fit | Independent reactions to a domain event, unknown/growing set of subscribers, no step needs to wait on another's result before proceeding | A fixed, code-reviewed business process where the sequence itself is the valuable artifact, and you want full imperative control (branching, error handling, EIPs) | The same kind of fixed business process, but you want the sequence expressed as data (a workflow document) rather than code — useful when the process itself needs to be inspected, versioned, or edited independently of a Java release |
+| Best fit | Independent reactions to a domain event, unknown/growing set of subscribers, no step needs to wait on another's result before proceeding | A fixed, code-reviewed business process where the sequence itself is the valuable artifact, and you want full imperative control (branching, error handling, EIPs) | The same kind of fixed business process, but you want the sequence expressed as data (a workflow document) rather than code; useful when the process itself needs to be inspected, versioned, or edited independently of a Java release |
 | Coupling | Loosest: publishers and subscribers never reference each other | Tighter: the route references every participant bean directly | Tighter, as with Camel, but the reference is a task graph, not imperative calls |
 
 The rule of thumb: reach for **choreography** when you
@@ -222,7 +222,7 @@ have a domain event other parts of the system might react to today or in
 the future, and you don't want the publisher to know or care who's
 listening. Reach for **orchestration** when a specific business process has
 to produce one determinate outcome and you need the sequence itself to be
-an explicit, inspectable artifact — and then choose **imperative**
+an explicit, inspectable artifact. Then choose **imperative**
 (Camel route) vs. **declarative** (Quarkus Flow) based on whether that
 artifact is better reviewed as code or as a document.
 
@@ -231,7 +231,7 @@ artifact is better reviewed as code or as a document.
 A single order does not flow through all three engines (placed via Kafka, then
 triaged via Camel, then triaged again via Flow). The script's header gives the
 reason: the triage endpoints
-(`/triage`, `/triage-flow`) only accept an order's line-item fields — they
+(`/triage`, `/triage-flow`) only accept an order's line-item fields. They
 don't persist anything and don't publish an event.
 
 The Kafka leg's order payload was never run through a classifier-stability trial, and the
@@ -279,8 +279,8 @@ the three mechanisms side by side.
   to existing services.
 - **Orchestration** (Camel, Quarkus Flow): a named coordinator sequences
   explicit steps; the two orchestration engines here differ in *how* the
-  sequence is expressed — imperative route code vs. a declarative workflow
-  document — not in whether a coordinator exists.
+  sequence is expressed, imperative route code vs. a declarative workflow
+  document, not in whether a coordinator exists.
 - The choice between choreography and orchestration depends on who needs to
   see the whole sequence and how loosely coupled the participants should be.
 - For an enterprise mesh the advantage is that all three engines run on one
@@ -295,15 +295,15 @@ the three mechanisms side by side.
 
 Chapter 14 covers the AI-assisted triage behind both
 orchestration legs, including where in-process LLM tool-calling works and
-where it does not.
+where it doesn't.
 
 ## For deeper coverage
 
-- *Cloud Native Patterns* by Cornelia Davis — the choreography-versus-orchestration tradeoff as a cloud-native integration pattern.
-- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß — event-driven and coordination patterns that generalize past this chapter's Kafka/Camel/Flow trio.
-- [Apache Camel — Enterprise Integration Patterns](https://camel.apache.org/components/latest/eips/enterprise-integration-patterns.html) for the EIP vocabulary behind the Camel orchestration leg.
+- *Cloud Native Patterns* by Cornelia Davis: the choreography-versus-orchestration tradeoff as a cloud-native integration pattern.
+- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß: event-driven and coordination patterns that generalize past this chapter's Kafka/Camel/Flow trio.
+- [Apache Camel: Enterprise Integration Patterns](https://camel.apache.org/components/latest/eips/enterprise-integration-patterns.html) for the EIP vocabulary behind the Camel orchestration leg.
 - [CNCF Serverless Workflow specification](https://github.com/serverlessworkflow/specification) for the declarative workflow-document model `quarkus-flow` implements.
-- [Apache Kafka documentation — consumer groups](https://kafka.apache.org/documentation/#intro_consumers) for the choreography leg's decentralized subscribe/publish mechanics.
+- [Apache Kafka documentation: consumer groups](https://kafka.apache.org/documentation/#intro_consumers) for the choreography leg's decentralized subscribe/publish mechanics.
 
 ---
 

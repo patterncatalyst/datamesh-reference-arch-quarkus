@@ -3,7 +3,7 @@ title: "Observability"
 order: 9
 part: Operating the mesh
 marker: "09"
-description: "Metrics, distributed traces, and the live mesh view — the LGTM stack and OpenTelemetry wiring this repo installs, and a verified cross-service trace."
+description: "Metrics, distributed traces, and the live mesh view: the LGTM stack and OpenTelemetry wiring this repo installs, and a verified cross-service trace."
 duration: 30 minutes
 ---
 
@@ -19,53 +19,61 @@ By the end of this chapter you can:
 
 ## Why this matters
 
-The [previous chapter](/docs/07-elastic-and-resilient/) ended on scaling and recovery —
-the platform responding automatically to demand and failure. Automation is only
-reassuring if you can see it happening.
+A single `POST /orders` touches three products: `graphql-gateway` takes the
+request, `order-service` handles it, and a gRPC call lands on
+`inventory-service` along the way. If that request is slow, none of the
+three services' own logs will tell you which one is responsible; each log
+only knows about its own piece.
+
+The [previous chapter](/docs/07-elastic-and-resilient/) ended on scaling and
+recovery, the platform responding automatically to demand and failure.
+Automation is only reassuring if you can see it happening, and a request
+crossing three independently owned products is exactly where a single
+service's own view runs out.
 
 This chapter covers observability as this repo ships it: the LGTM stack
 ([setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh)) that collects metrics, traces, and logs; the demo
 ([demo-tracing.sh]({{ site.repo_blob }}/demos/demo-tracing.sh)) that was run against a live backend and produced a verified
 cross-service trace; and Kiali as the live view of traffic moving through the mesh.
 
-{% include excalidraw.html file="08-reference-architecture" alt="Reference architecture diagram showing the full datamesh stack: data products behind the Istio mesh, KEDA-driven autoscaling, and every signal flowing through the OpenTelemetry Collector into the Grafana LGTM stack and Kiali" caption="Figure 8.1 — the full reference architecture: mesh, scaling, and observability together" %}
+{% include excalidraw.html file="08-reference-architecture" alt="Reference architecture diagram showing the full datamesh stack: data products behind the Istio mesh, KEDA-driven autoscaling, and every signal flowing through the OpenTelemetry Collector into the Grafana LGTM stack and Kiali" caption="Figure 8.1: the full reference architecture: mesh, scaling, and observability together" %}
 
 Figure 8.1 combines the pieces from the last three chapters. The data products from earlier chapters sit behind the selectively-meshed
 Istio data plane from [Chapter 6](/docs/06-progressive-delivery-mtls/), and KEDA
 watches and scales two of them from [Chapter 7](/docs/07-elastic-and-resilient/).
-Every one of those moving parts — the mesh's sidecars, the scalers' activations, the
-services' own request handling — is a source of telemetry, and all of it lands in the
+Every one of those moving parts, the mesh's sidecars, the scalers' activations, the
+services' own request handling, is a source of telemetry, and all of it lands in the
 same place: the Collector and LGTM stack described here. Those mechanisms are
 observable together only through this stack.
 
 ## The three signals and why a mesh needs all of them
 
-Observability conventionally rests on three kinds of signal, and a mesh of
-independently-owned products has a distinct use for each. **Metrics** are aggregate
-numbers over time — request rates, error rates, consumer lag, replica counts, including the
-signal that shows the [KEDA](/docs/07-elastic-and-resilient/) scaler
-waking a replica. **Traces** follow one request as it crosses product boundaries, which
-is the only way to see that a slow GraphQL query was slow because the gRPC call it made
-downstream was slow — no single product's own logs would reveal that. **Logs** are the
-detailed per-event record you reach for once metrics and traces have told you *where*
-to look.
+Take that same `graphql-gateway` → `order-service` → `inventory-service`
+request. A **metric**, a replica count that climbed or a latency panel that
+spiked, tells you something changed. A **trace** for that specific request
+tells you which of the three services were involved and where the time
+went: maybe the gRPC call to `inventory-service` is what's slow, not the
+GraphQL layer itself. A **log** line from the one span that looks slow
+tells you why: the exception, the SQL statement, the retry.
 
-A request that touches `graphql-gateway`, `order-service`, and
-`inventory-service` is one user-facing operation spread across three independently
-owned products; understanding it means correlating signals that no single product owns
-in full.
+That's the order you reach for the three signals in practice, and a mesh of
+independently-owned products needs all three because no single product's
+logs can answer a question that spans product boundaries. **Metrics** are
+aggregate numbers over time (request rates, error rates, consumer lag,
+replica counts, including the signal that shows the
+[KEDA](/docs/07-elastic-and-resilient/) scaler waking a replica).
+**Traces** follow one request as it crosses product boundaries, which is
+the only way to see that a slow GraphQL query was slow because the gRPC
+call it made downstream was slow. **Logs** are the detailed per-event
+record you reach for once metrics and traces have told you *where* to
+look.
 
-{% include excalidraw.html file="08-three-signals" alt="Diagram of the three observability signal types — metrics, traces, and logs — and what each one answers for a request crossing graphql-gateway, order-service, and inventory-service" caption="Figure 8.2 — metrics, traces, and logs: what each signal answers" %}
+{% include excalidraw.html file="08-three-signals" alt="Diagram of the three observability signal types: metrics, traces, and logs, and what each one answers for a request crossing graphql-gateway, order-service, and inventory-service" caption="Figure 8.2: metrics, traces, and logs: what each signal answers" %}
 
-None of the three signals substitutes for the others, and the order you reach for them
-in practice usually runs in one direction: a metric (a replica count that climbed, an
-error-rate panel that spiked) tells you *something* changed and roughly *when*; a trace
-for a request in that window tells you *which* products were involved and where the
-time went; a log line from the specific span that looks slow tells you *why* —
-the exception, the SQL statement, the retry. Skipping straight to logs without a trace
-to narrow the search means grepping three services' logs for a needle with no idea
-which haystack it's in; that is the cost of a mesh without tracing,
-and the cost this stack is built to avoid.
+Skipping straight to logs without a trace to narrow the search means
+grepping three services' logs for a needle with no idea which haystack it's
+in. That's the cost of a mesh without tracing, and the cost this stack is
+built to avoid.
 
 ## Installing the stack: [setup-lgtm.sh]({{ site.repo_blob }}/scripts/setup-lgtm.sh)
 
@@ -107,11 +115,11 @@ Collector, Grafana and Kiali use. Tempo 3 serves its
 HTTP API on port 3200 (the 1.x chart used 3100).
 
 Four backends, one convention each: Loki for logs, Tempo for traces, Mimir for
-metrics — all filesystem-backed — and Grafana wired with the
+metrics, all filesystem-backed, and Grafana wired with the
 sidecar pattern so it picks up any ConfigMap labeled `grafana_datasource: "1"` or
 `grafana_dashboard: "1"` without a manual provisioning step per dashboard.
 
-{% include excalidraw.html file="08-observability-stack" alt="Diagram of the four LGTM backends — Loki, Tempo, Mimir, Grafana — each running filesystem-backed and single-replica in the observability namespace, fed by one shared OpenTelemetry Collector" caption="Figure 8.3 — the LGTM stack: four backends, one Collector, one Grafana" %}
+{% include excalidraw.html file="08-observability-stack" alt="Diagram of the four LGTM backends: Loki, Tempo, Mimir, Grafana, each running filesystem-backed and single-replica in the observability namespace, fed by one shared OpenTelemetry Collector" caption="Figure 8.3: the LGTM stack: four backends, one Collector, one Grafana" %}
 
 ### Everything through one Collector
 
@@ -143,21 +151,20 @@ pipeline runs its batch through the same two processors before exporting.
 pod. `resource` stamps every signal with a `cluster: minikube` attribute, useful once
 more than one cluster reports into the same Grafana.
 
-Routing everything
-through one Collector, instead of wiring each service to each backend,
-concentrates future changes in one place: adding tail sampling, label redaction, or
-cardinality control later is a change to this one file, not to every service that
-emits telemetry. The application services also need not know that
-Mimir uses a remote-write push model while Tempo and Loki take OTLP-native exports.
-Each pipeline's `exporters` list hides that detail behind
-the one `otlp` receiver every service talks to, so a backend swap — Tempo for
-a different tracing store, say — is a change to one exporter block, not to any
-service's configuration.
+Routing everything through one Collector, instead of wiring each service
+to each backend, concentrates future changes in one place: adding tail
+sampling, label redaction, or cardinality control later is a change to
+this one file, not to every service that emits telemetry. The application
+services also need not know that Mimir uses a remote-write push model
+while Tempo and Loki take OTLP-native exports. Each pipeline's `exporters`
+list hides that detail behind the one `otlp` receiver every service talks
+to, so a backend swap, Tempo for a different tracing store, say, is a
+change to one exporter block, not to any service's configuration.
 
 ### Mimir registered as both itself and Prometheus
 
-[grafana-datasources.yaml]({{ site.repo_blob }}/scripts/grafana-datasources.yaml) registers Mimir **twice** — once as itself, once
-aliased as `Prometheus` — both pointing at the same URL
+[grafana-datasources.yaml]({{ site.repo_blob }}/scripts/grafana-datasources.yaml) registers Mimir **twice**, once as itself and once
+aliased as `Prometheus`, both pointing at the same URL
 (`http://mimir-nginx.observability.svc.cluster.local:80/prometheus`):
 
 ```yaml
@@ -174,8 +181,8 @@ datasources:
 
 Per the file's comment, Mimir replaces Prometheus here.
 Mimir exposes a Prometheus-compatible query API, so anything written to expect
-a datasource named `prometheus` — a dashboard JSON exported from elsewhere, a
-PromQL query pasted from documentation — works unmodified, while Mimir is the only
+a datasource named `prometheus` (a dashboard JSON exported from elsewhere, a
+PromQL query pasted from documentation) works unmodified, while Mimir is the only
 metrics backend running. The same Prometheus-compatible endpoint
 lets Kiali (below) treat Mimir as its metrics source with no separate Prometheus
 install.
@@ -185,7 +192,7 @@ install.
 [grafana-dashboards]({{ site.repo_tree }}/scripts/grafana-dashboards) holds four dashboard ConfigMaps
 ([dashboard-overview.yaml]({{ site.repo_blob }}/scripts/grafana-dashboards/dashboard-overview.yaml), [dashboard-loki.yaml]({{ site.repo_blob }}/scripts/grafana-dashboards/dashboard-loki.yaml), [dashboard-tempo.yaml]({{ site.repo_blob }}/scripts/grafana-dashboards/dashboard-tempo.yaml),
 [dashboard-mimir.yaml]({{ site.repo_blob }}/scripts/grafana-dashboards/dashboard-mimir.yaml)), each labeled `grafana_dashboard: "1"` so Grafana's sidecar
-mounts them automatically — no manual "import dashboard" step. The overview dashboard's
+mounts them automatically, no manual "import dashboard" step. The overview dashboard's
 first row is a trio of ingest-rate stats, one per backend:
 
 ```json
@@ -201,9 +208,9 @@ first row is a trio of ingest-rate stats, one per backend:
 
 Its header comment states the design: "Top-row panels show
 whether each of the four backends is receiving signal; lower rows let you drill into
-traces, logs, or metrics from one place" — a single landing page that answers "is
-anything broken in the observability pipeline itself" before you go looking for an
-application problem.
+traces, logs, or metrics from one place." The point is a single landing page that
+answers "is anything broken in the observability pipeline itself" before you go looking
+for an application problem.
 
 ## A verified cross-service trace
 
@@ -214,16 +221,16 @@ instead of code review.
 
 The trace it produces follows a single `POST /orders` across two services:
 `order-service` handles the REST request and calls `inventory-service`'s
-`CheckStock` over gRPC — the same cross-service hop `OrderResource.placeOrder`
+`CheckStock` over gRPC, the same cross-service hop `OrderResource.placeOrder`
 performs for every order. Neither service has `quarkus-opentelemetry` on its
-classpath (confirmed by grepping every `examples/*/pom.xml` for "opentelemetry" —
+classpath (confirmed by grepping every `examples/*/pom.xml` for "opentelemetry":
 nothing), and that extension is a build-time dependency, not something a runtime flag
 can retrofit onto an already-packaged jar.
 
-So the demo takes the zero-pom-touch path:
-it attaches the upstream OpenTelemetry Java auto-instrumentation agent as a
-`-javaagent:` flag to both already-built `quarkus-run.jar` processes, which
-auto-instruments JAX-RS, the gRPC client and server, and JDBC with no source changes.
+So the demo takes the zero-pom-touch path: it attaches the upstream
+OpenTelemetry Java auto-instrumentation agent as a `-javaagent:` flag to
+both already-built `quarkus-run.jar` processes, which auto-instruments
+JAX-RS, the gRPC client and server, and JDBC with no source changes.
 
 The agent is not vendored into the repo; the demo downloads it once from the
 upstream `opentelemetry-java-instrumentation` project's `latest` GitHub release, and
@@ -253,7 +260,7 @@ curl "${TEMPO_BASE}/api/traces/${TRACE_ID}"
 and asserts three specific things against the parsed trace: at least five spans
 (the REST entry span, the gRPC client/server pair, and Postgres spans from both
 services, at minimum), a span whose `service.name` resource attribute is
-`order-service`, and a span whose `service.name` is `inventory-service` — confirming W3C
+`order-service`, and a span whose `service.name` is `inventory-service`. That confirms W3C
 trace-context propagated across the gRPC call instead of producing two
 disconnected traces. It also asserts that the `CheckStock` gRPC span is present, not
 just some gRPC span. That makes this a verification rather than a smoke test: it shows
@@ -282,13 +289,13 @@ helm upgrade --install kiali-server kiali/kiali-server \
 ```
 
 The script's header explains: "this project has no standalone
-Prometheus — Mimir ... exposes a Prometheus-compatible query API at `/prometheus`,
+Prometheus, Mimir ... exposes a Prometheus-compatible query API at `/prometheus`,
 exactly like the Grafana datasource already does." Kiali is pointed at the same Mimir
 endpoint Grafana uses, which avoids a second metrics
 pipeline that would drift from the first.
 
 Kiali's graph is quiet by default; the script output says: "the live
-traffic graph only shows edges while traffic is flowing — the mesh graph is quiet
+traffic graph only shows edges while traffic is flowing: the mesh graph is quiet
 until a service is opted into the mesh (see [setup-istio.sh]({{ site.repo_blob }}/scripts/setup-istio.sh)) and is receiving
 traffic." That follows from the [selective-injection decision](/docs/06-progressive-delivery-mtls/):
 a product must carry the
@@ -351,11 +358,11 @@ see all of it working.
 
 ## For deeper coverage
 
-- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann & Chris Riccomini — the reasoning behind correlating metrics, traces, and logs rather than treating any one as sufficient on its own.
-- *Cloud Native Patterns* by Cornelia Davis — observability as a platform-provided capability rather than something each service re-implements.
-- [OpenTelemetry documentation](https://opentelemetry.io/docs/) — the OTLP protocol, the Collector's pipeline model, and the Java auto-instrumentation agent `demo-tracing.sh` attaches.
-- [Grafana Tempo documentation](https://grafana.com/docs/tempo/latest/) — the trace storage and query API behind the cross-service trace this chapter verifies.
-- [Grafana Mimir documentation](https://grafana.com/docs/mimir/latest/) — the Prometheus-compatible remote-write model behind the dual Mimir/Prometheus datasource registration.
+- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann & Chris Riccomini: the reasoning behind correlating metrics, traces, and logs rather than treating any one as sufficient on its own.
+- *Cloud Native Patterns* by Cornelia Davis: observability as a platform-provided capability rather than something each service re-implements.
+- [OpenTelemetry documentation](https://opentelemetry.io/docs/): the OTLP protocol, the Collector's pipeline model, and the Java auto-instrumentation agent `demo-tracing.sh` attaches.
+- [Grafana Tempo documentation](https://grafana.com/docs/tempo/latest/): the trace storage and query API behind the cross-service trace this chapter verifies.
+- [Grafana Mimir documentation](https://grafana.com/docs/mimir/latest/): the Prometheus-compatible remote-write model behind the dual Mimir/Prometheus datasource registration.
 
 ---
 

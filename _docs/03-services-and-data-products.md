@@ -11,8 +11,8 @@ marker: "04"
 
 By the end of this chapter you can:
 
-- Build a data product end to end in Quarkus — a Panache entity, a REST
-  resource, a synchronous gRPC dependency, and a Kafka event publish —
+- Build a data product end to end in Quarkus (a Panache entity, a REST
+  resource, a synchronous gRPC dependency, and a Kafka event publish),
   using order-service as the template.
 - Explain why `placeOrder`'s three steps run in a fixed order: validate
   stock over gRPC first (fail-closed), persist only after that succeeds,
@@ -23,7 +23,7 @@ By the end of this chapter you can:
   and the event-only services (notification/payment/shipping) each do.
 - Identify the dual-write gap in the publish-after-commit pattern and name
   the outbox pattern as the production fix this template doesn't implement.
-- Locate a data product's control port in running code — `@RolesAllowed("admin")`
+- Locate a data product's control port in running code: `@RolesAllowed("admin")`
   scoped to one review-service endpoint.
 
 ## Why this matters
@@ -33,8 +33,8 @@ ships a service: as an independently deployable, independently owned unit
 with its own storage, its own API, and its own contract. This chapter makes
 that claim concrete in Quarkus.
 
-It builds one service, order-service, all the way through — entity, REST
-resource, a synchronous call to another service, an event publish — as the
+It builds one service, order-service, all the way through (entity, REST
+resource, a synchronous call to another service, an event publish) as the
 template the rest of the mesh repeats. It then shows two more services,
 inventory-service and review-service, that reuse the same shape while
 varying the protocol surface to fit their role.
@@ -47,31 +47,38 @@ wiring it up.
 
 ## What a data product looks like here
 
-In the abstract, a data product is the *architectural quantum* of a data
-mesh: the smallest independently deployable unit that carries everything it
-needs to do its job — input ports where data comes in, output ports where it
-serves data out, the transformation between them, and enough self-description
-that another domain can find it, understand its shape, and depend on it
-safely.
+Take `order-service`. It owns a slice of Postgres, the `orders` table and
+nothing else, serves data through `POST`/`GET /orders` and a gRPC call out
+to inventory-service, and, from the next chapter on, will publish a
+versioned contract so other domains can depend on its shape without reading
+its source. That's what a data product looks like in this build before any
+theory: an ordinary-looking microservice that happens to carry the
+data-mesh properties as a side effect of how it's built.
 
-Figure 3.1 draws that quantum as the data mesh literature does: input
-and output ports where data crosses the product's boundary, three structural
-pieces doing the work inside — code (pipelines, APIs, policy-as-code), data &
-metadata (polyglot storage, schema, SLOs), and infrastructure (build, deploy,
-run, serve) — and a control port layered on top carrying governance, SLOs,
-and access policy, plus the checklist a product is expected to satisfy:
-discoverable, addressable, understandable, trustworthy, natively accessible,
-interoperable, valuable on its own, and secure.
+The abstract version of that claim is the data mesh literature's
+*architectural quantum*: the smallest independently deployable unit that
+carries everything it needs to do its job: input ports where data comes in,
+output ports where it serves data out, the transformation between them, and
+enough self-description that another domain can find it, understand its
+shape, and depend on it safely. Figure 3.1 draws that quantum the way the
+literature does: the ports at the boundary, three structural pieces doing
+the work inside (code such as pipelines, APIs, and policy-as-code; data and
+metadata such as polyglot storage, schema, and SLOs; and infrastructure for
+build, deploy, run, and serve), and a control port layered on top carrying
+governance, SLOs, and access policy, plus the checklist a product is
+expected to satisfy: discoverable, addressable, understandable, trustworthy,
+natively accessible, interoperable, valuable on its own, and secure.
 
-{% include excalidraw.html file="03-data-product-anatomy" alt="Diagram of a data product's architectural quantum: input and output ports, the code, data and infrastructure components inside, and a governance control port on top" caption="Figure 3.1 — The data product architectural quantum" %}
+{% include excalidraw.html file="03-data-product-anatomy" alt="Diagram of a data product's architectural quantum: input and output ports, the code, data and infrastructure components inside, and a governance control port on top" caption="Figure 3.1: The data product architectural quantum" %}
 
-In this project, that abstraction is concrete: **each domain service *is* a
-data product.** It owns a slice of Postgres (its internal state), serves
-data through its REST/gRPC endpoints (output ports), optionally accepts
-synchronous calls or Kafka events as input, and — from the next chapter on —
-publishes a versioned contract so other domains can depend on its shape
-without reading its source. The service boundary and the data-product
-boundary are the same boundary, which keeps domain ownership enforceable.
+In this project, that abstraction is concrete for every domain service, not
+just order-service: **each domain service *is* a data product.** It owns a
+slice of Postgres (its internal state), serves data through its REST/gRPC
+endpoints (output ports), optionally accepts synchronous calls or Kafka
+events as input, and, from the next chapter on, publishes a versioned
+contract so other domains can depend on its shape without reading its
+source. The service boundary and the data-product boundary are the same
+boundary, which keeps domain ownership enforceable.
 
 | Service | Owns | Surface |
 |---|---|---|
@@ -90,10 +97,10 @@ cross-service synchronous dependency; `order-service` needs both REST (for
 clients) and a gRPC client (to validate stock before committing).
 
 The reasoning behind *which* protocol fits which job is the subject of the
-next two chapters — contracts, then the data planes themselves.
+next two chapters, contracts, then the data planes themselves.
 
 Each service owns its own Postgres schema/database in the shared compose
-stack (`orderdb`, `inventorydb`, and so on — see [init]({{ site.repo_tree }}/infra/db/init) and each
+stack (`orderdb`, `inventorydb`, and so on, see [init]({{ site.repo_tree }}/infra/db/init) and each
 service's `application.properties`). One cluster, one database per service
 gives per-service data ownership without running a fleet of
 database instances.
@@ -165,11 +172,42 @@ later, or reordering the enum, can't silently reinterpret existing rows as
 the wrong status, a risk with `ORDINAL` that costs nothing to avoid.
 
 The `create(...)` static factory is the one place an `Order` gets built: it
-assigns the id, defaults `status` to `PLACED`, and stamps `createdAt` —
+assigns the id, defaults `status` to `PLACED`, and stamps `createdAt`,
 centralizing those decisions so `OrderResource` only ever calls `create(...)`
 and `persist()`, never assembles a half-initialized `Order` by hand.
 
 ### The REST resource: validate, persist, publish
+
+Picture a first cut of `placeOrder` written the obvious way: persist the
+order, then check stock, a **naive write-then-check**:
+
+```java
+@POST
+@Transactional
+public Response placeOrderNaive(OrderCreate payload) {
+    Order order = Order.create(payload.customerId(), payload.itemSku(), payload.quantity(), payload.amount());
+    order.persist();
+
+    CheckStockResponse stock = inventoryClient.checkStock(payload.itemSku(), payload.quantity());
+    eventProducer.publish(order);
+
+    if (!stock.getAvailable()) {
+        return Response.status(Response.Status.CONFLICT).build();
+    }
+    return Response.status(Response.Status.CREATED).entity(toDto(order)).build();
+}
+```
+
+It reads fine until you trace what happens when stock has actually run out.
+The row is already committed and the `order.placed` event is already on the
+wire by the time anyone checks whether the order should have been accepted
+in the first place. The `409` at the end tells the caller "no," but it can't
+unpublish an event a downstream consumer may already have acted on, and it
+can't un-commit a row another transaction may already have read. The order
+of operations isn't a style choice here; it decides whether a rejected order
+can still leak into the rest of the mesh.
+
+Here's what `order-service` actually does, and why the order is reversed:
 
 ```java
 @Path("/orders")
@@ -233,33 +271,37 @@ public class OrderResource {
 }
 ```
 
-`placeOrder` is the whole data-product transformation in one method, and
-the order of its three steps matters:
+`placeOrder` is the whole data-product transformation in one method, fixed
+in the order the naive version got wrong:
 
-1. **Check stock first, over gRPC, before touching Postgres.** `checkStock`
-   is a blocking call into `InventoryClient` (covered next), and a failure
-   there — `StatusRuntimeException`, meaning inventory-service is
-   unreachable or erroring — returns `503` immediately. No row is written.
-   This is **fail-closed**: the method refuses an order it can't validate
-   rather than persisting one it isn't sure about.
-   If stock comes back but isn't `available`, that's a `409 Conflict`, not a
-   `503` — the dependency answered, it just said no.
-2. **Persist only after the gRPC call succeeds.** `Order.create(...)` builds
-   the aggregate and `order.persist()` writes it, inside the method's
-   `@Transactional` boundary (Quarkus's CDI interceptor-backed
-   `jakarta.transaction.Transactional`, which wraps the method in a JTA
-   transaction and commits on normal return). By the time `persist()`
-   returns inside that boundary, the order is durably committed.
-3. **Publish the event only after persistence, and never let a publish
-   failure undo or fail the request.** `eventProducer.publish(order)`
-   returns a `CompletionStage<Void>`; `.exceptionally(...)` attaches a
-   logging-only handler and the method does not `await` the publish at all.
-   The order has already been committed by the time publish is attempted, so
-   a broker outage must not turn into a failed `POST` for work that already
-   succeeded. The cost of that choice — a window where the order is
-   committed but the event never arrives — is the **dual-write gap**, and
-   the comment in `OrderEventProducer` names the production answer: the
-   outbox pattern, which this template does not implement.
+**#A: check stock first, over gRPC, before touching Postgres.** `checkStock`
+is a blocking call into `InventoryClient` (covered next), and a failure
+there (`StatusRuntimeException`, meaning inventory-service is unreachable or
+erroring) returns `503` immediately. No row is written. This is
+**fail-closed**: the method refuses an order it can't validate rather than
+persisting one it isn't sure about. If stock comes back but isn't
+`available`, that's a `409 Conflict`, not a `503`: the dependency answered,
+it just said no.
+
+**#B: persist only after the gRPC call succeeds.** `Order.create(...)`
+builds the aggregate and `order.persist()` writes it, inside the method's
+`@Transactional` boundary (Quarkus's CDI interceptor-backed
+`jakarta.transaction.Transactional`, which wraps the method in a JTA
+transaction and commits on normal return). By the time `persist()` returns
+inside that boundary, the order is durably committed. Unlike the naive
+version above, nothing gets written until the one thing that could reject
+the order has already answered.
+
+**#C: publish the event only after persistence, and never let a publish
+failure undo or fail the request.** `eventProducer.publish(order)` returns a
+`CompletionStage<Void>`; `.exceptionally(...)` attaches a logging-only
+handler and the method doesn't `await` the publish at all. The order has
+already been committed by the time publish is attempted, so a broker outage
+must not turn into a failed `POST` for work that already succeeded. The cost
+of that choice (a window where the order is committed but the event never
+arrives) is the **dual-write gap**, and the comment in `OrderEventProducer`
+names the production answer: the outbox pattern, which this template does
+not implement.
 
 `listOrders` and `getOrder` are the read side: `listAll(Sort.by(...))` is
 Panache's query builder returning rows newest-first, and `findById` returns
@@ -300,7 +342,7 @@ chapter).
 Because the generated interface is Mutiny-based, the call returns
 a `Uni<CheckStockResponse>`, and `.await().atMost(CALL_TIMEOUT)` is what
 turns that reactive, non-blocking call into the plain blocking return value
-`OrderResource`'s worker-thread method needs — with a hard 3-second ceiling
+`OrderResource`'s worker-thread method needs, with a hard 3-second ceiling
 so a hung inventory-service can't hang an order request indefinitely. An
 `await()` with no timeout at all would trade that bounded failure for an
 unbounded one; the timeout is what keeps "inventory-service is slow" from
@@ -352,8 +394,8 @@ above.
 
 ## Further products: inventory-service and review-service
 
-`inventory-service` and `review-service` repeat the same shape —
-Panache entity, REST (and here, gRPC) resource — while exposing a different
+`inventory-service` and `review-service` repeat the same shape, a Panache
+entity plus a REST (and here, gRPC) resource, while exposing a different
 surface because their role is different.
 
 `inventory-service`'s `Stock` entity is a plain auto-increment `Long` id
@@ -411,14 +453,14 @@ calls as a client). `@Blocking` matters here: the Panache call
 `@Blocking` quarkus-grpc would invoke this method on its reactive I/O
 thread, where a blocking JDBC round trip would stall that thread and
 threaten the whole event loop. `@Blocking` tells Quarkus to dispatch this
-method onto a worker thread instead, where blocking is safe — the same
+method onto a worker thread instead, where blocking is safe: the same
 concern `InventoryClient`'s bounded `await()` addresses from the other
 direction.
 
 `inventory-service` also exposes a small REST surface, `StockResource`
-(`POST /stock` to seed, `GET /stock` / `GET /stock/{sku}` to inspect) — but
+(`POST /stock` to seed, `GET /stock` / `GET /stock/{sku}` to inspect), but
 its Javadoc states that this is **not part of the cross-service
-contract**; it is a demo and test convenience, and the inter-service
+contract**; it's a demo and test convenience, and the inter-service
 dependency is the gRPC call above.
 
 `review-service` goes the other direction: REST-only, because it has no
@@ -443,7 +485,7 @@ public Response delete(@PathParam("id") Long id) {
 `@RolesAllowed("admin")` is Jakarta's standard role-based access-control
 annotation; Quarkus's OIDC extension wires it to the bearer token's roles
 claim, so a request with no token gets `401`, and one with a token lacking
-the `admin` role gets `403` — all before this method body ever runs. It
+the `admin` role gets `403`, all before this method body ever runs. It
 shows that a data product's surface can carry its own authorization policy, scoped to exactly the operation that needs it
 (creating and reading reviews stays open; moderating them doesn't). This is
 Figure 3.1's control port: the governance layer the diagram draws around the
@@ -475,18 +517,18 @@ order-service→inventory-service gRPC call targets a single canonical port
 (`9000`, env-overridable on both sides via `INVENTORY_GRPC_HOST` /
 `INVENTORY_GRPC_PORT`), and the packaged JVM trusts the Avro event package
 via `org.apache.avro.SERIALIZABLE_PACKAGES` set in the container image's
-`JAVA_TOOL_OPTIONS` — without which Avro's `ClassSecurityValidator` would
+`JAVA_TOOL_OPTIONS`, without which Avro's `ClassSecurityValidator` would
 silently drop every `order.placed` publish from a non-dev JVM.
 
 ## What you learned
 
 - A data product in this project is a service: its own Postgres schema, its
-  own REST/gRPC surface, its own Kafka publish — the service boundary *is*
+  own REST/gRPC surface, its own Kafka publish: the service boundary *is*
   the data-product boundary.
 - `order-service`'s `placeOrder` shows the ordering a data
   product's write path needs: validate a synchronous dependency first
   (fail closed), persist only after that succeeds, and publish only after
-  persistence — with a publish failure never undoing or failing the
+  persistence, with a publish failure never undoing or failing the
   already-committed write.
 - Each service's protocol surface matches its role rather than a
   house-wide template: `inventory-service` is gRPC-first because that's
@@ -496,21 +538,22 @@ silently drop every `order.placed` publish from a non-dev JVM.
 
 The next question is how other
 domains find these services, trust their shape, and know it won't change without
-warning — contracts and the catalog.
+warning: contracts and the catalog.
 
 ## For deeper coverage
 
-- *Data Mesh* by Zhamak Dehghani — the full treatment of the data product
+- *Data Mesh* by Zhamak Dehghani: the full treatment of the data product
   architectural quantum this chapter builds in code.
-- *Implementing Domain-Driven Design* by Vaughn Vernon — aggregate
+- *Implementing Domain-Driven Design* by Vaughn Vernon: aggregate
   boundaries and invariant-centralizing factories like `Order.create(...)`.
-- *Cloud Native Patterns* by Cornelia Davis — service-as-product patterns
+- *Cloud Native Patterns* by Cornelia Davis: service-as-product patterns
   and polyglot persistence per service.
-- [Quarkus Hibernate ORM with Panache guide](https://quarkus.io/guides/hibernate-orm-panache) —
+- [Quarkus Hibernate ORM with Panache guide](https://quarkus.io/guides/hibernate-orm-panache):
   the active-record style `Order` and `Stock` use.
-- [Quarkus gRPC guide](https://quarkus.io/guides/grpc) — `@GrpcClient`/`@GrpcService`
+- [Quarkus gRPC guide](https://quarkus.io/guides/grpc): `@GrpcClient`/`@GrpcService`
   and the Mutiny-generated stubs `InventoryClient` relies on.
 
 ---
 
 *Verification status: <span class="status status--verified">verified</span>. `mvn verify` is green (`OrderResourceTest`, `InventoryGrpcServiceTest`, `OrderPlacedAvroWireIT`, `InventoryCheckStockWireIT`), and `demo-order.sh` and `demo-grpc.sh` passed end to end against a freshly started compose stack.*
+</content>
