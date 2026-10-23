@@ -1,4 +1,4 @@
-// Build the Datamesh 201 deep-dive deck — Quarkus + Kubernetes (r1.2).
+// Build the Datamesh 201 deep-dive deck: Quarkus + Kubernetes (r1.2).
 // Mirrors the structure of the sibling Python "Data Mesh on OpenShift" deck:
 // section dividers, diagram-forward content, code slides where code is the
 // lesson, one slide per demo, speaker notes on every slide, large appendix.
@@ -149,7 +149,7 @@ public class Order extends PanacheEntityBase {
 	}
 }
 
-// OrderResource — no repository bean in between:
+// OrderResource: no repository bean in between:
 Order order = Order.findById(id);
 order.persist();`),
   notes: "The trade-off: the entity depends on a Panache base class, and active record does not suit every team's layering preference. For a reference architecture with one aggregate per service it removes a layer of indirection. inventory-service's StockResource calls Stock.findBySku(...) the same way, directly from a JAX-RS resource method. No OrderRepository interface, no mapper, and no injected DAO sit between the REST layer and the row." });
@@ -368,9 +368,9 @@ contentSlide({ eyebrow: "The three engines", title: "All three engines, back to 
   subtitle: "Choreography, Camel, and Quarkus Flow on one domain",
   demoRef: "demos/demo-orchestration-styles.sh",
   bullets: [
-    { lead: "Act 1 — choreography:", text: "places one order, polls each downstream topic with a byte-level consumer, and asserts the Avro magic byte on every hop." },
-    { lead: "Act 2 — Camel:", text: "posts to /triage and asserts the strict decision ROUTE_TO_WAREHOUSE for a pre-validated, stable low-risk input." },
-    { lead: "Act 3 — Quarkus Flow:", text: "posts the same input to /triage-flow and asserts the same decision, showing both shapes drive the same logic." },
+    { lead: "Act 1, choreography:", text: "places one order, polls each downstream topic with a byte-level consumer, and asserts the Avro magic byte on every hop." },
+    { lead: "Act 2, Camel:", text: "posts to /triage and asserts the strict decision ROUTE_TO_WAREHOUSE for a pre-validated, stable low-risk input." },
+    { lead: "Act 3, Quarkus Flow:", text: "posts the same input to /triage-flow and asserts the same decision, showing both shapes drive the same logic." },
     { lead: "Known limit:", text: "the acts share a domain and a comparison, not one order flowing through all three.", color: C.ink },
   ],
   notes: "DEMO 10 of 19. What it does: runs all three coordination engines back to back over one domain. Act 1 also checks a direct Postgres row and a REST lookup. What to show: the Avro magic byte on every Act 1 hop, and matching strict decisions in Acts 2 and 3. Infra: compose baseline for Act 1 (five services); Acts 2 and 3 need the compose ollama profile, opt-in through --with-ollama. Fallback: the recorded narration transcript of all three acts. This is the showcase demo for the three-engines story. The known limit: Act 1's order never went through the classifier-stability trial that Acts 2 and 3 require, and the script header says so; do not claim more continuity than the demo does." });
@@ -637,11 +637,11 @@ contentSlide({ eyebrow: "The whole picture", title: "The five-act walkthrough",
   subtitle: "One presenter script runs every demo",
   demoRef: "demos/walkthrough.sh",
   bullets: [
-    { lead: "ACT 1 — Data products & protocols (default):", text: "order, grpc, graphql, kafka, tracing, websocket, reactive-vertx, oidc." },
-    { lead: "ACT 2 — Three orchestration styles (gated):", text: "orchestration-styles." },
-    { lead: "ACT 3 — AI / Camel / Drools / MCP (gated):", text: "ai-classify, ai-mcp, camel-integration, ai-triage." },
-    { lead: "ACT 4 — Developer experience & native:", text: "jbang-prototype, panama, continuous-testing (default); native (gated)." },
-    { lead: "ACT 5 — Platform autoscaling (gated):", text: "keda-kafka, keda-http." },
+    { lead: "ACT 1, Data products & protocols (default):", text: "order, grpc, graphql, kafka, tracing, websocket, reactive-vertx, oidc." },
+    { lead: "ACT 2, Three orchestration styles (gated):", text: "orchestration-styles." },
+    { lead: "ACT 3, AI / Camel / Drools / MCP (gated):", text: "ai-classify, ai-mcp, camel-integration, ai-triage." },
+    { lead: "ACT 4, Developer experience & native:", text: "jbang-prototype, panama, continuous-testing (default); native (gated)." },
+    { lead: "ACT 5, Platform autoscaling (gated):", text: "keda-kafka, keda-http." },
   ],
   notes: "The orchestrator over all nineteen demos. It is the one script a presenter runs end to end, with Enter-to-advance pauses for a live audience or --auto for CI and self-test. Each demo runs as its own child process through run_act, so the orchestrator never double-manages a demo's own compose_up and compose_down. Gating is per demo, not per act, behind --with-ollama, --with-native, and --with-minikube; a missing flag skips the demo cleanly and does not fail it. It supports --only and --skip, --no-preflight, and --no-pause or --auto, and prints a final pass, fail, and skip tally." });
 
@@ -758,22 +758,22 @@ diagramSlide({ eyebrow: "Appendix A7", title: "Building images inside the cluste
 
 contentSlide({ eyebrow: "Appendix A7", title: "What changes on OpenShift",
   bullets: [
-    { lead: "Security", sep: " — ", text: "restricted-v2 assigns the UID, so the chart sets no runAsUser." },
-    { lead: "Host access", sep: " — ", text: "Routes with edge TLS replace NodePorts on 127.0.0.1." },
-    { lead: "Images", sep: " — ", text: "built in the cluster by quarkus-openshift binary S2I." },
-    { lead: "Kafka", sep: " — ", text: "AMQ Streams from OperatorHub instead of Strimzi through Helm." },
-    { lead: "Postgres", sep: " — ", text: "a PostgreSQL 18 StatefulSet on the Red Hat image instead of CloudNativePG." },
-    { lead: "review-service", sep: " — ", text: "runs with the OIDC tenant disabled; DELETE answers 401." },
+    { lead: "Security", sep: ": ", text: "restricted-v2 assigns the UID, so the chart sets no runAsUser." },
+    { lead: "Host access", sep: ": ", text: "Routes with edge TLS replace NodePorts on 127.0.0.1." },
+    { lead: "Images", sep: ": ", text: "built in the cluster by quarkus-openshift binary S2I." },
+    { lead: "Kafka", sep: ": ", text: "AMQ Streams from OperatorHub instead of Strimzi through Helm." },
+    { lead: "Postgres", sep: ": ", text: "a PostgreSQL 18 StatefulSet on the Red Hat image instead of CloudNativePG." },
+    { lead: "review-service", sep: ": ", text: "runs with the OIDC tenant disabled; DELETE answers 401." },
   ],
   notes: "Six differences from the minikube path. First, the restricted-v2 security context constraint assigns the user ID from the namespace range, so the chart does not set runAsUser. Second, Routes with edge TLS on the apps-crc.testing domain replace NodePorts published on 127.0.0.1. Third, images are built in the cluster by the quarkus-openshift extension with binary S2I, not loaded from a local build. Fourth, Kafka comes from AMQ Streams in OperatorHub instead of Strimzi installed through Helm. Fifth, Postgres is a StatefulSet on the Red Hat PostgreSQL 16 image instead of CloudNativePG. Sixth, review-service runs with its OIDC tenant disabled, so DELETE /reviews/{id} answers 401. The decisions are DRQ-018 to DRQ-022." });
 
 contentSlide({ eyebrow: "Appendix A7", title: "What broke on the live run, and the fix",
   bullets: [
-    { lead: "No BuildConfig", sep: " — ", text: "quarkus-container-image-openshift alone generated none; use the full quarkus-openshift extension." },
-    { lead: "Wrong tag", sep: " — ", text: "the output tag follows quarkus.openshift.version, not quarkus.container-image.tag." },
-    { lead: "Heap sizing", sep: " — ", text: "the S2I image reads JAVA_MAX_MEM_RATIO (default 80); set to 50." },
-    { lead: "Restarts", sep: " — ", text: "DB services restarted while Postgres initialised; a wait-for-postgres init container fixes it." },
-    { lead: "Deprecated API", sep: " — ", text: "v1beta2 Kafka is deprecated in AMQ Streams 3.2; moved to kafka.strimzi.io/v1." },
+    { lead: "No BuildConfig", sep: ": ", text: "quarkus-container-image-openshift alone generated none; use the full quarkus-openshift extension." },
+    { lead: "Wrong tag", sep: ": ", text: "the output tag follows quarkus.openshift.version, not quarkus.container-image.tag." },
+    { lead: "Heap sizing", sep: ": ", text: "the S2I image reads JAVA_MAX_MEM_RATIO (default 80); set to 50." },
+    { lead: "Restarts", sep: ": ", text: "DB services restarted while Postgres initialised; a wait-for-postgres init container fixes it." },
+    { lead: "Deprecated API", sep: ": ", text: "v1beta2 Kafka is deprecated in AMQ Streams 3.2; moved to kafka.strimzi.io/v1." },
   ],
   notes: "Five problems found on the live run, each with its fix. Applying quarkus-container-image-openshift alone generated no BuildConfig, so the project uses the full quarkus-openshift extension. The output tag follows quarkus.openshift.version, not quarkus.container-image.tag. The S2I image reads JAVA_MAX_MEM_RATIO with a default of 80, which is too high for the pod limits, so it is set to 50. The database services restarted while Postgres was still initialising, which a wait-for-postgres init container fixed. The v1beta2 Kafka API is deprecated in AMQ Streams 3.2, so the CR moved to kafka.strimzi.io/v1. Status: verified 2026-10-09 on CRC 4.22.14 with a full clean cycle (teardown, install-infra, build-images, deploy, capture-evidence) in about 5.5 minutes. Teardown returns the cluster to clean." });
 
@@ -784,40 +784,40 @@ diagramSlide({ eyebrow: "Appendix A7", title: "The platform tier on OpenShift Lo
 
 contentSlide({ eyebrow: "Appendix A7", title: "Platform tier: what it took",
   bullets: [
-    { lead: "Service mesh", sep: " — ", text: "Service Mesh 3 injects by namespace label; the gateway needs PERMISSIVE mTLS for the Route." },
-    { lead: "Autoscaling", sep: " — ", text: "Custom Metrics Autoscaler needs the fully qualified Kafka bootstrap, since KEDA runs in openshift-keda." },
-    { lead: "Tracing", sep: " — ", text: "the OTel operator injects the agent; otel-lgtm runs under anyuid with no seccomp profile." },
-    { lead: "AI", sep: " — ", text: "Ollama runs under restricted-v2 with HOME and OLLAMA_MODELS on a PVC." },
-    { lead: "Native", sep: " — ", text: "the Avro allow-list must be a native build argument, not runtime configuration." },
-    { lead: "GitOps", sep: " — ", text: "Argo CD ignores the Postgres password field so syncs never rotate it." },
+    { lead: "Service mesh", sep: ": ", text: "Service Mesh 3 injects by namespace label; the gateway needs PERMISSIVE mTLS for the Route." },
+    { lead: "Autoscaling", sep: ": ", text: "Custom Metrics Autoscaler needs the fully qualified Kafka bootstrap, since KEDA runs in openshift-keda." },
+    { lead: "Tracing", sep: ": ", text: "the OTel operator injects the agent; otel-lgtm runs under anyuid with no seccomp profile." },
+    { lead: "AI", sep: ": ", text: "Ollama runs under restricted-v2 with HOME and OLLAMA_MODELS on a PVC." },
+    { lead: "Native", sep: ": ", text: "the Avro allow-list must be a native build argument, not runtime configuration." },
+    { lead: "GitOps", sep: ": ", text: "Argo CD ignores the Postgres password field so syncs never rotate it." },
   ],
   notes: "One OpenShift-native piece and one non-obvious fix per feature. Mesh: OpenShift Service Mesh 3 injects sidecars through a label on the namespace rather than an annotation on each pod, and the ingress gateway has to accept plain traffic from the Route, so it is PERMISSIVE while the rest of the mesh is STRICT. Autoscaling: the Custom Metrics Autoscaler runs in openshift-keda, so a short Kafka bootstrap name does not resolve; the trigger uses the fully qualified service name. Tracing: the Red Hat build of OpenTelemetry operator injects the Java agent by annotation; grafana/otel-lgtm needs the anyuid SCC and no seccomp profile. AI: Ollama runs under restricted-v2 with a random user ID, so HOME and OLLAMA_MODELS point at a persistent volume claim the user can write. Native: the Avro class allow-list has to be passed as a native build argument, because it is read at image build time. GitOps: the Argo CD Application ignores the Postgres password field in the generated secret, so a sync never rotates the password. The full write-up is in chapter 22 and the decisions are DRQ-023 to DRQ-028." });
 
 contentSlide({ eyebrow: "Appendix A7", title: "Native vs JVM on OpenShift Local",
   bullets: [
-    { lead: "Startup", sep: " — ", text: "0.077 s native against 8.0 s for the JVM pod." },
-    { lead: "Working set", sep: " — ", text: "29 MiB native against 200 MiB for the JVM pod." },
-    { lead: "Build", sep: " — ", text: "compiled in the cluster in about 2.5 min by a Mandrel 25.0 builder image." },
-    { lead: "Fairness", sep: " — ", text: "the JVM pod also carries the OpenTelemetry agent; an Envoy sidecar runs beside both." },
+    { lead: "Startup", sep: ": ", text: "0.077 s native against 8.0 s for the JVM pod." },
+    { lead: "Working set", sep: ": ", text: "29 MiB native against 200 MiB for the JVM pod." },
+    { lead: "Build", sep: ": ", text: "compiled in the cluster in about 2.5 min by a Mandrel 25.0 builder image." },
+    { lead: "Fairness", sep: ": ", text: "the JVM pod also carries the OpenTelemetry agent; an Envoy sidecar runs beside both." },
   ],
   notes: "Measured on OpenShift Local for order-service. The native pod starts in 0.077 seconds; the JVM pod takes 8.0 seconds. The native working set is 29 MiB against 200 MiB for the JVM. The host generates the native sources, and a BuildConfig runs native-image from a Mandrel 25.0 builder image inside the cluster, which takes about two and a half minutes. Two caveats keep the comparison honest: the JVM pod also carries the OpenTelemetry Java agent, which adds startup time and memory, and an Envoy sidecar from the mesh runs beside both pods, so the sidecar cost is the same on each side. The Avro allow-list had to be supplied as a native build argument." });
 
 /* ====================== APPENDIX ====================== */
 (() => {
-  const s = divider({ num: "—", title: "Appendix", sub: "The full demo matrix, a known limitation in detail, infrastructure reference, a glossary, and background diagrams." });
+  const s = divider({ num: "A", title: "Appendix", sub: "The full demo matrix, a known limitation in detail, infrastructure reference, a glossary, and background diagrams." });
   s.addNotes("Reference material, not more narrative. Use it after the talk to check a demo's infrastructure tier, the root cause behind the tool-calling limitation, or a term in the glossary. The background diagrams are the 101 deck's figures.");
 })();
 
 contentSlide({ eyebrow: "Appendix · demo matrix", title: "All 19 demos by infra tier (1 of 2): bare and compose",
   bullets: [
     { head: true, text: "bare: JVM or Dev Services only, no compose, no cluster" },
-    { lead: "demo-jbang-prototype.sh", sep: " — ", text: "JBang and Camel CLI prototyping, no Maven module." },
-    { lead: "demo-panama.sh", sep: " — ", text: "Panama FFM calls to libc from a JBang script." },
-    { lead: "demo-continuous-testing.sh", sep: " — ", text: "quarkus:dev continuous testing with Dev Services." },
-    { lead: "demo-native.sh", sep: " — ", text: "GraalVM or Mandrel native build and boot (opt-in)." },
+    { lead: "demo-jbang-prototype.sh", sep: ": ", text: "JBang and Camel CLI prototyping, no Maven module." },
+    { lead: "demo-panama.sh", sep: ": ", text: "Panama FFM calls to libc from a JBang script." },
+    { lead: "demo-continuous-testing.sh", sep: ": ", text: "quarkus:dev continuous testing with Dev Services." },
+    { lead: "demo-native.sh", sep: ": ", text: "GraalVM or Mandrel native build and boot (opt-in)." },
     { head: true, text: "compose: infra baseline (docker compose up -d)" },
     { text: "demo-order.sh · demo-grpc.sh · demo-graphql.sh · demo-kafka.sh · demo-tracing.sh · demo-websocket.sh · demo-reactive-vertx.sh" },
-    { lead: "demo-oidc.sh", sep: " — ", text: "feasibility-gated; may be skipped." },
+    { lead: "demo-oidc.sh", sep: ": ", text: "feasibility-gated; may be skipped." },
   ],
   notes: "Mirrors the matrix in demos/README.md. 'bare' needs JDK 25, Maven 3.9.x, and jbang on PATH, plus GraalVM or Mandrel for native; no docker compose. 'compose' needs docker and the Compose v2 plugin, cp .env.example .env, and docker compose up -d from the repo root (postgres, kafka-native, apicurio, otel-lgtm; no profile flag)." });
 
@@ -828,7 +828,7 @@ contentSlide({ eyebrow: "Appendix · demo matrix", title: "All 19 demos by infra
     { head: true, text: "Kubernetes: the local cluster from scripts/bootstrap.sh (opt-in)" },
     { text: "demo-keda-kafka.sh · demo-keda-http.sh" },
     { head: true, text: "Orchestrator" },
-    { lead: "walkthrough.sh", sep: " — ", text: "five acts over all 19 demos, gated per demo by --with-ollama, --with-native, and --with-minikube." },
+    { lead: "walkthrough.sh", sep: ": ", text: "five acts over all 19 demos, gated per demo by --with-ollama, --with-native, and --with-minikube." },
     { text: "Opt-in summary: ollama gates the four AI demos; native gates demo-native.sh; Kubernetes gates the two KEDA demos; demo-oidc.sh is feasibility-gated.", color: C.ink },
   ],
   notes: "Everything outside the opt-in summary (bare and compose, minus demo-oidc.sh) is the default, always-runnable set: the core of a single-machine run with no extra flags. walkthrough.sh also supports --only and --skip, --no-preflight, --no-pause and --auto, and prints a pass, fail, and skip tally." });
@@ -942,7 +942,7 @@ diagramSlide({ eyebrow: "Appendix · background diagrams", title: "Operational v
 
   const qrW = 3.10, qrY = 1.95, leftX = 2.30, rightX = 7.93;
 
-  // Left QR — the reference architecture site
+  // Left QR: the reference architecture site
   s.addImage({ path: "qr-site.png", x: leftX, y: qrY, w: qrW, h: qrW });
   s.addText("The reference architecture", { x: leftX - 0.75, y: 5.20, w: qrW + 1.5, h: 0.4,
     fontSize: 18, bold: true, color: C.ink, fontFace: F.head, align: "center", margin: 0 });
@@ -951,16 +951,16 @@ diagramSlide({ eyebrow: "Appendix · background diagrams", title: "Operational v
   s.addText("patterncatalyst.github.io/datamesh-reference-arch-quarkus", { x: leftX - 0.85, y: 6.30, w: qrW + 1.7, h: 0.32,
     fontSize: 10, color: C.red, fontFace: F.mono, align: "center", margin: 0 });
 
-  // Right QR — the Workshops & Tutorials hub
+  // Right QR: the Workshops & Tutorials hub
   s.addImage({ path: "qr-hub.png", x: rightX, y: qrY, w: qrW, h: qrW });
   s.addText("Workshops & Tutorials", { x: rightX - 0.75, y: 5.20, w: qrW + 1.5, h: 0.4,
     fontSize: 18, bold: true, color: C.ink, fontFace: F.head, align: "center", margin: 0 });
-  s.addText("The whole series — every workshop, tutorial, and deck in one place", { x: rightX - 0.85, y: 5.62, w: qrW + 1.7, h: 0.7,
+  s.addText("The whole series: every workshop, tutorial, and deck in one place", { x: rightX - 0.85, y: 5.62, w: qrW + 1.7, h: 0.7,
     fontSize: 13, italic: true, color: C.gray, fontFace: F.body, align: "center", valign: "top", margin: 0 });
   s.addText("patterncatalyst.github.io/patterncatalyst-workshops-tutorials-list", { x: rightX - 0.95, y: 6.30, w: qrW + 1.9, h: 0.32,
     fontSize: 9, color: C.red, fontFace: F.mono, align: "center", margin: 0 });
 
-  s.addNotes("That's the deep dive. The two codes take it with you: on the left, the reference architecture — the site, the runnable Quarkus services, the contracts and catalog, progressive delivery and autoscaling manifests, and the minikube bootstrap that runs the whole thing on a laptop. On the right, the Workshops and Tutorials hub: the whole series — every workshop, tutorial, and deck — in one place. Both are public on the Pattern Catalyst GitHub organization.");
+  s.addNotes("That's the deep dive. The two codes take it with you: on the left, the reference architecture: the site, the runnable Quarkus services, the contracts and catalog, progressive delivery and autoscaling manifests, and the minikube bootstrap that runs the whole thing on a laptop. On the right, the Workshops and Tutorials hub: the whole series (every workshop, tutorial, and deck) in one place. Both are public on the Pattern Catalyst GitHub organization.");
 })();
 
 L.writeDeck("Datamesh-201-Quarkus-r1.2.pptx").then((f) => console.log("WROTE", f));
