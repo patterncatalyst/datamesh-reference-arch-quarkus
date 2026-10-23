@@ -2,7 +2,7 @@
 title: "Testing, in detail: the full pyramid and the single-entry runner"
 order: 19
 part: Appendices
-description: "A ground-up walk through this project's test pyramid — @QuarkusTest unit tests, failsafe *IT integration tests on self-provisioned Testcontainers, the Newman functional collection, and hey/ghz load passes — tied together by scripts/run-all-tests.sh."
+description: "A ground-up walk through this project's test pyramid: @QuarkusTest unit tests, failsafe *IT integration tests on self-provisioned Testcontainers, the Newman functional collection, and hey/ghz load passes, tied together by scripts/run-all-tests.sh."
 duration: 35 minutes
 marker: "19"
 ---
@@ -11,14 +11,14 @@ marker: "19"
 
 By the end of this chapter you can:
 
-- Decide which tier of this project's test pyramid — unit, integration,
-  functional, or load — proves a given claim about the system.
+- Decide which tier of this project's test pyramid (unit, integration,
+  functional, or load) proves a given claim about the system.
 - Explain why `@QuarkusTest` and `*IT` classes are CI-headless-capable while
   the functional and load tiers need a live, fully-wired stack, and why
   `run-all-tests.sh` enforces that ordering.
 - Trace how `OrderPlacedAvroWireIT` and `InventoryCheckStockWireIT` prove
-  wire-level facts — Avro-not-JSON on the Kafka wire, a correct gRPC answer
-  from a separately running process — that a `@QuarkusTest` can't.
+  wire-level facts, Avro-not-JSON on the Kafka wire, a correct gRPC answer
+  from a separately running process, that a `@QuarkusTest` can't.
 - Run any phase of `run-all-tests.sh` (`--unit`/`--it`/`--load`/`--all`) and
   read its PASS/FAIL/SKIP report.
 - Diagnose the port-8081 collision between Quarkus's default test port,
@@ -36,7 +36,7 @@ they depend on a local LLM, and how
 command instead of leaving a contributor to remember the right order of
 `mvn`, `docker compose`, Newman, and two load scripts.
 
-{% include excalidraw.html file="19-testing-pyramid" alt="A four-tier test pyramid for the datamesh-reference-arch-quarkus project. Base tier: unit tests, @QuarkusTest classes compiled and run by maven-surefire-plugin under mvn test, no Docker required, Quarkus Dev Services not invoked. Second tier: integration tests, classes named *IT such as OrderPlacedAvroWireIT and InventoryCheckStockWireIT, run by maven-failsafe-plugin under mvn verify, each self-provisioning its own Testcontainers (Kafka, Apicurio Registry) or running as a packaged @QuarkusIntegrationTest process, no standing compose stack needed. Third tier: functional tests, the Newman/Postman collection in tooling/newman/datamesh.postman_collection.json exercising order-service, inventory-service, graphql-gateway, and review-service over real HTTP against a live stack. Top tier: load tests, hey driving HTTP traffic at order-service and ghz driving gRPC traffic at inventory-service's CheckStock RPC, both reading throughput and latency percentiles from their own summaries. Alongside the pyramid, a vertical strip shows scripts/run-all-tests.sh's phases in order: PREFLIGHT, UNIT+IT (mvn verify), TWIN (spring-boot-compare), STACK-UP, FUNCTIONAL, LOAD, REPORT, with a note that STACK-UP only happens after every mvn phase completes to avoid port collisions." caption="Figure A4.1 — The test pyramid and the run-all-tests.sh phases" %}
+{% include excalidraw.html file="19-testing-pyramid" alt="A four-tier test pyramid for the datamesh-reference-arch-quarkus project. Base tier: unit tests, @QuarkusTest classes compiled and run by maven-surefire-plugin under mvn test, no Docker required, Quarkus Dev Services not invoked. Second tier: integration tests, classes named *IT such as OrderPlacedAvroWireIT and InventoryCheckStockWireIT, run by maven-failsafe-plugin under mvn verify, each self-provisioning its own Testcontainers (Kafka, Apicurio Registry) or running as a packaged @QuarkusIntegrationTest process, no standing compose stack needed. Third tier: functional tests, the Newman/Postman collection in tooling/newman/datamesh.postman_collection.json exercising order-service, inventory-service, graphql-gateway, and review-service over real HTTP against a live stack. Top tier: load tests, hey driving HTTP traffic at order-service and ghz driving gRPC traffic at inventory-service's CheckStock RPC, both reading throughput and latency percentiles from their own summaries. Alongside the pyramid, a vertical strip shows scripts/run-all-tests.sh's phases in order: PREFLIGHT, UNIT+IT (mvn verify), TWIN (spring-boot-compare), STACK-UP, FUNCTIONAL, LOAD, REPORT, with a note that STACK-UP only happens after every mvn phase completes to avoid port collisions." caption="Figure A4.1: The test pyramid and the run-all-tests.sh phases" %}
 
 ## The pyramid, bottom to top
 
@@ -75,7 +75,7 @@ container for a class written specifically to exercise one.
 
 ### Integration tests: failsafe `*IT`, self-provisioned Testcontainers
 
-The second tier is the integration test — a class named `*IT`, bound into
+The second tier is the integration test: a class named `*IT`, bound into
 `maven-failsafe-plugin`'s `integration-test`/`verify` goals, which only run
 under `mvn -f examples/pom.xml verify`. Several of this project's modules
 (for example `order-service`) have to bind that execution explicitly in
@@ -90,7 +90,7 @@ The same block also documents a second, unrelated gotcha this module's
 integration tests hit: Avro 1.12.x's
 `ClassSecurityValidator` refuses to build a `SpecificDatumWriter` for a
 generated record class whose package isn't explicitly trusted unless a
-Quarkus application is running — `OrderPlacedAvroWireIT` is a
+Quarkus application is running. `OrderPlacedAvroWireIT` is a
 plain JUnit test with no `@QuarkusTest` bootstrap driving a raw
 `KafkaProducer`, so without an explicit trusted-package system property it
 failed with `SecurityException: Forbidden datamesh.order.v1.OrderPlaced!`
@@ -98,7 +98,7 @@ failed with `SecurityException: Forbidden datamesh.order.v1.OrderPlaced!`
 
 What distinguishes this tier from the live-stack functional/load tiers is
 that an `*IT` is still self-contained: it either spins up its own
-Testcontainers directly, or — for `@QuarkusIntegrationTest` classes —
+Testcontainers directly, or, for `@QuarkusIntegrationTest` classes,
 Quarkus packages the application once and launches it as a separate
 process, again without anything pre-existing on the host. No
 `docker compose up` is required for any test in this tier.
@@ -107,7 +107,7 @@ process, again without anything pre-existing on the host. No
 is the sharpest example of why this tier exists. A `@QuarkusTest` for
 order-service's REST endpoint could pass even if the Kafka producer
 silently fell back from Avro to Quarkus's autodetected Jackson/JSON
-serialization — the HTTP response wouldn't change.
+serialization; the HTTP response wouldn't change.
 
 So this test bypasses the application's own Reactive Messaging wiring and
 drives a raw `KafkaProducer`/`KafkaConsumer` pair directly against two
@@ -133,11 +133,11 @@ assertTrue(rawValue[0] != 0x7B,
 The first byte of an Apicurio/Confluent-framed Avro record is a fixed magic
 byte, `0x0`; a JSON payload, by contrast, starts with `{` (`0x7B`).
 
-Checking both — the positive assertion that the magic byte is present
-*and* the negative assertion that the first byte definitely isn't `{` —
+Checking both, the positive assertion that the magic byte is present
+*and* the negative assertion that the first byte definitely isn't `{`,
 means a regression to the JSON fallback fails loudly with an assertion
-message that names the exact architectural decision it violates — Avro on
-the wire, never a silent JSON fallback — rather than failing some unrelated
+message that names the exact architectural decision it violates: Avro on
+the wire, never a silent JSON fallback, rather than failing some unrelated
 way downstream.
 
 Only after that byte-level proof does the test do an "optional" round
@@ -145,7 +145,7 @@ trip: deserializing the same bytes with the real `AvroKafkaDeserializer`
 and asserting every field survived the Avro encoding intact.
 
 [**`InventoryCheckStockWireIT`**]({{ site.repo_blob }}/examples/inventory-service/src/test/java/com/patterncatalyst/datamesh/inventory/InventoryCheckStockWireIT.java)
-tests a different layer — gRPC, not Kafka — and uses a different mechanism:
+tests a different layer, gRPC, not Kafka, and uses a different mechanism:
 `@QuarkusIntegrationTest`, which boots the already-packaged
 `quarkus-run.jar` as a separate OS process rather than running
 in-JVM. That matters because there's no CDI container in the *test's* own
@@ -154,8 +154,8 @@ JVM to inject a `@GrpcClient` into, so the test instead builds a plain
 stub pointed at `localhost:9000`.
 
 Its `@BeforeAll` matters here: because the packaged app under test boots
-with the `prod` profile, `import.sql` — the seed data the demos and Newman
-collection rely on in dev mode — never loads. Rather than depend on seed
+with the `prod` profile, `import.sql` (the seed data the demos and Newman
+collection rely on in dev mode) never loads. Rather than depend on seed
 data that won't be there, the test seeds its own fixtures over the REST
 surface first:
 
@@ -166,7 +166,7 @@ seedStock("WIDGET-2", 12);
 
 ...posting directly to `POST /stock` via `java.net.http.HttpClient`, using
 the `test.url` system property Quarkus sets for the launched
-integration-test process (falling back to `http://localhost:8081` — see
+integration-test process (falling back to `http://localhost:8081`; see
 the port-collision note below).
 
 Only after that self-seed does it open the gRPC channel and exercise three
@@ -180,9 +180,9 @@ dev-mode fixtures or a standing stack; the class Javadoc describes it as
 
 A third `*IT` in this tier does not currently run:
 [`OrderChoreographyChainIT`]({{ site.repo_blob }}/examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderChoreographyChainIT.java)
-is written and compiles — it would produce one `order.placed` Avro event
+is written and compiles. It would produce one `order.placed` Avro event
 and assert a `PaymentCaptured` record appears on `payment.captured`
-followed by a `ShipmentDispatched` record on `shipment.dispatched` — but it
+followed by a `ShipmentDispatched` record on `shipment.dispatched`, but it
 is annotated `@Disabled`.
 
 Its own Javadoc explains why: proving that full
@@ -201,12 +201,12 @@ leaving a silently skipped test with no explanation.
 live-stack phases: the **TWIN** phase, which builds `domain-model` and
 `contracts` (`mvn -pl domain-model,contracts -am install -DskipTests`) and
 then runs `mvn test` against spring-boot-compare's
-[pom.xml]({{ site.repo_blob }}/examples/spring-boot-compare/pom.xml) — the
+[pom.xml]({{ site.repo_blob }}/examples/spring-boot-compare/pom.xml), the
 one runnable Spring Boot twin service this project ships for
 side-by-side comparison. Per the script's own header comment,
 `OrderControllerTest` in that module uses `@ServiceConnection` plus
 Testcontainers, which needs a reachable Docker daemon the same way IT does,
-but — like IT — needs no standing compose stack. That's why TWIN is grouped
+but, like IT, needs no standing compose stack. That's why TWIN is grouped
 with UNIT and IT as "CI-headless-capable" rather than with the live-stack
 phases below it.
 
@@ -218,8 +218,8 @@ Postman collection,
 run against a live stack via
 [run-newman.sh]({{ site.repo_blob }}/tooling/newman/run-newman.sh).
 
-Per [tooling's README.md]({{ site.repo_blob }}/tooling/README.md), this collection is grouped into five folders —
-Health, Inventory, Order, GraphQL, and Review — covering roughly twenty
+Per [tooling's README.md]({{ site.repo_blob }}/tooling/README.md), this collection is grouped into five folders:
+Health, Inventory, Order, GraphQL, and Review, covering roughly twenty
 requests: health probes for all four services; inventory stock seeding,
 lookup, and a 404 case; order placement (including a deliberate
 insufficient-stock case) and lookup (including a 404 case); one federated
@@ -227,7 +227,7 @@ GraphQL query joining order and stock data; and review creation,
 validation, lookup, and an unauthenticated-delete-protection check.
 
 Each request carries one or more `pm.test(...)` assertions, so a full run
-exercises dozens of them — the exact total Newman reports depends on how
+exercises dozens of them. The exact total Newman reports depends on how
 many folders you include (`run-newman.sh --folder <name>` scopes a run to
 just one), so this chapter gives no total that could go stale when a request is
 added or removed.
@@ -243,7 +243,7 @@ that obscures the cause.
 documents three things this collection explicitly does **not** cover:
 forcing order-service's gRPC call to inventory-service to fail (a manual
 check), an authenticated `DELETE /reviews/{id}` → 204 (which needs a
-live Keycloak bearer token — the default run only proves the 401
+live Keycloak bearer token; the default run only proves the 401
 unauthenticated-protection path), and the notification WebSocket, neither
 an HTTP nor a gRPC unary endpoint that Newman, `hey`, or `ghz` can reach.
 
@@ -256,7 +256,7 @@ two scripts,
 [load-checkstock.sh]({{ site.repo_blob }}/tooling/load/load-checkstock.sh)
 (gRPC, via `ghz`), both built on the same
 [_demo.sh]({{ site.repo_blob }}/demos/lib/_demo.sh) harness
-every demo script uses — `require`/`fail`/`step`/`narrate`/`wait_http` — on
+every demo script uses (`require`/`fail`/`step`/`narrate`/`wait_http`), on
 the principle, stated in both scripts' headers, that "a load run that
 short-circuits before producing a summary must never read as clean."
 
@@ -268,7 +268,7 @@ seeds `WIDGET-1` with a large stock quantity on inventory-service
 `tooling/README.md` documents a sample 20-second GET-mode run against a
 warm dev-mode order-service reaching roughly 1098 requests/sec with a
 99th-percentile latency around 22ms and a clean `[200] 21987 responses`
-distribution — illustrative numbers from one run on one machine, not a performance
+distribution: illustrative numbers from one run on one machine, not a performance
 guarantee.
 
 `load-checkstock.sh` targets `datamesh.inventory.v1.InventoryService/CheckStock`
@@ -288,7 +288,7 @@ use), and **stress** (`-c 25 -z 60s`).
 
 ## CI-headless vs. live-stack: what needs what
 
-This is the central design decision in the runner: UNIT, IT, and TWIN are all **CI-headless-capable** — a CI runner with
+This is the central design decision in the runner: UNIT, IT, and TWIN are all **CI-headless-capable**. A CI runner with
 Docker-in-Docker and a JDK can run all three with no other services, no
 exposed ports, and no manual bring-up, because Dev Services and
 Testcontainers provision and tear down everything each phase needs for
@@ -304,9 +304,9 @@ ports, run considerably longer, and are therefore gated behind `--load` or
 
 ## The Ollama-gated integration tests
 
-Three `*IT` classes in this project —
+Three `*IT` classes in this project,
 `OrderTriageFlowRouteIT` and `OrderTriageRouteIT` in `ai-rules-service`, and
-`OrderAssistantRouteIT` in `ai-mcp-service` — depend on a locally
+`OrderAssistantRouteIT` in `ai-mcp-service`, depend on a locally
 running Ollama model and are **never** run by `run-all-tests.sh`. Each is
 annotated:
 
@@ -315,7 +315,7 @@ annotated:
 ```
 
 `run-all-tests.sh` never sets that property, so a plain `mvn verify` run
-already skips all three with no extra exclusion flag needed — this is an
+already skips all three with no extra exclusion flag needed. This is an
 opt-in allowlist, not something the runner has to actively suppress.
 To run one:
 
@@ -337,13 +337,13 @@ started.
 ## The 8081 port-collision constraint
 
 Two independent facts about port 8081 collide with each other. First,
-Quarkus's own default *test* HTTP port is `8081` — what
+Quarkus's own default *test* HTTP port is `8081`, what
 `InventoryCheckStockWireIT` falls back to
 (`System.getProperty("test.url", "http://localhost:8081")`) when no
 `test.url` property is set. Second, order-service's own default *dev-mode*
 HTTP port is *also* `8081` by Quarkus convention, and that collides with
 `APICURIO_PORT=8081` in
-[.env.example]({{ site.repo_blob }}/.env.example) — the host port the compose stack's
+[.env.example]({{ site.repo_blob }}/.env.example), the host port the compose stack's
 Apicurio Registry container publishes on.
 [demo-graphql.sh]({{ site.repo_blob }}/demos/demo-graphql.sh)'s header
 comment documents this: order-service runs with its HTTP port explicitly
@@ -361,7 +361,7 @@ including 8081, that would otherwise collide with a standing stack's
 already-bound ports. Running the Maven phases to completion first means
 those test runs never have a standing stack to collide with, and the live
 stack never has to coexist with a test JVM binding a port out from under
-it — an ordering the script's own comment says must not change.
+it. It's an ordering the script's own comment says must not change.
 
 ## Walking `run-all-tests.sh`'s phases and flags
 
@@ -378,7 +378,7 @@ scripts/run-all-tests.sh --all --keep-up # full run, leave the stack up after
 
 With no phase flag at all, the script behaves as `--all`, which expands to
 `--unit --it --load` together. Passing `--it` alone implies unit coverage
-too — the script's own comment is explicit that it "never runs `test` then
+too. The script's own comment is explicit that it "never runs `test` then
 `verify` back to back"; when IT is requested, the UNIT+IT phase runs
 `mvn verify` once, which already exercises every `@QuarkusTest` as well as
 the bound `*IT`s, rather than paying for `mvn test` and then `mvn verify`
@@ -386,21 +386,21 @@ separately.
 
 The phases, in the fixed order the script runs and reports them:
 
-1. **PREFLIGHT** — checks `mvn`, `java`, `curl`, and `jq` are on `PATH`,
+1. **PREFLIGHT.** Checks `mvn`, `java`, `curl`, and `jq` are on `PATH`,
    and that the Docker daemon is reachable (`docker info`). If `--load` or
    `--all` is set, it additionally checks for `hey`, `ghz`, and either
    `newman` or `npx`. Any failed check aborts the whole run before anything
    else executes, with an actionable fix hint attached to each check (for
    example, `sdk install java 25-tem` for a missing JDK).
-2. **UNIT+IT** — `mvn -f examples/pom.xml verify` (if `--it`/`--all`) or
+2. **UNIT+IT.** `mvn -f examples/pom.xml verify` (if `--it`/`--all`) or
    `mvn -f examples/pom.xml test` (if only `--unit`). A failure here is
-   recorded as FAIL but does **not** abort the rest of the run — the
+   recorded as FAIL but does **not** abort the rest of the run. The
    comment explains this choice: "continuing so the rest of the pyramid
    still reports," so one broken tier doesn't hide whether downstream tiers
    are healthy.
-3. **TWIN** — only runs if `--it`/`--all`: builds `domain-model` and
+3. **TWIN.** Only runs if `--it`/`--all`: builds `domain-model` and
    `contracts`, then runs `mvn test` against spring-boot-compare's `pom.xml`.
-4. **STACK-UP** — only runs if `--load`/`--all`: copies `.env.example` to
+4. **STACK-UP.** Only runs if `--load`/`--all`: copies `.env.example` to
    `.env` if missing, runs `docker compose up`, polls Postgres readiness
    for up to 30 seconds, packages order-service/inventory-service/graphql-gateway
    (`mvn -DskipTests package`), then starts all three as background
@@ -409,14 +409,14 @@ The phases, in the fixed order the script runs and reports them:
    Postgres and Keycloak). Every step gates on a health check
    (`wait_http ".../q/health/live"`) before moving on, and seeds
    `WIDGET-1` stock on inventory-service once it's healthy.
-5. **FUNCTIONAL** — only runs if STACK-UP succeeded: invokes
+5. **FUNCTIONAL.** Only runs if STACK-UP succeeded: invokes
    `tooling/newman/run-newman.sh` with no arguments (the full collection,
    all five folders).
-6. **LOAD** — only runs if STACK-UP succeeded: runs both
+6. **LOAD.** Only runs if STACK-UP succeeded: runs both
    `tooling/load/load-orders.sh -c 10 -z 20s` and
-   `tooling/load/load-checkstock.sh -c 10 -z 20s` — the "nominal" profile
+   `tooling/load/load-checkstock.sh -c 10 -z 20s`, the "nominal" profile
    from `tooling/README.md`'s table.
-7. **REPORT** — always runs, printing a PASS/FAIL/SKIP line for every
+7. **REPORT.** Always runs, printing a PASS/FAIL/SKIP line for every
    phase regardless of how far the run got, and exiting non-zero if any
    phase shows FAIL.
 
@@ -426,7 +426,7 @@ script owns it" idiom
 [demo-order.sh]({{ site.repo_blob }}/demos/demo-order.sh)/`demo-graphql.sh`
 use for their own
 compose lifecycle), so a Ctrl-C or any later failure still tears the stack
-down — unless `--keep-up` is set, leaving compose and the four services
+down, unless `--keep-up` is set, leaving compose and the four services
 running to poke at manually.
 
 ## What you learned
@@ -435,7 +435,7 @@ running to poke at manually.
   Surefire, Dev Services, fully CI-headless), integration (`*IT`, Failsafe,
   self-provisioned Testcontainers or a packaged `@QuarkusIntegrationTest`
   process, also CI-headless), functional (the Newman/Postman collection
-  against a live stack), and load (`hey` for HTTP, `ghz` for gRPC) — plus a
+  against a live stack), and load (`hey` for HTTP, `ghz` for gRPC), plus a
   parallel TWIN tier that runs the standalone Spring Boot comparison
   service's own tests under the same CI-headless umbrella as unit and IT.
 - `OrderPlacedAvroWireIT` and `InventoryCheckStockWireIT` are the two
@@ -444,7 +444,7 @@ running to poke at manually.
   not a silent JSON fallback, and proof that a packaged, separately running
   process answers a gRPC call correctly after
   seeding its own fixtures (since `import.sql` doesn't load under `prod`).
-- `OrderChoreographyChainIT` is a fully-written but `@Disabled` test —
+- `OrderChoreographyChainIT` is a fully-written but `@Disabled` test,
   a marker of a known gap (no launchable payment-service/shipping-service
   artifact exists yet) instead of a silently skipped or deleted test.
 - The Ollama-gated `*IT`s are opt-in by design (`ollama.tests.enabled`),
@@ -452,7 +452,7 @@ running to poke at manually.
   at all.
 - Port 8081 is both Quarkus's default test HTTP port and order-service's
   default dev-mode port, and it collides with compose's own
-  `APICURIO_PORT=8081` — which is why order-service always runs on `8091`
+  `APICURIO_PORT=8081`, which is why order-service always runs on `8091`
   in this project's demos and in `run-all-tests.sh`'s STACK-UP phase, and
   why the Maven phases must finish completely before any live stack comes
   up.
@@ -463,20 +463,20 @@ running to poke at manually.
 
 ## For deeper coverage
 
-- [Quarkus — Testing your application](https://quarkus.io/guides/getting-started-testing) —
+- [Quarkus: Testing your application](https://quarkus.io/guides/getting-started-testing):
   `@QuarkusTest`, Dev Services-backed tests, and the Surefire/Failsafe split
   this chapter's unit and integration tiers rely on.
-- [Quarkus — Continuous Testing](https://quarkus.io/guides/continuous-testing) —
+- [Quarkus: Continuous Testing](https://quarkus.io/guides/continuous-testing):
   the dev-loop test runner behind this project's inner-loop feedback.
-- [Testcontainers](https://testcontainers.com/) — the self-provisioned
+- [Testcontainers](https://testcontainers.com/): the self-provisioned
   Kafka and Apicurio containers behind every wire-level `*IT` in this
   chapter.
-- [Apache Kafka documentation](https://kafka.apache.org/documentation/) —
+- [Apache Kafka documentation](https://kafka.apache.org/documentation/):
   consumer groups, offsets, and the wire format `OrderPlacedAvroWireIT`
   asserts against at the byte level.
-- Newman (Postman's CLI collection runner) documentation — the tool behind
+- Newman (Postman's CLI collection runner) documentation: the tool behind
   the functional tier's headless run of `datamesh.postman_collection.json`.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. The automated tiers run green — `mvn verify` across the project (unit + integration with self-provisioning Testcontainers), the Spring Boot twin build, and continuous testing (6/6). The live tiers ran on 2026-10-06 through `scripts/run-all-tests.sh --load` (compose stack plus order, inventory, gateway, and review services): the Newman collection passed 49/49 assertions (newman 6.2.2); `load-orders.sh` (hey v0.1.5, `GET /orders`, 10 workers, 20 s) returned 359,551 responses, all 200, at about 18,000 requests/s with a 99th percentile of 1.3 ms; `load-checkstock.sh` (ghz v0.121.0, gRPC `CheckStock`, 10 workers, 20 s) completed 241,014 OK calls at about 12,000 calls/s with a 99th percentile of 2.1 ms, plus 8 `Unavailable` and 1 `Canceled`. Single run on one workstation; the numbers show the harness works, not a benchmark.*
+*Verification status: <span class="status status--verified">verified</span>. The automated tiers run green: `mvn verify` across the project (unit + integration with self-provisioning Testcontainers), the Spring Boot twin build, and continuous testing (6/6). The live tiers ran on 2026-10-06 through `scripts/run-all-tests.sh --load` (compose stack plus order, inventory, gateway, and review services): the Newman collection passed 49/49 assertions (newman 6.2.2); `load-orders.sh` (hey v0.1.5, `GET /orders`, 10 workers, 20 s) returned 359,551 responses, all 200, at about 18,000 requests/s with a 99th percentile of 1.3 ms; `load-checkstock.sh` (ghz v0.121.0, gRPC `CheckStock`, 10 workers, 20 s) completed 241,014 OK calls at about 12,000 calls/s with a 99th percentile of 2.1 ms, plus 8 `Unavailable` and 1 `Canceled`. Single run on one workstation; the numbers show the harness works, not a benchmark.*

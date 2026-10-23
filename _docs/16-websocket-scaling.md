@@ -27,7 +27,7 @@ process**. This appendix covers what changes with more than one replica, the
 normal shape for anything KEDA scales: the problem, and the two-consumer,
 two-Kafka-group pattern `notification-service` implements to solve it.
 
-{% include excalidraw.html file="16-websocket-scaling" alt="order-service publishes an Avro event to the order.placed topic. A persistence consumer in the shared group notification-service, one replica per partition, writes the Notification row to Postgres. Each notification-service replica also runs its own push consumer in a per-replica group, so every replica receives every event and pushes it to the WebSocket clients connected to that replica through its in-JVM OpenConnections registry." caption="Figure A1.1 — Scaling WebSocket push across replicas with Kafka fan-out" %}
+{% include excalidraw.html file="16-websocket-scaling" alt="order-service publishes an Avro event to the order.placed topic. A persistence consumer in the shared group notification-service, one replica per partition, writes the Notification row to Postgres. Each notification-service replica also runs its own push consumer in a per-replica group, so every replica receives every event and pushes it to the WebSocket clients connected to that replica through its in-JVM OpenConnections registry." caption="Figure A1.1: Scaling WebSocket push across replicas with Kafka fan-out" %}
 
 ## What the repo does today
 
@@ -90,7 +90,7 @@ public void consume(OrderPlaced event) {
 }
 ```
 
-`wsConnections` is an injected `io.quarkus.websockets.next.OpenConnections` —
+`wsConnections` is an injected `io.quarkus.websockets.next.OpenConnections`:
 the WebSockets.Next registry of every socket currently open **in this JVM**.
 `listAll()` iterates whichever clients happen to be connected to *this*
 replica; it never needs to know about sockets held by any other replica,
@@ -98,30 +98,30 @@ because every replica runs its own `OrderPlacedPushConsumer` against the
 same topic (see "The fan-out pattern" below for why this does not race
 `OrderPlacedConsumer`'s write).
 [demo-websocket.sh]({{ site.repo_blob }}/demos/demo-websocket.sh)
-proves the single-replica case of this chain end to end — order placed,
-consumed, persisted, pushed — by running exactly one `notification-service`
+proves the single-replica case of this chain end to end: order placed,
+consumed, persisted, pushed, by running exactly one `notification-service`
 JVM.
 
 ## Why a second replica would break the old single-channel design
 
 Put two replicas of `notification-service` behind a Kubernetes `Service` (or
-any load balancer) and two independent problems show up — one inherent to
-WebSockets, and one that the two-channel split above exists to solve.
+any load balancer) and two independent problems show up. One is inherent to
+WebSockets; the other is what the two-channel split above exists to solve.
 
 ### The socket is pinned to one replica
 
 A WebSocket starts as an HTTP
 upgrade and then holds one long-lived TCP connection for its whole life. The
 `Service`/load balancer picks a backend pod once, at connect time, and that
-connection can't hop to a different pod mid-life — there's no protocol-level
+connection can't hop to a different pod mid-life: there's no protocol-level
 mechanism for it to. So if a client opens `/ws/notifications` and lands on
-replica A, replica A is the *only* process in the fleet holding that socket;
-`OpenConnections` on replica B knows nothing about it — a plain in-memory
+replica A, replica A is the *only* process in the fleet holding that socket.
+`OpenConnections` on replica B knows nothing about it; it's a plain in-memory
 registry scoped to the JVM it lives in, with no clustering extension wired up
 (this module's [pom.xml]({{ site.repo_blob }}/examples/notification-service/pom.xml) depends on `quarkus-websockets-next` and nothing
-else — no Infinispan, no Vert.x cluster manager). This is an unavoidable
+else: no Infinispan, no Vert.x cluster manager). This is an unavoidable
 property of what a WebSocket is, not something the fan-out pattern below
-removes — see "Sticky sessions vs. broadcast."
+removes. See "Sticky sessions vs. broadcast" below.
 
 ### A single shared consumer group would only reach one replica
 
@@ -130,37 +130,37 @@ removes — see "Sticky sessions vs. broadcast."
 entry sets `mp.messaging.incoming.order-placed.connector=smallrye-kafka` and
 `mp.messaging.incoming.order-placed.topic=order.placed`, but sets no
 `group.id`. Per Quarkus's Kafka reference guide, the consumer group id
-defaults to `quarkus.application.name`, which is `notification-service` — and
+defaults to `quarkus.application.name`, which is `notification-service`.
 [consumer-scaledobject.yaml]({{ site.repo_blob }}/k8s/keda/consumer-scaledobject.yaml) says so explicitly in its header
 comment, pointing its `consumerGroup: notification-service` KEDA trigger at
 that same default. A Kafka consumer group's defining behavior is that its
-members **split the topic's partitions among themselves** — each partition
+members **split the topic's partitions among themselves**: each partition
 is read by exactly one member at a time. That's correct for a group whose
 only job is "persist each order exactly once": two replicas sharing
 `notification-service` as their group id divide the partitions, so the write
 workload scales and no row is processed twice.
 
 It's exactly wrong for a push
-that needs every replica to see every event — if `OrderPlacedPushConsumer`
+that needs every replica to see every event. If `OrderPlacedPushConsumer`
 read from that same shared group instead of its own, only the
-partition-owning replica would ever see a given event and fire the push,
-and if the client who needs to see it is connected to a different replica,
+partition-owning replica would ever see a given event and fire the push.
+If the client who needs to see it is connected to a different replica,
 it would never arrive, silently: the order would still be persisted
 correctly (`GET /notifications` would show it), and the socket would stay
-open and healthy — it would just never receive that message. That's exactly
+open and healthy. It would just never receive that message. That's exactly
 the failure mode `order-placed-push`'s separate, per-replica unique group
 (below) exists to avoid.
 
 ## The fan-out pattern: every replica sees every message
 
-The implementation keeps Kafka in its usual role — a durable, ordered log —
+The implementation keeps Kafka in its usual role as a durable, ordered log,
 but changes *who subscribes to it and how*, by splitting
 `OrderPlacedConsumer`'s old single `@Incoming("order-placed")` method into
 two independent consumers of the same `order.placed` topic:
 
 - `OrderPlacedConsumer` keeps the **existing shared, partition-balanced
   group** (`notification-service`, defaulted from
-  `quarkus.application.name`) on its `order-placed` channel — one logical
+  `quarkus.application.name`) on its `order-placed` channel: one logical
   writer per partition across the whole replica set, unchanged from before,
   and still relying on `Notification.findByOrderId` plus the entity's
   `@Column(unique = true)` on `order_id` to make at-least-once redelivery
@@ -172,13 +172,13 @@ two independent consumers of the same `order.placed` topic:
   copy of *every* record on every partition. Kafka becomes the broadcast
   bus for this channel: every replica, on consuming an event, checks only
   its own local `OpenConnections` and pushes to whichever of its own
-  clients care — the same non-blocking `sendText(...).subscribe()` pattern
+  clients care, the same non-blocking `sendText(...).subscribe()` pattern
   the original single-consumer design used, just no longer dependent on
   that replica having "won" the partition, and never touching the database.
 
 The per-replica unique group id is built from `HOSTNAME`, which Kubernetes
-sets to the pod name for every container in a Deployment — unique per
-replica by construction:
+sets to the pod name for every container in a Deployment: unique per
+replica by construction.
 
 ```properties
 mp.messaging.incoming.order-placed-push.connector=smallrye-kafka
@@ -191,8 +191,8 @@ mp.messaging.incoming.order-placed-push.apicurio.registry.use-specific-avro-read
 ```
 
 The `:notification-service-push` default (Quarkus property-expression
-syntax, {% raw %}`${expression:default}`{% endraw %}) only matters when `HOSTNAME` isn't present
-— for example a bare `mvn test` run outside a container — and keeps that
+syntax, {% raw %}`${expression:default}`{% endraw %}) only matters when `HOSTNAME` isn't present,
+for example a bare `mvn test` run outside a container, and it keeps that
 case correct for a single replica too, since one fixed group id still
 receives every record on its own.
 
@@ -201,26 +201,25 @@ The push needs its own channel, `order-placed-push`, rather than a new
 `OrderPlacedConsumer.consume` used to do two jobs in one method gated by one
 `@Incoming` channel: persist the row *and* fire the push.
 
-Replacing
-that one channel's group id with a per-replica unique value would have
-broken persistence along with fixing the fan-out: every replica would then
-see every `OrderPlaced` event and race to persist the same row, and
+Replacing that one channel's group id with a per-replica unique value would
+have broken persistence along with fixing the fan-out: every replica would
+then see every `OrderPlaced` event and race to persist the same row, and
 `findByOrderId`'s check-then-insert isn't transactionally safe against a
-concurrent insert from a sibling replica — both can find nothing, both
+concurrent insert from a sibling replica. Both can find nothing, both
 attempt the insert, and one loses to the unique constraint with a database
 exception instead of a quiet no-op.
 
-Keeping persistence on its own channel
-and group, and adding push as a second, independent subscription with no
-database write at all, separates "exactly one writer per partition" from
-"every replica sees everything" — the reason this is an architectural split
-into two consumers rather than a one-line `group.id` edit.
+Keeping persistence on its own channel and group, and adding push as a
+second, independent subscription with no database write at all, separates
+"exactly one writer per partition" from "every replica sees everything."
+That's the reason this is an architectural split into two consumers rather
+than a one-line `group.id` edit.
 
 `OpenConnections` itself doesn't need to become distributed for
 this to work: each replica keeps owning only its own sockets, and the
-pattern centralizes the *event stream* rather than the connection registry —
-no shared Redis set of "who's connected where," no cross-replica RPC to ask
-"do you have this client." That is a much smaller change than building
+pattern centralizes the *event stream* rather than the connection registry.
+There's no shared Redis set of "who's connected where," no cross-replica RPC to ask
+"do you have this client." That's a much smaller change than building
 a distributed connection directory, and Kafka is already the event bus used
 everywhere else in this project.
 
@@ -228,7 +227,7 @@ everywhere else in this project.
 
 "Sticky sessions" usually means a load balancer routes repeated *requests*
 from the same client back to the same backend pod across separate
-connections — a cookie-based affinity rule layered on otherwise-stateless
+connections: a cookie-based affinity rule layered on otherwise-stateless
 HTTP. A WebSocket gets the same effect for its own lifetime without that
 configuration: the upgrade handshake picks one backend once, and the TCP
 connection that follows stays pinned there for as long as it's open, sticky
@@ -238,7 +237,7 @@ is, not a configuration choice.
 
 Sticky-session thinking would otherwise matter for **reconnects**: if a
 client drops and reconnects, should the load balancer land it back on the
-same replica? With the Kafka fan-out pattern in place, it doesn't need to —
+same replica? With the Kafka fan-out pattern in place, it doesn't need to:
 every replica is subscribed to the same broadcast and can serve any client
 equally, so a reconnect landing on a different replica receives every later event.
 Broadcasting over Kafka removes the need for affinity rules: it does not
@@ -248,8 +247,8 @@ was disconnected are covered in "Replica failure and client reconnect" below.
 ## Backpressure on slow clients
 
 `OrderPlacedPushConsumer.consume` pushes with
-`connection.sendText(notification).subscribe().with(ignored -> {}, failure -> ...)`
-— fire-and-forget by design, per the method's own Javadoc: this runs
+`connection.sendText(notification).subscribe().with(ignored -> {}, failure -> ...)`,
+fire-and-forget by design, per the method's own Javadoc: this runs
 synchronously on the Reactive Messaging consumer thread for the
 `order-placed-push` channel, and blocking that thread per client would be
 worse than a best-effort push. That's reasonable for a single-client demo,
@@ -264,8 +263,8 @@ of replicas, since it's now every replica's `OrderPlacedPushConsumer`
 holding this exposure independently rather than just the one process the
 single-replica demo runs.
 
-A scaled deployment would need a bound per connection — a fixed-size outbound
-queue, with an explicit policy for what happens when it fills: drop the
+A scaled deployment would need a bound per connection: a fixed-size outbound
+queue, with an explicit policy for what happens when it fills. Drop the
 oldest pending message (acceptable here, since a newer `Notification` for a
 *different* order doesn't supersede an older one the way a live dashboard
 tick might, so dropping isn't free the way it would be for a status gauge)
@@ -303,7 +302,7 @@ The client side needs three behaviors:
 3. After the new connection opens, re-fetch recent notifications from
    `GET /notifications` and de-duplicate by order id.
 
-{% include excalidraw.html file="16-websocket-failover" alt="Three panels from left to right. Normal: a client holds a WebSocket to replica 2 while replicas 1, 2 and 3 each receive every event from Kafka through their own push consumer group. Replica 2 fails: its socket closes and the client waits with jittered exponential backoff, for example 1 s, 2 s, 4 s. Recover: the Service routes the reconnect to replica 1 or 3, which already receives every event, and the client re-fetches missed events through GET /notifications." caption="Figure A1.2 — Replica failure and client reconnect" %}
+{% include excalidraw.html file="16-websocket-failover" alt="Three panels from left to right. Normal: a client holds a WebSocket to replica 2 while replicas 1, 2 and 3 each receive every event from Kafka through their own push consumer group. Replica 2 fails: its socket closes and the client waits with jittered exponential backoff, for example 1 s, 2 s, 4 s. Recover: the Service routes the reconnect to replica 1 or 3, which already receives every event, and the client re-fetches missed events through GET /notifications." caption="Figure A1.2: Replica failure and client reconnect" %}
 
 Both halves are in the repository. The client half is
 [WsReconnectClient.java]({{ site.repo_blob }}/demos/jbang/WsReconnectClient.java),
@@ -326,10 +325,10 @@ and is unchanged.
 
 `consumer-scaledobject.yaml` configures `notification-service` to
 scale on Kafka consumer lag for the `notification-service` group, with
-`minReplicaCount: 0` — the deployment can go to zero replicas when there's no
+`minReplicaCount: 0`: the deployment can go to zero replicas when there's no
 lag, and KEDA's Kafka trigger brings a replica back up once lag accrues past
 `lagThreshold: "5"`. That scale-to-zero story is written entirely in terms of
-**consumer lag on the shared `notification-service` group** — i.e. the
+**consumer lag on the shared `notification-service` group**, meaning the
 persistence path, `OrderPlacedConsumer`'s `order-placed` channel. It says
 nothing about the per-replica `order-placed-push` groups
 `OrderPlacedPushConsumer` now also holds (each one, by construction, a group
@@ -341,41 +340,41 @@ because neither exists in that ScaledObject's model of the workload.
 That gap becomes a conflict once a replica also holds live client
 sockets. A replica with zero consumer lag but three open `/ws/notifications`
 connections is, by this lag-only metric, a candidate for scale-down to
-zero — and scaling it to zero drops every connection it holds, with no
+zero, and scaling it to zero drops every connection it holds, with no
 replacement replica to reconnect to until the next `order.placed` event
 causes lag and a cold start. An idle-but-open socket, waiting for the
 next order, looks identical to KEDA as "no work happening" and identical to
 the client as a connection about to be killed for no reason it caused.
 
 Fixing this isn't a `group.id` change like the fan-out problem above; it
-needs the deployment to also account for in-flight connections — for
+needs the deployment to also account for in-flight connections. For
 example, a second scaler input (KEDA supports multiple triggers per
 `ScaledObject`) keyed on open-connection count, a
 `PodDisruptionBudget`/termination-grace-period posture that drains sockets
 gracefully rather than dropping them, or pairing a WebSocket-serving
 replica with `minReplicaCount: 1` instead of `0`. None of that is configured
-in `consumer-scaledobject.yaml` today — it's written for a purely
+in `consumer-scaledobject.yaml` today. It's written for a purely
 consume-and-persist workload, accurate for what runs there now but not for a
 scaled, socket-holding variant of this service.
 
 ## What you learned
 
 - `notification-service` persists and pushes via two independent Kafka
-  consumers of the same `order.placed` topic — `OrderPlacedConsumer` (shared
+  consumers of the same `order.placed` topic: `OrderPlacedConsumer` (shared
   group, `order-placed` channel) and `OrderPlacedPushConsumer` (per-replica
-  unique group, `order-placed-push` channel) — specifically so the push
-  works correctly across more than one replica, each still only touching
-  its own in-JVM `OpenConnections` registry (no clustering extension behind
-  it).
+  unique group, `order-placed-push` channel). The split exists specifically
+  so the push works correctly across more than one replica, each still only
+  touching its own in-JVM `OpenConnections` registry (no clustering extension
+  behind it).
 - A shared Kafka consumer group (`notification-service`, taken from
   `quarkus.application.name`, still what `order-placed` uses) splits
-  partitions across replicas — correct for exactly-once persistence, and
-  exactly wrong for a push that needs every replica to see every event.
+  partitions across replicas. That's correct for exactly-once persistence,
+  and exactly wrong for a push that needs every replica to see every event.
 - The push channel is Kafka-as-broadcast-bus: its per-replica unique group
   id (`notification-push-{% raw %}${HOSTNAME}{% endraw %}`, see "The
   fan-out pattern" above) makes every replica a group of one, so each one
   receives every message and fans out only to its own locally-connected
-  sockets — without needing a distributed connection registry.
+  sockets, without needing a distributed connection registry.
 - That's implemented as two separate channels/consumers rather than
   relabeling `order-placed`'s existing `group.id`, because the same change
   that fixes fan-out on a single channel would otherwise break the
@@ -384,7 +383,7 @@ scaled, socket-holding variant of this service.
   for the socket's life; broadcasting over Kafka removes the need to engineer
   sticky-session affinity for *reconnects* on top of that.
 - The current fire-and-forget push has no backpressure bound per connection,
-  and the current KEDA `ScaledObject` scales purely on consumer lag — neither
+  and the current KEDA `ScaledObject` scales purely on consumer lag. Neither
   accounts for a replica holding live sockets, which is new risk a scaled
   deployment would have to design for explicitly.
 - The enterprise payoff is that a data product can push its own events to
@@ -395,12 +394,12 @@ scaled, socket-holding variant of this service.
 
 ## For deeper coverage
 
-- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann & Chris Riccomini — consumer-group partitioning and fan-out tradeoffs behind the two-group pattern this chapter implements.
-- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß — scaling and resource-consumption patterns relevant to a socket-holding, KEDA-scaled replica.
+- *Designing Data-Intensive Applications, 2nd ed.* by Martin Kleppmann & Chris Riccomini: consumer-group partitioning and fan-out tradeoffs behind the two-group pattern this chapter implements.
+- *Kubernetes Patterns* by Bilgin Ibryam & Roland Huß: scaling and resource-consumption patterns relevant to a socket-holding, KEDA-scaled replica.
 - [Quarkus WebSockets Next guide](https://quarkus.io/guides/websockets-next-reference) for `OpenConnections` and the per-JVM connection registry this pattern builds on.
 - [KEDA ScaledObject specification](https://keda.sh/docs/latest/concepts/scaling-deployments/) for the multiple-trigger mechanism that could add an open-connection input.
-- [Apache Kafka documentation — consumer groups](https://kafka.apache.org/documentation/#intro_consumers) for the partition-assignment behavior that makes a group-of-one a broadcast receiver.
+- [Apache Kafka documentation: consumer groups](https://kafka.apache.org/documentation/#intro_consumers) for the partition-assignment behavior that makes a group-of-one a broadcast receiver.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> for the fan-out and for replica failure and client reconnect. On 2026-10-06, `tooling/ws-failover/verify-ws-failover.sh` held two replicas, received order A over the first connection as a push, deleted the replica holding the socket (`WS_CLOSED code=1000`), reconnected after a jittered 979 ms backoff, re-fetched 183 notifications with no new or duplicate order, and received order B as a push from the surviving replica. Single run. The multi-replica fan-out was driven on a local Kubernetes cluster (`minikube`) with two `notification-service` replicas. Each replica's push consumer registered its own unique Kafka group (`notification-push-${HOSTNAME}` resolved to the two distinct pod names, confirmed alongside the shared `notification-service` persistence group), so every replica received every `order.placed` record. A WebSocket client was connected to each replica; a single order was placed, and both clients independently received the push for that same order id — the Kafka-backed broadcast across per-replica consumer groups behaving as described. (`OrderPlacedConsumer` persists on the shared group; `OrderPlacedPushConsumer` pushes on the per-replica group.) The single-replica `demo-websocket.sh` passed on 2026-10-06 after a fix: the demo isolates each run on its own Kafka topic, and it now overrides the push channel (`order-placed-push`) as well as the persistence channel, so the pushed message reaches the socket.*
+*Verification status: <span class="status status--verified">verified</span> for the fan-out and for replica failure and client reconnect. On 2026-10-06, `tooling/ws-failover/verify-ws-failover.sh` held two replicas, received order A over the first connection as a push, deleted the replica holding the socket (`WS_CLOSED code=1000`), reconnected after a jittered 979 ms backoff, re-fetched 183 notifications with no new or duplicate order, and received order B as a push from the surviving replica. Single run. The multi-replica fan-out was driven on a local Kubernetes cluster (`minikube`) with two `notification-service` replicas. Each replica's push consumer registered its own unique Kafka group (`notification-push-${HOSTNAME}` resolved to the two distinct pod names, confirmed alongside the shared `notification-service` persistence group), so every replica received every `order.placed` record. A WebSocket client was connected to each replica; a single order was placed, and both clients independently received the push for that same order id, the Kafka-backed broadcast across per-replica consumer groups behaving as described. (`OrderPlacedConsumer` persists on the shared group; `OrderPlacedPushConsumer` pushes on the per-replica group.) The single-replica `demo-websocket.sh` passed on 2026-10-06 after a fix: the demo isolates each run on its own Kafka topic, and it now overrides the push channel (`order-placed-push`) as well as the persistence channel, so the pushed message reaches the socket.*

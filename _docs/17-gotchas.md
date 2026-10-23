@@ -26,7 +26,7 @@ and the **Fix** (the change, with the file and config key). Each claim is
 backed by a file path, a `git log` entry, or a code comment in this
 repository; the verification footer says which fixes are covered by tests.
 
-{% include excalidraw.html file="17-gotchas" alt="A grid of eight gotcha cards, each showing a symptom on top (an error message or a silent false pass) and a fix below it (a one-line config key or code change): postgres:18 rejecting a legacy Olson timezone id fixed by -Duser.timezone=UTC and TZ=UTC/PGTZ=UTC; Avro 1.12's ClassSecurityValidator throwing SecurityException fixed by org.apache.avro.SERIALIZABLE_PACKAGES on both producer and consumer JVMs; a gRPC port mismatch (9001 vs 9000) between order-service and inventory-service fixed by converging on canonical port 9000; a @QuarkusIntegrationTest's separate process not inheriting the test JVM's timezone fixed by quarkus.test.arg-line; import.sql silently not loading under %prod fixed by self-seeding over REST; a class-level @Consumes(APPLICATION_JSON) 415ing a bodyless GET fixed by an explicit @Consumes(WILDCARD), paired with RestAssured silently dropping a Content-Type header on a bodyless GET and masking the bug, fixed by switching the regression test to java.net.http.HttpClient; Avro serde autodetection falling back to silent JSON because two Apicurio artifacts share a package, fixed by pinning value.serializer explicitly; and a general caution card about a persisted postgres named volume surviving a Hibernate DDL change, fixed by docker compose down -v" caption="Figure A2.1 — Gotchas, their symptoms, and their fixes" %}
+{% include excalidraw.html file="17-gotchas" alt="A grid of eight gotcha cards, each showing a symptom on top (an error message or a silent false pass) and a fix below it (a one-line config key or code change): postgres:18 rejecting a legacy Olson timezone id fixed by -Duser.timezone=UTC and TZ=UTC/PGTZ=UTC; Avro 1.12's ClassSecurityValidator throwing SecurityException fixed by org.apache.avro.SERIALIZABLE_PACKAGES on both producer and consumer JVMs; a gRPC port mismatch (9001 vs 9000) between order-service and inventory-service fixed by converging on canonical port 9000; a @QuarkusIntegrationTest's separate process not inheriting the test JVM's timezone fixed by quarkus.test.arg-line; import.sql silently not loading under %prod fixed by self-seeding over REST; a class-level @Consumes(APPLICATION_JSON) 415ing a bodyless GET fixed by an explicit @Consumes(WILDCARD), paired with RestAssured silently dropping a Content-Type header on a bodyless GET and masking the bug, fixed by switching the regression test to java.net.http.HttpClient; Avro serde autodetection falling back to silent JSON because two Apicurio artifacts share a package, fixed by pinning value.serializer explicitly; and a general caution card about a persisted postgres named volume surviving a Hibernate DDL change, fixed by docker compose down -v" caption="Figure A2.1: Gotchas, their symptoms, and their fixes" %}
 
 ## 1. postgres:18 rejects the host's legacy timezone id
 
@@ -41,7 +41,7 @@ FATAL: invalid value for parameter "TimeZone": "US/Eastern"
 session parameter at connection time. On a host whose default timezone is a
 legacy Olson zone id (`US/Eastern` rather than `America/New_York`),
 `postgres:18`'s stricter timezone-name validation rejects it outright,
-where older Postgres versions tolerated it — the reason `compose.yaml` sets
+where older Postgres versions tolerated it. That's the reason `compose.yaml` sets
 `TZ=UTC`/`PGTZ=UTC` on the container:
 
 ```yaml
@@ -56,7 +56,7 @@ postgres:
 
 Fixing the container side alone isn't enough: `mvn verify` talks to a
 Postgres Dev Services/Testcontainers instance from the *test JVM*, which
-forwards whatever timezone it resolved from the host — the container's own
+forwards whatever timezone it resolved from the host. The container's own
 `TZ` env var doesn't change what the client sends.
 
 **Fix.** The parent POM ([pom.xml]({{ site.repo_blob }}/examples/pom.xml)) pins `user.timezone`
@@ -82,13 +82,13 @@ The same block is repeated for `maven-failsafe-plugin`. Belt-and-suspenders:
 the container is forced to UTC
 ([compose.yaml]({{ site.repo_blob }}/compose.yaml)), the test JVM is forced to
 UTC (parent `pom.xml`, above), and the server itself is told `timezone=UTC` via
-its own `-c` flag — three independent layers, since any one being wrong
+its own `-c` flag. That's three independent layers, since any one being wrong
 reproduces the failure on a host whose locale differs from the author's.
 
-## 2. Avro 1.12's `ClassSecurityValidator` blocks a packaged JVM — on both ends
+## 2. Avro 1.12's `ClassSecurityValidator` blocks a packaged JVM: on both ends
 
-**Symptom.** `POST /orders` still returns `201` — order placement looks
-fine — but nothing ever shows up on the `order.placed` topic, and
+**Symptom.** `POST /orders` still returns `201`. Order placement looks
+fine, but nothing ever shows up on the `order.placed` topic, and
 `notification-service` never reacts to it. The failure is invisible unless
 you read logs, where you'd find:
 
@@ -101,8 +101,8 @@ a short, hardcoded allowlist of packages for (de)serializing
 `SpecificRecord` classes unless told otherwise. A Quarkus-bootstrapped
 dev/test JVM trusts the application's own packages implicitly; a
 `java -jar quarkus-run.jar` packaged/`%prod` JVM does not.
-`OrderEventProducer.publish` swallows publish failures by design — "a
-publish failure must never fail the already-committed order" — which is
+`OrderEventProducer.publish` swallows publish failures by design, "a
+publish failure must never fail the already-committed order," which is
 why this defect was invisible at the HTTP layer: the order succeeds, the
 event silently never leaves the JVM. This affected the producer side.
 
@@ -113,7 +113,7 @@ service that deserializes `OrderPlaced` back into a `datamesh.order.v1`
 
 **Fix.** `-Dorg.apache.avro.SERIALIZABLE_PACKAGES=<package>` has to be set
 on every JVM that encodes or decodes that Avro type outside a
-Quarkus-bootstrapped test/dev context — both producer and consumer. In
+Quarkus-bootstrapped test/dev context: both producer and consumer. In
 this repo it's baked into each service's container image rather than
 passed at the command line, so it's present regardless of how the image is
 launched:
@@ -125,7 +125,7 @@ ENV JAVA_TOOL_OPTIONS="-Dorg.apache.avro.SERIALIZABLE_PACKAGES=datamesh.order.v1
 
 `payment-service`'s image trusts two packages
 (`datamesh.order.v1,datamesh.payment.v1`) and `shipping-service`'s trusts
-`datamesh.payment.v1,datamesh.shipping.v1` — each service lists exactly the
+`datamesh.payment.v1,datamesh.shipping.v1`: each service lists exactly the
 Avro types it touches, not a blanket wildcard.
 [OrderPlacedAvroWireIT]({{ site.repo_blob }}/examples/order-service/src/test/java/com/patterncatalyst/datamesh/order/OrderPlacedAvroWireIT.java),
 the byte-level regression test for this, needs the identical system property on
@@ -137,7 +137,7 @@ auto-trust the package either.
 ## 3. A gRPC port that quietly didn't match between two services
 
 **Symptom.** `order-service` and `inventory-service` both start cleanly in
-isolation — health checks pass, nothing logs an error — but
+isolation. Health checks pass, nothing logs an error, but
 `POST /orders` against the real packaged pair fails closed:
 
 ```text
@@ -165,11 +165,11 @@ quarkus.grpc.clients.inventory.port=${INVENTORY_GRPC_PORT:9000}
 
 [config.yaml]({{ site.repo_blob }}/k8s/base/config.yaml) sets `INVENTORY_GRPC_PORT: "9000"` once, and
 [inventory-service.yaml]({{ site.repo_blob }}/k8s/base/inventory-service.yaml) exposes `containerPort: 9000` under the
-same name — a single source of truth both sides read, instead of two
+same name: a single source of truth both sides read, instead of two
 numbers kept in sync by hand. The lesson generalizes past gRPC: any value
 repeated across file-disjoint config (a port, a topic name, a package)
 needs one authoritative source, since file-disjointness alone doesn't
-guarantee the copies stay consistent — this exact drift also happened at
+guarantee the copies stay consistent. This exact drift also happened at
 the demo-script level (a stale `9001` override lingering after the
 service-level default moved to `9000`), caught and corrected separately.
 
@@ -177,11 +177,11 @@ service-level default moved to `9000`), caught and corrected separately.
 
 **Symptom.** `mvn verify` passes for every `@QuarkusTest`, but an
 `@QuarkusIntegrationTest` fails with the exact same Postgres timezone
-error as gotcha #1 — even though the parent POM already sets
+error as gotcha #1, even though the parent POM already sets
 `user.timezone=UTC` on the test JVM.
 
 **Root cause.** `@QuarkusIntegrationTest` doesn't run the test inside the
-Maven/Surefire test JVM at all — it packages the application and launches
+Maven/Surefire test JVM at all. It packages the application and launches
 `quarkus-run.jar` as a **separate OS process**, which starts with its own
 JVM default timezone resolved from the host, independent of whatever `-D`
 flags the launching test JVM was given. Setting `user.timezone=UTC` on the
@@ -191,7 +191,7 @@ the process *being tested*.
 own Javadoc spells this out.
 
 **Fix.** `quarkus.test.arg-line` is the forwarding mechanism Quarkus
-provides specifically for this — it passes JVM arguments through to the
+provides specifically for this: it passes JVM arguments through to the
 launched integration-test process:
 
 ```xml
@@ -217,15 +217,15 @@ launched integration-test process:
 A related near-miss: `*IT` classes are compiled by the default
 `test-compile` lifecycle binding, but **failsafe itself never runs them**
 unless `integration-test`/`verify` are explicitly bound in the module's own
-POM — the parent's `pluginManagement` only pins the plugin version and the
+POM; the parent's `pluginManagement` only pins the plugin version and the
 timezone property, no executions. Without that explicit `<executions>`
 block above, `InventoryCheckStockWireIT` would silently compile and never
 run under `mvn verify`, a quieter failure mode than a thrown exception.
 
-## 5. `import.sql` never loads in `%prod` — by design, not by accident
+## 5. `import.sql` never loads in `%prod`: by design, not by accident
 
 **Symptom.** A freshly packaged `inventory-service` running under `%prod`
-starts cleanly, but every stock lookup reports unavailable — the demo SKUs
+starts cleanly, but every stock lookup reports unavailable. The demo SKUs
 (`WIDGET-1`, `WIDGET-2`, `GADGET-1`) that exist in dev are not there.
 
 **Root cause.** `inventory-service`'s `%prod` profile sets
@@ -238,8 +238,8 @@ a default a secure-by-design, data-loss-averse deployment
 should refuse. An empty inventory on a fresh production deploy is the
 *correct* behavior, not a gap to patch over.
 
-**Fix.** Anything that needs data in a `%prod`-mode service — a demo
-script or an integration test — has to seed itself over the real REST
+**Fix.** Anything that needs data in a `%prod`-mode service, a demo
+script or an integration test, has to seed itself over the real REST
 surface rather than assume `import.sql` ran. `InventoryCheckStockWireIT`
 does exactly this in its own `@BeforeAll`:
 
@@ -262,25 +262,25 @@ This is documented in inventory-service's
 `%prod`" section, and every demo script that touches inventory does the
 same `POST /stock` dance before relying on it.
 
-## 6. A class-level `@Consumes` 415s a bodyless GET — and RestAssured hides it
+## 6. A class-level `@Consumes` 415s a bodyless GET, and RestAssured hides it
 
 **Symptom.** Under real load (a `hey`/load-test run or a browser's actual
 `Accept`/`Content-Type` negotiation), `GET /orders` intermittently returns
-`415 Unsupported Media Type` instead of the order list — but the
+`415 Unsupported Media Type` instead of the order list. But the
 project's own `@QuarkusTest` suite is green and shows no such failure.
 
 **Root cause.** Two compounding issues. First: `OrderResource`'s
 `POST /orders` method declares `@Consumes(MediaType.APPLICATION_JSON)`; if a
 sibling bodyless `GET` method doesn't declare its own `@Consumes`, RESTEasy
 Reactive can match the GET against that `@Consumes(APPLICATION_JSON)`
-constraint and reject any client whose `Content-Type` isn't JSON — including
+constraint and reject any client whose `Content-Type` isn't JSON, including
 clients like `hey`, which defaults to `text/html`, even though a GET has no
 body to parse.
 
 Second, and worse: the *first* regression test written for
 this used RestAssured, and it passed even with the bug present, because
 RestAssured's underlying Apache HttpClient **silently drops a
-`Content-Type` header on a bodyless request** — the header was never
+`Content-Type` header on a bodyless request**. The header was never
 sent, so the test could never have caught the 415 it was written to
 catch. The commit message for the fix says: *"Rewrote
 OrderResourceTest's regression case to use java.net.http.HttpClient (which
@@ -325,21 +325,20 @@ The same `@Consumes(WILDCARD)` fix was applied identically to
 [StockResource]({{ site.repo_blob }}/examples/inventory-service/src/main/java/com/patterncatalyst/datamesh/inventory/StockResource.java)
 and
 [ReviewResource]({{ site.repo_blob }}/examples/review-service/src/main/java/com/patterncatalyst/datamesh/review/ReviewResource.java)'s
-bodyless methods in the same commit
-— the pattern was searched for and fixed everywhere it appeared, not only
-at the call site that surfaced it.
+bodyless methods in the same commit. The pattern was searched for and fixed
+everywhere it appeared, not only at the call site that surfaced it.
 
 ## 7. Avro serde autodetection silently falls back to JSON
 
 **Symptom.** Nothing throws. `POST /orders` returns `201`. A consumer
 reading the topic gets perfectly readable JSON instead of Avro-encoded
-bytes — a regression that passes every test that only checks the record
+bytes. It's a regression that passes every test that only checks the record
 *deserializes*, because JSON deserializes fine too.
 
 **Root cause.** Quarkus's Reactive Messaging / Kafka Avro integration can
 usually autodetect the right serializer class from the emitted payload
 type, but it fails to here because two Apicurio artifacts share the same
-`io.apicurio.registry.serde.avro` package — a split-package situation that
+`io.apicurio.registry.serde.avro` package, a split-package situation that
 defeats the classpath scanning autodetection relies on. `OrderEventProducer`'s
 own class Javadoc documents exactly this:
 
@@ -368,7 +367,7 @@ schema.
 
 Unlike the seven gotchas above, this one is presented as general operating
 advice rather than a specific incident. A review of this repo's history
-found one related concern — a possible stale postgres-data volume — which
+found one related concern, a possible stale postgres-data volume, which
 was investigated and ruled out: a fresh `%prod` database worked correctly,
 and no stale volume was found to have caused drift. It is therefore not
 counted as an incident.
@@ -376,13 +375,13 @@ counted as an incident.
 The general caution still stands, though, and it's grounded in how this
 compose stack is built. `compose.yaml` mounts a **named volume**
 (`postgres-data:/var/lib/postgresql`) for Postgres specifically so data
-survives a `docker compose down`/`up` cycle — the entire point of a named
+survives a `docker compose down`/`up` cycle: the entire point of a named
 volume over an anonymous one. But durability cuts both ways: if an entity's
 mapped schema changes (a new `@Column`, a changed `GenerationType`, a
 renamed table) and `quarkus.hibernate-orm.database.generation` is anything
 short of `drop-and-create`, the running container keeps the *old* on-disk
-schema underneath the *new* application code, and you get drift — missing
-columns, default-value surprises, or constraint violations — that a
+schema underneath the *new* application code, and you get drift: missing
+columns, default-value surprises, or constraint violations, that a
 from-scratch environment would never reproduce, because it has no old
 schema to collide with. `compose.yaml`'s own comment on
 `docker compose down -v` exists for exactly this reason:
@@ -396,7 +395,7 @@ docker compose down -v    # stop AND wipe volumes (Kafka KRaft
 `@Entity`'s mapped shape, run `docker compose down -v` before the next
 `up` to force Postgres to reinitialize from the current schema, rather
 than assuming `update` generation mode will reconcile every kind of change
-cleanly — it doesn't handle destructive changes (dropped/renamed columns)
+cleanly. It doesn't handle destructive changes (dropped/renamed columns)
 at all, and even additive changes are worth verifying against a clean
 volume at least once before trusting them in a shared or longer-lived
 environment.
@@ -406,32 +405,32 @@ environment.
 - Timezone handling around `postgres:18` needs three independent fixes: the
   container (`TZ`/`PGTZ`), the test JVM (surefire/failsafe `user.timezone`),
   and the packaged process a `@QuarkusIntegrationTest` launches
-  (`quarkus.test.arg-line`) — a different JVM that inherits none of the
+  (`quarkus.test.arg-line`), a different JVM that inherits none of the
   other two.
 - A security validator or a serializer silently falling back can leave an
   endpoint returning `201`/`200` while the actual side effect (an event
   publish, an Avro-encoded record) fails or degrades; a fine HTTP
   response is not evidence the whole request succeeded.
 - A port, topic name, or any value repeated across file-disjoint config
-  needs one authoritative source, not N copies kept in sync by hand — this
+  needs one authoritative source, not N copies kept in sync by hand. This
   repo's own `git log` has an instance of that drift (gRPC 9001 vs
   9000).
 - A regression test is only as good as the client it uses: RestAssured
   dropping a `Content-Type` header on a bodyless GET turned a
   regression test into a false pass until it was rewritten against
   `java.net.http.HttpClient`.
-- Not every surprising behavior is a bug — `import.sql` not loading in
+- Not every surprising behavior is a bug. `import.sql` not loading in
   `%prod` and a stale-volume concern that turned out not to reproduce were
   both investigated and resolved as working-as-intended.
 
 ## For deeper coverage
 
-- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al. — the general shape of several entries here: a hidden assumption (host timezone, classpath package layout, a test client's own quirks) that only breaks under a packaged/production-like run.
+- *Cloud Native Anti-Patterns* by Gerald Bachlmayr et al.: the general shape of several entries here: a hidden assumption (host timezone, classpath package layout, a test client's own quirks) that only breaks under a packaged/production-like run.
 - [Quarkus configuration reference](https://quarkus.io/guides/config-reference) for property-expression defaults (`${HOSTNAME:default}`) and profile-specific behavior (`%prod`) used throughout this chapter.
 - [Apache Avro specification](https://avro.apache.org/docs/) for the wire-format magic byte and `SpecificRecord` serialization this chapter's Avro gotchas depend on.
 - [RESTEasy Reactive guide](https://quarkus.io/guides/resteasy-reactive) for the `@Consumes` media-type matching behind the bodyless-GET 415.
-- [PostgreSQL documentation — Date/Time types](https://www.postgresql.org/docs/current/datatype-datetime.html) for the timezone-name validation `postgres:18` tightened.
+- [PostgreSQL documentation: Date/Time types](https://www.postgresql.org/docs/current/datatype-datetime.html) for the timezone-name validation `postgres:18` tightened.
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. The committed fixes are re-run green by `mvn verify` — `OrderPlacedAvroWireIT` covers the Avro serde / SERIALIZABLE_PACKAGES fixes, `InventoryCheckStockWireIT` covers the gRPC-port, import.sql self-seed, and integration-test timezone fixes, and `OrderResourceTest` covers the `@Consumes` fix.*
+*Verification status: <span class="status status--verified">verified</span>. The committed fixes are re-run green by `mvn verify`: `OrderPlacedAvroWireIT` covers the Avro serde / SERIALIZABLE_PACKAGES fixes, `InventoryCheckStockWireIT` covers the gRPC-port, import.sql self-seed, and integration-test timezone fixes, and `OrderResourceTest` covers the `@Consumes` fix.*
