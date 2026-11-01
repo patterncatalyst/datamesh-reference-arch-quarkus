@@ -13,6 +13,8 @@
          {% if page.url == '/docs/10-summary/' %}aria-current="page"{% endif %}>Summary</a>
       <a href="{{ '/demos/' | relative_url }}"
          {% if page.url == '/demos/' or page.url == '/setup/' %}aria-current="page"{% endif %}>Demos</a>
+      <a href="{{ '/diagrams/' | relative_url }}"
+         {% if page.url contains '/diagrams/' %}aria-current="page"{% endif %}>Diagrams</a>
       <a href="{{ '/bibliography/' | relative_url }}"
          {% if page.url contains '/bibliography/' %}aria-current="page"{% endif %}>Bibliography</a>
       <a href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}"
